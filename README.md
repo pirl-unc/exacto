@@ -10,7 +10,7 @@ Expression Quantification and Identification of Augmented Transcripts of Somatic
 
 ## 02. Installation
 ```
-python setup.py install
+pip install -e ./
 ```
 
 ## 03. Usage
