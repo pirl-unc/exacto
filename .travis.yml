@@ -29,6 +29,7 @@ install:
   - conda install -c bioconda pysam
   - conda install -c bioconda pyensembl
   - conda install -c bioconda pyvcf
+  - conda install -c anaconda pylint
   - pip install .
   - pip install coveralls
 before_script:
