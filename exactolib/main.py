@@ -11,6 +11,7 @@
 # limitations under the License.
 
 
+import pysam
 import pandas as pd
 from typing import Tuple, List
 from .constants import *
@@ -302,3 +303,14 @@ def run_exacto_merge_genomic_structural_variants(
         max_sv_cluster_distance=max_sv_cluster_distance
     )
     return df_merged, df_merged_deduped
+
+
+def run_exacto_simulate_variants(nucleic_acid_type: str,
+                                 fasta: pysam.FastaFile,
+                                 num_snv: int = SIMULATE_NUM_SNV,
+                                 num_insertion: int = SIMULATE_NUM_INSERTION,
+                                 num_deletion: int = SIMULATE_NUM_DELETION) -> pd.DataFrame:
+    if nucleic_acid_type == NucleicAcidTypes.DNA:
+        for chrom, size in zip(fasta.references, fasta.lengths):
+            print(chrom, size)
+

@@ -44,3 +44,11 @@ EXCLUDE_SNV_INDEL_PADDING = 1
 # Maximum distance (bases) for merging two structural variants.
 MAX_SV_CLUSTER_DISTANCE = 100
 
+# Number of single-nucleotide variants to simulate
+SIMULATE_NUM_SNV = 100
+
+# Number of small insertions to simulate
+SIMULATE_NUM_INSERTION = 100
+
+# Number of small deletions to simulate
+SIMULATE_NUM_DELETION = 100
