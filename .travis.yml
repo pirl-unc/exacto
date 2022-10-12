@@ -23,9 +23,11 @@ before_install:
 install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-      nose numpy scipy pandas mkl tensorflow pip cython
   - source activate test-environment
-  - pip install -r requirements.txt --ignore-installed
+  - conda install pandas
+  - conda install -c bioconda pysam
+  - conda install -c bioconda pyensembl
+  - conda install -c bioconda pyvcf
   - pip install .
   - pip install coveralls
 before_script:
