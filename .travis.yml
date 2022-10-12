@@ -5,7 +5,6 @@ python:
   - "3.9"
 os:
   - linux
-  - windows
   - osx
 cache:
   pip: true
@@ -24,6 +23,8 @@ install:
   - >
       conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
+  - conda config --add channels bioconda
+  - conda config --add channels conda-forge
   - conda install pandas
   - conda install -c bioconda pysam
   - conda install -c bioconda pyensembl
