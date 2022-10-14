@@ -12,6 +12,7 @@ before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - export PYTHONPATH=$PYTHONPATH:$(pwd)
   # reset the shell's lookup table for program name to path mappings
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
