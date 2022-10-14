@@ -30,11 +30,12 @@ install:
   - conda install -c bioconda pyensembl
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
+  - conda install -c conda-forge coverage
   - pip install .
   - conda install -c conda-forge coveralls
 before_script:
   - ./lint.sh
 script:
-  - nosetests test --with-coverage --cover-package=exacto
+  - nosetests test --with-coverage --cover-package=exactolib
 after_success:
   coveralls

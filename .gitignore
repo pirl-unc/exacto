@@ -3,6 +3,7 @@
 __pycache__/
  *.pyc
 .idea/
+.coverage
 build/
 dist/
 Exacto.egg-info/
