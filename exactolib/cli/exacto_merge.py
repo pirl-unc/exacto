@@ -113,7 +113,7 @@ def run_exacto_merge_from_parsed_args(args):
     if args.variant_type == VariantTypes.SV:
         list_df = []
         for curr_tsv_file in args.tsv_files:
-            df_temp = pd.DataFrame(curr_tsv_file, sep='\t')
+            df_temp = pd.read_csv(curr_tsv_file, sep='\t')
             list_df.append(df_temp)
         df_merged, df_merged_deduped = run_exacto_merge_genomic_structural_variants(
             list_df=list_df,

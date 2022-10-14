@@ -293,7 +293,7 @@ def run_exacto_refine_from_parsed_args(args):
 
         # Step 2. Load structural variants to exclude.
         if args.exclude_sv_tsv_file is not None:
-            df_structural_variants_to_exclude = pd.DataFrame(
+            df_structural_variants_to_exclude = pd.read_csv(
                 args.exclude_sv_tsv_file,
                 sep='\t'
             )
@@ -302,7 +302,7 @@ def run_exacto_refine_from_parsed_args(args):
 
         # Step 3. Load gapped regions.
         if args.gapped_regions_tsv_file is not None:
-            df_gapped_regions = pd.DataFrame(
+            df_gapped_regions = pd.read_csv(
                 args.gapped_regions_tsv_file,
                 sep='\t'
             )
@@ -343,7 +343,7 @@ def run_exacto_refine_from_parsed_args(args):
             )
         # Step 2. Load gapped regions.
         if args.gapped_regions_tsv_file is not None:
-            df_gapped_regions = pd.DataFrame(
+            df_gapped_regions = pd.read_csv(
                 args.gapped_regions_tsv_file,
                 sep='\t'
             )

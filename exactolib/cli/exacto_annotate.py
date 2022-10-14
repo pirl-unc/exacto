@@ -135,7 +135,8 @@ def run_exacto_annotate_from_parsed_args(args):
             df_structural_variants = run_exacto_annotate_genomic_structural_variants(
                 df_structural_variants=df_structural_variants,
                 annotation_source=args.annotation_source,
-                df_gencode=None,
+                df_gencode_genes=None,
+                df_gencode_exons=None,
                 ensembl_release=args.ensembl_release
             )
         elif args.annotation_source == AnnotationSources.GENCODE:
@@ -146,7 +147,8 @@ def run_exacto_annotate_from_parsed_args(args):
                 df_structural_variants=df_structural_variants,
                 annotation_source=args.annotation_source,
                 df_gencode_genes=df_gencode_genes,
-                df_gencode_exons=df_gencode_exons
+                df_gencode_exons=df_gencode_exons,
+                ensembl_release=None,
             )
         else:
             raise Exception(

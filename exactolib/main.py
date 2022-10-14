@@ -77,7 +77,7 @@ def run_exacto_refine_genomic_structural_variants(
             df_structural_variants=df_structural_variants,
             keep_only_chromosomes=keep_only_chromosomes,
             keep_only_filter_values=keep_only_filter_values,
-            keep_only_precise_sv=keep_only_precise_sv,
+            keep_only_precise=keep_only_precise_sv,
             min_total_coverage=min_total_coverage,
             min_variant_reads_count=min_variant_reads_count
         )
@@ -310,7 +310,8 @@ def run_exacto_simulate_variants(nucleic_acid_type: str,
                                  num_snv: int = SIMULATE_NUM_SNV,
                                  num_insertion: int = SIMULATE_NUM_INSERTION,
                                  num_deletion: int = SIMULATE_NUM_DELETION) -> pd.DataFrame:
+    df = pd.DataFrame()
     if nucleic_acid_type == NucleicAcidTypes.DNA:
         for chrom, size in zip(fasta.references, fasta.lengths):
             print(chrom, size)
-
+    return df
