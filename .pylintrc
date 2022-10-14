@@ -1,6 +1,7 @@
 [MASTER]
 init-hook='import sys; sys.path.append(".")'
 
+
 [TYPECHECK]
 # Without ignoring this, we get errors like:
 # E:249,20: Module 'numpy' has no 'nan' member (no-member)

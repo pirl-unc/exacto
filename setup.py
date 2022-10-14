@@ -32,9 +32,7 @@ if __name__ == '__main__':
                   'pyensembl',
                   'pyvcf'
             ],
-            packages=[
-                  'exactolib'
-            ],
+            packages=find_packages(),
             entry_points={
                   'console_scripts': [
                         'exacto=exactolib.cli.exacto_main:run'
