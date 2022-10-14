@@ -30,7 +30,7 @@ MIN_GENOMIC_VARIANT_READS_COUNT = 3
 
 # Padding for a genome gapped region.
 # The pad is applied to upstream and downstream of a gapped genomic region.
-GENOME_GAPPED_REGIONS_PADDING = 1E5
+GENOME_GAPPED_REGIONS_PADDING = 100000
 
 # Padding for an excluded structural variant breakpoint.
 # The pad is applied to upstream and downstream of the two breakpoints
