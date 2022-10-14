@@ -21,7 +21,7 @@ DIR = (dirname(__file__) or '.')
 
 if __name__ == '__main__':
       setup(
-            name='Exacto',
+            name='exacto',
             version='0.1.4',
             description='EXtracting And Counting Transcripts in Oncology.',
             author='Jin Seok (Andy) Lee',
