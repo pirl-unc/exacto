@@ -32,7 +32,7 @@ install:
   - conda install -c anaconda pylint
   - pip install .
   - conda install -c conda-forge coveralls
-  - conda install -c anaconda coverage
+  - conda install -c conda-forge nose
 before_script:
   - ./lint.sh
 script:
