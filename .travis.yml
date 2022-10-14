@@ -33,7 +33,6 @@ install:
   - pip install .
   - conda install -c conda-forge coveralls
 before_script:
-  - chmod u+x lint.sh
   - ./lint.sh
 script:
   - nosetests test --with-coverage --cover-package=exacto
