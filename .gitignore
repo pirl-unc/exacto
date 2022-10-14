@@ -8,5 +8,4 @@ build/
 dist/
 Exacto.egg-info/
 docs/.ipynb_checkpoints/
-docs/exacto_tutorial_files/
 examples/
