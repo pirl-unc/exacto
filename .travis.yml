@@ -33,6 +33,7 @@ install:
   - pip install .
   - conda install -c conda-forge coveralls
   - conda install -c conda-forge nose
+  - pyensembl install --release 107 --species human
 before_script:
   - ./lint.sh
 script:
