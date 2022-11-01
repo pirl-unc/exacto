@@ -20,7 +20,7 @@ and run Exacto 'annotate' command.
 import pandas as pd
 from ..constants import *
 from ..main import *
-from ..utilities.gencode import *
+from ..utilities.gencode_utils import *
 
 
 def add_exacto_annotate_arg_parser(sub_parsers):

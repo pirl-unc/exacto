@@ -21,7 +21,7 @@ from ..default_parameters import *
 from ..constants import *
 from ..main import *
 from ..logging import get_logger
-from ..utilities.vcf import *
+from ..utilities.vcf_utils import *
 from ..variant_refinement.structural_variants import *
 from ..variant_refinement.small_variants import *
 
@@ -333,6 +333,11 @@ def run_exacto_refine_from_parsed_args(args):
                 vcf_file=args.vcf_file,
                 sequencing_platform=args.sequencing_platform,
                 tumor_sample_id=args.tumor_sample_id
+            )
+        elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT:
+            df_variants = convert_deepvariant_vcf_to_dataframe(
+                vcf_file=args.vcf_file,
+                sequencing_platform=args.sequencing_platform
             )
         else:
             raise Exception(

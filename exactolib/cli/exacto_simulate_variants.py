@@ -45,31 +45,55 @@ def add_exacto_simulate_variants_arg_parser(sub_parsers):
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        '--reference_genome_fasta_file',
-        dest='reference_genome_fasta_file',
+        '--gencode_reference_genome_fasta_file',
+        dest='gencode_reference_genome_fasta_file',
         type=str,
         required=True,
-        help="Reference genome FASTA file."
+        help="GENCODE reference genome FASTA file."
     )
     parser_required.add_argument(
-        '--reference_',
-        dest='reference_genome_fasta_file',
+        '--gencode_referencee_transcripts_gtf_file',
+        dest='gencode_reference_transcripts_gtf_file',
         type=str,
         required=True,
-        help="Reference genome FASTA file."
+        help="GENCODE reference transcripts GTF file."
     )
     parser_required.add_argument(
-        '--output_tsv_file',
-        dest='output_tsv_file',
+        '--output_variants_tsv_file',
+        dest='output_variants_tsv_file',
         type=str,
         required=True,
-        choices=NucleicAcidTypes.ALL,
-        help="Nucleic acid type (%s)."
-             % (', '.join(f"'{item}'" for item in NucleicAcidTypes.ALL))
+        help="Output variants TSV file."
+    )
+    parser_required.add_argument(
+        '--output_augmented_genome_fasta_file',
+        dest='output_augmented_genome_fasta_file',
+        type=str,
+        required=True,
+        help="Output augmented genome FASTA file."
+    )
+    parser_required.add_argument(
+        '--output_augmented_transcriptome_fasta_file',
+        dest='output_augmented_transcriptome_fasta_file',
+        type=str,
+        required=True,
+        help="Output augmented transcriptome FASTA file."
     )
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
+    parser_optional.add_argument(
+        "--genic_variant_probability",
+        dest="genic_variant_probability",
+        type=float,
+        default=SIMULATE_GENIC_VARIANT_PROBABILITY,
+        required=False,
+        help="Probability of simulating a genic variant (default: %f). "
+             "The probability of simulating an intergenic variant is "
+             "therefore 1 - genic_variant_probability (default: %f)."
+             % (SIMULATE_GENIC_VARIANT_PROBABILITY,
+                1 - SIMULATE_GENIC_VARIANT_PROBABILITY)
+    )
     parser_optional.add_argument(
         "--num_snv",
         dest="num_snv",
@@ -107,7 +131,6 @@ def add_exacto_simulate_variants_arg_parser(sub_parsers):
              % SIMULATE_NUM_DELETION
     )
 
-
     parser.set_defaults(which='simulate_variants')
     return sub_parsers
 
@@ -128,7 +151,6 @@ def run_exacto_simulate_variants_from_parsed_args(args):
     """
     fasta = pysam.FastaFile(filename=args.fasta_file)
     df_variants = run_exacto_simulate_variants(
-        nucleic_acid_type=args.nucleic_acid_type,
         fasta=fasta
     )
     df_variants.to_csv(args.output_tsv_file, sep='\t', index=False)

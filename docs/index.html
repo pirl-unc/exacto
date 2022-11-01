@@ -23,16 +23,16 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="exacto_tutorial_files/libs/clipboard/clipboard.min.js"></script>
-<script src="exacto_tutorial_files/libs/quarto-html/quarto.js"></script>
-<script src="exacto_tutorial_files/libs/quarto-html/popper.min.js"></script>
-<script src="exacto_tutorial_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="exacto_tutorial_files/libs/quarto-html/anchor.min.js"></script>
-<link href="exacto_tutorial_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="exacto_tutorial_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="exacto_tutorial_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="exacto_tutorial_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="exacto_tutorial_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="index_files/libs/clipboard/clipboard.min.js"></script>
+<script src="index_files/libs/quarto-html/quarto.js"></script>
+<script src="index_files/libs/quarto-html/popper.min.js"></script>
+<script src="index_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="index_files/libs/quarto-html/anchor.min.js"></script>
+<link href="index_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="index_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="index_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="index_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="index_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
@@ -61,17 +61,13 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 <p>Exacto version: <code>0.1.5</code></p>
-<p>Updated date: October 5, 2022</p>
-<p>Exacto is a python3 package that identifies various RNA variants using long-read sequencing data and quantifies the relative abundance of all identified (reference and variant) transcripts in a given sample.</p>
+<p>Updated date: October 28, 2022</p>
 <section id="table-of-contents" class="level2">
 <h2 class="anchored" data-anchor-id="table-of-contents"><strong>Table of Contents</strong></h2>
 <ul>
 <li><a href="#command-line-interface">Command Line Interface</a>
 <ul>
-<li><a href="#call">call</a></li>
-<li><a href="#graph">graph</a></li>
-<li><a href="#quantify">quantify</a></li>
-<li><a href="#simulate">simulate</a></li>
+<li><a href="#simulate_variants">simulate_variants</a></li>
 <li><a href="#refine">refine</a></li>
 <li><a href="#merge">merge</a></li>
 <li><a href="#annotate">annotate</a></li>
@@ -82,75 +78,37 @@ ul.task-list li input[type="checkbox"] {
 <strong>Command Line Interface</strong>
 </h2>
 <div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
-<pre>usage: exacto.py [-h] [--version] {simulate,call,graph,quantify,refine,merge,annotate} ...
+<pre>usage: exacto [-h] [--version] {refine,annotate,merge} ...
+
+Exacto: EXtracting And Counting Transcripts in Oncology.
 
 positional arguments:
-    {simulate,call,graph,quantify,refine,merge,annotate}
-                         Exacto sub-commands.
-     call                Call RNA variants using long-read sequencing data.
-     graph               Constructs a graph of RNA variants and 
-                         generates all possible transcript sequences.
-     quantify            Quantify transcripts.
-     simulate            Simulate DNA or RNA sequencing reads.
-     refine              Refine DNA or RNA variants.
-     merge               Merges DNA or RNA variants.
-     annotate            Annotate DNA or RNA variants.
+  {refine,annotate,merge}
+                        Exacto sub-commands.
+    refine              Refine variants.
+    annotate            Annotate variants.
+    merge               Merge variants.
 
- optional arguments:
-   -h, --help            show this help message and exit
-   --version, -v         show program's version number and exit
+optional arguments:
+  -h, --help            show this help message and exit
+  --version, -v         show program's version number and exit
 </pre>
 </div>
 <p><strong>Exacto includes the following main commands:</strong></p>
 <ul>
-<li><a href="#call">call</a> (calls RNA variants using long-read sequencing data)</li>
-<li><a href="#graph">graph</a> (constructs a graph of RNA variants and generates all possible transcript sequences)</li>
-<li><a href="#quantify">quantify</a> (quantifies transcripts using long-read RNA sequencing data)</li>
-<li><a href="#simulate">simulate</a> (simulates DNA or RNA long-read sequencing reads)</li>
+<li><a href="#simulate_variants">simulate_variants</a> (simulates DNA and RNA variants)</li>
 </ul>
 <p><strong>Exacto also includes the following accessory commands:</strong></p>
 <ul>
+<li><a href="#simulate_variants">simulate_variants</a> (simulates DNA and RNA variants)</li>
 <li><a href="#refine">refine</a> (refines DNA or RNA variants)</li>
 <li><a href="#merge">merge</a> (merges DNA or RNA variants)</li>
 <li><a href="#annotate">annotate</a> (annotates DNA or RNA variants)</li>
 </ul>
-<h2 id="call" class="anchored">
-<strong><code>call</code></strong>
+<h2 id="simulate_variants" class="anchored">
+<strong><code>simulate_variants</code></strong>
 </h2>
-<p>This command identifies RNA variants using long-read sequencing data. Here are the types of RNA variants detectable by Exacto:</p>
-<ol type="1">
-<li>Single-nucleotide variants (SNV)</li>
-<li>Small insertions and deletions (&lt; 50-bp)</li>
-<li>Structural variants (50+ bp)
-<ul>
-<li>Insertion (INS)</li>
-<li>Deletion (DEL)</li>
-<li>5’ to 5’ inversion (INV_5to5)</li>
-<li>5’ to 3’ inversion (INV_5to3)</li>
-<li>3’ to 3’ inversion (INV_3to3)</li>
-<li>Tandem duplication (TANDEM_DUP)</li>
-<li>Segmental duplication (SEG_DUP)</li>
-<li>Translocation (TRA)</li>
-</ul></li>
-<li>Splice variants (SPVAR)</li>
-<li>Viral integrations</li>
-<li>Intron retention (IR)</li>
-<li>Circular RNAs (CIRC_RNA)</li>
-<li>Endogenous retroviruses (ERV)</li>
-<li>HLA variants (HLA_VAR)</li>
-</ol>
-<h2 id="graph" class="anchored">
-<strong><code>graph</code></strong>
-</h2>
-<p>This command constructs a graph of RNA variants and generates all possible transcript nucleotide sequences.</p>
-<h2 id="quantify" class="anchored">
-<strong><code>quantify</code></strong>
-</h2>
-<p>This command quantifies transcripts using long-read RNA sequencing data.</p>
-<h2 id="simulate" class="anchored">
-<strong><code>simulate</code></strong>
-</h2>
-<p>This command simulates either DNA or RNA long-read sequencing reads given a list of variants.</p>
+<p>This command simulates a list of random DNA and RNA variants.</p>
 <div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
 <pre>usage: exacto.py simulate [-h] 
   --nucleic_acid {dna,rna} 
@@ -264,7 +222,7 @@ positional arguments:
 </h2>
 <p>This command refines DNA or RNA variants.</p>
 <p><strong>Headers of Structural Variant TSV Files</strong></p>
-<p>The <code>refine</code> function in <code>Exacto</code> converts VCF files into TSV files and then performs refinement.</p>
+<p>The <code>refine</code> function in <code>Exacto</code> converts VCF files into TSV files and then performs refinement. Here is a table of headers (attributes) that each SV caller includes:</p>
 <table class="table">
 <colgroup>
 <col style="width: 43%">
@@ -500,9 +458,88 @@ positional arguments:
 <td style="text-align: center;">▲</td>
 <td style="text-align: center;">✓</td>
 </tr>
+<tr class="even">
+<td>repeat_annotation</td>
+<td style="text-align: center;">▲</td>
+<td style="text-align: center;">▲</td>
+<td style="text-align: center;">▲</td>
+<td style="text-align: center;">✓</td>
+</tr>
 </tbody>
 </table>
 <p>✓ denotes that the information is included in the original variant calling method. <br> ▲ denotes that <code>Exacto</code> will include the header in the <code>TSV</code> file for uniformity but all values in the respective column will have the value <code>unknown</code>.</p>
+<p><strong>Headers of Small Variant TSV Files</strong></p>
+<p>Here is a table of headers (attributes) that each SNV/INDEL caller includes:</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Header</th>
+<th style="text-align: center;">DeepVariant</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>id</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="even">
+<td>chrom</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="odd">
+<td>pos</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="even">
+<td>ref</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="odd">
+<td>alt</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="even">
+<td>variant_type</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="odd">
+<td>filter</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="even">
+<td>variant_sequence</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="odd">
+<td>genotype</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="even">
+<td>genotype_quality</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="odd">
+<td>total_coverage</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="even">
+<td>reference_reads_count</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="odd">
+<td>variant_reads_count</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="even">
+<td>variant_allele_fraction</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr class="odd">
+<td>phred_scaled_genotype_likelihoods</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
 <h3 id="exacto-python-library" class="anchored">
 <strong>Exacto Python Library</strong>
 </h3>

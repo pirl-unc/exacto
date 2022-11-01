@@ -188,7 +188,7 @@ def refine_sniffles2_sv_callset(
         ]
     if keep_only_precise:
         df_structural_variants = df_structural_variants[
-            df_structural_variants['is_precise'] == True,
+            df_structural_variants['is_precise']
         ]
     if len(keep_only_chromosomes) > 0:
         df_structural_variants = df_structural_variants[

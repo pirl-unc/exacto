@@ -22,7 +22,7 @@ DIR = (dirname(__file__) or '.')
 if __name__ == '__main__':
       setup(
             name='exacto',
-            version='0.1.4',
+            version='0.1.5',
             description='EXtracting And Counting Transcripts in Oncology.',
             author='Jin Seok (Andy) Lee',
             author_email='ajslee@unc.edu',
@@ -38,5 +38,4 @@ if __name__ == '__main__':
                         'exacto=exactolib.cli.exacto_main:run'
                   ]
             }
-
       )

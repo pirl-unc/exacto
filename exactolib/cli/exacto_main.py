@@ -24,6 +24,7 @@ from .. import constants
 from .exacto_refine import *
 from .exacto_annotate import *
 from .exacto_merge import *
+from .exacto_simulate_variants import *
 
 
 logger = get_logger(__name__)
@@ -53,9 +54,10 @@ def init_arg_parser():
 def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
-    sub_parsers = add_exacto_refine_arg_parser(sub_parsers=sub_parsers)     # refine
-    sub_parsers = add_exacto_annotate_arg_parser(sub_parsers=sub_parsers)   # annotate
-    sub_parsers = add_exacto_merge_arg_parser(sub_parsers=sub_parsers)      # merge
+    sub_parsers = add_exacto_simulate_variants_arg_parser(sub_parsers=sub_parsers)  # simulate_variants
+    sub_parsers = add_exacto_refine_arg_parser(sub_parsers=sub_parsers)             # refine
+    sub_parsers = add_exacto_annotate_arg_parser(sub_parsers=sub_parsers)           # annotate
+    sub_parsers = add_exacto_merge_arg_parser(sub_parsers=sub_parsers)              # merge
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
@@ -65,8 +67,8 @@ def run():
         a = 1
     elif args.which == 'quantify':
         a = 1
-    elif args.which == 'simulate':
-        a = 1
+    elif args.which == 'simulate_variants':
+        run_exacto_simulate_variants_from_parsed_args(args=args)
     elif args.which == 'convert':
         a = 1
     elif args.which == 'refine':

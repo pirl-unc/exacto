@@ -24,7 +24,8 @@ from typing import Tuple, List
 from ..logging import get_logger
 from ..constants import *
 from ..default_parameters import *
-from ..utilities.vcf import *
+from ..utilities.vcf_utils import *
+from ..utilities.pandas_utils import *
 
 
 logger = get_logger(__name__)
@@ -111,3 +112,42 @@ def refine_gatk4_mutect2_tumor_normal_callset(
     df_variants = df_variants[df_variants['tumor_variant_reads_count'] >= min_variant_reads_count]
     df_variants = df_variants[df_variants['normal_total_coverage'] >= min_total_coverage]
     return df_variants
+
+
+def refine_deepvariant_callset(
+        df_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+    """
+    Refines small variants called using DeepVariant and returns a DataFrame
+    of refined variants.
+
+    Parameters
+    ----------
+    df_variants             :   DataFrame of variants.
+                                Expected columns:
+                                'filter'
+                                'chrom'
+                                'variant_reads_count'
+                                'total_read_depth'
+    keep_only_chromosomes   :   List of chromosomes to keep.
+    keep_only_filter_values :   List of FILTER values to include.
+    min_total_coverage      :   Minimum total coverage.
+    min_variant_reads_count :   Minimum number of variants (support) reads.
+
+    Returns
+    -------
+    DataFrame
+    """
+    if len(keep_only_filter_values) > 0:
+        df_variants = df_variants[df_variants['filter'].isin(keep_only_filter_values)]
+    if len(keep_only_chromosomes) > 0:
+        df_variants = df_variants[df_variants['chrom'].isin(keep_only_chromosomes)]
+    df_variants = df_variants[df_variants['total_coverage'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['total_coverage'] >= min_total_coverage]
+    df_variants = df_variants[df_variants['variant_reads_count'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['variant_reads_count'] >= min_variant_reads_count]
+    return df_variants
+

@@ -105,10 +105,72 @@ def annotate_variant_using_pyensembl(ensembl: pyensembl.EnsemblRelease,
         return data
 
 
+def annotate_small_variants_using_pyensembl(df_small_variants: pd.DataFrame,
+                                            ensembl_release: int,) -> pd.DataFrame:
+    """
+    Annotates small variants using ENSEMBL.
+
+    Parameters
+    ----------
+    df_small_variants       :   DataFrame of structural variants.
+                                Expected columns:
+                                'chrom'
+                                'pos'
+    ensembl_release         :   Ensembl release (e.g. 106).
+
+    Returns
+    -------
+    DataFrame with the following columns appended:
+    'ensembl_pos_region'
+    'ensembl_pos_gene_id'
+    'ensembl_pos_gene_name'
+    'ensembl_pos_gene_type'
+    'ensembl_pos_gene_strand'
+    'ensembl_pos_gene_start'
+    'ensembl_pos_gene_end'
+    """
+    # Step 1. Load Ensembl
+    ensembl = pyensembl.EnsemblRelease(ensembl_release)
+
+    # Step 2. Annotate each variant
+    data = {
+        'id': [],
+        'ensembl_pos_region': [],
+        'ensembl_pos_gene_id': [],
+        'ensembl_pos_gene_name': [],
+        'ensembl_pos_gene_type': [],
+        'ensembl_pos_gene_strand': [],
+        'ensembl_pos_gene_start': [],
+        'ensembl_pos_gene_end': []
+    }
+    for index, row in df_small_variants.iterrows():
+        data['id'].append(row['id'])
+
+        # Position annotation
+        curr_chrom = row['chrom']
+        curr_pos = row['pos']
+        curr_annotation = annotate_variant_using_pyensembl(
+            ensembl=ensembl,
+            chromosome=curr_chrom,
+            position=curr_pos
+        )
+        data['ensembl_pos_region'].append(curr_annotation['region'])
+        data['ensembl_pos_gene_id'].append(curr_annotation['gene_id'])
+        data['ensembl_pos_gene_name'].append(curr_annotation['gene_name'])
+        data['ensembl_pos_gene_type'].append(curr_annotation['gene_type'])
+        data['ensembl_pos_gene_strand'].append(curr_annotation['gene_strand'])
+        data['ensembl_pos_gene_start'].append(curr_annotation['gene_start'])
+        data['ensembl_pos_gene_end'].append(curr_annotation['gene_end'])
+
+    df_annotations = pd.DataFrame(data)
+    df_small_variants = pd.merge(df_small_variants, df_annotations, on='id')
+    return df_small_variants
+
+
 def annotate_structural_variants_using_pyensembl(df_structural_variants: pd.DataFrame,
                                                  ensembl_release: int,) -> pd.DataFrame:
     """
-    Annotates variants using ENSEMBL.
+    Annotates structural variants using ENSEMBL.
 
     Parameters
     ----------
@@ -118,7 +180,6 @@ def annotate_structural_variants_using_pyensembl(df_structural_variants: pd.Data
                                 'pos_1'
                                 'chr_2'
                                 'pos_2'
-                                'sv_type' (DEL, INS, INV, DUP, BND or TRA)
     ensembl_release         :   Ensembl release (e.g. 106).
 
     Returns
@@ -197,6 +258,5 @@ def annotate_structural_variants_using_pyensembl(df_structural_variants: pd.Data
 
     df_annotations = pd.DataFrame(data)
     df_structural_variants = pd.merge(df_structural_variants, df_annotations, on='id')
-
     return df_structural_variants
 

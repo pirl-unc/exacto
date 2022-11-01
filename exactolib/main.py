@@ -24,8 +24,8 @@ from .variant_refinement.structural_variants import *
 from .variant_refinement.small_variants import *
 from .variant_annotation.ensembl import *
 from .variant_annotation.gencode import *
-from .utilities.merging import *
-from .utilities.gencode import *
+from .utilities.merging_utils import *
+from .utilities.gencode_utils import *
 
 
 logger = get_logger(__name__)
@@ -192,6 +192,14 @@ def run_exacto_refine_genomic_small_variants(
                 min_total_coverage=min_total_coverage,
                 min_variant_reads_count=min_variant_reads_count
             )
+    elif variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT:
+        df_variants = refine_deepvariant_callset(
+            df_variants=df_variants,
+            keep_only_chromosomes=keep_only_chromosomes,
+            keep_only_filter_values=keep_only_filter_values,
+            min_total_coverage=min_total_coverage,
+            min_variant_reads_count=min_variant_reads_count
+        )
     else:
         raise Exception(
             "Invalid value for 'variant_calling_method': %s. "
@@ -216,6 +224,68 @@ def run_exacto_refine_genomic_small_variants(
     return df_variants
 
 
+def run_exacto_annotate_genomic_small_variants(
+        df_small_variants: pd.DataFrame,
+        annotation_source: str,
+        df_gencode_genes: pd.DataFrame,
+        df_gencode_exons: pd.DataFrame,
+        ensembl_release: int) -> pd.DataFrame:
+    """
+    Annotates a set of variants and returns the annotated set.
+
+    Parameters
+    ----------
+    df_small_variants       :   DataFrame of variants. Expected columns:
+                                'chrom'
+                                'pos'
+    annotation_source       :   Annotation source ('ensembl' or 'gencode').
+    df_gencode_genes        :   DataFrame of GENCODE genes.
+                                Specify this if 'annotation_source' is 'gencode'.
+                                Expected columns:
+                                'gene_id'
+                                'gene_name'
+                                'gene_type'
+                                'gene_chrom'
+                                'gene_start'
+                                'gene_end'
+                                'gene_strand'
+                                'level'
+                                'transcripts_count'
+    df_gencode_exons        :   DataFrame of GENCODE exons.
+                                Specify this if 'annotation_source' is 'gencode'.
+                                Expected columns:
+                                'gene_id'
+                                'transcript_id'
+                                'exon_id'
+                                'exon_number'
+                                'exon_chrom'
+                                'exon_start'
+                                'exon_end'
+    ensembl_release         :   Ensembl release version.
+                                Specify this if 'annotation_source' is 'ensembl'.
+
+    Returns
+    -------
+    DataFrame of annotated genomic structural variants.
+    """
+    if annotation_source == AnnotationSources.ENSEMBL:
+        df_small_variants = annotate_small_variants_using_pyensembl(
+            df_small_variants=df_small_variants,
+            ensembl_release=ensembl_release
+        )
+    elif annotation_source == AnnotationSources.GENCODE:
+        df_small_variants = annotate_small_variants_using_gencode(
+            df_small_variants=df_small_variants,
+            df_gencode_genes=df_gencode_genes,
+            df_gencode_exons=df_gencode_exons
+        )
+    else:
+        raise Exception(
+            "Invalid value for 'annotation_source': %s. Allowed 'annotation_source' values are %s "
+            % (annotation_source, ', '.join(AnnotationSources.ALL)))
+    return df_small_variants
+
+
 def run_exacto_annotate_genomic_structural_variants(
         df_structural_variants: pd.DataFrame,
         annotation_source: str,
@@ -229,6 +299,11 @@ def run_exacto_annotate_genomic_structural_variants(
     ----------
     df_structural_variants  :   DataFrame of variants.
                                 Expected columns:
+                                'chr_1'
+                                'pos_1'
+                                'chr_2'
+                                'pos_2'
+                                'sv_type' (DEL, INS, INV, DUP, BND or TRA)
     annotation_source       :   Annotation source ('ensembl' or 'gencode').
     df_gencode_genes        :   DataFrame of GENCODE genes.
                                 Specify this if 'annotation_source' is 'gencode'.
@@ -308,13 +383,14 @@ def run_exacto_merge_genomic_structural_variants(
     return df_merged, df_merged_deduped
 
 
-def run_exacto_simulate_variants(nucleic_acid_type: str,
-                                 fasta: pysam.FastaFile,
+def run_exacto_simulate_variants(fasta: pysam.FastaFile,
                                  num_snv: int = SIMULATE_NUM_SNV,
                                  num_insertion: int = SIMULATE_NUM_INSERTION,
                                  num_deletion: int = SIMULATE_NUM_DELETION) -> pd.DataFrame:
     df = pd.DataFrame()
-    if nucleic_acid_type == NucleicAcidTypes.DNA:
-        for chrom, size in zip(fasta.references, fasta.lengths):
-            print(chrom, size)
     return df
+    # if nucleic_acid_type == NucleicAcidTypes.DNA:
+    #     for chrom, size in zip(fasta.references, fasta.lengths):
+    #         print(chrom, size)
+    # return df
+

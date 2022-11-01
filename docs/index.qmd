@@ -7,16 +7,11 @@ format:
 
 Exacto version: ```0.1.5```
 
-Updated date: October 5, 2022
-
-Exacto is a python3 package that identifies various RNA variants using long-read sequencing data and quantifies the relative abundance of all identified (reference and variant) transcripts in a given sample.
+Updated date: October 28, 2022
 
 ## **Table of Contents**
 * [Command Line Interface](#command-line-interface)
-  * [call](#call)
-  * [graph](#graph)
-  * [quantify](#quantify)
-  * [simulate](#simulate)
+  * [simulate_variants](#simulate_variants)
   * [refine](#refine)
   * [merge](#merge)
   * [annotate](#annotate)
@@ -26,72 +21,37 @@ Exacto is a python3 package that identifies various RNA variants using long-read
 
 <div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
 <pre>
-usage: exacto.py [-h] [--version] {simulate,call,graph,quantify,refine,merge,annotate} ...
+usage: exacto [-h] [--version] {refine,annotate,merge} ...
+
+Exacto: EXtracting And Counting Transcripts in Oncology.
 
 positional arguments:
-    {simulate,call,graph,quantify,refine,merge,annotate}
-                         Exacto sub-commands.
-     call                Call RNA variants using long-read sequencing data.
-     graph               Constructs a graph of RNA variants and 
-                         generates all possible transcript sequences.
-     quantify            Quantify transcripts.
-     simulate            Simulate DNA or RNA sequencing reads.
-     refine              Refine DNA or RNA variants.
-     merge               Merges DNA or RNA variants.
-     annotate            Annotate DNA or RNA variants.
+  {refine,annotate,merge}
+                        Exacto sub-commands.
+    refine              Refine variants.
+    annotate            Annotate variants.
+    merge               Merge variants.
 
- optional arguments:
-   -h, --help            show this help message and exit
-   --version, -v         show program's version number and exit
+optional arguments:
+  -h, --help            show this help message and exit
+  --version, -v         show program's version number and exit
 </pre>
 </div>
 
 **Exacto includes the following main commands:** 
 
-* [call](#call) (calls RNA variants using long-read sequencing data)
-* [graph](#graph) (constructs a graph of RNA variants and generates all possible transcript sequences)
-* [quantify](#quantify) (quantifies transcripts using long-read RNA sequencing data)
-* [simulate](#simulate) (simulates DNA or RNA long-read sequencing reads)
+* [simulate_variants](#simulate_variants) (simulates DNA and RNA variants)
 
 **Exacto also includes the following accessory commands:**
 
+* [simulate_variants](#simulate_variants) (simulates DNA and RNA variants)
 * [refine](#refine) (refines DNA or RNA variants)
 * [merge](#merge) (merges DNA or RNA variants)
 * [annotate](#annotate) (annotates DNA or RNA variants)
 
-<h2 id="call">**`call`**</h2>
+<h2 id="simulate_variants">**`simulate_variants`**</h2>
 
-This command identifies RNA variants using long-read sequencing data. Here are the types of RNA variants detectable by Exacto:
-
-1. Single-nucleotide variants (SNV)
-2. Small insertions and deletions (< 50-bp)
-3. Structural variants (50+ bp)
-    * Insertion (INS)
-    * Deletion (DEL)
-    * 5' to 5' inversion (INV_5to5)
-    * 5' to 3' inversion (INV_5to3)
-    * 3' to 3' inversion (INV_3to3)
-    * Tandem duplication (TANDEM_DUP)
-    * Segmental duplication (SEG_DUP)
-    * Translocation (TRA)
-4. Splice variants (SPVAR)
-5. Viral integrations
-6. Intron retention (IR)
-7. Circular RNAs (CIRC_RNA)
-8. Endogenous retroviruses (ERV)
-9. HLA variants (HLA_VAR)
-
-<h2 id="graph">**`graph`**</h2>
-
-This command constructs a graph of RNA variants and generates all possible transcript nucleotide sequences.
-
-<h2 id="quantify">**`quantify`**</h2>
-
-This command quantifies transcripts using long-read RNA sequencing data.
-
-<h2 id="simulate">**`simulate`**</h2>
-
-This command simulates either DNA or RNA long-read sequencing reads given a list of variants.
+This command simulates a list of random DNA and RNA variants.
 
 <div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
 
@@ -145,7 +105,8 @@ This command refines DNA or RNA variants.
 **Headers of Structural Variant TSV Files**
 
 The `refine` function in `Exacto` converts VCF files into TSV files
-and then performs refinement.
+and then performs refinement. Here is a table of headers (attributes) 
+that each SV caller includes:
 
 | Header                  | Sniffles2 | cuteSV  | SVIM    | PBSV    |
 | ----------------------- | :-------: | :-----: | :-----: | :-----: |
@@ -180,9 +141,32 @@ and then performs refinement.
 | std_span                | &#9650;   | &#9650; | &check; | &#9650; |
 | tandem_duplication_copy_number | &#9650; | &#9650; | &check; | &#9650; |
 | strand_reads            | &#9650;   | &#9650; | &#9650; | &check; |
+| repeat_annotation       | &#9650;   | &#9650; | &#9650; | &check; |
 
 &check; denotes that the information is included in the original variant calling method. <br/>
 &#9650; denotes that `Exacto` will include the header in the `TSV` file for uniformity but all values in the respective column will have the value `unknown`.
+
+**Headers of Small Variant TSV Files**
+
+Here is a table of headers (attributes) that each SNV/INDEL caller includes:
+
+| Header                  | DeepVariant |
+| ----------------------- | :---------: |
+| id                      | &check;     |
+| chrom                   | &check;     |
+| pos                     | &check;     |
+| ref                     | &check;     |
+| alt                     | &check;     |
+| variant_type            | &check;     |
+| filter                  | &check;     |
+| variant_sequence        | &check;     |
+| genotype                | &check;     |
+| genotype_quality        | &check;     |
+| total_coverage          | &check;     |
+| reference_reads_count   | &check;     |
+| variant_reads_count     | &check;     |
+| variant_allele_fraction | &check;     |
+| phred_scaled_genotype_likelihoods | &check; |
 
 <h3 id="exacto-python-library">**Exacto Python Library**</h3>
 

@@ -15,22 +15,54 @@ import random
 from typing import Tuple, List
 
 
+def generate_snv(reference_allele: str) -> str:
+    """
+    Generates a single-nucleotide variant.
+
+    Parameters
+    ----------
+    reference_allele    :   Reference allele.
+
+    Returns
+    -------
+    alternate_allele    :   Alternate allele.
+    """
+    reference_allele = reference_allele.upper()
+    atcg = ['A', 'C', 'T', 'G']
+    atcg.remove(reference_allele)
+    alternate_allele = random.choice(atcg)
+    return alternate_allele
+
+
 def generate_random_nucleotide_sequence(size: int) -> str:
     """
     Generates a random nucleotide sequence.
 
     Parameters
     ----------
-    size    :   Size.
+    size        :   Size.
 
     Returns
     -------
-    Random nucleotide sequence.
+    insertion   :   A random nucleotide sequence.
     """
     atcg = ['A', 'T', 'C', 'G']
-    sequence = [random.choice(atcg) for i in range(0, size)]
+    sequence = [random.choice(atcg) for _ in range(0, size)]
     return ''.join(sequence)
 
 
-def simulate_single_nucleotide_variant() -> Tuple[int, str, str]:
-    pass
+def generate_deletion(size: int):
+    """
+
+    Parameters
+    ----------
+    size
+
+    Returns
+    -------
+
+    """
+    a = 1
+
+
+

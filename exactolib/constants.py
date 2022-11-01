@@ -59,8 +59,10 @@ class VariantCallingMethods:
 
     class SmallVariantCallingMethods:
         GATK4_MUTECT2 = "gatk4_mutect2"
+        DEEPVARIANT = "deepvariant"
         STRELKA2 = "strelka2"
         ALL = [GATK4_MUTECT2,
+               DEEPVARIANT,
                STRELKA2]
 
     ALL = StructuralVariantCallingMethods.ALL + \
@@ -71,3 +73,32 @@ class AnnotationSources:
     ENSEMBL = 'ensembl'
     GENCODE = 'gencode'
     ALL = [ENSEMBL, GENCODE]
+
+
+class StructuralVariantTypes:
+    INSERTION = 'INS'
+    DELETION = 'DEL'
+    DUPLICATION = 'DUP'
+    INVERSION = 'INV'
+    TRANSLOCATION = 'TRA'
+    BREAKPOINT =' BND'
+    ALL = [
+        INSERTION,
+        DELETION,
+        DUPLICATION,
+        INVERSION,
+        TRANSLOCATION,
+        BREAKPOINT
+    ]
+
+class SmallVariantTypes:
+    SINGLE_NUCLEOTIDE_VARIANT = 'SNV'
+    MULTI_NUCLEOTIDE_VARIANT = 'MNV'
+    SMALL_INSERTION = 'INS'
+    SMALL_DELETION = 'DEL'
+    ALL = [
+        SINGLE_NUCLEOTIDE_VARIANT,
+        MULTI_NUCLEOTIDE_VARIANT,
+        SMALL_INSERTION,
+        SMALL_DELETION
+    ]

@@ -19,6 +19,7 @@ related to merging data.
 
 import pandas as pd
 from typing import Tuple, List
+from ..constants import *
 from ..default_parameters import *
 from ..logging import get_logger
 
@@ -82,7 +83,6 @@ def merge_structural_variants(
     recorded_ids = set()
     n = len(df_merged)
     logger.info("%i SV calls to iterate" % n)
-    count = 0
     for index, row in df_merged.iterrows():
         if row['record_id'] in recorded_ids:
             continue
@@ -108,8 +108,8 @@ def merge_structural_variants(
         else:
             raise Exception(
                 "Unknown SV type: %s. "
-                "Allowed SV types are: 'INS', 'DEL', 'DUP', 'INV', 'TRA', and 'BND'."
-                % curr_sv_type
+                "Allowed SV types are: %s."
+                % (curr_sv_type, ', '.join(StructuralVariantTypes))
             )
 
         conditions = (
@@ -132,7 +132,7 @@ def merge_structural_variants(
 
         matched_ids = []
         for curr_id in df_matched.id.values.tolist():
-            matched_ids.add(curr_id)
+            matched_ids.append(curr_id)
 
         # Record data
         variant_calling_methods = df_matched.variant_calling_method.unique()
@@ -142,10 +142,6 @@ def merge_structural_variants(
         df_curr['variant_calling_methods'] = ','.join(variant_calling_methods)
         df_curr['variant_calling_methods_count'] = variant_calling_methods_count
         df_merged_deduped = pd.concat([df_merged_deduped, df_curr])
-
-        count += 1
-        if count % 10000 == 0:
-            logger.info("Iterated %i out of %i" % (count, n))
 
     logger.info("%i deduped variants in total" % len(df_merged_deduped))
     return df_merged, df_merged_deduped
