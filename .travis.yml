@@ -27,16 +27,15 @@ install:
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
   - conda install pandas
-  - conda install -c bioconda pysam
   - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
-  - wget -nc -P $HOME/cache/pyensembl/GRCh38/ensembl107/ ftp://ftp.ensembl.org/pub/release-107/gtf/homo_sapiens/Homo_sapiens.GRCh38.107.gtf.gz
+  - pyensembl install --release 107 --species human
+  - conda install -c bioconda pysam
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
   - pip install .
   - conda install -c conda-forge coveralls
   - conda install -c conda-forge nose
-  - pyensembl install --release 107 --species human
 before_script:
   - ./lint.sh
 script:

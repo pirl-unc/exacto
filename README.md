@@ -13,3 +13,9 @@ Expression Quantification and Identification of Augmented Transcripts of Somatic
 ```
 pip install .
 ```
+
+## 03. Testing
+```
+bash lint.sh
+bash unittest.sh
+```
