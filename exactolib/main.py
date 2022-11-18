@@ -334,6 +334,9 @@ def run_exacto_annotate_genomic_structural_variants(
     -------
     DataFrame of annotated genomic structural variants.
     """
+    if len(df_structural_variants) == 0:
+        logger.warning('DataFrame is empty. Returning without annotating.')
+        return df_structural_variants
     if annotation_source == AnnotationSources.ENSEMBL:
         df_structural_variants = annotate_structural_variants_using_pyensembl(
             df_structural_variants=df_structural_variants,

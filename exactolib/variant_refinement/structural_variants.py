@@ -24,6 +24,7 @@ import pandas as pd
 from typing import List
 from ..default_parameters import *
 from ..logging import get_logger
+from ..utilities.pandas_utils import *
 
 
 logger = get_logger(__name__)
@@ -196,7 +197,13 @@ def refine_sniffles2_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
         df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'] >= min_variant_reads_count
@@ -252,7 +259,13 @@ def refine_cutesv_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
         df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'] >= min_variant_reads_count
@@ -300,7 +313,13 @@ def refine_svim_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
         df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'] >= min_variant_reads_count
@@ -356,7 +375,13 @@ def refine_pbsv_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
         df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'] >= min_variant_reads_count

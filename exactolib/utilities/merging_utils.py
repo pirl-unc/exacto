@@ -60,6 +60,9 @@ def merge_structural_variants(
     i = 0
     shared_columns = []
     for df_curr in list_df:
+        if len(df_curr) == 0:
+            logger.warning("DataFrame is empty. Skipping merging this particular DataFrame.")
+            continue
         if len(shared_columns) == 0:
             for curr_col in df_curr.columns.values.tolist():
                 shared_columns.append(curr_col)

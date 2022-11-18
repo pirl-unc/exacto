@@ -59,7 +59,6 @@ def add_exacto_merge_arg_parser(sub_parsers):
     parser_required.add_argument(
         "--tsv_files",
         dest="tsv_files",
-        action="append",
         nargs='+',
         required=True,
         help="List of TSV files. "
@@ -87,7 +86,7 @@ def add_exacto_merge_arg_parser(sub_parsers):
     parser_optional.add_argument(
         "--max_clustering_distance",
         dest="max_clustering_distance",
-        type=str,
+        type=int,
         required=False,
         default=MAX_SV_CLUSTER_DISTANCE,
         help="Maximum clustering distance (default: %i)."

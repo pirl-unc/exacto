@@ -12,8 +12,8 @@
 
 
 from os.path import dirname, join
-from glob import glob
 from setuptools import setup, find_packages
+from glob import glob
 
 
 DIR = (dirname(__file__) or '.')
@@ -22,7 +22,7 @@ DIR = (dirname(__file__) or '.')
 if __name__ == '__main__':
       setup(
             name='exacto',
-            version='0.1.5',
+            version='0.1.4',
             description='EXtracting And Counting Transcripts in Oncology.',
             author='Jin Seok (Andy) Lee',
             author_email='ajslee@unc.edu',

@@ -119,7 +119,6 @@ def add_exacto_refine_arg_parser(sub_parsers):
         type=str,
         required=False,
         default=[],
-        action="append",
         nargs='+',
         help="Chromosomes to keep (e.g. --chromosomes chr1 chr2 chr3). "
              "Chromosomes not specified in this parameter will be removed."
@@ -138,7 +137,6 @@ def add_exacto_refine_arg_parser(sub_parsers):
     parser_optional.add_argument(
         "--keep_only_filter_values",
         dest="keep_only_filter_values",
-        action="append",
         nargs='+',
         required=False,
         default=KEEP_ONLY_FILTER_VALUES,
@@ -184,11 +182,12 @@ def add_exacto_refine_arg_parser(sub_parsers):
              % GENOME_GAPPED_REGIONS_PADDING
     )
     parser_optional.add_argument(
-        "--exclude_sv_tsv_file",
-        dest="exclude_sv_tsv_file",
+        "--exclude_sv_tsv_files",
+        dest="exclude_sv_tsv_files",
         type=str,
         required=False,
-        help="TSV file of SVs to explicitly exclude. "
+        nargs='+',
+        help="TSV files of SVs to explicitly exclude. "
              "SVs in the input VCF file with breakpoints near the variants "
              "specified in this TSV file will be removed. "
              "Expected headers: "
@@ -208,11 +207,12 @@ def add_exacto_refine_arg_parser(sub_parsers):
              % EXCLUDE_SV_PADDING
     )
     parser_optional.add_argument(
-        "--exclude_snv_indel_tsv_file",
-        dest="exclude_snv_indel_tsv_file",
+        "--exclude_snv_indel_tsv_files",
+        dest="exclude_snv_indel_tsv_files",
         type=str,
         required=False,
-        help="TSV file of SNVs and INDELs to explicitly exclude. "
+        nargs='+',
+        help="TSV files of SNVs and INDELs to explicitly exclude. "
              "SNVs and INDELs in the input VCF file with breakpoints near "
              "the variants specified in this file will be removed. "
              "Expected headers: 'chr_1', 'pos_1', 'chr_2', 'pos_2'. "
@@ -256,13 +256,31 @@ def run_exacto_refine_from_parsed_args(args):
                 min_variant_reads_count
                 gapped_regions_tsv_file
                 gapped_regions_padding
-                exclude_sv_tsv_file
+                exclude_sv_tsv_files
                 exclude_sv_padding
-                exclude_snv_indel_tsv_file
+                exclude_snv_indel_tsv_files
                 exclude_snv_indel_padding
     """
+    # Step 1. Load gapped regions
+    if args.gapped_regions_tsv_file is not None:
+        df_gapped_regions = pd.read_csv(
+            args.gapped_regions_tsv_file,
+            sep='\t'
+        )
+    else:
+        df_gapped_regions = None
+
+    # Step 2. Parse keep_only_chromosomes and keep_only_filter_values
+    keep_only_chromosomes = []
+    keep_only_filter_values = []
+    if len(args.keep_only_chromosomes) > 0:
+        keep_only_chromosomes = args.keep_only_chromosomes
+    if len(args.keep_only_filter_values) > 0:
+        keep_only_filter_values = args.keep_only_filter_values
+
+    # Step 3. Refine
     if args.variant_type == VariantTypes.SV:
-        # Step 1. Load VCF file.
+        # Load VCF file.
         if args.variant_calling_method == VariantCallingMethods.StructuralVariantCallingMethods.SNIFFLES2:
             df_structural_variants = convert_sniffles2_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
@@ -291,43 +309,36 @@ def run_exacto_refine_from_parsed_args(args):
                    ', '.join(f"'{item}'" for item in VariantCallingMethods.StructuralVariantCallingMethods.ALL))
             )
 
-        # Step 2. Load structural variants to exclude.
-        if args.exclude_sv_tsv_file is not None:
-            df_structural_variants_to_exclude = pd.read_csv(
-                args.exclude_sv_tsv_file,
-                sep='\t'
-            )
+        # Load structural variants to exclude.
+        if args.exclude_sv_tsv_files is not None:
+            df_structural_variants_to_exclude = pd.DataFrame()
+            for curr_tsv_file in args.exclude_sv_tsv_files:
+                df_temp = pd.read_csv(curr_tsv_file, sep='\t')
+                df_structural_variants_to_exclude = pd.concat(
+                    [df_structural_variants_to_exclude, df_temp]
+                )
         else:
             df_structural_variants_to_exclude = None
 
-        # Step 3. Load gapped regions.
-        if args.gapped_regions_tsv_file is not None:
-            df_gapped_regions = pd.read_csv(
-                args.gapped_regions_tsv_file,
-                sep='\t'
-            )
-        else:
-            df_gapped_regions = None
-
-        # Step 4. Perform refinement.
+        # Perform refinement.
         df_structural_variants = run_exacto_refine_genomic_structural_variants(
             df_structural_variants=df_structural_variants,
             df_structural_variants_to_exclude=df_structural_variants_to_exclude,
             df_gapped_regions=df_gapped_regions,
             variant_calling_method=args.variant_calling_method,
             keep_only_precise_sv=args.keep_only_precise_sv,
-            keep_only_chromosomes=args.keep_only_chromosomes,
-            keep_only_filter_values=args.keep_only_filter_values,
+            keep_only_chromosomes=keep_only_chromosomes,
+            keep_only_filter_values=keep_only_filter_values,
             min_total_coverage=args.min_total_coverage,
             min_variant_reads_count=args.min_variant_reads_count,
             gapped_regions_padding=args.gapped_regions_padding,
             exclude_variants_padding=args.exclude_sv_padding
         )
 
-        # Step 5. Write refined structural variants to a TSV file.
+        # Write refined structural variants to a TSV file.
         df_structural_variants.to_csv(args.output_tsv_file, sep='\t', index=False)
     elif args.variant_type == VariantTypes.SNV_INDEL:
-        # Step 1. Load VCF file.
+        # Load VCF file.
         if args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2:
             df_variants = convert_gatk4_mutect2_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
@@ -346,29 +357,21 @@ def run_exacto_refine_from_parsed_args(args):
                 % (args.variant_calling_method,
                    ', '.join(f"'{item}'" for item in VariantCallingMethods.SmallVariantCallingMethods.ALL))
             )
-        # Step 2. Load gapped regions.
-        if args.gapped_regions_tsv_file is not None:
-            df_gapped_regions = pd.read_csv(
-                args.gapped_regions_tsv_file,
-                sep='\t'
-            )
-        else:
-            df_gapped_regions = None
 
-        # Step 3. Perform refinement.
+        # Perform refinement.
         df_variants = run_exacto_refine_genomic_small_variants(
             df_variants=df_variants,
             df_gapped_regions=df_gapped_regions,
             variant_calling_method=args.variant_calling_method,
             tumor_normal_paired=args.tumor_normal_paired,
-            keep_only_chromosomes=args.keep_only_chromosomes,
-            keep_only_filter_values=args.keep_only_filter_values,
+            keep_only_chromosomes=keep_only_chromosomes,
+            keep_only_filter_values=keep_only_filter_values,
             min_total_coverage=args.min_total_coverage,
             min_variant_reads_count=args.min_variant_reads_count,
             gapped_regions_padding=args.gapped_regions_padding
         )
 
-        # Step 4. Write refined variants to a TSV file.
+        # Write refined variants to a TSV file.
         df_variants.to_csv(args.output_tsv_file, sep='\t', index=False)
     else:
         raise Exception(

@@ -28,6 +28,7 @@ install:
   - conda install pandas
   - conda install -c bioconda pysam
   - conda install -c bioconda pyensembl
+  - export PYENSEMBL_CACHE_DIR=$HOME/cache/pyensembl/
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
   - pip install .
