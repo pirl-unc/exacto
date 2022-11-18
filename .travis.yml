@@ -29,7 +29,7 @@ install:
   - conda install -c bioconda pysam
   - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
-  - mkdir -P $HOME/cache/pyensembl/pyensembl/GRCh38/ensembl107/
+  - mkdir -p $HOME/cache/pyensembl/pyensembl/GRCh38/ensembl107/
   - wget -nc -P $HOME/cache/pyensembl/pyensembl/GRCh38/ensembl107/ ftp://ftp.ensembl.org/pub/release-107/gtf/homo_sapiens/Homo_sapiens.GRCh38.107.gtf.gz
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
