@@ -8,6 +8,7 @@ cache:
   pip: true
   directories:
   - $HOME/cache/
+  - $HOME/cache/pyensembl/pyensembl/GRCh38/ensembl107/
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -29,7 +30,6 @@ install:
   - conda install -c bioconda pysam
   - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
-  - mkdir -p $HOME/cache/pyensembl/pyensembl/GRCh38/ensembl107/
   - wget -nc -P $HOME/cache/pyensembl/pyensembl/GRCh38/ensembl107/ ftp://ftp.ensembl.org/pub/release-107/gtf/homo_sapiens/Homo_sapiens.GRCh38.107.gtf.gz
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
