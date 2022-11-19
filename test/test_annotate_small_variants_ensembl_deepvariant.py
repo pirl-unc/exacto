@@ -20,28 +20,28 @@ def test_annotate_dna_small_variants_ensembl():
         annotation_source=AnnotationSources.ENSEMBL,
         df_gencode_genes=None,
         df_gencode_exons=None,
-        ensembl_release=107
+        ensembl_release=95
     )
     df_sv_pbsv_annotated = run_exacto_annotate_genomic_structural_variants(
         df_structural_variants=df_sv_pbsv,
         annotation_source=AnnotationSources.ENSEMBL,
         df_gencode_genes=None,
         df_gencode_exons=None,
-        ensembl_release=107
+        ensembl_release=95
     )
     df_sv_cutesv_annotated = run_exacto_annotate_genomic_structural_variants(
         df_structural_variants=df_sv_cutesv,
         annotation_source=AnnotationSources.ENSEMBL,
         df_gencode_genes=None,
         df_gencode_exons=None,
-        ensembl_release=107
+        ensembl_release=95
     )
     df_sv_svim_annotated = run_exacto_annotate_genomic_structural_variants(
         df_structural_variants=df_sv_svim,
         annotation_source=AnnotationSources.ENSEMBL,
         df_gencode_genes=None,
         df_gencode_exons=None,
-        ensembl_release=107
+        ensembl_release=95
     )
 
     # Step 3. Print output
