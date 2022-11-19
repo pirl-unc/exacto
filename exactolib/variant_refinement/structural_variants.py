@@ -1,272 +1,390 @@
-#!/usr/bin/python3
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 
 """
-The purpose of this python3 script is to implement functions that are used
-to refine structural variants.
-
-Last updated date: July 20, 2022
-
-Author: Jin Seok (Andy) Lee
+The purpose of this python3 script is to implement functions used to
+refine structural variants.
 """
 
 
-import os
+from __future__ import print_function, division, absolute_import
+
+
 import pandas as pd
-import subprocess as sp
-from exactolib.logging import get_logger
-from exactolib.constants import *
-from exactolib.utilities.vcf_to_dataframe import *
+from typing import List
+from ..default_parameters import *
+from ..logging import get_logger
+from ..utilities.pandas_utils import *
 
 
 logger = get_logger(__name__)
 
 
-def exclude_sv_from_bed_file(df, exclude_bed_file, breakpoint_padding=10):
+def remove_structural_variants_near_gapped_regions(
+        df_structural_variants: pd.DataFrame,
+        df_gapped_regions: pd.DataFrame,
+        gapped_regions_padding: int = GENOME_GAPPED_REGIONS_PADDING) -> pd.DataFrame:
     """
-    Iterate through the dataframe df and
-    excludes SV calls present in exclude_bed_file.
+    Removes structural variants with breakpoints near gapped regions.
 
     Parameters
     ----------
-    df                  : DataFrame with the following columns:
-                          Chr_1, Pos_1, Chr_2, Pos_2, SV_Type
-    exclude_bed_file    : Full path of BED file.
-    breakpoint_padding  : Number of bases to pad for each breakpoint.
-
-    Returns DataFrame
-    """
-    df_exclude = pd.read_csv(exclude_bed_file, sep='\t', header=None)
-    df_exclude.columns = ['Chrom', 'Start', 'End', 'SV_Type']
-
-    keep_ids = []
-    exclude_ids = []
-    for index, row in df.iterrows():
-        curr_chr_1 = str(row['Chr_1'])
-        curr_pos_1 = int(row['Pos_1'])
-        curr_chr_2 = str(row['Chr_2'])
-        curr_pos_2 = int(row['Pos_2'])
-        curr_sv_type = str(row['SV_Type'])
-
-        df_exclude_match = df_exclude.loc[
-            (df_exclude['SV_Type'] == curr_sv_type) &
-            (df_exclude['Chrom'] == curr_chr_1) & (df_exclude['Chrom'] == curr_chr_2) &
-            (((df_exclude['Start'] >= (curr_pos_1 - breakpoint_padding)) &
-              (df_exclude['Start'] <= (curr_pos_1 + breakpoint_padding)) &
-              (df_exclude['End'] >= (curr_pos_2 - breakpoint_padding)) &
-              (df_exclude['End'] <= (curr_pos_2 + breakpoint_padding))) |
-              (df_exclude['Start'] >= (curr_pos_2 - breakpoint_padding)) &
-              (df_exclude['Start'] <= (curr_pos_2 + breakpoint_padding)) &
-              (df_exclude['End'] >= (curr_pos_1 - breakpoint_padding)) &
-              (df_exclude['End'] <= (curr_pos_1 + breakpoint_padding)))
-        ,:]
-
-        if len(df_exclude_match) == 0:
-            keep_ids.append(row['ID'])
-        else:
-            exclude_ids.append(row['ID'])
-    df_refined = df.loc[df.ID.isin(keep_ids),:]
-    df_excluded = df.loc[df.ID.isin(exclude_ids),:]
-    return df_refined, df_excluded
-
-
-def refine_sniffles2_sv_callset(vcf_file,
-                                platform,
-                                blacklisted_regions_tsv_file,
-                                chromosomes_to_keep,
-                                filter_values_to_include=['PASS'],
-                                min_total_coverage=7,
-                                min_variant_reads_count=3,
-                                keep_only_precise=True,
-                                gap_padding=1E6):
-    """
-    Refines a Sniffles VCF file and returns a dataframe of refined variants.
-
-    Parameters
-    ----------
-    vcf_file                        : Full path of VCF file.
-    platform                        : Sequencing platform.
-    blacklisted_regions_tsv_file    : Full path of blacklisted regions TSV file.
-                                      The expected column names are 'chrom', 'chromStart', 'chromEnd'.
-    chromosomes_to_keep             : List of chromosomes to keep.
-    filter_values_to_include        : List of FILTER values to include (default: ['PASS'])
-    min_total_coverage              : Minimum total coverage (default: 7).
-    min_variant_reads_count         : Minimum number of variants (support) reads (default: 3).
-    keep_only_precise               : Retains PRECISE variants if true (default: True).
-    gap_padding                     : Number of bases to pad for a variant to be
-                                      considered in a gap region (default: 1E6).
+    df_structural_variants  :   DataFrame of structural variants.
+                                Expected columns:
+                                'chr_1'
+                                'pos_1'
+                                'chr_2'
+                                'pos_2'
+    df_gapped_regions       :   DataFrame of gapped regions.
+                                Expected columns:
+                                'chrom'
+                                'chromStart'
+                                'chromEnd'
+    gapped_regions_padding  :   Gapped regions padding.
 
     Returns
     -------
-    DataFrame
+    DataFrame of structural variants.
     """
-    # Step 1. Convert VCF file to DataFrame.
-    df = convert_sniffles2_vcf_to_dataframe(
-        vcf_file=vcf_file,
-        method=platform + "_" + Constants.StructuralVariantCallingMethods.SNIFFLES2
+    df_gapped_regions['start'] = df_gapped_regions.apply(
+        lambda row: int(row.chromStart - gapped_regions_padding), axis=1
     )
-    logger.info('%i variants before refinement.' % len(df))
+    df_gapped_regions['end'] = df_gapped_regions.apply(
+        lambda row: int(row.chromEnd + gapped_regions_padding), axis=1
+    )
+    keep = []
+    for index, row in df_structural_variants.iterrows():
+        conditions = ((df_gapped_regions['chrom'] == row['chr_1']) &
+                      (df_gapped_regions['start'] <= row['pos_1']) &
+                      (df_gapped_regions['end'] >= row['pos_1'])) | \
+                     ((df_gapped_regions['chrom'] == row['chr_2']) &
+                      (df_gapped_regions['start'] <= row['pos_2']) &
+                      (df_gapped_regions['end'] >= row['pos_2']))
+        df_matched = df_gapped_regions[conditions]
+        if len(df_matched) == 0:
+            keep.append(True)
+        else:
+            keep.append(False)
+    df_structural_variants = df_structural_variants.loc[keep, :]
+    return df_structural_variants
 
-    # Step 2. Apply filters.
-    df = df.loc[df['filter'].isin(filter_values_to_include),:] # filter
-    df = df.loc[df['total_coverage'] >= min_total_coverage,:] # total coverage
-    df = df.loc[df['variant_reads_count'] >= min_variant_reads_count,:] # variant reads count
-    df = df.loc[df['chr_1'].isin(chromosomes_to_keep) & df['chr_2'].isin(chromosomes_to_keep),:]
+
+def remove_structural_variants(
+        df_structural_variants: pd.DataFrame,
+        df_structural_variants_to_exclude: pd.DataFrame,
+        exclude_variants_padding: int = EXCLUDE_SV_PADDING) -> pd.DataFrame:
+    """
+    Removes structural variants with breakpoints near a list of structural variants to exclude.
+
+    Parameters
+    ----------
+    df_structural_variants              :   DataFrame of structural variants.
+                                            Expected columns:
+                                            'chr_1'
+                                            'pos_1'
+                                            'chr_2'
+                                            'pos_2'
+                                            'sv_type'
+    df_structural_variants_to_exclude   :   DataFrame of structural variants to exclude.
+                                            Expected columns:
+                                            'chr_1'
+                                            'pos_1'
+                                            'chr_2'
+                                            'pos_2'
+                                            'sv_type'
+    exclude_variants_padding            :   Number of bases to pad breakpoints of
+                                            structural variants in df_structural_variants_to_exclude
+
+    Returns
+    -------
+    DataFrame of structural variants.
+    """
+    df_structural_variants_to_exclude['pos_1_start'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_1 - exclude_variants_padding), axis=1
+    )
+    df_structural_variants_to_exclude['pos_1_end'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_1 + exclude_variants_padding), axis=1
+    )
+    df_structural_variants_to_exclude['pos_2_start'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_2 - exclude_variants_padding), axis=1
+    )
+    df_structural_variants_to_exclude['pos_2_end'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_2 + exclude_variants_padding), axis=1
+    )
+    keep = []
+    for index, row in df_structural_variants.iterrows():
+        conditions = \
+            ((df_structural_variants_to_exclude['chr_1'] == row['chr_1']) &
+             (df_structural_variants_to_exclude['pos_1_start'] <= row['pos_1']) &
+             (df_structural_variants_to_exclude['pos_1_end'] >= row['pos_1']) &
+             (df_structural_variants_to_exclude['sv_type'] == row['sv_type'])) | \
+            ((df_structural_variants_to_exclude['chr_2'] == row['chr_1']) &
+             (df_structural_variants_to_exclude['pos_2_start'] <= row['pos_1']) &
+             (df_structural_variants_to_exclude['pos_2_end'] >= row['pos_1']) &
+             (df_structural_variants_to_exclude['sv_type'] == row['sv_type'])) | \
+            ((df_structural_variants_to_exclude['chr_1'] == row['chr_2']) &
+             (df_structural_variants_to_exclude['pos_1_start'] <= row['pos_2']) &
+             (df_structural_variants_to_exclude['pos_1_end'] >= row['pos_2']) &
+             (df_structural_variants_to_exclude['sv_type'] == row['sv_type'])) | \
+            ((df_structural_variants_to_exclude['chr_2'] == row['chr_2']) &
+             (df_structural_variants_to_exclude['pos_2_start'] <= row['pos_2']) &
+             (df_structural_variants_to_exclude['pos_2_end'] >= row['pos_2']) &
+             (df_structural_variants_to_exclude['sv_type'] == row['sv_type']))
+        df_matched = df_structural_variants_to_exclude[conditions]
+        if len(df_matched) == 0:
+            keep.append(True)
+        else:
+            keep.append(False)
+    df_structural_variants = df_structural_variants.loc[keep, :]
+    return df_structural_variants
+
+
+def refine_sniffles2_sv_callset(
+        df_structural_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
+        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+    """
+    Refines structural variants called using Sniffles2 and returns a DataFrame
+    of refined structural variants.
+
+    Parameters
+    ----------
+    df_structural_variants          :   DataFrame of structural variants.
+                                        Expected columns:
+                                        'chr_1'
+                                        'chr_2'
+                                        'filter'
+                                        'is_precise'
+                                        'total_coverage'
+                                        'variant_reads_count'
+    keep_only_chromosomes           :   List of chromosomes to keep.
+                                        Chromosomes not specified in this list
+                                        will be filtered out.
+    keep_only_filter_values         :   List of FILTER values to include.
+    keep_only_precise               :   If true, only structural variants with
+                                        'precise' breakpoints are kept.
+    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
+
+    Returns
+    -------
+    DataFrame of refined structural variants.
+    """
+    if len(keep_only_filter_values) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['filter'].isin(keep_only_filter_values)
+        ]
     if keep_only_precise:
-        df = df.loc[df['is_precise'] == True,:]
-
-    # Step 3. Filter out variants where at least one of the two breakpoints
-    # lies in the (padded) gap region.
-    df_gaps = pd.read_csv(blacklisted_regions_tsv_file, sep='\t')
-    df_gaps['start'] = df_gaps.apply(lambda row: int(row.chromStart - gap_padding), axis=1)
-    df_gaps['end'] = df_gaps.apply(lambda row: int(row.chromEnd + gap_padding), axis=1)
-    keep = []
-    for index, row in df.iterrows():
-        # Check if either breakpoint falls inside the (padded) gap region
-        conditions = ((df_gaps['chrom'] == row['chr_1']) &
-                      (df_gaps['start'] <= row['pos_1']) &
-                      (df_gaps['end'] >= row['pos_1'])) | \
-                     ((df_gaps['chrom'] == row['chr_2']) &
-                      (df_gaps['start'] <= row['pos_2']) &
-                      (df_gaps['end'] >= row['pos_2']))
-        df_matched = df_gaps.loc[conditions,:]
-        if len(df_matched) == 0:
-            keep.append(True)
-        else:
-            keep.append(False)
-    df = df.loc[keep,:]
-    logger.info('%i variants after refinement.' % len(df))
-    return df
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['is_precise']
+        ]
+    if len(keep_only_chromosomes) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['chr_1'].isin(keep_only_chromosomes) &
+            df_structural_variants['chr_2'].isin(keep_only_chromosomes)
+        ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'] >= min_variant_reads_count
+    ]
+    return df_structural_variants
 
 
-def refine_cutesv_sv_callset(vcf_file,
-                             platform,
-                             blacklisted_regions_tsv_file,
-                             chromosomes_to_keep,
-                             filter_values_to_include=['PASS'],
-                             min_total_coverage=7,
-                             min_variant_reads_count=3,
-                             keep_only_precise=True,
-                             gap_padding=1E6):
+def refine_cutesv_sv_callset(
+        df_structural_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
+        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
-    Refines a cuteSV VCF file and returns a dataframe of refined variants.
+    Refines structural variants called using cuteSV and returns a DataFrame
+    of refined structural variants.
 
     Parameters
     ----------
-    vcf_file                        : Full path of VCF file.
-    platform                        : Sequencing platform.
-    blacklisted_regions_tsv_file    : Full path of blacklisted regions TSV file.
-                                      The expected column names are 'chrom', 'chromStart', 'chromEnd'.
-    chromosomes_to_keep             : List of chromosomes to keep.
-    filter_values_to_include        : List of FILTER values to include (default: ['PASS'])
-    min_total_coverage              : Minimum total coverage (default: 7).
-    min_variant_reads_count         : Minimum number of variants (support) reads (default: 3).
-    keep_only_precise               : Retains PRECISE variants if true (default: True).
-    gap_padding                     : Number of bases to pad for a variant to be
-                                      considered in a gap region (default: 1E6).
+    df_structural_variants          :   DataFrame of structural variants.
+                                        Expected columns:
+                                        'chr_1'
+                                        'chr_2'
+                                        'filter'
+                                        'is_precise'
+                                        'total_coverage'
+                                        'variant_reads_count'
+    keep_only_chromosomes           :   List of chromosomes to keep.
+                                        Chromosomes not specified in this list
+                                        will be filtered out.
+    keep_only_filter_values         :   List of FILTER values to include.
+    keep_only_precise               :   If true, only structural variants with
+                                        'precise' breakpoints are kept.
+    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
 
     Returns
     -------
-    DataFrame
+    DataFrame of refined structural variants.
     """
-    # Step 1. Convert VCF file to DataFrame.
-    df = convert_cutesv_vcf_to_dataframe(
-        vcf_file=vcf_file,
-        method=platform + "_" + Constants.StructuralVariantCallingMethods.CUTESV
-    )
-    logger.info('%i variants before refinement.' % len(df))
-
-    # Step 2. Apply filters.
-    df = df.loc[df['filter'].isin(filter_values_to_include),:] # filter
-    df = df.loc[df['total_coverage'] >= min_total_coverage,:] # total coverage
-    df = df.loc[df['variant_reads_count'] >= min_variant_reads_count,:] # variant reads count
-    df = df.loc[df['chr_1'].isin(chromosomes_to_keep) & df['chr_2'].isin(chromosomes_to_keep),:]
+    if len(keep_only_filter_values) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['filter'].isin(keep_only_filter_values)
+        ]
     if keep_only_precise:
-        df = df.loc[df['is_precise'] == True,:]
-
-    # Step 3. Filter out variants where at least one of the two breakpoints
-    # lies in the (padded) gap region.
-    df_gaps = pd.read_csv(blacklisted_regions_tsv_file, sep='\t')
-    df_gaps['start'] = df_gaps.apply(lambda row: int(row.chromStart - gap_padding), axis=1)
-    df_gaps['end'] = df_gaps.apply(lambda row: int(row.chromEnd + gap_padding), axis=1)
-    keep = []
-    for index, row in df.iterrows():
-        # Check if either breakpoint falls inside the (padded) gap region
-        conditions = ((df_gaps['chrom'] == row['chr_1']) &
-                      (df_gaps['start'] <= row['pos_1']) &
-                      (df_gaps['end'] >= row['pos_1'])) | \
-                     ((df_gaps['chrom'] == row['chr_2']) &
-                      (df_gaps['start'] <= row['pos_2']) &
-                      (df_gaps['end'] >= row['pos_2']))
-        df_matched = df_gaps.loc[conditions,:]
-        if len(df_matched) == 0:
-            keep.append(True)
-        else:
-            keep.append(False)
-    df = df.loc[keep,:]
-    logger.info('%i variants after refinement.' % len(df))
-    return df
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['is_precise'] == True
+        ]
+    if len(keep_only_chromosomes) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['chr_1'].isin(keep_only_chromosomes) &
+            df_structural_variants['chr_2'].isin(keep_only_chromosomes)
+        ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'] >= min_variant_reads_count
+    ]
+    return df_structural_variants
 
 
-def refine_svim_sv_callset(vcf_file,
-                           platform,
-                           blacklisted_regions_tsv_file,
-                           chromosomes_to_keep,
-                           filter_values_to_include=['PASS'],
-                           min_total_coverage=7,
-                           min_variant_reads_count=3,
-                           gap_padding=1E6):
+def refine_svim_sv_callset(
+        df_structural_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
-    Refines a SVIM VCF file and returns a dataframe of refined variants.
+    Refines structural variants called using SVIM and returns a DataFrame
+    of refined structural variants.
 
     Parameters
     ----------
-    vcf_file                        : Full path of VCF file.
-    platform                        : Sequencing platform.
-    blacklisted_regions_tsv_file    : Full path of blacklisted regions TSV file.
-                                      The expected column names are 'chrom', 'chromStart', 'chromEnd'.
-    chromosomes_to_keep             : List of chromosomes to keep.
-    filter_values_to_include        : List of FILTER values to include (default: ['PASS'])
-    min_total_coverage              : Minimum total coverage (default: 7).
-    min_variant_reads_count         : Minimum number of variants (support) reads (default: 3).
-    gap_padding                     : Number of bases to pad for a variant to be
-                                      considered in a gap region (default: 1E6).
+    df_structural_variants          :   DataFrame of structural variants.
+                                        Expected columns:
+                                        'chr_1'
+                                        'chr_2'
+                                        'filter'
+                                        'total_coverage'
+                                        'variant_reads_count'
+    keep_only_chromosomes           :   List of chromosomes to keep.
+                                        Chromosomes not specified in this list
+                                        will be filtered out.
+    keep_only_filter_values         :   List of FILTER values to include.
+    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
 
     Returns
     -------
-    DataFrame
+    DataFrame of refined structural variants.
     """
-    # Step 1. Convert VCF file to DataFrame.
-    df = convert_svim_vcf_to_dataframe(
-        vcf_file=vcf_file,
-        method=platform + "_" + Constants.StructuralVariantCallingMethods.SVIM
-    )
-    logger.info('%i variants before refinement.' % len(df))
+    if len(keep_only_filter_values) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['filter'].isin(keep_only_filter_values)
+        ]
+    if len(keep_only_chromosomes) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['chr_1'].isin(keep_only_chromosomes) &
+            df_structural_variants['chr_2'].isin(keep_only_chromosomes)
+        ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'] >= min_variant_reads_count
+    ]
+    return df_structural_variants
 
-    # Step 2. Apply filters.
-    df = df.loc[df['filter'].isin(filter_values_to_include),:] # filter
-    df = df.loc[df['total_coverage'] >= min_total_coverage,:] # total coverage
-    df = df.loc[df['variant_reads_count'] >= min_variant_reads_count,:] # variant reads count
-    df = df.loc[df['chr_1'].isin(chromosomes_to_keep) & df['chr_2'].isin(chromosomes_to_keep),:]
 
-    # Step 3. Filter out variants where at least one of the two breakpoints
-    # lies in the (padded) gap region.
-    df_gaps = pd.read_csv(blacklisted_regions_tsv_file, sep='\t')
-    df_gaps['start'] = df_gaps.apply(lambda row: int(row.chromStart - gap_padding), axis=1)
-    df_gaps['end'] = df_gaps.apply(lambda row: int(row.chromEnd + gap_padding), axis=1)
-    keep = []
-    for index, row in df.iterrows():
-        # Check if either breakpoint falls inside the (padded) gap region
-        conditions = ((df_gaps['chrom'] == row['chr_1']) &
-                      (df_gaps['start'] <= row['pos_1']) &
-                      (df_gaps['end'] >= row['pos_1'])) | \
-                     ((df_gaps['chrom'] == row['chr_2']) &
-                      (df_gaps['start'] <= row['pos_2']) &
-                      (df_gaps['end'] >= row['pos_2']))
-        df_matched = df_gaps.loc[conditions,:]
-        if len(df_matched) == 0:
-            keep.append(True)
-        else:
-            keep.append(False)
-    df = df.loc[keep,:]
-    logger.info('%i variants after refinement.' % len(df))
-    return df
+def refine_pbsv_sv_callset(
+        df_structural_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
+        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+    """
+    Refines structural variants called using PBSV and returns a DataFrame
+    of refined structural variants.
+
+    Parameters
+    ----------
+    df_structural_variants          :   DataFrame of structural variants.
+                                        Expected columns:
+                                        'chr_1'
+                                        'chr_2'
+                                        'filter'
+                                        'is_precise'
+                                        'total_coverage'
+                                        'variant_reads_count'
+    keep_only_chromosomes           :   List of chromosomes to keep.
+                                        Chromosomes not specified in this list
+                                        will be filtered out.
+    keep_only_filter_values         :   List of FILTER values to include.
+    keep_only_precise               :   If true, only structural variants with
+                                        'precise' breakpoints are kept.
+    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
+
+    Returns
+    -------
+    DataFrame of refined structural variants.
+    """
+    if len(keep_only_filter_values) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['filter'].isin(keep_only_filter_values)
+        ]
+    if keep_only_precise:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['is_precise'] == True
+        ]
+    if len(keep_only_chromosomes) > 0:
+        df_structural_variants = df_structural_variants[
+            df_structural_variants['chr_1'].isin(keep_only_chromosomes) &
+            df_structural_variants['chr_2'].isin(keep_only_chromosomes)
+        ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['total_coverage'] >= min_total_coverage
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'].map(is_safe_integer)
+    ]
+    df_structural_variants = df_structural_variants[
+        df_structural_variants['variant_reads_count'] >= min_variant_reads_count
+    ]
+    return df_structural_variants
+

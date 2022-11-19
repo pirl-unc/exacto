@@ -12,18 +12,16 @@
 
 
 """
-The purpose of this python3 script is to set up logging for Exacto.
+The purpose of this python3 script is to implement functions that are used
+for pandas.
 """
 
 
-import logging
-
-
-def get_logger(name: str) -> logging:
-    logging.basicConfig(
-        format = '%(asctime)s %(levelname)-8s %(message)s',
-        level = logging.INFO,
-        datefmt = '%Y-%m-%d %H:%M:%S'
-    )
-    return logging.getLogger(name)
-
+def is_safe_integer(x):
+    try:
+        int(x)
+        return True
+    except ValueError:
+        return False
+    except TypeError:
+        return False

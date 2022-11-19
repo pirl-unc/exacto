@@ -11,19 +11,3 @@
 # limitations under the License.
 
 
-"""
-The purpose of this python3 script is to set up logging for Exacto.
-"""
-
-
-import logging
-
-
-def get_logger(name: str) -> logging:
-    logging.basicConfig(
-        format = '%(asctime)s %(levelname)-8s %(message)s',
-        level = logging.INFO,
-        datefmt = '%Y-%m-%d %H:%M:%S'
-    )
-    return logging.getLogger(name)
-

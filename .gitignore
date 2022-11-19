@@ -3,7 +3,9 @@
 __pycache__/
  *.pyc
 .idea/
+.coverage
 build/
 dist/
 Exacto.egg-info/
-
+docs/.ipynb_checkpoints/
+examples/
