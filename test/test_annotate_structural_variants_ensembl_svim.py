@@ -14,7 +14,7 @@ def test_annotate_dna_structural_variants_ensembl_svim():
         annotation_source=AnnotationSources.ENSEMBL,
         df_gencode_genes=None,
         df_gencode_exons=None,
-        ensembl_release=107
+        ensembl_release=95
     )
 
     # Step 3. Print output

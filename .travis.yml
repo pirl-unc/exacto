@@ -8,7 +8,7 @@ cache:
   pip: true
   directories:
   - $HOME/cache/
-  - $HOME/cache/pyensembl/GRCh38/ensembl107/
+  - $HOME/cache/pyensembl/GRCh38/ensembl95/
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -29,7 +29,7 @@ install:
   - conda install pandas
   - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
-  - pyensembl install --release 107 --species human
+  - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/tag/GRCh38.95
   - conda install -c bioconda pysam
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
