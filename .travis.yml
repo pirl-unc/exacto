@@ -29,7 +29,7 @@ install:
   - conda install pandas
   - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
-  - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/tag/GRCh38.95
+  - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   - conda install -c bioconda pysam
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
