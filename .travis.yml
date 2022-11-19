@@ -39,6 +39,6 @@ install:
 before_script:
   - ./lint.sh
 script:
-  - ./unittest.sh
+  - nosetests test --with-coverage --cover-package=exactolib
 after_success:
   coveralls
