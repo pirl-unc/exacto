@@ -127,7 +127,7 @@ def add_exacto_simulate_variants_arg_parser(sub_parsers):
         type=bool,
         default=SIMULATE_ENFORCE_INFINITE_SITES_ASSUMPTION,
         required=True,
-        help="Number of deletions to simulate (default: %i)."
+        help="Number of deletions to simulate (default: %r)."
              % SIMULATE_ENFORCE_INFINITE_SITES_ASSUMPTION
     )
 
