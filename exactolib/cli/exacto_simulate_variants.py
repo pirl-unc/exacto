@@ -125,10 +125,10 @@ def add_exacto_simulate_variants_arg_parser(sub_parsers):
         "--infinite_sites_assumption",
         dest="infinite_sites_assumption",
         type=bool,
-        default=SIMULATE_NUM_DELETION,
-        required=False,
+        default=SIMULATE_ENFORCE_INFINITE_SITES_ASSUMPTION,
+        required=True,
         help="Number of deletions to simulate (default: %i)."
-             % SIMULATE_NUM_DELETION
+             % SIMULATE_ENFORCE_INFINITE_SITES_ASSUMPTION
     )
 
     parser.set_defaults(which='simulate_variants')

@@ -110,6 +110,78 @@ def add_exacto_annotate_arg_parser(sub_parsers):
              "--annotation_source is '%s'."
              % AnnotationSources.GENCODE
     )
+    parser_optional.add_argument(
+        "--perl_path",
+        dest="perl_path",
+        type=str,
+        required=False,
+        help="Perl path. "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s'."
+             % AnnotationSources.ANNOVAR
+    )
+    parser_optional.add_argument(
+        "--annovar_path",
+        dest="annovar_path",
+        type=str,
+        required=False,
+        help="ANNOVAR directory path. "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s'."
+             % AnnotationSources.ANNOVAR
+    )
+    parser_optional.add_argument(
+        "--annovar_humandb_path",
+        dest="annovar_humandb_path",
+        type=str,
+        required=False,
+        help="ANNOVAR humandb/ directory path. "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s'."
+             % AnnotationSources.ANNOVAR
+    )
+    parser_optional.add_argument(
+        "--output_avinput_file",
+        dest="output_avinput_file",
+        type=str,
+        required=False,
+        help="Output ANNOVAR .avinput file. "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s'."
+             % AnnotationSources.ANNOVAR
+    )
+    parser_optional.add_argument(
+        "--annovar_genome_assembly",
+        dest="annovar_genome_assembly",
+        type=str,
+        required=False,
+        help="ANNOVAR genome assembly. "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s'."
+             % AnnotationSources.ANNOVAR
+    )
+    parser_optional.add_argument(
+        "--annovar_protocol",
+        dest="annovar_protocol",
+        type=str,
+        required=False,
+        default=','.join(list(ANNOVAR_PROTOCOL_OPERATION.keys())),
+        help="ANNOVAR protocol (e.g. 'refGene,exac03'). "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s' (default: '%s')."
+             % (AnnotationSources.ANNOVAR, ','.join(list(ANNOVAR_PROTOCOL_OPERATION.keys())))
+    )
+    parser_optional.add_argument(
+        "--annovar_operation",
+        dest="annovar_operation",
+        type=str,
+        required=False,
+        default=','.join(list(ANNOVAR_PROTOCOL_OPERATION.values())),
+        help="ANNOVAR protocol (e.g. 'g,f'). "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s' (default: '%s')."
+             % (AnnotationSources.ANNOVAR, ','.join(list(ANNOVAR_PROTOCOL_OPERATION.values())))
+    )
     parser.set_defaults(which='annotate')
     return sub_parsers
 
@@ -161,3 +233,71 @@ def run_exacto_annotate_from_parsed_args(args):
         df_structural_variants.to_csv(args.output_tsv_file,
                                       sep='\t',
                                       index=False)
+    elif args.variant_type == VariantTypes.SNV_INDEL:
+        df_small_variants = pd.read_csv(args.tsv_file, sep='\t')
+        if args.annotation_source == AnnotationSources.ENSEMBL:
+            df_small_variants = run_exacto_annotate_genomic_small_variants(
+                df_small_variants=df_small_variants,
+                annotation_source=args.annotation_source,
+                df_gencode_genes=None,
+                df_gencode_exons=None,
+                ensembl_release=args.ensembl_release,
+                perl_path=None,
+                annovar_path=None,
+                annovar_humandb_path=None,
+                annovar_protocol=None,
+                annovar_operation=None,
+                annovar_genome_assembly=None,
+                annovar_avinput_file=None,
+                annovar_output_file=None
+            )
+        elif args.annotation_source == AnnotationSources.GENCODE:
+            df_gencode_genes, \
+            df_gencode_transcripts, \
+            df_gencode_exons = read_gencode_gtf_file(gencode_gtf_file=args.gencode_gtf_file)
+            df_small_variants = run_exacto_annotate_genomic_small_variants(
+                df_small_variants=df_small_variants,
+                annotation_source=args.annotation_source,
+                df_gencode_genes=df_gencode_genes,
+                df_gencode_exons=df_gencode_exons,
+                ensembl_release=None,
+                perl_path=None,
+                annovar_path=None,
+                annovar_humandb_path=None,
+                annovar_protocol=None,
+                annovar_operation=None,
+                annovar_genome_assembly=None,
+                annovar_avinput_file=None,
+                annovar_output_file=None
+            )
+        elif args.annotation_source == AnnotationSources.ANNOVAR:
+            write_annovar_avinput_file(
+                tsv_file=args.tsv_file,
+                output_avinput_file=args.output_avinput_file
+            )
+            df_small_variants = run_exacto_annotate_genomic_small_variants(
+                df_small_variants=df_small_variants,
+                annotation_source=args.annotation_source,
+                df_gencode_genes=None,
+                df_gencode_exons=None,
+                ensembl_release=None,
+                perl_path=args.perl_path,
+                annovar_path=args.annovar_path,
+                annovar_humandb_path=args.annovar_humandb_path,
+                annovar_protocol=args.annovar_protocol,
+                annovar_operation=args.annovar_operation,
+                annovar_genome_assembly=args.annovar_genome_assembly,
+                annovar_avinput_file=args.output_avinput_file,
+                annovar_output_file=args.output_tsv_file
+            )
+        else:
+            raise Exception(
+                "Invalid value for '--annotation_source': %s. "
+                "Allowed '--annotation_source' values are %s "
+                % (args.annotation_source,
+                   ', '.join(f"'{item}'" for item in AnnotationSources.ALL))
+            )
+
+        df_small_variants.to_csv(args.output_tsv_file,
+                                 sep='\t',
+                                 index=False)

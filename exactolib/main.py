@@ -24,6 +24,7 @@ from .variant_refinement.structural_variants import *
 from .variant_refinement.small_variants import *
 from .variant_annotation.ensembl import *
 from .variant_annotation.gencode import *
+from .variant_annotation.annovar import *
 from .utilities.merging_utils import *
 from .utilities.gencode_utils import *
 
@@ -229,7 +230,15 @@ def run_exacto_annotate_genomic_small_variants(
         annotation_source: str,
         df_gencode_genes: pd.DataFrame,
         df_gencode_exons: pd.DataFrame,
-        ensembl_release: int) -> pd.DataFrame:
+        ensembl_release: int,
+        perl_path: str,
+        annovar_path: str,
+        annovar_humandb_path: str,
+        annovar_protocol: str,
+        annovar_operation: str,
+        annovar_genome_assembly: str,
+        annovar_avinput_file: str,
+        annovar_output_file: str) -> pd.DataFrame:
     """
     Annotates a set of variants and returns the annotated set.
 
@@ -263,6 +272,14 @@ def run_exacto_annotate_genomic_small_variants(
                                 'exon_end'
     ensembl_release         :   Ensembl release version.
                                 Specify this if 'annotation_source' is 'ensembl'.
+    perl_path               :   perl path.
+    annovar_path            :   ANNOVAR path.
+    annovar_humandb_path    :   ANNOVAR humandb/ directory path.
+    annovar_protocol        :   ANNOVAR protocol.
+    annovar_operation       :   ANNOVAR operation.
+    annovar_genome_assembly :   ANNOVAR genome assembly.
+    annovar_avinput_file    :   ANNOVAR AVINPUT file.
+    annovar_output_file     :   ANNOVAR output file.
 
     Returns
     -------
@@ -278,6 +295,17 @@ def run_exacto_annotate_genomic_small_variants(
             df_small_variants=df_small_variants,
             df_gencode_genes=df_gencode_genes,
             df_gencode_exons=df_gencode_exons
+        )
+    elif annotation_source == AnnotationSources.ANNOVAR:
+        df_small_variants = annotate_small_variants_using_annovar(
+            perl_path=perl_path,
+            annovar_path=annovar_path,
+            humandb_path=annovar_humandb_path,
+            avinput_file=annovar_avinput_file,
+            genome_assembly=annovar_genome_assembly,
+            protocol=annovar_protocol,
+            operation=annovar_operation,
+            output_file=annovar_output_file
         )
     else:
         raise Exception(

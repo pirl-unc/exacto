@@ -44,6 +44,19 @@ EXCLUDE_SNV_INDEL_PADDING = 1
 # Maximum distance (bases) for merging two structural variants.
 MAX_SV_CLUSTER_DISTANCE = 100
 
+# ANNOVAR protocol and corresponding operation
+ANNOVAR_PROTOCOL_OPERATION = {
+    'refGene': 'g',
+    'exac03': 'f',
+    '1000g2015aug_eur': 'f',
+    '1000g2015aug_eas': 'f',
+    '1000g2015aug_sas': 'f',
+    'clinvar_20210501': 'f',
+    'cosmic96_coding': 'f',
+    'avsnp150': 'f',
+    'dbnsfp42c': 'f'
+}
+
 # Probability of simulating a genic variant
 SIMULATE_GENIC_VARIANT_PROBABILITY = 0.2
 
@@ -55,6 +68,9 @@ SIMULATE_NUM_INSERTION = 100
 
 # Number of small deletions to simulate
 SIMULATE_NUM_DELETION = 100
+
+# Enforce infinite sites assumption
+SIMULATE_ENFORCE_INFINITE_SITES_ASSUMPTION = True
 
 # Structural variant attributes (union of attributes amongst SV callers)
 STRUCTURAL_VARIANT_ATTRIBUTES = {

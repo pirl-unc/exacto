@@ -35,8 +35,34 @@ class NucleicAcidTypes:
 class VariantTypes:
     SV = 'sv'
     SNV_INDEL = 'snv_indel'
+    SNV = 'snv'
+    INSERTION = 'ins'
+    DELETION = 'del'
+    INVERSION_5TO5 = 'inv_5to5'
+    INVERSION_5TO3 = 'inv_5to3'
+    INVERSION_3TO3 = 'inv_3to3'
+    TANDEM_DUPLICATION = 'tandem_dup'
+    SEGMENTAL_DUPLICATION = 'seg_dup'
+    TRANSLOCATION = 'tra'
+    SPLICE_VARIANT = 'spvar'
+    INTRON_RETENTION = 'intron_ret'
+    CIRCULAR_RNA = 'circ_rna'
+    ENDOGENOUS_RETROVIRUS = 'erv'
     ALL = [SV,
-           SNV_INDEL]
+           SNV_INDEL,
+           SNV,
+           INSERTION,
+           DELETION,
+           INVERSION_5TO5,
+           INVERSION_5TO3,
+           INVERSION_3TO3,
+           TANDEM_DUPLICATION,
+           SEGMENTAL_DUPLICATION,
+           TRANSLOCATION,
+           SPLICE_VARIANT,
+           INTRON_RETENTION,
+           CIRCULAR_RNA,
+           ENDOGENOUS_RETROVIRUS]
 
 
 class VariantCallingMethods:
@@ -72,7 +98,8 @@ class VariantCallingMethods:
 class AnnotationSources:
     ENSEMBL = 'ensembl'
     GENCODE = 'gencode'
-    ALL = [ENSEMBL, GENCODE]
+    ANNOVAR = 'annovar'
+    ALL = [ENSEMBL, GENCODE, ANNOVAR]
 
 
 class StructuralVariantTypes:
