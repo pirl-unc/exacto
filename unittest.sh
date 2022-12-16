@@ -1,1 +1,1 @@
-nosetests test --with-coverage --cover-package=exactolib
+nosetests test --with-coverage --cover-package=exacto

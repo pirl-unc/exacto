@@ -14,7 +14,12 @@ Expression Quantification and Identification of Augmented Transcripts of Somatic
 pip install .
 ```
 
-## 03. Testing
+## 03. Packaging
+```
+python -m build
+```
+
+## 04. Testing
 ```
 bash lint.sh
 bash unittest.sh

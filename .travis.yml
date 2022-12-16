@@ -26,6 +26,7 @@ install:
   - source activate test-environment
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
+  - conda install -c conda-forge rust
   - conda install pandas
   - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
@@ -39,6 +40,6 @@ install:
 before_script:
   - ./lint.sh
 script:
-  - nosetests test --with-coverage --cover-package=exactolib
+  - nosetests test --with-coverage --cover-package=exacto
 after_success:
   coveralls
