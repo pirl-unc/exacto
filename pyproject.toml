@@ -12,7 +12,12 @@
 
 
 [build-system]
-requires = ["maturin>=0.14,<0.15"]
+requires = [
+    "maturin>=0.14,<0.15",
+    "pandas",
+    "pysam",
+    "pyensembl"
+]
 build-backend = "maturin"
 
 [project]

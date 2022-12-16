@@ -34,7 +34,7 @@ install:
   - conda install -c bioconda pysam
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
-  - pip install .
+  - pip install . -vvv
   - conda install -c conda-forge coveralls
   - conda install -c conda-forge nose
 before_script:

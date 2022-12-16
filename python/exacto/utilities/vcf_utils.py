@@ -29,6 +29,35 @@ from ..default_parameters import *
 logger = get_logger(__name__)
 
 
+def __safely_convert_value(value, default_value, type):
+    """
+    Safely converts a value from a VCF row.
+
+    Parameters
+    ----------
+    value           :   Value to convert and update.
+    default_value   :   Default value.
+    type            :   Type ('str', 'int', 'float).
+
+    Returns
+    -------
+    value   :   Value converted to 'type'.
+                If the conversion fails, the default value is returned.
+    """
+    try:
+        if type == 'str':
+            value = str(value)
+        elif type == 'int':
+            value = int(value)
+        elif type == 'float':
+            value = float(value)
+        else:
+            value = default_value
+    except:
+        value = default_value
+    return value
+
+
 def read_vcf_file(vcf_file: str) -> pd.DataFrame:
     """
     Reads a VCF file and returns a DataFrame.
@@ -124,7 +153,10 @@ def convert_deepvariant_vcf_to_dataframe(vcf_file: str,
         curr_row['alt'] = str(row['ALT']).upper()
         curr_row['filter'] = str(row['FILTER'])
         if row['QUAL'] != '.':
-            curr_row['quality_score'] = float(row['QUAL'])
+            try:
+                curr_row['quality_score'] = float(row['QUAL'])
+            except:
+                pass
         if len(curr_row['ref']) == 1 and len(curr_row['alt']) == 1:
             curr_row['variant_type'] = SmallVariantTypes.SINGLE_NUCLEOTIDE_VARIANT
             curr_row['variant_sequence'] = curr_row['alt']
@@ -549,7 +581,10 @@ def convert_cutesv_vcf_to_dataframe(vcf_file: str,
             if curr_info_elements[0] == 'IMPRECISE':
                 curr_row['is_precise'] = False
             if curr_info_elements[0] == 'SVTYPE':
-                curr_row['sv_type'] = str(curr_info_elements[1])
+                try:
+                    curr_row['sv_type'] = str(curr_info_elements[1])
+                except:
+                    pass
             if curr_info_elements[0] == 'SVLEN':
                 curr_row['sv_size'] = abs(int(curr_info_elements[1]))
             if curr_info_elements[0] == 'RE':
@@ -564,7 +599,7 @@ def convert_cutesv_vcf_to_dataframe(vcf_file: str,
                 curr_row['ci_pos'] = str(curr_info_elements[1])
             if curr_info_elements[0] == 'CILEN':
                 curr_row['ci_len'] = str(curr_info_elements[1])
-            if curr_info_elements[0] == 'AF':
+            if curr_info_elements[0] == 'AF' and curr_info_elements[0] != '.':
                 curr_row['variant_allele_fraction'] = float(curr_info_elements[1])
 
         # Update chromosome 2 for 'BND'

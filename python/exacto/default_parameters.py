@@ -72,7 +72,8 @@ SIMULATE_NUM_DELETION = 100
 # Enforce infinite sites assumption
 SIMULATE_ENFORCE_INFINITE_SITES_ASSUMPTION = True
 
-#
+# Number of cores
+NUM_CORES = 4
 
 # Structural variant attributes (union of attributes amongst SV callers)
 STRUCTURAL_VARIANT_ATTRIBUTES = {
