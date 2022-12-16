@@ -1,8 +1,8 @@
 from .data import get_data_path
-from exactolib.main import *
-from exactolib.utilities.vcf_utils import convert_cutesv_vcf_to_dataframe
-from exactolib.constants import *
-from exactolib.default_parameters import *
+from exacto.main import *
+from exacto.utilities.vcf_utils import convert_cutesv_vcf_to_dataframe
+from exacto.constants import *
+from exacto.default_parameters import *
 
 
 def test_refine_dna_structural_variants_cutesv():

@@ -1,5 +1,5 @@
 from .data import get_data_path
-from exactolib.main import *
+from exacto.main import *
 
 
 def test_simulate_dna_variants():

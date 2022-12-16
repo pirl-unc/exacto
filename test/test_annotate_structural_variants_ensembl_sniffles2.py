@@ -1,6 +1,6 @@
 from .data import get_data_path
-from exactolib.main import *
-from exactolib.constants import *
+from exacto.main import *
+from exacto.constants import *
 
 
 def test_annotate_dna_structural_variants_ensembl_sniffles2():

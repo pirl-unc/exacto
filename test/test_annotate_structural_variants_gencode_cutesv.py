@@ -1,7 +1,7 @@
 from .data import get_data_path
-from exactolib.main import *
-from exactolib.constants import *
-from exactolib.utilities.gencode_utils import *
+from exacto.main import *
+from exacto.constants import *
+from exacto.utilities.gencode_utils import *
 
 
 def test_annotate_dna_structural_variants_gencode_cutesv():

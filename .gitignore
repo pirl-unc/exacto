@@ -9,3 +9,5 @@ dist/
 Exacto.egg-info/
 docs/.ipynb_checkpoints/
 examples/
+target/
+Cargo.lock
