@@ -26,17 +26,18 @@ install:
   - source activate test-environment
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
-  - conda install -c conda-forge rust
-  - conda install pandas
-  - conda install -c bioconda pyensembl
+  - conda install -c conda-forge mamba
+  - mamba install rust
+  - mamba install pandas
+  - mamba install pysam
+  - mamba install pylint
+  - mamba install pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
-  - conda install -c bioconda pysam
-  - conda install -c bioconda pyvcf
-  - conda install -c anaconda pylint
-  - pip install . -vvv
-  - conda install -c conda-forge coveralls
-  - conda install -c conda-forge nose
+  - maturin build --release
+  - pip install . --ignore-installed --verbose
+  - mamba install coveralls
+  - mamba install nose
 before_script:
   - ./lint.sh
 script:

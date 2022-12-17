@@ -17,7 +17,6 @@ handling VCF files.
 """
 
 
-import vcf
 import gzip
 import pandas as pd
 from collections import defaultdict
