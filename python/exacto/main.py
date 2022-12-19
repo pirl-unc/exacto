@@ -148,7 +148,7 @@ def run_exacto_refine_genomic_small_variants(
         df_variants: pd.DataFrame,
         df_gapped_regions: pd.DataFrame,
         variant_calling_method: str,
-        tumor_normal_paired: bool,
+        is_tumor_normal_paired: bool,
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
@@ -167,7 +167,7 @@ def run_exacto_refine_genomic_small_variants(
                                 'tumor_variant_reads_count'
     df_gapped_regions       :   DataFrame of gapped regions in the genome.
     variant_calling_method  :   Variant calling method.
-    tumor_normal_paired     :   If true, variants were called using
+    is_tumor_normal_paired  :   If true, variants were called using
                                 tumor and matched normal pair.
     keep_only_chromosomes   :   List of chromosomes to keep.
                                 Chromosomes not specified in this list
@@ -185,7 +185,7 @@ def run_exacto_refine_genomic_small_variants(
     DataFrame of refined structural variants.
     """
     if variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2:
-        if tumor_normal_paired:
+        if is_tumor_normal_paired:
             df_variants = refine_gatk4_mutect2_tumor_normal_callset(
                 df_variants=df_variants,
                 keep_only_chromosomes=keep_only_chromosomes,

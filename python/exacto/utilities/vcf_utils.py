@@ -28,13 +28,14 @@ from ..default_parameters import *
 logger = get_logger(__name__)
 
 
-def __safely_convert_value(value, default_value, type):
+def __safely_retrieve_value(dict, key, default_value, type):
     """
     Safely converts a value from a VCF row.
 
     Parameters
     ----------
-    value           :   Value to convert and update.
+    dict            :   Dictionary.
+    key             :   Key.
     default_value   :   Default value.
     type            :   Type ('str', 'int', 'float).
 
@@ -43,6 +44,13 @@ def __safely_convert_value(value, default_value, type):
     value   :   Value converted to 'type'.
                 If the conversion fails, the default value is returned.
     """
+    # Step 1. Retrieve the value
+    try:
+        value = dict[key]
+    except:
+        value = default_value
+
+    # Step 2. Convert value to the desired type
     try:
         if type == 'str':
             value = str(value)
@@ -146,72 +154,69 @@ def convert_deepvariant_vcf_to_dataframe(vcf_file: str,
         curr_row['id'] = str(row['ID'])
         curr_row['variant_calling_method'] = VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT
         curr_row['sequencing_platform'] = sequencing_platform
-        curr_row['chrom'] = str(row['CHROM'])
-        curr_row['pos'] = int(row['POS'])
-        curr_row['ref'] = str(row['REF']).upper()
-        curr_row['alt'] = str(row['ALT']).upper()
-        curr_row['filter'] = str(row['FILTER'])
-        if row['QUAL'] != '.':
-            try:
-                curr_row['quality_score'] = float(row['QUAL'])
-            except:
-                pass
+        curr_row['chrom'] = __safely_retrieve_value(dict=row, key='CHROM', default_value=curr_row['chrom'], type='str')
+        curr_row['pos'] = __safely_retrieve_value(dict=row, key='POS', default_value=curr_row['pos'], type='int')
+        curr_row['ref'] = __safely_retrieve_value(dict=row, key='REF', default_value=curr_row['ref'], type='str').upper()
+        curr_row['alt'] = __safely_retrieve_value(dict=row, key='ALT', default_value=curr_row['alt'], type='str').upper()
+        curr_row['filter'] = __safely_retrieve_value(dict=row, key='FILTER', default_value=curr_row['filter'], type='str')
+        curr_row['quality_score'] = __safely_retrieve_value(dict=row, key='QUAL', default_value=curr_row['quality_score'], type='float')
+
+        # Make sure 'chr' is in chrom
+        if 'chr' not in curr_row['chrom']:
+            curr_row['chrom'] = 'chr' + curr_row['chrom']
+
         if len(curr_row['ref']) == 1 and len(curr_row['alt']) == 1:
             curr_row['variant_type'] = SmallVariantTypes.SINGLE_NUCLEOTIDE_VARIANT
-            curr_row['variant_sequence'] = curr_row['alt']
+            curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
             curr_row['variant_size'] = 1
         elif len(curr_row['ref']) == 1 and len(curr_row['alt']) > 1:
             if ',' in curr_row['alt']:
                 curr_row['variant_type'] = SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT
-                curr_row['variant_sequence'] = curr_row['alt']
+                curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
             else:
                 curr_row['variant_type'] = SmallVariantTypes.SMALL_INSERTION
-                curr_row['variant_sequence'] = curr_row['alt'][1:]
+                curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str')[1:].upper()
                 curr_row['variant_size'] = len(curr_row['alt'][1:])
         elif len(curr_row['ref']) > 1 and len(curr_row['alt']) == 1:
             curr_row['variant_type'] = SmallVariantTypes.SMALL_DELETION
-            curr_row['variant_sequence'] = curr_row['ref'][1:]
+            curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='ref', default_value=curr_row['variant_sequence'], type='str')[1:].upper()
             curr_row['variant_size'] = len(curr_row['ref'][1:])
         elif len(curr_row['ref']) > 1 and len(curr_row['alt']) > 1:
             curr_row['variant_type'] = SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT
-            curr_row['variant_sequence'] = curr_row['alt']
+            curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
         else:
             logger.warning('Unknown variant type. REF: %s. ALT: %s' %
                            (curr_row['ref'], curr_row['alt']))
-
-        # Make sure 'chr' is in chrom
-        if 'chr' not in curr_row['chrom']:
-            curr_row['chrom'] = 'chr' + str(curr_row['chrom'])
 
         # Extract FORMAT
         format = str(row['FORMAT']).split(':')
         sample = str(row[sample_key]).split(':')
         if 'GT' in format:
-            curr_row['genotype'] = str(sample[format.index('GT')])
+            curr_row['tumor_genotype'] = __safely_retrieve_value(dict=sample, key=format.index('GT'), default_value=curr_row['tumor_genotype'], type='str')
         if 'GQ' in format:
-            curr_row['genotype_quality'] = str(sample[format.index('GQ')])
+            curr_row['tumor_genotype_quality'] = __safely_retrieve_value(dict=sample, key=format.index('GQ'), default_value=curr_row['tumor_genotype_quality'], type='str')
         if 'DP' in format:
-            curr_row['total_coverage'] = int(sample[format.index('DP')])
+            curr_row['tumor_total_coverage'] = __safely_retrieve_value(dict=sample, key=format.index('DP'), default_value=curr_row['tumor_total_coverage'], type='int')
         if 'AD' in format:
             curr_ad = str(sample[format.index('AD')]).split(',')
-            curr_row['reference_reads_count'] = int(curr_ad[0])
+            curr_row['tumor_reference_reads_count'] = int(curr_ad[0])
             if curr_row['variant_type'] == SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT:
-                curr_row['variant_reads_count'] = ','.join(curr_ad[1:])
+                curr_row['tumor_variant_reads_count'] = ','.join(curr_ad[1:])
             else:
-                curr_row['variant_reads_count'] = int(curr_ad[1])
+                curr_row['tumor_variant_reads_count'] = int(curr_ad[1])
         if 'VAF' in format:
             if curr_row['variant_type'] == SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT:
-                curr_row['variant_allele_fraction'] = str(sample[format.index('VAF')])
+                curr_row['variant_allele_fraction'] = __safely_retrieve_value(dict=sample, key=format.index('VAF'), default_value=curr_row['variant_allele_fraction'], type='str')
             else:
-                curr_row['variant_allele_fraction'] = float(sample[format.index('VAF')])
+                curr_row['variant_allele_fraction'] = __safely_retrieve_value(dict=sample, key=format.index('VAF'), default_value=curr_row['variant_allele_fraction'], type='float')
         if 'PL' in format:
-            curr_row['phred_scale_genotype_likelihoods'] = str(sample[format.index('PL')])
+            curr_row['phred_scale_genotype_likelihoods'] = __safely_retrieve_value(dict=sample, key=format.index('PL'), default_value=curr_row['phred_scale_genotype_likelihoods'], type='str')
 
         # Update total_coverage if it is currently unknown but can be inferred
-        if type(curr_row['variant_reads_count']) == int and \
-            type(curr_row['reference_reads_count']) == int and \
-            curr_row['total_coverage'] == 'unknown':
-            curr_row['total_coverage'] = curr_row['reference_reads_count'] + curr_row['variant_reads_count']
+        if type(curr_row['tumor_variant_reads_count']) == int and \
+            type(curr_row['tumor_reference_reads_count']) == int and \
+            curr_row['tumor_total_coverage'] == SMALL_VARIANT_ATTRIBUTES['tumor_total_coverage']:
+            curr_row['tumor_total_coverage'] = curr_row['tumor_reference_reads_count'] + curr_row['tumor_variant_reads_count']
 
         # Update ID
         if curr_row['id'] == '.':
@@ -230,16 +235,20 @@ def convert_deepvariant_vcf_to_dataframe(vcf_file: str,
 
 def convert_gatk4_mutect2_vcf_to_dataframe(vcf_file: str,
                                            sequencing_platform: str,
-                                           tumor_sample_id: str) -> pd.DataFrame:
+                                           tumor_sample_id: str,
+                                           normal_sample_id='') -> pd.DataFrame:
     """
-    Convert a GATK4-Mutect2 VCF file
-    (called with tumor and normal samples) to a DataFrame.
+    Convert a GATK4-Mutect2 VCF file to a DataFrame.
 
     Parameters
     ----------
-    vcf_file            :   VCF file.
-    sequencing_platform :   Sequencing platform.
-    tumor_sample_id     :   Tumor sample ID.
+    vcf_file                :   VCF file.
+    sequencing_platform     :   Sequencing platform.
+    tumor_sample_id         :   Tumor sample ID.
+    normal_sample_id        :   Normal sample ID. If this parameter is
+                                an empty string, it is assumed that the
+                                variant calling was performed using a tumor
+                                sample only.
 
     Returns
     -------
@@ -273,97 +282,285 @@ def convert_gatk4_mutect2_vcf_to_dataframe(vcf_file: str,
     'tumor_genotype'
     'normal_genotype'
     """
-    data = defaultdict(list)
-    vcf_reader = vcf.Reader(open(vcf_file, 'r'))
-    for record in vcf_reader:
-        chrom = str(record.CHROM)                                                           # chromosome
-        pos = int(record.POS)                                                               # position
-        if 'chr' not in chrom:                                                              # make sure 'chr' is in chrom
-            chrom = 'chr' + chrom
-        ref = str(record.REF)                                                               # reference allele
-        alt = record.ALT                                                                    # alternate allele
-        if len(alt) > 1:
-            continue
-        else:
-            alt = str(record.ALT[0])
-        if len(ref) == 1 and len(alt) == 1:                                                 # variant type
-            variant_type = 'snv'
-        elif len(ref) == 1 and len(alt) > 1:
-            variant_type = 'insertion'
-        elif len(ref) > 1 and len(alt) == 1:
-            variant_type = 'deletion'
-        elif len(ref) >= 2 and len(alt) >= 2:
-            variant_type = 'mnv'
-        else:
-            logger.info("Unknown variant type. REF: %s. ALT: %s" % (ref, alt))
-        if len(record.FILTER) == 0:                                                         # filter value
-            filter = 'PASS'
-        else:
-            filter = record.FILTER[0]
-        as_sb_table = record.INFO['AS_SB_TABLE']                                            # allele-specific forward/reverse read counts for strand bias tests.
-        ecnt = record.INFO['ECNT']                                                          # number of events in this haplotype
-        germq = record.INFO['GERMQ']                                                        # phred-scale quality that alt alleles are not germline variants
-        mbq = record.INFO['MBQ'][0]                                                         # median base quality by allele
-        mfrl = record.INFO['MFRL'][0]                                                       # median fragment length by allele
-        mmq = record.INFO['MMQ'][0]                                                         # median mapping quality by allele
-        mpos = record.INFO['MPOS'][0]                                                       # median distance from end of read
-        nalod = record.INFO['NALOD'][0]                                                     # negative log 10 odds of artifact in normal with same allele fraction as tumor
-        nlod = record.INFO['NLOD'][0]                                                       # normal log 10 odds of artifact in normal with same allele fraction as tumor
-        popaf = record.INFO['POPAF'][0]                                                     # negative log 10 population allele frequencies of alt alleles
-        tlod = record.INFO['TLOD'][0]                                                       # log 10 likelihood ratio score of variant existing versus not existing
-        if record.samples[0].sample == tumor_sample_id:                                     # tumor and normal sample record index
-            tumor_sample_record_idx = 0
-            normal_sample_record_idx = 1
-        else:
-            tumor_sample_record_idx = 1
-            normal_sample_record_idx = 0
-        tumor_reference_reads_count = record.samples[tumor_sample_record_idx]['AD'][0]      # tumor reference reads count
-        tumor_variant_reads_count = record.samples[tumor_sample_record_idx]['AD'][1]        # tumor variant reads count
-        tumor_total_coverage = record.samples[tumor_sample_record_idx]['DP']                # tumor total coverage
-        normal_reference_reads_count = record.samples[normal_sample_record_idx]['AD'][0]    # normal reference reads count
-        normal_variant_reads_count = record.samples[normal_sample_record_idx]['AD'][1]      # normal variant reads count
-        normal_total_coverage = record.samples[normal_sample_record_idx]['DP']              # normal total coverage
-        if tumor_variant_reads_count == 0 or \
-                tumor_total_coverage == 0 or \
-                normal_variant_reads_count > 0:
-            continue
-        variant_allele_fraction = tumor_variant_reads_count / tumor_total_coverage          # variant allele fraction
-        tumor_genotype = str(record.samples[tumor_sample_record_idx]['GT'])                 # tumor genotype
-        normal_genotype = str(record.samples[normal_sample_record_idx]['GT'])               # normal genotype
+    df_vcf = read_vcf_file(vcf_file=vcf_file)
+    list_data = []
+    curr_idx = 1
+    for row in df_vcf.to_dict('records'):
+        curr_row = SMALL_VARIANT_ATTRIBUTES.copy()
+        curr_row['id'] = str(row['ID'])
+        curr_row['variant_calling_method'] = VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2
+        curr_row['sequencing_platform'] = sequencing_platform
+        curr_row['chrom'] = __safely_retrieve_value(dict=row, key='CHROM', default_value=curr_row['chrom'], type='str')
+        curr_row['pos'] = __safely_retrieve_value(dict=row, key='POS', default_value=curr_row['pos'], type='int')
+        curr_row['ref'] = __safely_retrieve_value(dict=row, key='REF', default_value=curr_row['ref'], type='str').upper()
+        curr_row['alt'] = __safely_retrieve_value(dict=row, key='ALT', default_value=curr_row['alt'], type='str').upper()
+        curr_row['filter'] = __safely_retrieve_value(dict=row, key='FILTER', default_value=curr_row['filter'], type='str')
+        curr_row['quality_score'] = __safely_retrieve_value(dict=row, key='QUAL', default_value=curr_row['quality_score'], type='float')
 
-        # Append to data
-        data['id'].append(record.ID)
-        data['variant_calling_method'].append(VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2)
-        data['sequencing_platform'].append(sequencing_platform)
-        data['chrom'].append(chrom)
-        data['pos'].append(pos)
-        data['ref'].append(ref)
-        data['alt'].append(alt)
-        data['variant_type'].append(variant_type)
-        data['filter'].append(filter)
-        data['as_sb_table'].append(as_sb_table)
-        data['ecnt'].append(ecnt)
-        data['germq'].append(germq)
-        data['mbq'].append(mbq)
-        data['mfrl'].append(mfrl)
-        data['mmq'].append(mmq)
-        data['mpos'].append(mpos)
-        data['nalod'].append(nalod)
-        data['nlod'].append(nlod)
-        data['popaf'].append(popaf)
-        data['tlod'].append(tlod)
-        data['tumor_reference_reads_count'].append(tumor_reference_reads_count)
-        data['tumor_variant_reads_count'].append(tumor_variant_reads_count)
-        data['tumor_total_coverage'].append(tumor_total_coverage)
-        data['variant_allele_fraction'].append(variant_allele_fraction)
-        data['normal_reference_reads_count'].append(normal_reference_reads_count)
-        data['normal_total_coverage'].append(normal_total_coverage)
-        data['tumor_genotype'].append(tumor_genotype)
-        data['normal_genotype'].append(normal_genotype)
+        # Make sure 'chr' is in chrom
+        if 'chr' not in curr_row['chrom']:
+            curr_row['chrom'] = 'chr' + curr_row['chrom']
 
-    df = pd.DataFrame(data)
-    logger.info('%i rows in the returning dataframe' % len(df))
+        if len(curr_row['ref']) == 1 and len(curr_row['alt']) == 1:
+            curr_row['variant_type'] = SmallVariantTypes.SINGLE_NUCLEOTIDE_VARIANT
+            curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
+            curr_row['variant_size'] = 1
+        elif len(curr_row['ref']) == 1 and len(curr_row['alt']) > 1:
+            if ',' in curr_row['alt']:
+                curr_row['variant_type'] = SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT
+                curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
+            else:
+                curr_row['variant_type'] = SmallVariantTypes.SMALL_INSERTION
+                curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str')[1:].upper()
+                curr_row['variant_size'] = len(curr_row['alt'][1:])
+        elif len(curr_row['ref']) > 1 and len(curr_row['alt']) == 1:
+            curr_row['variant_type'] = SmallVariantTypes.SMALL_DELETION
+            curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='ref', default_value=curr_row['variant_sequence'], type='str')[1:].upper()
+            curr_row['variant_size'] = len(curr_row['ref'][1:])
+        elif len(curr_row['ref']) > 1 and len(curr_row['alt']) > 1:
+            curr_row['variant_type'] = SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT
+            curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
+        else:
+            logger.warning('Unknown variant type. REF: %s. ALT: %s' %
+                           (curr_row['ref'], curr_row['alt']))
+
+        # Extract INFO
+        info = str(row['INFO']).split(';')
+        for curr_info in info:
+            curr_info_elements = curr_info.split('=')
+            if curr_info_elements[0] == 'AS_SB_TABLE':
+                curr_row['allele_specific_strand_bias_table'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'ECNT':
+                curr_row['haplotype_events'] = int(curr_info_elements[1])
+            if curr_info_elements[0] == 'GERMQ':
+                curr_row['alt_allele_germline_quality'] = int(curr_info_elements[1])
+            if curr_info_elements[0] == 'MBQ':
+                curr_row['allele_median_base_qualities'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'MFRL':
+                curr_row['allele_median_fragment_length'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'MMQ':
+                curr_row['allele_median_mapping_quality'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'MPOS':
+                curr_row['median_distance_from_read_end'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'NALOD':
+                curr_row['negative_log10_odds_artifact'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'NLOD':
+                curr_row['log10_odds_artifact'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'POPAF':
+                curr_row['negative_log_10_population'] = str(curr_info_elements[1])
+            if curr_info_elements[0] == 'TLOD':
+                curr_row['log10_likelihood_ratio_score_variant_exists'] = str(curr_info_elements[1])
+
+        # Extract FORMAT
+        format = str(row['FORMAT']).split(';')
+        tumor_sample = str(row[tumor_sample_id]).split(';')
+        if normal_sample_id == '':
+            normal_sample = ''
+        else:
+            normal_sample = str(row[normal_sample_id]).split(';')
+
+        if 'AD' in format:
+            print(tumor_sample['AD'])
+            curr_row['tumor_reference_reads_count'] = int(tumor_sample['AD'].split(',')[0])
+            curr_row['tumor_variant_reads_count'] = int(tumor_sample['AD'].split(',')[1])
+            if normal_sample_id != '':
+                curr_row['normal_reference_reads_count'] = int(normal_sample['AD'].split(',')[0])
+        if 'DP' in format:
+            curr_row['tumor_total_coverage'] = int(tumor_sample['DP'])
+            if normal_sample_id != '':
+                curr_row['normal_total_coverage'] = int(normal_sample['DP'])
+        if 'SB' in format:
+            curr_row['tumor_strand_bias_fisher_exact_test_component_statistics'] = str(tumor_sample['SB'])
+            if normal_sample_id != '':
+                curr_row['normal_strand_bias_fisher_exact_test_component_statistics'] = str(normal_sample['SB'])
+        if 'F1R2' in format:
+            curr_row['tumor_f1r2_reads_count'] = str(tumor_sample['F1R2'])
+            if normal_sample_id != '':
+                curr_row['normal_f1r2_reads_count'] = str(normal_sample['F1R2'])
+        if 'F2R1' in format:
+            curr_row['tumor_f2r1_reads_count'] = str(tumor_sample['F2R1'])
+            if normal_sample_id != '':
+                curr_row['normal_f2r1_reads_count'] = str(normal_sample['F2R1'])
+        if 'GT' in format:
+            curr_row['tumor_genotype'] = str(tumor_sample['GT'])
+            if normal_sample_id != '':
+                curr_row['normal_genotype'] = str(normal_sample['GT'])
+
+        # Update total_coverage if it is currently unknown but can be inferred
+        if type(curr_row['tumor_variant_reads_count']) == int and \
+            type(curr_row['tumor_reference_reads_count']) == int and \
+            curr_row['tumor_total_coverage'] == SMALL_VARIANT_ATTRIBUTES['tumor_total_coverage']:
+            curr_row['tumor_total_coverage'] = curr_row['tumor_reference_reads_count'] + curr_row['tumor_variant_reads_count']
+
+        if type(curr_row['tumor_variant_reads_count']) == int and \
+            type(curr_row['tumor_total_coverage']) == int:
+            curr_row['variant_allele_fraction'] = float(curr_row['tumor_variant_reads_count']) / float(curr_row['tumor_total_coverage'])
+
+        # Update ID
+        if curr_row['id'] == '.':
+            curr_row['id'] = VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2 + '.' + \
+                             curr_row['variant_type'] + '.' + \
+                             str(curr_idx)
+            curr_idx += 1
+
+        # Append to list
+        list_data.append(curr_row)
+
+    df = pd.DataFrame.from_dict(list_data)
+    logger.info('%i rows in the returning DataFrame.' % len(df))
     return df
+
+
+def convert_strelka2_vcf_to_dataframe(vcf_file: str,
+                                      sequencing_platform: str,
+                                      tumor_sample_id: str,
+                                      normal_sample_id='') -> pd.DataFrame:
+    """
+    Converts a Strelka2 VCF file to a DataFrame.
+
+    Parameters
+    ----------
+    vcf_file                :   VCF file.
+    sequencing_platform     :   Sequencing platform.
+    tumor_sample_id         :   Tumor sample ID.
+    normal_sample_id        :   Normal sample ID. If this parameter is
+                                an empty string, it is assumed that the
+                                variant calling was performed using a tumor
+                                sample only.
+
+    Returns
+    -------
+    DataFrame with the following columns:
+    'id'
+    """
+    df_vcf = read_vcf_file(vcf_file=vcf_file)
+    list_data = []
+    curr_idx = 1
+    for row in df_vcf.to_dict('records'):
+        curr_row = SMALL_VARIANT_ATTRIBUTES.copy()
+        curr_row['id'] = str(row['ID'])
+        curr_row['variant_calling_method'] = VariantCallingMethods.SmallVariantCallingMethods.STRELKA2
+        curr_row['sequencing_platform'] = sequencing_platform
+        curr_row['chrom'] = __safely_retrieve_value(dict=row, key='CHROM', default_value=curr_row['chrom'], type='str')
+        curr_row['pos'] = __safely_retrieve_value(dict=row, key='POS', default_value=curr_row['pos'], type='int')
+        curr_row['ref'] = __safely_retrieve_value(dict=row, key='REF', default_value=curr_row['ref'], type='str').upper()
+        curr_row['alt'] = __safely_retrieve_value(dict=row, key='ALT', default_value=curr_row['alt'], type='str').upper()
+        curr_row['filter'] = __safely_retrieve_value(dict=row, key='FILTER', default_value=curr_row['filter'], type='str')
+        curr_row['quality_score'] = __safely_retrieve_value(dict=row, key='QUAL', default_value=curr_row['quality_score'], type='float')
+
+        # Make sure 'chr' is in chrom
+        if 'chr' not in curr_row['chrom']:
+            curr_row['chrom'] = 'chr' + curr_row['chrom']
+
+    return pd.DataFrame()
+    #     if len(curr_row['ref']) == 1 and len(curr_row['alt']) == 1:
+    #         curr_row['variant_type'] = SmallVariantTypes.SINGLE_NUCLEOTIDE_VARIANT
+    #         curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
+    #         curr_row['variant_size'] = 1
+    #     elif len(curr_row['ref']) == 1 and len(curr_row['alt']) > 1:
+    #         if ',' in curr_row['alt']:
+    #             curr_row['variant_type'] = SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT
+    #             curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
+    #         else:
+    #             curr_row['variant_type'] = SmallVariantTypes.SMALL_INSERTION
+    #             curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str')[1:].upper()
+    #             curr_row['variant_size'] = len(curr_row['alt'][1:])
+    #     elif len(curr_row['ref']) > 1 and len(curr_row['alt']) == 1:
+    #         curr_row['variant_type'] = SmallVariantTypes.SMALL_DELETION
+    #         curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='ref', default_value=curr_row['variant_sequence'], type='str')[1:].upper()
+    #         curr_row['variant_size'] = len(curr_row['ref'][1:])
+    #     elif len(curr_row['ref']) > 1 and len(curr_row['alt']) > 1:
+    #         curr_row['variant_type'] = SmallVariantTypes.MULTI_NUCLEOTIDE_VARIANT
+    #         curr_row['variant_sequence'] = __safely_retrieve_value(dict=row, key='alt', default_value=curr_row['variant_sequence'], type='str').upper()
+    #     else:
+    #         logger.warning('Unknown variant type. REF: %s. ALT: %s' %
+    #                        (curr_row['ref'], curr_row['alt']))
+    #
+    #     # Extract INFO
+    #     info = str(row['INFO']).split(';')
+    #     for curr_info in info:
+    #         curr_info_elements = curr_info.split('=')
+    #         if curr_info_elements[0] == 'AS_SB_TABLE':
+    #             curr_row['allele_specific_strand_bias_table'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'ECNT':
+    #             curr_row['haplotype_events'] = int(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'GERMQ':
+    #             curr_row['alt_allele_germline_quality'] = int(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'MBQ':
+    #             curr_row['allele_median_base_qualities'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'MFRL':
+    #             curr_row['allele_median_fragment_length'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'MMQ':
+    #             curr_row['allele_median_mapping_quality'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'MPOS':
+    #             curr_row['median_distance_from_read_end'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'NALOD':
+    #             curr_row['negative_log10_odds_artifact'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'NLOD':
+    #             curr_row['log10_odds_artifact'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'POPAF':
+    #             curr_row['negative_log_10_population'] = str(curr_info_elements[1])
+    #         if curr_info_elements[0] == 'TLOD':
+    #             curr_row['log10_likelihood_ratio_score_variant_exists'] = str(curr_info_elements[1])
+    #
+    #     # Extract FORMAT
+    #     format = str(row['FORMAT']).split(';')
+    #     tumor_sample = str(row[tumor_sample_id]).split(';')
+    #     if normal_sample_id == '':
+    #         normal_sample = ''
+    #     else:
+    #         normal_sample = str(row[normal_sample_id]).split(';')
+    #
+    #     if 'AD' in format:
+    #         print(tumor_sample['AD'])
+    #         curr_row['tumor_reference_reads_count'] = int(tumor_sample['AD'].split(',')[0])
+    #         curr_row['tumor_variant_reads_count'] = int(tumor_sample['AD'].split(',')[1])
+    #         if normal_sample_id != '':
+    #             curr_row['normal_reference_reads_count'] = int(normal_sample['AD'].split(',')[0])
+    #     if 'DP' in format:
+    #         curr_row['tumor_total_coverage'] = int(tumor_sample['DP'])
+    #         if normal_sample_id != '':
+    #             curr_row['normal_total_coverage'] = int(normal_sample['DP'])
+    #     if 'SB' in format:
+    #         curr_row['tumor_strand_bias_fisher_exact_test_component_statistics'] = str(tumor_sample['SB'])
+    #         if normal_sample_id != '':
+    #             curr_row['normal_strand_bias_fisher_exact_test_component_statistics'] = str(normal_sample['SB'])
+    #     if 'F1R2' in format:
+    #         curr_row['tumor_f1r2_reads_count'] = str(tumor_sample['F1R2'])
+    #         if normal_sample_id != '':
+    #             curr_row['normal_f1r2_reads_count'] = str(normal_sample['F1R2'])
+    #     if 'F2R1' in format:
+    #         curr_row['tumor_f2r1_reads_count'] = str(tumor_sample['F2R1'])
+    #         if normal_sample_id != '':
+    #             curr_row['normal_f2r1_reads_count'] = str(normal_sample['F2R1'])
+    #     if 'GT' in format:
+    #         curr_row['tumor_genotype'] = str(tumor_sample['GT'])
+    #         if normal_sample_id != '':
+    #             curr_row['normal_genotype'] = str(normal_sample['GT'])
+    #
+    #     # Update total_coverage if it is currently unknown but can be inferred
+    #     if type(curr_row['tumor_variant_reads_count']) == int and \
+    #         type(curr_row['tumor_reference_reads_count']) == int and \
+    #         curr_row['tumor_total_coverage'] == SMALL_VARIANT_ATTRIBUTES['tumor_total_coverage']:
+    #         curr_row['tumor_total_coverage'] = curr_row['tumor_reference_reads_count'] + curr_row['tumor_variant_reads_count']
+    #
+    #     if type(curr_row['tumor_variant_reads_count']) == int and \
+    #         type(curr_row['tumor_total_coverage']) == int:
+    #         curr_row['variant_allele_fraction'] = float(curr_row['tumor_variant_reads_count']) / float(curr_row['tumor_total_coverage'])
+    #
+    #     # Update ID
+    #     if curr_row['id'] == '.':
+    #         curr_row['id'] = VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2 + '.' + \
+    #                          curr_row['variant_type'] + '.' + \
+    #                          str(curr_idx)
+    #         curr_idx += 1
+    #
+    #     # Append to list
+    #     list_data.append(curr_row)
+    #
+    # df = pd.DataFrame.from_dict(list_data)
+    # logger.info('%i rows in the returning DataFrame.' % len(df))
+    # return df
 
 
 def convert_sniffles2_vcf_to_dataframe(vcf_file: str,

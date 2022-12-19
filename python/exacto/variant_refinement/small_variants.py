@@ -145,9 +145,9 @@ def refine_deepvariant_callset(
         df_variants = df_variants[df_variants['filter'].isin(keep_only_filter_values)]
     if len(keep_only_chromosomes) > 0:
         df_variants = df_variants[df_variants['chrom'].isin(keep_only_chromosomes)]
-    df_variants = df_variants[df_variants['total_coverage'].map(is_safe_integer)]
-    df_variants = df_variants[df_variants['total_coverage'] >= min_total_coverage]
-    df_variants = df_variants[df_variants['variant_reads_count'].map(is_safe_integer)]
-    df_variants = df_variants[df_variants['variant_reads_count'] >= min_variant_reads_count]
+    df_variants = df_variants[df_variants['tumor_total_coverage'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['tumor_total_coverage'] >= min_total_coverage]
+    df_variants = df_variants[df_variants['tumor_variant_reads_count'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['tumor_variant_reads_count'] >= min_variant_reads_count]
     return df_variants
 

@@ -1,17 +1,18 @@
 from .data import get_data_path
 from exacto.main import *
-from exacto.utilities.vcf_utils import convert_deepvariant_vcf_to_dataframe
+from exacto.utilities.vcf_utils import convert_gatk4_mutect2_vcf_to_dataframe
 from exacto.constants import *
 from exacto.default_parameters import *
 
 
-def test_refine_dna_small_variants_deepvariant():
+def test_refine_dna_small_variants_strelka2():
     # Step 1. Load data
-    vcf_file = get_data_path(name='hg002_deepvariant.vcf')
+    vcf_file = get_data_path(name='hg002_gatk4-mutect2.vcf')
     gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
-    df_variants = convert_deepvariant_vcf_to_dataframe(
+    df_variants = convert_gatk4_mutect2_vcf_to_dataframe(
         vcf_file=vcf_file,
-        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS
+        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
+        tumor_sample_id='hg002'
     )
     df_gapped_regions = pd.read_csv(gapped_tsv_file, sep='\t')
 
@@ -19,7 +20,7 @@ def test_refine_dna_small_variants_deepvariant():
     df_variants_refined = run_exacto_refine_genomic_small_variants(
         df_variants=df_variants,
         df_gapped_regions=df_gapped_regions,
-        variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT,
+        variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2,
         is_tumor_normal_paired=False,
         keep_only_chromosomes=['chr1'],
         keep_only_filter_values=KEEP_ONLY_FILTER_VALUES,

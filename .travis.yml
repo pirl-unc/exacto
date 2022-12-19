@@ -9,10 +9,13 @@ cache:
   directories:
   - $HOME/cache/
   - $HOME/cache/pyensembl/GRCh38/ensembl95/
+  - $HOME/cache/cargo/
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - export CARGO_TARGET_DIR="$HOME/cache/cargo/"
+  - export CARGO_BUILD_TARGET_DIR="$HOME/cache/cargo/"
   # reset the shell's lookup table for program name to path mappings
   - hash -r
   - conda config --set always_yes yes --set changeps1 no

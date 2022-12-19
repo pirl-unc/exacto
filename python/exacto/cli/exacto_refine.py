@@ -105,13 +105,14 @@ def add_exacto_refine_arg_parser(sub_parsers):
              % VariantTypes.SNV_INDEL
     )
     parser_optional.add_argument(
-        "--tumor_normal_paired",
-        dest="tumor_normal_paired",
-        type=bool,
+        "--normal_sample_id",
+        dest="normal_sample_id",
+        type=str,
         required=False,
-        help="If true, variants were called using tumor and matched normal. "
-             "This parameter must be specified if --variant_type is '%s'."
-             % VariantTypes.SNV_INDEL
+        default='',
+        help="Normal sample ID. This parameter must be specified if "
+             "--variant_type is '%s' and variant calling was performed "
+             "using a tumor and matched normal."
     )
     parser_optional.add_argument(
         "--keep_only_chromosomes",
@@ -248,7 +249,7 @@ def run_exacto_refine_from_parsed_args(args):
                 sequencing_platform
                 output_tsv_file
                 tumor_sample_id
-                tumor_normal_paired
+                normal_sample_id
                 keep_only_chromosomes
                 keep_only_precise_sv
                 keep_only_filter_values
@@ -343,7 +344,8 @@ def run_exacto_refine_from_parsed_args(args):
             df_variants = convert_gatk4_mutect2_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
                 sequencing_platform=args.sequencing_platform,
-                tumor_sample_id=args.tumor_sample_id
+                tumor_sample_id=args.tumor_sample_id,
+                normal_sample_id=args.normal_sample_id
             )
         elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT:
             df_variants = convert_deepvariant_vcf_to_dataframe(
@@ -359,11 +361,15 @@ def run_exacto_refine_from_parsed_args(args):
             )
 
         # Perform refinement.
+        if args.normal_sample_id == '':
+            is_tumor_normal_paired = False
+        else:
+            is_tumor_normal_paired = True
         df_variants = run_exacto_refine_genomic_small_variants(
             df_variants=df_variants,
             df_gapped_regions=df_gapped_regions,
             variant_calling_method=args.variant_calling_method,
-            tumor_normal_paired=args.tumor_normal_paired,
+            is_tumor_normal_paired=is_tumor_normal_paired,
             keep_only_chromosomes=keep_only_chromosomes,
             keep_only_filter_values=keep_only_filter_values,
             min_total_coverage=args.min_total_coverage,

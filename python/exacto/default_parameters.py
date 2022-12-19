@@ -127,11 +127,48 @@ SMALL_VARIANT_ATTRIBUTES = {
     'variant_type': 'unknown',                                                 # variant type
     'variant_sequence': 'unknown',                                             # variant sequence
     'variant_size': 'unknown',                                                 # variant size
-    'genotype': 'unknown',                                                     # genotype
-    'genotype_quality': 'unknown',                                             # genotype quality
-    'total_coverage': 'unknown',                                               # total coverage
-    'reference_reads_count': 'unknown',                                        # reference reads count
-    'variant_reads_count': 'unknown',                                          # variant reads count
+    'tumor_genotype': 'unknown',                                               # tumor genotype
+    'tumor_genotype_quality': 'unknown',                                       # tumor genotype quality
+    'normal_genotype': 'unknown',                                              # normal genotype
+    'normal_genotype_quality': 'unknown',                                      # normal genotype quality
+    'tumor_total_coverage': 'unknown',                                         # tumor total coverage
+    'tumor_reference_reads_count': 'unknown',                                  # tumor reference reads count
+    'tumor_variant_reads_count': 'unknown',                                    # tumor variant reads count
+    'normal_total_coverage': 'unknown',                                        # normal total coverage
+    'normal_reference_reads_count': 'unknown',                                 # normal reference reads count
     'variant_allele_fraction': 'unknown',                                      # variant allele fraction
-    'phred_scale_genotype_likelihoods': 'unknown'
+    'phred_scale_genotype_likelihoods': 'unknown',                             # phred scale genotype likelihoods
+    'allele_specific_strand_bias_table': 'unknown',                            # allele-specific forward/reverse read counts for strand bias tests
+    'tumor_strand_bias_fisher_exact_test_component_statistics': 'unknown',     # tumor per-sample component statistics which comprise the Fisher's Exact Test to detect strand bias
+    'normal_strand_bias_fisher_exact_test_component_statistics': 'unknown',    # normal per-sample component statistics which comprise the Fisher's Exact Test to detect strand bias
+    'haplotype_events': 'unknown',                                             # number of events in this haplotype
+    'alt_allele_germline_quality': 'unknown',                                  # phred-scale quality that alt alleles are not germline variants
+    'allele_median_base_qualities': 'unknown',                                 # median base quality by allele
+    'allele_median_fragment_length': 'unknown',                                # median fragment length by allele
+    'allele_median_mapping_quality': 'unknown',                                # median mapping quality by allele
+    'median_distance_from_read_end': 'unknown',                                # median distance from end of read
+    'negative_log10_odds_artifact': 'unknown',                                 # negative log 10 odds of artifact in normal with same allele fraction as tumor
+    'log10_odds_artifact': 'unknown',                                          # normal log 10 odds of artifact in normal with same allele fraction as tumor
+    'negative_log_10_population': 'unknown',                                   # negative log 10 population allele frequencies of alt alleles
+    'log10_likelihood_ratio_score_variant_exists': 'unknown',                  # log 10 likelihood ratio score of variant existing versus not existing
+    'tumor_f1r2_reads_count': 'unknown',                                       # F1R2 pair orientation supporting each allele in tumor
+    'tumor_f2r1_reads_count': 'unknown',                                       # F2R1 pair orientation supporting each allele in tumor
+    'normal_f1r2_reads_count': 'unknown',                                      # F1R2 pair orientation supporting each allele in normal
+    'normal_f2r1_reads_count': 'unknown',                                      # F2R1 pair orientation supporting each allele in normal
+    'region_end_position': 'unknown',                                          # End position of the region described int this record
+    'non_variant_multisite_block': 'unknown',                                  # on-variant multi-site block. Non-variant blocks are defined independently for each sample. All sites in such a block are constrained to be non-variant, have the same filter value, and have sample values {GQX,DP,DPF} in range [x,y], y <= max(x+3,(x*1.3))
+    'snv_contextual_homopolymer_length': 'unknown',                            # SNV contextual homopolymer length
+    'cigar': 'unknown',                                                        # CIGAR alignment for each alternate INDEL allele
+    'smallest_repeating_sequence_unit': 'unknown',                             # Smallest repeating sequence unit (RU) extended or contracted in the indel allele relative to the reference. RUs are not reported if longer than 20 bases
+    'smallest_repeating_sequence_unit_reference_repeat_count': 'unknown',      # Number of times RU is repeated in reference
+    'smallest_repeating_sequence_unit_allele_repeat_count': 'unknown',         # Number of times RU is repeated in indel allele
+    'mapping_quality_root_mean_square': 'unknown',                             # Root mean square of mapping quality
+    'tumor_genotype_quality_recalibrated': 'unknown',                          # Empirically calibrated genotype quality score for variant sites of tumor, otherwise minimum of {Genotype quality assuming variant position,Genotype quality assuming non-variant position}
+    'normal_genotype_quality_recalibrated': 'unknown',                         # Empirically calibrated genotype quality score for variant sites of normal, otherwise minimum of {Genotype quality assuming variant position,Genotype quality assuming non-variant position}
+    'filtered_basecalls_prior_to_genotyping': 'unknown',                       # Basecalls filtered from input prior to site genotyping. In a non-variant multi-site block this value represents the average of all sites in the block
+    'minimum_filtered_basecall_depth': 'unknown',                              # Minimum filtered basecall depth used for site genotyping within a non-variant multi-site block
+    'tumor_allelic_depths_forward_strand': 'unknown',                          # Tumor allelic depths on the forward strand
+    'tumor_allelic_depths_reverse_strand': 'unknown',                          # Tumor allelic depths on the reverse strand
+    'tumor_read_depth_preceding_indel': 'unknown',                             # Read depth associated with INDEL, taken from the site preceding the INDEL in tumor
+    'strand_bias_tag': 'unknown'                                               # Strand bias tag
 }
