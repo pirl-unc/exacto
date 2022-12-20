@@ -31,13 +31,13 @@ install:
   - conda config --add channels conda-forge
   - conda install -c conda-forge mamba
   - mamba install rust
-  - sudo apt-get install libssl-dev
   - mamba install pandas
-  - mamba install openssl
   - mamba install pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
-  - conda install -c bioconda pysam
+  - wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
+  - sudo dpkg -i libssl1.1_1.1.1f-1ubuntu2.16_amd64.deb
+  - mamba install pysam
   - mamba install pylint
   - mamba install maturin
   - maturin build --release
