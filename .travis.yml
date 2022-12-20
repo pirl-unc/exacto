@@ -36,7 +36,7 @@ install:
   - conda install -c bioconda pysam
   - conda install -c bioconda pyvcf
   - conda install -c anaconda pylint
-  - mamba install maturin --only-deps
+  - conda install -c conda-forge maturin
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
   - maturin build --release
