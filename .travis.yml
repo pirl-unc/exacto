@@ -28,7 +28,6 @@ install:
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
   - conda install -c conda-forge mamba
-  - mamba install rust --only-deps
   - mamba install pandas==1.5.2
   - mamba install numpy==1.23.1
   - mamba install pyensembl==2.1.0
@@ -36,11 +35,11 @@ install:
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   - mamba install pysam==0.19.1
   - mamba install pylint
+  - mamba install rust --only-deps
   - mamba install maturin
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
   - maturin build --release
-  - mamba install openssl==1.1.1s
   - pip install . --ignore-installed --verbose
   - conda install -c conda-forge coveralls
   - conda install -c conda-forge nose
