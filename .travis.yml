@@ -29,15 +29,15 @@ install:
   - conda install -c conda-forge mamba
   - mamba install rust
   - mamba install pandas
-  - mamba install pyensembl
+  - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
-  - mamba install pysam
-  - mamba install pyvcf
-  - mamba install pylint
+  - conda install -c bioconda pysam
+  - conda install -c bioconda pyvcf
+  - conda install -c anaconda pylint
   - pip install . -vvv
-  - mamba install coveralls
-  - mamba install nose
+  - conda install -c conda-forge coveralls
+  - conda install -c conda-forge nose
 before_script:
   - ./lint.sh
 script:
