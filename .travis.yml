@@ -27,11 +27,11 @@ install:
   - source activate test-environment
   - export CARGO_TARGET_DIR="$HOME/cache/cargo/"
   - export CARGO_BUILD_TARGET_DIR="$HOME/cache/cargo/"
-  - sudo apt-get install libssl1.0.0
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
   - conda install -c conda-forge mamba
   - mamba install rust
+  - sudo apt-get install libssl-dev
   - mamba install pandas
   - mamba install pysam
   - mamba install openssl
