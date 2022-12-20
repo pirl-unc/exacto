@@ -29,7 +29,8 @@ install:
   - conda config --add channels conda-forge
   - conda install -c conda-forge mamba
   - mamba install rust
-  - conda install pandas
+  - mamba install pandas
+  - mamba install numpy==1.23.1
   - pip install pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
