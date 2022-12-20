@@ -14,9 +14,10 @@
 [build-system]
 requires = [
     "maturin>=0.14,<0.15",
-    "pandas",
+    "pandas==1.5.2",
+    "numpy==1.23.1",
     "pysam",
-    "pyensembl"
+    "pyensembl==2.1.0"
 ]
 build-backend = "maturin"
 
