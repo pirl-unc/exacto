@@ -9,7 +9,6 @@ cache:
   directories:
   - $HOME/cache/
   - $HOME/cache/pyensembl/GRCh38/ensembl95/
-  - $HOME/cache/cargo/
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
@@ -27,22 +26,17 @@ install:
   - source activate test-environment
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
-  - conda install -c conda-forge mamba
-  - mamba install pandas==1.5.2
-  - mamba install numpy==1.23.1
-  - mamba install pyensembl==2.1.0
+  - conda install -c conda-forge rust
+  - conda install pandas
+  - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
-  - mamba install pysam==0.19.1
-  - mamba install pylint
-  - mamba install coveralls
-  - mamba install nose
-  - mamba install rust
-  - mamba install maturin
-  - export CARGO_TARGET_DIR=$HOME/cache/cargo/
-  - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
-  - maturin build --release
-  - pip install . --verbose
+  - conda install -c bioconda pysam
+  - conda install -c bioconda pyvcf
+  - conda install -c anaconda pylint
+  - pip install . -vvv
+  - conda install -c conda-forge coveralls
+  - conda install -c conda-forge nose
 before_script:
   - ./lint.sh
 script:
