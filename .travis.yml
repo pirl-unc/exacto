@@ -33,12 +33,12 @@ install:
   - mamba install rust
   - sudo apt-get install libssl-dev
   - mamba install pandas
-  - mamba install pysam
   - mamba install openssl
-  - mamba install pylint
   - mamba install pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
+  - conda install -c bioconda pysam
+  - mamba install pylint
   - mamba install maturin
   - maturin build --release
   - pip install . --ignore-installed --verbose
