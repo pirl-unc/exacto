@@ -35,14 +35,14 @@ install:
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   - mamba install pysam==0.19.1
   - mamba install pylint
+  - mamba install coveralls
+  - mamba install nose
   - mamba install rust
   - mamba install maturin
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
   - maturin build --release
   - pip install . --verbose
-  - conda install -c conda-forge coveralls
-  - conda install -c conda-forge nose
 before_script:
   - ./lint.sh
 script:
