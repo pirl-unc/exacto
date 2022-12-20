@@ -34,6 +34,7 @@ install:
   - mamba install rust
   - mamba install pandas
   - mamba install pysam
+  - mamba install openssl
   - mamba install pylint
   - mamba install pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
