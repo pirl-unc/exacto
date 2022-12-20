@@ -32,9 +32,9 @@ install:
   - mamba install pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
-  - conda install -c anaconda pylint
-  - conda install -c conda-forge coveralls
-  - conda install -c conda-forge nose
+  - mamba install pylint
+  - mamba install coveralls
+  - mamba install nose
   - mamba install pysam
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
