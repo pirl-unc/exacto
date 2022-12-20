@@ -27,8 +27,8 @@ install:
   - source activate test-environment
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
+  - conda install -c conda-forge rust
   - conda install -c conda-forge mamba
-  - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
   - mamba install pandas==1.5.2
   - mamba install numpy==1.23.1
   - mamba install pyensembl==2.1.0
