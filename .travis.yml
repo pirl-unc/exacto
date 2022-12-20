@@ -27,6 +27,7 @@ install:
   - source activate test-environment
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
+  - conda install -c conda-forge mamba
   - conda install -c conda-forge rust
   - conda install -c bioconda pyensembl
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
@@ -34,7 +35,7 @@ install:
   - conda install -c anaconda pylint
   - conda install -c conda-forge coveralls
   - conda install -c conda-forge nose
-  - conda install -c bioconda pysam
+  - mamba install pysam
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
   - pip install . --verbose
