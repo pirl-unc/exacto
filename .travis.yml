@@ -34,9 +34,10 @@ install:
   - conda install -c anaconda pylint
   - conda install -c conda-forge coveralls
   - conda install -c conda-forge nose
+  - conda install -c bioconda pysam
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
-  - pip install . -vvv
+  - pip install . --verbose
 before_script:
   - ./lint.sh
 script:
