@@ -27,23 +27,23 @@ install:
   - source activate test-environment
   - conda config --add channels bioconda
   - conda config --add channels conda-forge
-  - conda install -c conda-forge rust
   - conda install -c conda-forge mamba
+  - mamba install rust
   - mamba install pandas==1.5.2
   - mamba install numpy==1.23.1
   - mamba install pyensembl==2.1.0
   - export PYENSEMBL_CACHE_DIR=$HOME/cache/
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   - mamba install pysam==0.19.1
-  - mamba install openssl
   - mamba install pylint
   - mamba install maturin
-  - export CARGO_TARGET_DIR="$HOME/cache/cargo/"
-  - export CARGO_BUILD_TARGET_DIR="$HOME/cache/cargo/"
+  - export CARGO_TARGET_DIR=$HOME/cache/cargo/
+  - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
   - maturin build --release
+  - conda install -c anaconda openssl
   - pip install . --ignore-installed --verbose
-  - mamba install coveralls
-  - mamba install nose
+  - conda install -c conda-forge coveralls
+  - conda install -c conda-forge nose
 before_script:
   - ./lint.sh
 script:
