@@ -1,0 +1,7 @@
+chr_1	pos_1	chr_2	pos_2	variant_type	variant_sequence	clone_id	description
+chr5	171387970	chr5	171387989	DEL		c1	NPM1 20-bp exonic deletion
+chr5	171390051	chr5	171390070	DEL		c1	NPM1 5' splice site 20-bp deletion
+chr5	171391778	chr5	171391799	DEL		c1	NPM1 3' splice site 20-bp deletion
+chr5	171392709	chr5	171392709	INS	AGAAGCGGAGGGACGAAATTTTTC	c1	NPM1 5' splice site 24-bp insertion; no 'GT' sequence
+chr5	171405403	chr5	171405403	INS	ATTACTGATGACGAACCCCCACAG	c1	NPM1 3' splice site 24-bp insertion; no 'GT' sequence
+chr5	171407740	chr5	171407740	INS	ATACCCGGATGCACTAATCTGCAT	c1	NPM1 24-bp exonic insertion; no 'GT' sequence

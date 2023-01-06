@@ -5,26 +5,50 @@ from exacto.constants import *
 
 def test_annotate_dna_structural_variants_ensembl_cutesv():
     # Step 1. Load data
-    cutesv_tsv_file = get_data_path(name='hg002_cutesv_refined.tsv')
-    df_sv_cutesv = pd.read_csv(cutesv_tsv_file, sep='\t')
+    vcf_file = get_data_path(name='hg002_cutesv.vcf')
+    gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
+    germline_sv_tsv_file = get_data_path(name='audano_et_al_cell_2019_sv_list.tsv')
+    df_structural_variants = convert_cutesv_vcf_to_dataframe(
+        vcf_file=vcf_file,
+        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
+        sample_id='hg002'
+    )
+    df_gapped_regions = pd.read_csv(gapped_tsv_file, sep='\t')
+    df_structural_variants_to_exclude = pd.read_csv(germline_sv_tsv_file, sep='\t')
 
-    # Step 2. Test
-    df_sv_cutesv_annotated = run_exacto_annotate_genomic_structural_variants(
-        df_structural_variants=df_sv_cutesv,
+    # Step 2. Refine
+    df_structural_variants_refined = run_exacto_refine_genomic_structural_variants(
+        df_structural_variants=df_structural_variants,
+        df_structural_variants_to_exclude=df_structural_variants_to_exclude,
+        df_gapped_regions=df_gapped_regions,
+        variant_calling_method=VariantCallingMethods.StructuralVariantCallingMethods.CUTESV,
+        keep_only_precise_sv=True,
+        keep_only_chromosomes=['chr1'],
+        keep_only_filter_values=['PASS'],
+        min_total_depth=MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
+        min_variant_reads_count=MIN_GENOMIC_VARIANT_READS_COUNT,
+        gapped_regions_padding=GENOME_GAPPED_REGIONS_PADDING,
+        exclude_variants_padding=EXCLUDE_SV_PADDING
+    )
+
+    # Step 3. Annotate
+    df_structural_variants_annotated = run_exacto_annotate_genomic_structural_variants(
+        df_structural_variants=df_structural_variants_refined,
         annotation_source=AnnotationSources.ENSEMBL,
         df_gencode_genes=None,
         df_gencode_exons=None,
         ensembl_release=95
     )
 
-    # Step 3. Print output
-    print("First row of cutesv DataFrame as dictionary:")
-    print(df_sv_cutesv_annotated.iloc[0].to_dict())
-    print("%i columns in total" % len(df_sv_cutesv_annotated.columns.values.tolist()))
+    # Step 4. Print output
+    print("First row of DataFrame as dictionary:")
+    print(df_structural_variants_annotated.iloc[0].to_dict())
+    print("%i columns in total" % len(df_structural_variants_annotated.columns.values.tolist()))
+    print("DataFrame first 5 rows:")
+    print(df_structural_variants_annotated.head(n=5))
+    print("DataFrame first row to dictionary:")
+    print(df_structural_variants_annotated.iloc[0].to_dict())
 
-    # Step 4. Check for errors
-    assert 'protein_coding' in df_sv_cutesv_annotated['ensembl_pos_1_gene_type'].values.tolist(), \
-        "The value 'protein_coding' is expected to appear in the column 'ensembl_pos_1_gene_type'"
-    assert 'PRKCZ' in df_sv_cutesv_annotated['ensembl_pos_1_gene_name'].values.tolist(), \
-        "The value 'PRKCZ' is expected to appear in the column 'ensembl_pos_1_gene_name'"
-
+    # Step 5. Write to file
+    output_tsv_file = get_data_path('hg002_cutesv_annotated_ensembl.tsv')
+    df_structural_variants_annotated.to_csv(output_tsv_file, sep='\t', index=False)

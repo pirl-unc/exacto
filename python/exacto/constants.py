@@ -20,67 +20,70 @@ class SequencingPlatforms:
     ILLUMINA = 'illumina'
     PACBIO_HIFI_CCS = 'pacbio-hifi-ccs'
     OXFORD_NANOPORE_TECHNOLOGIES = 'ont'
-    ALL = [ILLUMINA,
-           PACBIO_HIFI_CCS,
-           OXFORD_NANOPORE_TECHNOLOGIES]
+    ALL = [
+        ILLUMINA,
+        PACBIO_HIFI_CCS,
+        OXFORD_NANOPORE_TECHNOLOGIES
+    ]
 
 
 class NucleicAcidTypes:
     DNA = 'dna'
     RNA = 'rna'
-    ALL = [DNA,
-           RNA]
+    ALL = [
+        DNA,
+        RNA
+    ]
 
 
 class VariantTypes:
+    SNV = 'SNV'
+    INSERTION = 'INS'
+    DELETION = 'DEL'
+    INVERSION_5TO5 = 'INV_5TO5'
+    INVERSION_5TO3 = 'INV_5TO3'
+    INVERSION_3TO3 = 'INV_3TO3'
+    TANDEM_DUPLICATION = 'TANDEM_DUP'
+    SEGMENTAL_DUPLICATION = 'SEG_DUP'
+    TRANSLOCATION = 'TRA'
+    SPLICE_VARIANT = 'SPVAR'
+    INTRON_RETENTION = 'INTRON_RET'
+    CIRCULAR_RNA = 'CIRC_RNA'
+    ENDOGENOUS_RETROVIRUS = 'ERV'
+    ALL = [
+        SNV,
+        INSERTION,
+        DELETION,
+        INVERSION_5TO5,
+        INVERSION_5TO3,
+        INVERSION_3TO3,
+        TANDEM_DUPLICATION,
+        SEGMENTAL_DUPLICATION,
+        TRANSLOCATION,
+        SPLICE_VARIANT,
+        INTRON_RETENTION,
+        CIRCULAR_RNA,
+        ENDOGENOUS_RETROVIRUS
+    ]
+
+    class DeletionTypes:
+        FIVE_PRIME_SPLICE_SITE_DELETION = '5prime_splice_site_deletion'
+        THREE_PRIME_SPLICE_SITE_DELETION = '3prime_splice_site_deletion'
+        EXONIC_DELETION = 'exonic_deletion'
+        ALL = [
+            FIVE_PRIME_SPLICE_SITE_DELETION,
+            THREE_PRIME_SPLICE_SITE_DELETION,
+            EXONIC_DELETION
+        ]
+
+
+class VariantClasses:
     SV = 'sv'
     SNV_INDEL = 'snv_indel'
-    SNV = 'snv'
-    INSERTION = 'ins'
-    DELETION = 'del'
-    INVERSION_5TO5 = 'inv_5to5'
-    INVERSION_5TO3 = 'inv_5to3'
-    INVERSION_3TO3 = 'inv_3to3'
-    TANDEM_DUPLICATION = 'tandem_dup'
-    SEGMENTAL_DUPLICATION = 'seg_dup'
-    TRANSLOCATION = 'tra'
-    SPLICE_VARIANT = 'spvar'
-    INTRON_RETENTION = 'intron_ret'
-    CIRCULAR_RNA = 'circ_rna'
-    ENDOGENOUS_RETROVIRUS = 'erv'
-    ALL = [SV,
-           SNV_INDEL,
-           SNV,
-           INSERTION,
-           DELETION,
-           INVERSION_5TO5,
-           INVERSION_5TO3,
-           INVERSION_3TO3,
-           TANDEM_DUPLICATION,
-           SEGMENTAL_DUPLICATION,
-           TRANSLOCATION,
-           SPLICE_VARIANT,
-           INTRON_RETENTION,
-           CIRCULAR_RNA,
-           ENDOGENOUS_RETROVIRUS]
-
-
-class AnnotationVariantTypes:
-    SV = 'sv'
-    SNV_INDEL = 'snv_indel'
-    ALL = [SV, SNV_INDEL]
-
-
-class RefineVariantTypes:
-    SV = 'sv'
-    SNV_INDEL = 'snv_indel'
-    ALL = [SV, SNV_INDEL]
-
-
-class MergeVariantTypes:
-    SV = 'sv'
-    SNV_INDEL = 'snv_indel'
-    ALL = [SV, SNV_INDEL]
+    ALL = [
+        SV,
+        SNV_INDEL
+    ]
 
 
 class VariantCallingMethods:
@@ -93,21 +96,25 @@ class VariantCallingMethods:
         DELLY2 = 'delly2'
         LUMPY = 'lumpy'
         PBSV = 'pbsv'
-        ALL = [SNIFFLES,
-               SNIFFLES2,
-               SVIM,
-               CUTESV,
-               DELLY2,
-               LUMPY,
-               PBSV]
+        ALL = [
+            SNIFFLES,
+            SNIFFLES2,
+            SVIM,
+            CUTESV,
+            DELLY2,
+            LUMPY,
+            PBSV
+        ]
 
     class SmallVariantCallingMethods:
         GATK4_MUTECT2 = "gatk4_mutect2"
         DEEPVARIANT = "deepvariant"
         STRELKA2 = "strelka2"
-        ALL = [GATK4_MUTECT2,
-               DEEPVARIANT,
-               STRELKA2]
+        ALL = [
+            GATK4_MUTECT2,
+            DEEPVARIANT,
+            STRELKA2
+        ]
 
     ALL = StructuralVariantCallingMethods.ALL + \
           SmallVariantCallingMethods.ALL
@@ -117,7 +124,11 @@ class AnnotationSources:
     ENSEMBL = 'ensembl'
     GENCODE = 'gencode'
     ANNOVAR = 'annovar'
-    ALL = [ENSEMBL, GENCODE, ANNOVAR]
+    ALL = [
+        ENSEMBL,
+        GENCODE,
+        ANNOVAR
+    ]
 
 
 class StructuralVariantTypes:
@@ -126,7 +137,7 @@ class StructuralVariantTypes:
     DUPLICATION = 'DUP'
     INVERSION = 'INV'
     TRANSLOCATION = 'TRA'
-    BREAKPOINT =' BND'
+    BREAKPOINT = 'BND'
     ALL = [
         INSERTION,
         DELETION,
@@ -135,6 +146,7 @@ class StructuralVariantTypes:
         TRANSLOCATION,
         BREAKPOINT
     ]
+
 
 class SmallVariantTypes:
     SINGLE_NUCLEOTIDE_VARIANT = 'SNV'
@@ -147,3 +159,18 @@ class SmallVariantTypes:
         SMALL_INSERTION,
         SMALL_DELETION
     ]
+
+
+class Sexes:
+    MALE = 'male'
+    FEMALE = 'female'
+    ALL = [
+        MALE,
+        FEMALE
+    ]
+
+
+class Strands:
+    POSITIVE = '+'
+    NEGATIVE = '-'
+

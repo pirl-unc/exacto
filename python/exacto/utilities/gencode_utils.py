@@ -233,6 +233,48 @@ class GencodeGene:
                     return
 
 
+def subset_gencode_dataframes(df_target_regions: pd.DataFrame,
+                              df_genes: pd.DataFrame,
+                              df_transcripts: pd.DataFrame,
+                              df_exons: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Subsets GENCODE DataFrames by target regions.
+
+    Parameters
+    ----------
+    df_target_regions   :   DataFrame with the following columns:
+    df_genes            :   DataFrame of genes.
+    df_transcripts      :   DataFrame of transcripts.
+    df_exons            :   DataFrame of exons.
+
+    Returns
+    -------
+    df_genes            :   DataFrame of genes.
+    df_transcripts      :   DataFrame of transcripts.
+    df_exons            :   DataFrame of exons.
+    """
+    # Filter genes
+    df_genes_filtered = pd.DataFrame()
+    for _, row in df_target_regions.iterrows():
+        conditions = (
+                df_genes['gene_chrom'] == row['chrom'] &
+                df_genes['gene_start'] >= row['start'] &
+                df_genes['gene_end'] <= row['end']
+        )
+        df_genes_matched = df_genes.loc[conditions, :]
+        if len(df_genes_matched) > 0:
+            df_genes_filtered = pd.concat([df_genes_filtered, df_genes_matched])
+    df_genes_filtered = df_genes_filtered.drop_duplicates()
+    df_genes = df_genes_filtered
+
+    # Filter transcripts
+    df_transcripts = df_transcripts.loc[df_transcripts['gene_id'].isin(df_genes['gene_id'].unique()), :]
+
+    # Filter exons
+    df_exons = df_exons.loc[df_exons['transcript_id'].isin(df_transcripts['transcript_id'].unique()), :]
+    return df_genes, df_transcripts, df_exons
+
+
 def read_gencode_gtf_file(gencode_gtf_file: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Reads a GENCODE GTF file and returns a DataFrame.

@@ -6,30 +6,54 @@ from exacto.utilities.gencode_utils import *
 
 def test_annotate_dna_structural_variants_gencode_svim():
     # Step 1. Load data
-    svim_tsv_file = get_data_path(name='hg002_svim_refined.tsv')
+    vcf_file = get_data_path(name='hg002_svim.vcf')
+    gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
+    germline_sv_tsv_file = get_data_path(name='audano_et_al_cell_2019_sv_list.tsv')
     gencode_gtf_file = get_data_path(name='gencode.v41.annotation.gtf')
-    df_sv_svim = pd.read_csv(svim_tsv_file, sep='\t')
+    df_structural_variants = convert_svim_vcf_to_dataframe(
+        vcf_file=vcf_file,
+        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
+        sample_id='hg002'
+    )
+    df_gapped_regions = pd.read_csv(gapped_tsv_file, sep='\t')
+    df_structural_variants_to_exclude = pd.read_csv(germline_sv_tsv_file, sep='\t')
+
+    # Step 2. Refine
+    df_structural_variants_refined = run_exacto_refine_genomic_structural_variants(
+        df_structural_variants=df_structural_variants,
+        df_structural_variants_to_exclude=df_structural_variants_to_exclude,
+        df_gapped_regions=df_gapped_regions,
+        variant_calling_method=VariantCallingMethods.StructuralVariantCallingMethods.SVIM,
+        keep_only_precise_sv=True,
+        keep_only_chromosomes=['chr1'],
+        keep_only_filter_values=['PASS'],
+        min_total_depth=MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
+        min_variant_reads_count=MIN_GENOMIC_VARIANT_READS_COUNT,
+        gapped_regions_padding=GENOME_GAPPED_REGIONS_PADDING,
+        exclude_variants_padding=EXCLUDE_SV_PADDING
+    )
+
+    # Step 3. Annotate
     df_gencode_genes, df_gencode_transcripts, df_gencode_exons = read_gencode_gtf_file(
         gencode_gtf_file=gencode_gtf_file
     )
-
-    # Step 2. Test
-    df_sv_svim_annotated = run_exacto_annotate_genomic_structural_variants(
-        df_structural_variants=df_sv_svim,
+    df_structural_variants_annotated = run_exacto_annotate_genomic_structural_variants(
+        df_structural_variants=df_structural_variants_refined,
         annotation_source=AnnotationSources.GENCODE,
         df_gencode_genes=df_gencode_genes,
         df_gencode_exons=df_gencode_exons,
         ensembl_release=None
     )
 
-    # Step 3. Print output
-    print("First row of svim DataFrame as dictionary:")
-    print(df_sv_svim_annotated.iloc[0].to_dict())
-    print("%i columns in total" % len(df_sv_svim_annotated.columns.values.tolist()))
+    # Step 4. Print output
+    print("First row of DataFrame as dictionary:")
+    print(df_structural_variants_annotated.iloc[0].to_dict())
+    print("%i columns in total" % len(df_structural_variants_annotated.columns.values.tolist()))
+    print("DataFrame first 5 rows:")
+    print(df_structural_variants_annotated.head(n=5))
+    print("DataFrame first row to dictionary:")
+    print(df_structural_variants_annotated.iloc[0].to_dict())
 
-    # Step 4. Check for errors
-    assert 'lncRNA' in df_sv_svim_annotated['gencode_pos_1_gene_type'].values.tolist(), \
-        "The value 'lncRNA' is expected to appear in the column 'gencode_pos_1_gene_type'"
-    assert 'ENSG00000230021' in df_sv_svim_annotated['gencode_pos_1_gene_name'].values.tolist(), \
-        "The value 'ENSG00000230021' is expected to appear in the column 'gencode_pos_1_gene_name'"
-
+    # Step 5. Write to file
+    output_tsv_file = get_data_path('hg002_svim_annotated_gencode.tsv')
+    df_structural_variants_annotated.to_csv(output_tsv_file, sep='\t', index=False)

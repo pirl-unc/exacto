@@ -53,16 +53,16 @@ def add_exacto_annotate_arg_parser(sub_parsers):
              % (', '.join(f"'{item}'" for item in AnnotationSources.ALL))
     )
     parser_required.add_argument(
-        '--variant_type',
+        '--variant_class',
         type=str,
         required=True,
-        choices=AnnotationVariantTypes.ALL,
-        help="Variant type (%s). "
+        choices=VariantClasses.ALL,
+        help="Variant class (%s). "
              "If the input TSV file is of structural variants, specify '%s'. "
              "If the input VCF file is of SNVs and INDELs, specify '%s'."
-             % (', '.join(f"'{item}'" for item in AnnotationVariantTypes.ALL),
-                AnnotationVariantTypes.SV,
-                AnnotationVariantTypes.SNV_INDEL)
+             % (', '.join(f"'{item}'" for item in VariantClasses.ALL),
+                VariantClasses.SV,
+                VariantClasses.SNV_INDEL)
     )
     parser_required.add_argument(
         "--tsv_file",
@@ -195,13 +195,13 @@ def run_exacto_annotate_from_parsed_args(args):
     args    :   An instance of argparse.ArgumentParser
                 with the following variables:
                 annotation_source
-                variant_type
+                variant_class
                 tsv_file
                 output_tsv_file
                 ensembl_release
                 gencode_gtf_file
     """
-    if args.variant_type == VariantTypes.SV:
+    if args.variant_class == VariantClasses.SV:
         df_structural_variants = pd.read_csv(args.tsv_file, sep='\t')
         if args.annotation_source == AnnotationSources.ENSEMBL:
             df_structural_variants = run_exacto_annotate_genomic_structural_variants(
@@ -233,7 +233,7 @@ def run_exacto_annotate_from_parsed_args(args):
         df_structural_variants.to_csv(args.output_tsv_file,
                                       sep='\t',
                                       index=False)
-    elif args.variant_type == VariantTypes.SNV_INDEL:
+    elif args.variant_class == VariantClasses.SNV_INDEL:
         df_small_variants = pd.read_csv(args.tsv_file, sep='\t')
         if args.annotation_source == AnnotationSources.ENSEMBL:
             df_small_variants = run_exacto_annotate_genomic_small_variants(

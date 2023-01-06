@@ -1,4 +1,15 @@
-extern crate bam;
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 
 use std::str;
 use lazy_static::lazy_static;
@@ -16,11 +27,13 @@ use polars::df;
 ///
 /// # Returns
 /// * `PolarsResult<DataFrame>`
-pub fn identify_dna_variants_in_cs_tag(read_id: &str,
+pub fn identify_rna_variants_in_cs_tag(read_id: &str,
+                                       chromosome: &str,
                                        start_pos: i32,
                                        cs_tag: &str) -> PolarsResult<DataFrame> {
     // Step 1. Prepare vectors
     let mut vec_read_ids: Vec<String> = Vec::new();
+    let mut vec_chromosomes: Vec<String> = Vec::new();
     let mut vec_positions: Vec<i32> = Vec::new();
     let mut vec_variant_types: Vec<String> = Vec::new();
     let mut vec_reference_alleles: Vec<String> = Vec::new();
@@ -47,12 +60,13 @@ pub fn identify_dna_variants_in_cs_tag(read_id: &str,
 
             // Reference and alternate alleles
             let alleles: String = value_chars.as_str().to_string();
-            let reference_allele: String = alleles.chars().nth(0).unwrap().to_string();
-            let alternate_allele: String = alleles.chars().nth(1).unwrap().to_string();
-            let sequence: String = alleles.chars().nth(1).unwrap().to_string();
+            let reference_allele: String = alleles.chars().nth(0).unwrap().to_string().to_uppercase();
+            let alternate_allele: String = alleles.chars().nth(1).unwrap().to_string().to_uppercase();
+            let sequence: String = alleles.chars().nth(1).unwrap().to_string().to_uppercase();
 
             // Record a single-nucleotide variant
             vec_read_ids.push(read_id.to_string());
+            vec_chromosomes.push(chromosome.to_string());
             vec_positions.push(curr_pos);
             vec_variant_types.push(String::from("snv"));
             vec_reference_alleles.push(reference_allele);
@@ -69,12 +83,13 @@ pub fn identify_dna_variants_in_cs_tag(read_id: &str,
 
             // Reference and alternate alleles
             let reference_allele: String = String::from("");
-            let alternate_allele: String = value_chars.as_str().to_string();
-            let sequence: String = value_chars.as_str().to_string();
+            let alternate_allele: String = value_chars.as_str().to_string().to_uppercase();
+            let sequence: String = value_chars.as_str().to_string().to_uppercase();
             let variant_size: i32 = sequence.chars().count() as i32;
 
             // Record a single-nucleotide variant
             vec_read_ids.push(read_id.to_string());
+            vec_chromosomes.push(chromosome.to_string());
             vec_positions.push(curr_pos);
             vec_variant_types.push(String::from("insertion"));
             vec_reference_alleles.push(reference_allele);
@@ -87,13 +102,14 @@ pub fn identify_dna_variants_in_cs_tag(read_id: &str,
             value_chars.next();
 
             // Reference and alternate alleles
-            let reference_allele: String = value_chars.as_str().to_string();
+            let reference_allele: String = value_chars.as_str().to_string().to_uppercase();
             let alternate_allele: String = String::from("");
-            let sequence: String = value_chars.as_str().to_string();
+            let sequence: String = value_chars.as_str().to_string().to_uppercase();
             let variant_size: i32 = sequence.chars().count() as i32;
 
             // Record a single-nucleotide variant
             vec_read_ids.push(read_id.to_string());
+            vec_chromosomes.push(chromosome.to_string());
             vec_positions.push(curr_pos + 1);
             vec_variant_types.push(String::from("deletion"));
             vec_reference_alleles.push(reference_allele);
@@ -111,6 +127,7 @@ pub fn identify_dna_variants_in_cs_tag(read_id: &str,
 
     // Step 3. Construct a DataFrame
     let mut df: PolarsResult<DataFrame> = df!(
+        "chromosome" => &vec_chromosomes,
         "position" => &vec_positions,
         "read_id" => &vec_read_ids,
         "variant_type" => &vec_variant_types,

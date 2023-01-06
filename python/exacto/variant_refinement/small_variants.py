@@ -80,7 +80,50 @@ def refine_gatk4_mutect2_tumor_normal_callset(
         df_variants: pd.DataFrame,
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
-        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT,
+        min_normal_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH) -> pd.DataFrame:
+    """
+    Refines small variants called using GATK4-Mutect2 and returns a DataFrame
+    of refined variants.
+
+    Parameters
+    ----------
+    df_variants             :   DataFrame of variants.
+                                Expected columns:
+                                'filter'
+                                'chrom'
+                                'total_depth'
+                                'variant_reads_count'
+                                'normal_total_depth'
+    keep_only_chromosomes   :   List of chromosomes to keep.
+    keep_only_filter_values :   List of FILTER values to include.
+    min_total_depth         :   Minimum total depth.
+    min_variant_reads_count :   Minimum number of variants (support) reads.
+    min_normal_total_depth  :   Minimum normal total depth.
+
+    Returns
+    -------
+    DataFrame
+    """
+    if len(keep_only_filter_values) > 0:
+        df_variants = df_variants[df_variants['filter'].isin(keep_only_filter_values)]
+    if len(keep_only_chromosomes) > 0:
+        df_variants = df_variants[df_variants['chrom'].isin(keep_only_chromosomes)]
+    df_variants = df_variants[df_variants['total_depth'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['total_depth'] >= min_total_depth]
+    df_variants = df_variants[df_variants['variant_reads_count'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['variant_reads_count'] >= min_variant_reads_count]
+    df_variants = df_variants[df_variants['normal_total_depth'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['normal_total_depth'] >= min_normal_total_depth]
+    return df_variants
+
+
+def refine_gatk4_mutect2_tumor_only_callset(
+        df_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
     Refines small variants called using GATK4-Mutect2 and returns a DataFrame
@@ -92,12 +135,11 @@ def refine_gatk4_mutect2_tumor_normal_callset(
                                 Expected columns:
                                 'filter'
                                 'chrom'
-                                'tumor_total_coverage'
-                                'tumor_variant_reads_count'
-                                'normal_total_coverage'
+                                'total_depth'
+                                'variant_reads_count'
     keep_only_chromosomes   :   List of chromosomes to keep.
     keep_only_filter_values :   List of FILTER values to include.
-    min_total_coverage      :   Minimum total coverage.
+    min_total_depth         :   Minimum total depth.
     min_variant_reads_count :   Minimum number of variants (support) reads.
 
     Returns
@@ -108,9 +150,91 @@ def refine_gatk4_mutect2_tumor_normal_callset(
         df_variants = df_variants[df_variants['filter'].isin(keep_only_filter_values)]
     if len(keep_only_chromosomes) > 0:
         df_variants = df_variants[df_variants['chrom'].isin(keep_only_chromosomes)]
-    df_variants = df_variants[df_variants['tumor_total_coverage'] >= min_total_coverage]
-    df_variants = df_variants[df_variants['tumor_variant_reads_count'] >= min_variant_reads_count]
-    df_variants = df_variants[df_variants['normal_total_coverage'] >= min_total_coverage]
+    df_variants = df_variants[df_variants['total_depth'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['total_depth'] >= min_total_depth]
+    df_variants = df_variants[df_variants['variant_reads_count'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['variant_reads_count'] >= min_variant_reads_count]
+    return df_variants
+
+
+def refine_strelka2_tumor_normal_callset(
+        df_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT,
+        min_normal_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH) -> pd.DataFrame:
+    """
+    Refines small variants called using Strelka2 and returns a DataFrame
+    of refined variants.
+
+    Parameters
+    ----------
+    df_variants             :   DataFrame of variants.
+                                Expected columns:
+                                'filter'
+                                'chrom'
+                                'total_depth'
+                                'variant_reads_count'
+                                'normal_total_depth'
+    keep_only_chromosomes   :   List of chromosomes to keep.
+    keep_only_filter_values :   List of FILTER values to include.
+    min_total_depth         :   Minimum total depth.
+    min_variant_reads_count :   Minimum number of variants (support) reads.
+    min_normal_total_depth  :   Minimum normal total depth.
+
+    Returns
+    -------
+    DataFrame
+    """
+    if len(keep_only_filter_values) > 0:
+        df_variants = df_variants[df_variants['filter'].isin(keep_only_filter_values)]
+    if len(keep_only_chromosomes) > 0:
+        df_variants = df_variants[df_variants['chrom'].isin(keep_only_chromosomes)]
+    df_variants = df_variants[df_variants['total_depth'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['total_depth'] >= min_total_depth]
+    df_variants = df_variants[df_variants['variant_reads_count'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['variant_reads_count'] >= min_variant_reads_count]
+    df_variants = df_variants[df_variants['normal_total_depth'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['normal_total_depth'] >= min_normal_total_depth]
+    return df_variants
+
+
+def refine_strelka2_tumor_only_callset(
+        df_variants: pd.DataFrame,
+        keep_only_chromosomes: List[str] = [],
+        keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+    """
+    Refines small variants called using Strelka2 and returns a DataFrame
+    of refined variants.
+
+    Parameters
+    ----------
+    df_variants             :   DataFrame of variants.
+                                Expected columns:
+                                'filter'
+                                'chrom'
+                                'total_depth'
+                                'variant_reads_count'
+    keep_only_chromosomes   :   List of chromosomes to keep.
+    keep_only_filter_values :   List of FILTER values to include.
+    min_total_depth         :   Minimum total depth.
+    min_variant_reads_count :   Minimum number of variants (support) reads.
+
+    Returns
+    -------
+    DataFrame
+    """
+    if len(keep_only_filter_values) > 0:
+        df_variants = df_variants[df_variants['filter'].isin(keep_only_filter_values)]
+    if len(keep_only_chromosomes) > 0:
+        df_variants = df_variants[df_variants['chrom'].isin(keep_only_chromosomes)]
+    df_variants = df_variants[df_variants['total_depth'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['total_depth'] >= min_total_depth]
+    df_variants = df_variants[df_variants['variant_reads_count'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['variant_reads_count'] >= min_variant_reads_count]
     return df_variants
 
 
@@ -118,7 +242,7 @@ def refine_deepvariant_callset(
         df_variants: pd.DataFrame,
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
-        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
     Refines small variants called using DeepVariant and returns a DataFrame
@@ -134,7 +258,7 @@ def refine_deepvariant_callset(
                                 'total_read_depth'
     keep_only_chromosomes   :   List of chromosomes to keep.
     keep_only_filter_values :   List of FILTER values to include.
-    min_total_coverage      :   Minimum total coverage.
+    min_total_depth         :   Minimum total depth.
     min_variant_reads_count :   Minimum number of variants (support) reads.
 
     Returns
@@ -145,9 +269,9 @@ def refine_deepvariant_callset(
         df_variants = df_variants[df_variants['filter'].isin(keep_only_filter_values)]
     if len(keep_only_chromosomes) > 0:
         df_variants = df_variants[df_variants['chrom'].isin(keep_only_chromosomes)]
-    df_variants = df_variants[df_variants['tumor_total_coverage'].map(is_safe_integer)]
-    df_variants = df_variants[df_variants['tumor_total_coverage'] >= min_total_coverage]
-    df_variants = df_variants[df_variants['tumor_variant_reads_count'].map(is_safe_integer)]
-    df_variants = df_variants[df_variants['tumor_variant_reads_count'] >= min_variant_reads_count]
+    df_variants = df_variants[df_variants['total_depth'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['total_depth'] >= min_total_depth]
+    df_variants = df_variants[df_variants['variant_reads_count'].map(is_safe_integer)]
+    df_variants = df_variants[df_variants['variant_reads_count'] >= min_variant_reads_count]
     return df_variants
 

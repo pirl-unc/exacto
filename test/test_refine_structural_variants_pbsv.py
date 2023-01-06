@@ -12,7 +12,8 @@ def test_refine_dna_structural_variants_pbsv():
     germline_sv_tsv_file = get_data_path(name='audano_et_al_cell_2019_sv_list.tsv')
     df_structural_variants = convert_pbsv_vcf_to_dataframe(
         vcf_file=vcf_file,
-        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS
+        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
+        sample_id='hg002'
     )
     df_gapped_regions = pd.read_csv(gapped_tsv_file, sep='\t')
     df_structural_variants_to_exclude = pd.read_csv(germline_sv_tsv_file, sep='\t')
@@ -26,7 +27,7 @@ def test_refine_dna_structural_variants_pbsv():
         keep_only_precise_sv=True,
         keep_only_chromosomes=['chr1'],
         keep_only_filter_values=['PASS'],
-        min_total_coverage=MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth=MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count=MIN_GENOMIC_VARIANT_READS_COUNT,
         gapped_regions_padding=GENOME_GAPPED_REGIONS_PADDING,
         exclude_variants_padding=EXCLUDE_SV_PADDING
@@ -55,3 +56,7 @@ def test_refine_dna_structural_variants_pbsv():
             str(list(STRUCTURAL_VARIANT_ATTRIBUTES.keys())),
             str(df_structural_variants_refined.columns.values.tolist())
         )
+
+    # Step 5. Write to file
+    output_tsv_file = get_data_path('hg002_pbsv_refined.tsv')
+    df_structural_variants_refined.to_csv(output_tsv_file, sep='\t', index=False)

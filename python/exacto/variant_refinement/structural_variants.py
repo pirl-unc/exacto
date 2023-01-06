@@ -154,7 +154,7 @@ def refine_sniffles2_sv_callset(
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
-        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
     Refines structural variants called using Sniffles2 and returns a DataFrame
@@ -168,7 +168,7 @@ def refine_sniffles2_sv_callset(
                                         'chr_2'
                                         'filter'
                                         'is_precise'
-                                        'total_coverage'
+                                        'total_depth'
                                         'variant_reads_count'
     keep_only_chromosomes           :   List of chromosomes to keep.
                                         Chromosomes not specified in this list
@@ -176,7 +176,7 @@ def refine_sniffles2_sv_callset(
     keep_only_filter_values         :   List of FILTER values to include.
     keep_only_precise               :   If true, only structural variants with
                                         'precise' breakpoints are kept.
-    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_total_depth                 :   Minimum total depth (default: 7).
     min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
 
     Returns
@@ -197,10 +197,10 @@ def refine_sniffles2_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'].map(is_safe_integer)
+        df_structural_variants['total_depth'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'] >= min_total_coverage
+        df_structural_variants['total_depth'] >= min_total_depth
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'].map(is_safe_integer)
@@ -216,7 +216,7 @@ def refine_cutesv_sv_callset(
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
-        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
     Refines structural variants called using cuteSV and returns a DataFrame
@@ -238,7 +238,7 @@ def refine_cutesv_sv_callset(
     keep_only_filter_values         :   List of FILTER values to include.
     keep_only_precise               :   If true, only structural variants with
                                         'precise' breakpoints are kept.
-    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_total_depth                 :   Minimum total depth (default: 7).
     min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
 
     Returns
@@ -259,10 +259,10 @@ def refine_cutesv_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'].map(is_safe_integer)
+        df_structural_variants['total_depth'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'] >= min_total_coverage
+        df_structural_variants['total_depth'] >= min_total_depth
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'].map(is_safe_integer)
@@ -277,7 +277,7 @@ def refine_svim_sv_callset(
         df_structural_variants: pd.DataFrame,
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
-        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
     Refines structural variants called using SVIM and returns a DataFrame
@@ -296,7 +296,7 @@ def refine_svim_sv_callset(
                                         Chromosomes not specified in this list
                                         will be filtered out.
     keep_only_filter_values         :   List of FILTER values to include.
-    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_total_depth                 :   Minimum total depth (default: 7).
     min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
 
     Returns
@@ -313,10 +313,10 @@ def refine_svim_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'].map(is_safe_integer)
+        df_structural_variants['total_depth'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'] >= min_total_coverage
+        df_structural_variants['total_depth'] >= min_total_depth
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'].map(is_safe_integer)
@@ -332,7 +332,7 @@ def refine_pbsv_sv_callset(
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
-        min_total_coverage: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
     """
     Refines structural variants called using PBSV and returns a DataFrame
@@ -346,7 +346,7 @@ def refine_pbsv_sv_callset(
                                         'chr_2'
                                         'filter'
                                         'is_precise'
-                                        'total_coverage'
+                                        'total_depth'
                                         'variant_reads_count'
     keep_only_chromosomes           :   List of chromosomes to keep.
                                         Chromosomes not specified in this list
@@ -354,7 +354,7 @@ def refine_pbsv_sv_callset(
     keep_only_filter_values         :   List of FILTER values to include.
     keep_only_precise               :   If true, only structural variants with
                                         'precise' breakpoints are kept.
-    min_total_coverage              :   Minimum total coverage (default: 7).
+    min_total_depth                 :   Minimum total depth (default: 7).
     min_variant_reads_count         :   Minimum number of variants (support) reads (default: 3).
 
     Returns
@@ -375,10 +375,10 @@ def refine_pbsv_sv_callset(
             df_structural_variants['chr_2'].isin(keep_only_chromosomes)
         ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'].map(is_safe_integer)
+        df_structural_variants['total_depth'].map(is_safe_integer)
     ]
     df_structural_variants = df_structural_variants[
-        df_structural_variants['total_coverage'] >= min_total_coverage
+        df_structural_variants['total_depth'] >= min_total_depth
     ]
     df_structural_variants = df_structural_variants[
         df_structural_variants['variant_reads_count'].map(is_safe_integer)
