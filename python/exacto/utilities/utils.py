@@ -89,10 +89,10 @@ def overlaps_any(df: pd.DataFrame,
     """
     # De Morgan's law on checking for non-overlapping regions
     df_matched = df.loc[
-        df['chr_1'] == chrom &
-        df['chr_2'] == chrom &
-        df['pos_2'] >= start &
-        df['pos_1'] <= end,:
+        (df['chr_1'] == chrom) &
+        (df['chr_2'] == chrom) &
+        (df['pos_2'] >= start) &
+        (df['pos_1'] <= end),:
     ]
     if len(df_matched) > 0:
         return True

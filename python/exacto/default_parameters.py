@@ -183,8 +183,20 @@ SIMULATE_RNA_VARIANTS_NUM_SNV = 300
 # Number of small insertions to simulate
 SIMULATE_RNA_VARIANTS_NUM_INSERTION = 50
 
+# Insertion size mean
+SIMULATE_RNA_VARIANTS_INSERTION_SIZE_MEAN = 100
+
+# Insertion size standard deviation
+SIMULATE_RNA_VARIANTS_INSERTION_SIZE_STDEV = 50
+
 # Number of small deletions to simulate
 SIMULATE_RNA_VARIANTS_NUM_DELETION = 50
+
+# Deletion size mean
+SIMULATE_RNA_VARIANTS_DELETION_MEAN = 100
+
+# Deletion size standard deviation
+SIMULATE_RNA_VARIANTS_DELETION_STDEV = 50
 
 # Number of fusion genes to simulate
 SIMULATE_RNA_VARIANTS_NUM_FUSION = 5
@@ -216,6 +228,22 @@ SIMULATE_RNA_VARIANTS_HERV_PROPORTION_FULL_LENGTH = 0.052 # She et al., Genome B
 # Enforce infinite sites assumption
 SIMULATE_RNA_VARIANTS_INFINITE_SITES_ASSUMPTION = True
 
+
+"""sim-reads"""
+# Mean value of read length
+SIMULATE_READS_READ_LENGTH_MEAN = 5000 # 9.759
+
+# Standard deviation of read length
+SIMULATE_READS_READ_LENGTH_STDEV = 500
+
+# Mean value of base quality
+SIMULATE_READS_BASE_QUALITY_MEAN = 90
+
+# Standard deviation of base quality
+SIMULATE_READS_BASE_QUALITY_STDEV = 5
+
+# gzip
+SIMULATE_READS_GZIP = True
 
 """identify"""
 # Number of cores

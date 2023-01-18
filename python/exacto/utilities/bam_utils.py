@@ -12,6 +12,42 @@
 
 
 import pysam
+from typing import Tuple, List, Dict
+from dataclasses import dataclass, field
+
+
+@dataclass
+class CSTagElement:
+    element_type: str
+    element_value: str
+
+    def __str__(self):
+        return self.element_type + self.element_value
+
+
+@dataclass
+class CSTag:
+    elements: List = field(default_factory=lambda: []) # each element is a Tuple
+
+    def __init__(self):
+        super().__init__()
+        self.elements = []
+
+    def add(self, cs_tag_element):
+        """
+        Adds an instance of CSTagElement to self.elements
+
+        Parameters
+        ----------
+        cs_tag_element  :   An instance of the class CSTagElement.
+        """
+        self.elements.append(cs_tag_element)
+
+    def __str__(self):
+        val = ''
+        for i in self.elements:
+            val += str(i)
+        return val
 
 
 def get_chrom_sizes(bam_file: pysam.AlignmentFile) -> dict:
@@ -52,3 +88,17 @@ def get_read_count(bam_file: pysam.AlignmentFile) -> int:
     return num_reads
 
 
+def get_cs_tag(md_tag, cigar) -> Tuple:
+    """
+    Returns the CS tag given a MD tag and a CIGAR string.
+
+    Parameters
+    ----------
+    md_tag      :   MD tag.
+    cigar       :   CIGAR string.
+
+    Returns
+    -------
+    cs_tag      :
+    """
+    a = 1

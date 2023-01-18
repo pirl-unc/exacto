@@ -58,6 +58,7 @@ class GencodeExon:
 class GencodeTranscript:
 
     def __init__(self,
+                 gene_id: str,
                  transcript_id: str,
                  transcript_name: str,
                  transcript_type: str,
@@ -66,6 +67,7 @@ class GencodeTranscript:
                  transcript_end: int,
                  transcript_strand:str,
                  level: int):
+        self.__gene_id = gene_id
         self.__transcript_id = transcript_id
         self.__transcript_name = transcript_name
         self.__transcript_type = transcript_type
@@ -96,6 +98,9 @@ class GencodeTranscript:
 
     def add_exon(self, exon: GencodeExon) -> None:
         self.__exons.append(exon)
+
+    def get_gene_id(self) -> str:
+        return self.__gene_id
 
     def get_transcript_id(self) -> str:
         return self.__transcript_id
@@ -256,22 +261,29 @@ def subset_gencode_dataframes(df_target_regions: pd.DataFrame,
     # Filter genes
     df_genes_filtered = pd.DataFrame()
     for _, row in df_target_regions.iterrows():
-        conditions = (
-                df_genes['gene_chrom'] == row['chrom'] &
-                df_genes['gene_start'] >= row['start'] &
-                df_genes['gene_end'] <= row['end']
-        )
-        df_genes_matched = df_genes.loc[conditions, :]
+        df_genes_matched = df_genes.loc[
+            (df_genes['gene_chrom'] == row['chrom']) &
+            (df_genes['gene_start'] >= row['start']) &
+            (df_genes['gene_end'] <= row['end']),:
+        ]
         if len(df_genes_matched) > 0:
             df_genes_filtered = pd.concat([df_genes_filtered, df_genes_matched])
-    df_genes_filtered = df_genes_filtered.drop_duplicates()
-    df_genes = df_genes_filtered
+    df_genes = df_genes_filtered.drop_duplicates()
+
+    # Check if any gene falls within the specified target regions
+    if len(df_genes) == 0:
+        logger.error("No gene falls within specified target regions.")
+        exit()
 
     # Filter transcripts
-    df_transcripts = df_transcripts.loc[df_transcripts['gene_id'].isin(df_genes['gene_id'].unique()), :]
+    df_transcripts = df_transcripts.loc[
+        df_transcripts['gene_id'].isin(df_genes['gene_id'].unique()),:
+    ]
 
     # Filter exons
-    df_exons = df_exons.loc[df_exons['transcript_id'].isin(df_transcripts['transcript_id'].unique()), :]
+    df_exons = df_exons.loc[
+        df_exons['transcript_id'].isin(df_transcripts['transcript_id'].unique()),:
+    ]
     return df_genes, df_transcripts, df_exons
 
 
@@ -393,6 +405,7 @@ def read_gencode_gtf_file(gencode_gtf_file: str) -> Tuple[pd.DataFrame, pd.DataF
                     transcript_level = -1
                 if curr_transcript_id not in gencode_genes_dict[curr_gene_id].get_transcript_ids():
                     gencode_transcript = GencodeTranscript(
+                        gene_id=str(curr_gene_id),
                         transcript_id=str(curr_metadata_dict['transcript_id']),
                         transcript_name=str(curr_metadata_dict['transcript_name']),
                         transcript_type=str(curr_metadata_dict['transcript_type']),

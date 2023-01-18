@@ -70,22 +70,30 @@ def add_exacto_simulate_rna_variants_arg_parser(sub_parsers):
         help="Transcript types to simulate variants (e.g. 'protein_coding')."
     )
     parser_required.add_argument(
-        '--output_variant_transcripts_tsv_file',
-        dest='output_variant_transcripts_tsv_file',
+        '--output_dir',
+        dest='output_dir',
         type=str,
         required=True,
-        help="Output RNA variants TSV file."
+        help="Output directory path."
     )
     parser_required.add_argument(
-        '--output_variant_transcripts_fasta_file',
-        dest='output_variant_transcripts_fasta_file',
+        '--sample_id_prefix',
+        dest='sample_id_prefix',
         type=str,
         required=True,
-        help="Output variant transcripts FASTA file."
+        help="Sampel ID prefix."
     )
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
+    parser_required.add_argument(
+        '--num_samples',
+        dest='num_samples',
+        type=int,
+        default=1,
+        required=False,
+        help="Number of samples to generate (default: 1)."
+    )
     parser_optional.add_argument(
         "--target_regions_tsv_file",
         dest="target_regions_tsv_file",
@@ -116,6 +124,24 @@ def add_exacto_simulate_rna_variants_arg_parser(sub_parsers):
              % SIMULATE_RNA_VARIANTS_NUM_INSERTION
     )
     parser_optional.add_argument(
+        "--insertion_size_mean",
+        dest="insertion_size_mean",
+        type=int,
+        default=SIMULATE_RNA_VARIANTS_INSERTION_SIZE_MEAN,
+        required=False,
+        help="Insertion size mean (default: %i)."
+             % SIMULATE_RNA_VARIANTS_INSERTION_SIZE_MEAN
+    )
+    parser_optional.add_argument(
+        "--insertion_size_stdev",
+        dest="insertion_size_stdev",
+        type=int,
+        default=SIMULATE_RNA_VARIANTS_INSERTION_SIZE_STDEV,
+        required=False,
+        help="Insertion size standard deviation (default: %i)."
+             % SIMULATE_RNA_VARIANTS_INSERTION_SIZE_STDEV
+    )
+    parser_optional.add_argument(
         "--num_deletion",
         dest="num_deletion",
         type=int,
@@ -123,6 +149,24 @@ def add_exacto_simulate_rna_variants_arg_parser(sub_parsers):
         required=False,
         help="Number of deletions to simulate (default: %i)."
              % SIMULATE_RNA_VARIANTS_NUM_DELETION
+    )
+    parser_optional.add_argument(
+        "--deletion_size_mean",
+        dest="deletion_size_mean",
+        type=int,
+        default=SIMULATE_RNA_VARIANTS_DELETION_MEAN,
+        required=False,
+        help="Deletion size mean (default: %i)."
+             % SIMULATE_RNA_VARIANTS_DELETION_MEAN
+    )
+    parser_optional.add_argument(
+        "--deletion_size_stdev",
+        dest="deletion_size_stdev",
+        type=int,
+        default=SIMULATE_RNA_VARIANTS_DELETION_STDEV,
+        required=False,
+        help="Deletion size standard deviation (default: %i)."
+             % SIMULATE_RNA_VARIANTS_DELETION_STDEV
     )
     parser_optional.add_argument(
         "--num_fusion",
@@ -228,7 +272,7 @@ def add_exacto_simulate_rna_variants_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_simulate_rna_variants_from_parsed_args(args):
+def run_exacto_sim_rna_variants_from_parsed_args(args):
     """
     Run Exacto 'sim-rna-variants' command using parameters from parsed arguments.
 
@@ -236,10 +280,10 @@ def run_exacto_simulate_rna_variants_from_parsed_args(args):
     ----------
     args    :   An instance of argparse.ArgumentParser with the following variables:
                 reference_genome_fasta_file
-                gencode_transcripts_gtf_file
                 transcript_types
-                output_variant_transcripts_tsv_file
-                output_variant_transcripts_fasta_file
+                output_dir
+                sample_id_prefix
+                num_samples
                 target_regions_tsv_file
                 num_snv
                 num_insertion
@@ -255,15 +299,23 @@ def run_exacto_simulate_rna_variants_from_parsed_args(args):
                 herv_full_length_proportion
                 infinite_sites_assumption
     """
+    logger.info("Started running exacto 'sim-rna-variants' command.")
+
+    if args.output_dir[-1] != '/':
+        args.output_dir = args.output_dir + '/'
+
     # Step 1. Load data
+    logger.info("Loading reference files (reference genome FASTA and GENCODE GTF files).")
     genome_fasta = pysam.FastaFile(args.reference_genome_fasta_file)
     df_genes, df_transcripts, df_exons = read_gencode_gtf_file(gencode_gtf_file=args.gencode_transcripts_gtf_file)
     if args.target_regions_tsv_file:
+        logger.info("Loading target regions TSV file.")
         df_target_regions = pd.read_csv(args.target_regions_tsv_file, sep='\t')
     else:
         df_target_regions = None
     if args.num_herv > 0:
         if args.herv_regions_tsv_file:
+            logger.info("Loading HERV regions TSV file.")
             df_herv_regions = pd.read_csv(args.herv_regions_tsv_file, sep='\t')
         else:
             logger.error("--herv_regions_tsv_file must be supplied if --num_herv is greater than 0.")
@@ -272,25 +324,43 @@ def run_exacto_simulate_rna_variants_from_parsed_args(args):
 
     # Step 2. Simulate RNA variants
     df_transcripts = df_transcripts.loc[df_transcripts['transcript_type'].isin(args.transcript_types),:]
-    df_rna_variants, variant_transcript_sequences = run_exacto_simulate_rna_variants(
-        genome_fasta=genome_fasta,
-        df_genes=df_genes,
-        df_transcripts=df_transcripts,
-        df_exons=df_exons,
-        df_target_regions=df_target_regions,
-        df_herv_regions=df_herv_regions,
-        num_snv=args.num_snv,
-        num_insertion=args.num_insertion,
-        num_deletion=args.num_deletion,
-        num_fusion=args.num_fusion,
-        num_inversion=args.num_inversion,
-        num_herv=args.num_herv,
-        herv_solo_ltr_proportion=args.herv_solo_ltr_proportion,
-        herv_truncated_proportion=args.herv_truncated_proportion,
-        herv_chimeric_proportion=args.herv_chimeric_proportion,
-        herv_chimeric_max_neighboring_distance=args.herv_chimeric_max_neighboring_distance,
-        herv_full_length_proportion=args.herv_full_length_proportion,
-        infinite_sites_assumption=args.infinite_sites_assumption
-    )
+    for curr_sample_idx in range(0, args.num_samples):
+        curr_sample_id = args.sample_id_prefix + '-' + str(curr_sample_idx + 1).zfill(4)
+        df_rna_variants, variant_transcript_sequences = run_exacto_simulate_rna_variants(
+            genome_fasta=genome_fasta,
+            df_genes=df_genes,
+            df_transcripts=df_transcripts,
+            df_exons=df_exons,
+            df_target_regions=df_target_regions,
+            df_herv_regions=df_herv_regions,
+            num_snv=args.num_snv,
+            num_insertion=args.num_insertion,
+            num_deletion=args.num_deletion,
+            num_fusion=args.num_fusion,
+            num_inversion=args.num_inversion,
+            num_herv=args.num_herv,
+            insertion_size_mean=args.insertion_size_mean,
+            insertion_size_stdev=args.insertion_size_stdev,
+            deletion_size_mean=args.deletion_size_mean,
+            deletion_size_stdev=args.deletion_size_stdev,
+            herv_solo_ltr_proportion=args.herv_solo_ltr_proportion,
+            herv_truncated_proportion=args.herv_truncated_proportion,
+            herv_chimeric_proportion=args.herv_chimeric_proportion,
+            herv_chimeric_max_neighboring_distance=args.herv_chimeric_max_neighboring_distance,
+            herv_full_length_proportion=args.herv_full_length_proportion,
+            infinite_sites_assumption=args.infinite_sites_assumption
+        )
 
+        # Save to files
+        logger.info("Started writing simulated RNA variants files [%i/%i]."
+                    % (curr_sample_idx + 1, args.num_samples))
+        df_rna_variants.to_csv(args.output_dir + curr_sample_id + '_rna_variants.tsv',
+                               sep='\t', index=False)
+        with open(args.output_dir + curr_sample_id + '_rna_variants.fasta', 'w') as f:
+            for curr_element in variant_transcript_sequences:
+                f.write('>' + curr_element[0] + '\n')
+                f.write(curr_element[1] + '\n')
+        logger.info("Finished writing simulated RNA variants files [%i/%i]."
+                    % (curr_sample_idx + 1, args.num_samples))
 
+    logger.info("Finished running exacto 'sim-rna-variants' command.")

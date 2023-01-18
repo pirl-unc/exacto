@@ -24,6 +24,7 @@ from .exacto_annotate import *
 from .exacto_merge import *
 from .exacto_sim_transcripts import *
 from .exacto_sim_rna_variants import *
+from .exacto_sim_reads import *
 from .exacto_identify import *
 
 
@@ -55,6 +56,7 @@ def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
     sub_parsers = add_exacto_simulate_rna_variants_arg_parser(sub_parsers=sub_parsers)  # sim-rna-variants
+    sub_parsers = add_exacto_simulate_reads_arg_parser(sub_parsers=sub_parsers)         # sim-reads
     sub_parsers = add_exacto_identify_arg_parser(sub_parsers=sub_parsers)               # identify
     sub_parsers = add_exacto_refine_arg_parser(sub_parsers=sub_parsers)                 # refine
     sub_parsers = add_exacto_annotate_arg_parser(sub_parsers=sub_parsers)               # annotate
@@ -78,7 +80,9 @@ def run():
     elif args.which == 'merge':
         run_exacto_merge_from_parsed_args(args=args)
     elif args.which == 'sim-rna-variants':
-        run_exacto_simulate_rna_variants_from_parsed_args(args=args)
+        run_exacto_sim_rna_variants_from_parsed_args(args=args)
+    elif args.which == 'sim-reads':
+        run_exacto_sim_reads_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)
 

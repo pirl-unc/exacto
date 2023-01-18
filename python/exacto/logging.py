@@ -21,7 +21,7 @@ import logging
 
 def get_logger(name: str) -> logging:
     logging.basicConfig(
-        format = '%(asctime)s %(levelname)-8s %(message)s',
+        format = '%(asctime)s %(levelname)s [%(funcName)50s()] %(message)s',
         level = logging.INFO,
         datefmt = '%Y-%m-%d %H:%M:%S'
     )

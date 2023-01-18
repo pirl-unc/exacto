@@ -29,6 +29,7 @@ from .variant_annotation.annovar import *
 from .utilities.merging_utils import *
 from .utilities.gencode_utils import *
 from .simulation.rna_variants import *
+from .simulation.reads import *
 from exacto import exactors
 
 
@@ -489,6 +490,10 @@ def run_exacto_simulate_rna_variants(
         num_fusion: int = SIMULATE_RNA_VARIANTS_NUM_FUSION,
         num_inversion: int = SIMULATE_RNA_VARIANTS_NUM_INVERSION,
         num_herv: int = SIMULATE_RNA_VARIANTS_NUM_HERV,
+        insertion_size_mean: int = SIMULATE_RNA_VARIANTS_INSERTION_SIZE_MEAN,
+        insertion_size_stdev: int = SIMULATE_RNA_VARIANTS_INSERTION_SIZE_STDEV,
+        deletion_size_mean: int = SIMULATE_RNA_VARIANTS_DELETION_MEAN,
+        deletion_size_stdev: int = SIMULATE_RNA_VARIANTS_DELETION_STDEV,
         herv_solo_ltr_proportion: float = SIMULATE_RNA_VARIANTS_HERV_PROPORTION_SOLO_LTR,
         herv_truncated_proportion: float = SIMULATE_RNA_VARIANTS_HERV_PROPORTION_TRUNCATED,
         herv_chimeric_proportion: float = SIMULATE_RNA_VARIANTS_HERV_PROPORTION_CHIMERIC,
@@ -511,6 +516,10 @@ def run_exacto_simulate_rna_variants(
     num_fusion                              :   Number of fusions to simulate.
     num_inversion                           :   Number of inversions to simulate.
     num_herv                                :   Number of HERVs to simulate.
+    insertion_size_mean                     :   Mean value of insertion size.
+    insertion_size_stdev                    :   Standard deviation of insertion size.
+    deletion_size_mean                      :   Mean value of deletion size.
+    deletion_size_stdev                     :   Standard deviation of deletion size.
     herv_solo_ltr_proportion                :   Proportion of expressed HERVs that only have solo LTR sequences.
     herv_truncated_proportion               :   Proportion of HERVs that are truncated.
     herv_chimeric_proportion                :   Proportion of HERVs that are chimeric (concatenation of neighboring HERVs).
@@ -525,4 +534,34 @@ def run_exacto_simulate_rna_variants(
     variant_transcript_sequences            :   List of variant transcript sequences
     """
     df_rna_variants, variant_transcript_sequences = simulate_rna_variants(**locals())
-    return 1,1
+    return df_rna_variants, variant_transcript_sequences
+
+
+def run_exacto_simulate_reads(sequences: List[Sequence],
+                              num_gigabases: float,
+                              read_length_mean: float,
+                              read_length_stdev: float,
+                              base_quality_mean: float,
+                              base_quality_stdev: float) -> List[Read]:
+    """
+    Simulates sequencing reads.
+
+    Parameters
+    ----------
+    sequences           :   List of instances of the class Sequence.
+    num_gigabases       :   Number of gigabases to sequence.
+    read_length_mean    :   Mean value of read length.
+    read_length_stdev   :   Standard deviation of read length.
+    base_quality_mean   :   Mean value of base quality.
+    base_quality_stdev  :   Standard deviation of base quality.
+
+    Returns
+    -------
+    reads               :   List of instances of the class Read.
+    """
+    return simulate_single_end_reads(sequences=sequences,
+                                     num_bases=num_gigabases * 10e9,
+                                     read_length_mean=read_length_mean,
+                                     read_length_stdev=read_length_stdev,
+                                     base_quality_mean=base_quality_mean,
+                                     base_quality_stdev=base_quality_stdev)
