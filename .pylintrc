@@ -4,5 +4,9 @@ init-hook='import sys; sys.path.append(".")'
 [TYPECHECK]
 # Without ignoring this, we get errors like:
 # E:249,20: Module 'numpy' has no 'nan' member (no-member)
-ignored-modules = numpy,pysam
+ignored-modules = numpy,pysam,exacto.exactors
 ignored-classes = nose.tools
+
+# Without ignoring this, we get errors like:
+# python/exacto/main.py:33:0: E0611: No name 'exactors' in module 'exacto' (no-name-in-module)
+disable=E0611
