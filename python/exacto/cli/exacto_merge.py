@@ -45,16 +45,16 @@ def add_exacto_merge_arg_parser(sub_parsers):
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        '--variant_type',
+        '--variant_class',
         type=str,
         required=True,
-        choices=MergeVariantTypes.ALL,
-        help="Variant type (%s). "
+        choices=VariantClasses.ALL,
+        help="Variant class (%s). "
              "If the input VCF file is of structural variants, specify '%s'. "
              "If the input VCF file is of SNVs and INDELs, specify '%s'."
-             % (', '.join(f"'{item}'" for item in MergeVariantTypes.ALL),
-                MergeVariantTypes.SV,
-                MergeVariantTypes.SNV_INDEL)
+             % (', '.join(f"'{item}'" for item in VariantClasses.ALL),
+                VariantClasses.SV,
+                VariantClasses.SNV_INDEL)
     )
     parser_required.add_argument(
         "--tsv_files",
@@ -63,8 +63,7 @@ def add_exacto_merge_arg_parser(sub_parsers):
         required=True,
         help="List of TSV files. "
              "Expected columns in each TSV file: "
-             "'chr_1', 'pos_1', 'chr_2', 'pos_2', 'sv_type'. "
-             "Note that 'sv_type' must match for 2 variants to be merged into one."
+             "'chr_1', 'pos_1', 'chr_2', 'pos_2', 'sv_type'."
     )
     parser_required.add_argument(
         "--output_merged_tsv_file",
@@ -83,6 +82,14 @@ def add_exacto_merge_arg_parser(sub_parsers):
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
+    parser_optional.add_argument(
+        "--enforce_sv_type_matching",
+        dest="enforce_sv_type_matching",
+        type=bool,
+        default=True,
+        required=False,
+        help="If true, 'sv_type' must match for 2 variants to be merged into one (default: True)."
+    )
     parser_optional.add_argument(
         "--max_clustering_distance",
         dest="max_clustering_distance",
@@ -103,19 +110,21 @@ def run_exacto_merge_from_parsed_args(args):
     Parameters
     ----------
     args    :   An instance of argparse.ArgumentParser with the following variables:
-                'variant_type'
+                'variant_class'
                 'tsv_files'
                 'output_merged_tsv_file'
                 'output_merged_deduped_tsv_file'
+                'enforce_sv_type_matching'
                 'max_clustering_distance'
     """
-    if args.variant_type == MergeVariantTypes.SV:
+    if args.variant_class == VariantClasses.SV:
         list_df = []
         for curr_tsv_file in args.tsv_files:
             df_temp = pd.read_csv(curr_tsv_file, sep='\t')
             list_df.append(df_temp)
         df_merged, df_merged_deduped = run_exacto_merge_genomic_structural_variants(
             list_df=list_df,
+            enforce_sv_type_matching=args.enforce_sv_type_matching,
             max_sv_cluster_distance=args.max_clustering_distance
         )
         df_merged.to_csv(
@@ -124,15 +133,15 @@ def run_exacto_merge_from_parsed_args(args):
         df_merged_deduped.to_csv(args.output_merged_deduped_tsv_file,
                                  sep='\t',
                                  index=False)
-    elif args.variant_type == MergeVariantTypes.SNV_INDEL:
+    elif args.variant_class == VariantClasses.SNV_INDEL:
         list_df = []
         for curr_tsv_file in args.tsv_files:
             df_temp = pd.read_csv(curr_tsv_file, sep='\t')
             list_df.append(df_temp)
     else:
         raise Exception(
-            "Invalid value for '--variant_type': %s. "
-            "Allowed '--variant_type' values are %s "
-            % (args.variant_type,
-               ', '.join(f"'{item}'" for item in MergeVariantTypes.ALL))
+            "Invalid value for '--variant_class': %s. "
+            "Allowed '--variant_class' values are %s "
+            % (args.variant_class,
+               ', '.join(f"'{item}'" for item in VariantClasses.ALL))
         )

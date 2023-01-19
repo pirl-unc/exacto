@@ -114,6 +114,7 @@ def annotate_small_variants_using_pyensembl(df_small_variants: pd.DataFrame,
     ----------
     df_small_variants       :   DataFrame of structural variants.
                                 Expected columns:
+                                'variant_id'
                                 'chrom'
                                 'pos'
     ensembl_release         :   Ensembl release (e.g. 106).
@@ -134,7 +135,7 @@ def annotate_small_variants_using_pyensembl(df_small_variants: pd.DataFrame,
 
     # Step 2. Annotate each variant
     data = {
-        'id': [],
+        'variant_id': [],
         'ensembl_pos_region': [],
         'ensembl_pos_gene_id': [],
         'ensembl_pos_gene_name': [],
@@ -144,7 +145,7 @@ def annotate_small_variants_using_pyensembl(df_small_variants: pd.DataFrame,
         'ensembl_pos_gene_end': []
     }
     for index, row in df_small_variants.iterrows():
-        data['id'].append(row['id'])
+        data['variant_id'].append(row['variant_id'])
 
         # Position annotation
         curr_chrom = row['chrom']
@@ -163,7 +164,7 @@ def annotate_small_variants_using_pyensembl(df_small_variants: pd.DataFrame,
         data['ensembl_pos_gene_end'].append(curr_annotation['gene_end'])
 
     df_annotations = pd.DataFrame(data)
-    df_small_variants = pd.merge(df_small_variants, df_annotations, on='id')
+    df_small_variants = pd.merge(df_small_variants, df_annotations, on='variant_id')
     return df_small_variants
 
 
@@ -176,6 +177,7 @@ def annotate_structural_variants_using_pyensembl(df_structural_variants: pd.Data
     ----------
     df_structural_variants  :   DataFrame of structural variants.
                                 Expected columns:
+                                'variant_id'
                                 'chr_1'
                                 'pos_1'
                                 'chr_2'
@@ -205,7 +207,7 @@ def annotate_structural_variants_using_pyensembl(df_structural_variants: pd.Data
 
     # Step 2. Annotate each variant
     data = {
-        'id': [],
+        'variant_id': [],
         'ensembl_pos_1_region': [],
         'ensembl_pos_1_gene_id': [],
         'ensembl_pos_1_gene_name': [],
@@ -222,7 +224,7 @@ def annotate_structural_variants_using_pyensembl(df_structural_variants: pd.Data
         'ensembl_pos_2_gene_end': []
     }
     for index, row in df_structural_variants.iterrows():
-        data['id'].append(row['id'])
+        data['variant_id'].append(row['variant_id'])
 
         # Position 1 annotation
         curr_chr_1 = row['chr_1']
@@ -257,6 +259,6 @@ def annotate_structural_variants_using_pyensembl(df_structural_variants: pd.Data
         data['ensembl_pos_2_gene_end'].append(curr_annotation_2['gene_end'])
 
     df_annotations = pd.DataFrame(data)
-    df_structural_variants = pd.merge(df_structural_variants, df_annotations, on='id')
+    df_structural_variants = pd.merge(df_structural_variants, df_annotations, on='variant_id')
     return df_structural_variants
 

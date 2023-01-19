@@ -11,7 +11,8 @@ def test_refine_dna_small_variants_deepvariant():
     gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
     df_variants = convert_deepvariant_vcf_to_dataframe(
         vcf_file=vcf_file,
-        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS
+        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
+        sample_id='hg002'
     )
     df_gapped_regions = pd.read_csv(gapped_tsv_file, sep='\t')
 
@@ -20,10 +21,10 @@ def test_refine_dna_small_variants_deepvariant():
         df_variants=df_variants,
         df_gapped_regions=df_gapped_regions,
         variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT,
-        tumor_normal_paired=False,
+        is_tumor_normal_paired=False,
         keep_only_chromosomes=['chr1'],
         keep_only_filter_values=KEEP_ONLY_FILTER_VALUES,
-        min_total_coverage=MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
+        min_total_depth=MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count=MIN_GENOMIC_VARIANT_READS_COUNT,
         gapped_regions_padding=1
     )
@@ -37,3 +38,6 @@ def test_refine_dna_small_variants_deepvariant():
     print("DataFrame first row to dictionary:")
     print(df_variants_refined.iloc[0].to_dict())
 
+    # Step 4. Write to file
+    output_tsv_file = get_data_path('hg002_deepvariant_refined.tsv')
+    df_variants_refined.to_csv(output_tsv_file, sep='\t', index=False)

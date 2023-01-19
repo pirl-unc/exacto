@@ -11,7 +11,7 @@ Expression Quantification and Identification of Augmented Transcripts of Somatic
 
 ## 02. Installation
 ```
-pip install .
+pip install . --ignore-installed --verbose
 ```
 
 ## 03. Packaging

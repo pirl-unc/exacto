@@ -47,16 +47,16 @@ def add_exacto_refine_arg_parser(sub_parsers):
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        '--variant_type',
+        '--variant_class',
         type=str,
         required=True,
-        choices=VariantTypes.ALL,
-        help="Variant type (%s). "
+        choices=VariantClasses.ALL,
+        help="Variant class (%s). "
              "If the input VCF file is of structural variants, specify '%s'. "
              "If the input VCF file is of SNVs and INDELs, specify '%s'."
-             % (', '.join(f"'{item}'" for item in RefineVariantTypes.ALL),
-                RefineVariantTypes.SV,
-                RefineVariantTypes.SNV_INDEL)
+             % (', '.join(f"'{item}'" for item in VariantClasses.ALL),
+                VariantClasses.SV,
+                VariantClasses.SNV_INDEL)
     )
     parser_required.add_argument(
         "--vcf_file",
@@ -86,6 +86,13 @@ def add_exacto_refine_arg_parser(sub_parsers):
         help="Sequencing platform."
     )
     parser_required.add_argument(
+        "--sample_id",
+        dest="sample_id",
+        type=str,
+        required=True,
+        help="Sample ID."
+    )
+    parser_required.add_argument(
         "--output_tsv_file",
         dest="output_tsv_file",
         type=str,
@@ -100,18 +107,20 @@ def add_exacto_refine_arg_parser(sub_parsers):
         dest="tumor_sample_id",
         type=str,
         required=False,
+        default='',
         help="Tumor sample ID. "
-             "This parameter must be specified if --variant_type is '%s'."
-             % VariantTypes.SNV_INDEL
+             "This parameter must be specified if --variant_class is '%s'."
+             % VariantClasses.SNV_INDEL
     )
     parser_optional.add_argument(
-        "--tumor_normal_paired",
-        dest="tumor_normal_paired",
-        type=bool,
+        "--normal_sample_id",
+        dest="normal_sample_id",
+        type=str,
         required=False,
-        help="If true, variants were called using tumor and matched normal. "
-             "This parameter must be specified if --variant_type is '%s'."
-             % VariantTypes.SNV_INDEL
+        default='',
+        help="Normal sample ID. This parameter must be specified if "
+             "--variant_class is '%s' and variant calling was performed "
+             "using a tumor and matched normal."
     )
     parser_optional.add_argument(
         "--keep_only_chromosomes",
@@ -131,8 +140,8 @@ def add_exacto_refine_arg_parser(sub_parsers):
         default=KEEP_ONLY_PRECISE_SV,
         help="Specify as 0 or 1. "
              "If 1 (i.e. true), only retains 'precise' variants (default: 1)."
-             " This parameter only applies to structural variants (i.e. --variant_type %s)."
-             % VariantTypes.SV
+             " This parameter only applies to structural variants (i.e. --variant_class %s)."
+             % VariantClasses.SV
     )
     parser_optional.add_argument(
         "--keep_only_filter_values",
@@ -146,13 +155,13 @@ def add_exacto_refine_arg_parser(sub_parsers):
              % (', '.join(KEEP_ONLY_FILTER_VALUES))
     )
     parser_optional.add_argument(
-        "--min_total_coverage",
-        dest="min_total_coverage",
+        "--min_total_depth",
+        dest="min_total_depth",
         type=int,
         required=False,
-        default=MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE,
-        help="Minimum total coverage (default: %i)."
-             % MIN_GENOMIC_VARIANT_POSITION_TOTAL_COVERAGE
+        default=MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
+        help="Minimum total depth (default: %i)."
+             % MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH
     )
     parser_optional.add_argument(
         "--min_variant_reads_count",
@@ -242,17 +251,18 @@ def run_exacto_refine_from_parsed_args(args):
     Parameters
     ----------
     args    :   An instance of argparse.ArgumentParser with the following variables:
-                variant_type
+                variant_class
                 vcf_file
                 variant_calling_method
                 sequencing_platform
                 output_tsv_file
+                sample_id
                 tumor_sample_id
-                tumor_normal_paired
+                normal_sample_id
                 keep_only_chromosomes
                 keep_only_precise_sv
                 keep_only_filter_values
-                min_total_coverage
+                min_total_depth
                 min_variant_reads_count
                 gapped_regions_tsv_file
                 gapped_regions_padding
@@ -279,27 +289,31 @@ def run_exacto_refine_from_parsed_args(args):
         keep_only_filter_values = args.keep_only_filter_values
 
     # Step 3. Refine
-    if args.variant_type == VariantTypes.SV:
-        # Load VCF file.
+    if args.variant_class == VariantClasses.SV:
+        # Load VCF file
         if args.variant_calling_method == VariantCallingMethods.StructuralVariantCallingMethods.SNIFFLES2:
             df_structural_variants = convert_sniffles2_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
-                sequencing_platform=args.sequencing_platform
+                sequencing_platform=args.sequencing_platform,
+                sample_id=args.sample_id
             )
         elif args.variant_calling_method == VariantCallingMethods.StructuralVariantCallingMethods.CUTESV:
             df_structural_variants = convert_cutesv_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
-                sequencing_platform=args.sequencing_platform
+                sequencing_platform=args.sequencing_platform,
+                sample_id=args.sample_id
             )
         elif args.variant_calling_method == VariantCallingMethods.StructuralVariantCallingMethods.SVIM:
             df_structural_variants = convert_svim_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
-                sequencing_platform=args.sequencing_platform
+                sequencing_platform=args.sequencing_platform,
+                sample_id=args.sample_id
             )
         elif args.variant_calling_method == VariantCallingMethods.StructuralVariantCallingMethods.PBSV:
             df_structural_variants = convert_pbsv_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
-                sequencing_platform=args.sequencing_platform
+                sequencing_platform=args.sequencing_platform,
+                sample_id=args.sample_id
             )
         else:
             raise Exception(
@@ -309,7 +323,7 @@ def run_exacto_refine_from_parsed_args(args):
                    ', '.join(f"'{item}'" for item in VariantCallingMethods.StructuralVariantCallingMethods.ALL))
             )
 
-        # Load structural variants to exclude.
+        # Load structural variants to exclude
         if args.exclude_sv_tsv_files is not None:
             df_structural_variants_to_exclude = pd.DataFrame()
             for curr_tsv_file in args.exclude_sv_tsv_files:
@@ -320,7 +334,7 @@ def run_exacto_refine_from_parsed_args(args):
         else:
             df_structural_variants_to_exclude = None
 
-        # Perform refinement.
+        # Perform refinement
         df_structural_variants = run_exacto_refine_genomic_structural_variants(
             df_structural_variants=df_structural_variants,
             df_structural_variants_to_exclude=df_structural_variants_to_exclude,
@@ -329,26 +343,37 @@ def run_exacto_refine_from_parsed_args(args):
             keep_only_precise_sv=args.keep_only_precise_sv,
             keep_only_chromosomes=keep_only_chromosomes,
             keep_only_filter_values=keep_only_filter_values,
-            min_total_coverage=args.min_total_coverage,
+            min_total_depth=args.min_total_depth,
             min_variant_reads_count=args.min_variant_reads_count,
             gapped_regions_padding=args.gapped_regions_padding,
             exclude_variants_padding=args.exclude_sv_padding
         )
 
-        # Write refined structural variants to a TSV file.
+        # Write refined structural variants to a TSV file
         df_structural_variants.to_csv(args.output_tsv_file, sep='\t', index=False)
-    elif args.variant_type == VariantTypes.SNV_INDEL:
-        # Load VCF file.
+    elif args.variant_class == VariantClasses.SNV_INDEL:
+        # Load VCF file
         if args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2:
             df_variants = convert_gatk4_mutect2_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
                 sequencing_platform=args.sequencing_platform,
-                tumor_sample_id=args.tumor_sample_id
+                sample_id=args.sample_id,
+                tumor_sample_id=args.tumor_sample_id,
+                normal_sample_id=args.normal_sample_id
+            )
+        elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2:
+            df_variants = convert_strelka2_vcf_to_dataframe(
+                vcf_file=args.vcf_file,
+                sequencing_platform=args.sequencing_platform,
+                sample_id=args.sample_id,
+                tumor_sample_id=args.tumor_sample_id,
+                normal_sample_id=args.normal_sample_id
             )
         elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT:
             df_variants = convert_deepvariant_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
-                sequencing_platform=args.sequencing_platform
+                sequencing_platform=args.sequencing_platform,
+                sample_id=args.sample_id
             )
         else:
             raise Exception(
@@ -358,25 +383,29 @@ def run_exacto_refine_from_parsed_args(args):
                    ', '.join(f"'{item}'" for item in VariantCallingMethods.SmallVariantCallingMethods.ALL))
             )
 
-        # Perform refinement.
+        # Perform refinement
+        if args.normal_sample_id == '':
+            is_tumor_normal_paired = False
+        else:
+            is_tumor_normal_paired = True
         df_variants = run_exacto_refine_genomic_small_variants(
             df_variants=df_variants,
             df_gapped_regions=df_gapped_regions,
             variant_calling_method=args.variant_calling_method,
-            tumor_normal_paired=args.tumor_normal_paired,
+            is_tumor_normal_paired=is_tumor_normal_paired,
             keep_only_chromosomes=keep_only_chromosomes,
             keep_only_filter_values=keep_only_filter_values,
-            min_total_coverage=args.min_total_coverage,
+            min_total_depth=args.min_total_depth,
             min_variant_reads_count=args.min_variant_reads_count,
             gapped_regions_padding=args.gapped_regions_padding
         )
 
-        # Write refined variants to a TSV file.
+        # Write refined variants to a TSV file
         df_variants.to_csv(args.output_tsv_file, sep='\t', index=False)
     else:
         raise Exception(
-            "Invalid value for '--variant_type': %s. "
-            "Allowed '--variant_type' values are %s "
-            % (args.variant_type,
-               ', '.join(f"'{item}'" for item in VariantTypes.ALL))
+            "Invalid value for '--variant_class': %s. "
+            "Allowed '--variant_class' values are %s "
+            % (args.variant_class,
+               ', '.join(f"'{item}'" for item in VariantClasses.ALL))
         )

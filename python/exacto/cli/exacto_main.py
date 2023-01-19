@@ -18,10 +18,14 @@ The purpose of this python3 script is to implement the primary Exacto command.
 
 import argparse
 import exacto
+from .exacto_convert import *
 from .exacto_refine import *
 from .exacto_annotate import *
 from .exacto_merge import *
-from .exacto_simulate_variants import *
+from .exacto_sim_transcripts import *
+from .exacto_sim_rna_variants import *
+from .exacto_sim_reads import *
+from .exacto_identify import *
 
 
 logger = get_logger(__name__)
@@ -51,29 +55,34 @@ def init_arg_parser():
 def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
-    sub_parsers = add_exacto_simulate_variants_arg_parser(sub_parsers=sub_parsers)  # simulate_variants
-    sub_parsers = add_exacto_refine_arg_parser(sub_parsers=sub_parsers)             # refine
-    sub_parsers = add_exacto_annotate_arg_parser(sub_parsers=sub_parsers)           # annotate
-    sub_parsers = add_exacto_merge_arg_parser(sub_parsers=sub_parsers)              # merge
+    sub_parsers = add_exacto_simulate_rna_variants_arg_parser(sub_parsers=sub_parsers)  # sim-rna-variants
+    sub_parsers = add_exacto_simulate_reads_arg_parser(sub_parsers=sub_parsers)         # sim-reads
+    sub_parsers = add_exacto_identify_arg_parser(sub_parsers=sub_parsers)               # identify
+    sub_parsers = add_exacto_refine_arg_parser(sub_parsers=sub_parsers)                 # refine
+    sub_parsers = add_exacto_annotate_arg_parser(sub_parsers=sub_parsers)               # annotate
+    sub_parsers = add_exacto_convert_arg_parser(sub_parsers=sub_parsers)                # convert
+    sub_parsers = add_exacto_merge_arg_parser(sub_parsers=sub_parsers)                  # merge
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
-    if args.which == 'call':
-        a = 1
+    if args.which == 'identify':
+        run_exacto_identify_from_parsed_args(args=args)
     elif args.which == 'graph':
         a = 1
     elif args.which == 'quantify':
         a = 1
-    elif args.which == 'simulate_variants':
-        run_exacto_simulate_variants_from_parsed_args(args=args)
     elif args.which == 'convert':
-        a = 1
+        run_exacto_convert_from_parsed_args(args=args)
     elif args.which == 'refine':
         run_exacto_refine_from_parsed_args(args=args)
     elif args.which == 'annotate':
         run_exacto_annotate_from_parsed_args(args=args)
     elif args.which == 'merge':
         run_exacto_merge_from_parsed_args(args=args)
+    elif args.which == 'sim-rna-variants':
+        run_exacto_sim_rna_variants_from_parsed_args(args=args)
+    elif args.which == 'sim-reads':
+        run_exacto_sim_reads_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)
 

@@ -16,4 +16,12 @@ pyo3 = { version = "0.17.3", features = ["extension-module"] }
 bam = "0.1.4"
 regex = "1.7.0"
 lazy_static = "1.4.0"
-polars = {version = "0.25.1", features = ["lazy"]}
+rustc-hash = "1.1.0"
+polars = { version = "0.25.1", features = ["lazy"] }
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+debug = 0
+incremental = true
