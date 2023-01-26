@@ -48,5 +48,4 @@ class Insertion(Exon):
 
     def __str__(self):
         msg = "[INSERTION][%i:%i] %s\n" % (self.ins_pos, self.ins_pos, self.ins_sequence)
-        return msg + \
-               super(Insertion, self).__str__()
+        return msg + super(Insertion, self).__str__()

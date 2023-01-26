@@ -111,15 +111,43 @@ def generate_single_nucleotide_variant(reference_allele: str) -> str:
     return alternate_allele
 
 
+def generate_random_sequence(size, disallowed_sequences):
+    """
+    Generate a random sequence.
+
+    Parameters
+    ----------
+    size                    :   Size of random sequence.
+    disallowed_sequences    :   List of disallowed sequences.
+
+    Returns
+    -------
+    random_sequence         :   Random sequence.
+    """
+    atcg = ['A', 'T', 'C', 'G']
+    while True:
+        random_sequence = [random.choice(atcg) for _ in range(0, size)]
+        random_sequence = ''.join(random_sequence)
+        allowed = True
+        for seq in disallowed_sequences:
+            if random_sequence in seq:
+                allowed = False
+        if allowed:
+            break
+    return random_sequence
+
+
 def generate_insertion(insertion_size_mean: int,
-                       insertion_size_stdev: int) -> str:
+                       insertion_size_stdev: int,
+                       disallowed_sequences: []) -> str:
     """
     Generates an insertion.
 
     Parameters
     ----------
-    insertion_size_mean     :   Mean value of insertion size.
-    insertion_size_stdev    :   Standard deviation of insertion size.
+    insertion_size_mean      :   Mean value of insertion size.
+    insertion_size_stdev     :   Standard deviation of insertion size.
+    disallowed_sequences     :   List of disallowed subsequences.
 
     Returns
     -------
@@ -128,13 +156,36 @@ def generate_insertion(insertion_size_mean: int,
     lognormal_mean = math.log(math.pow(insertion_size_mean, 2) / math.sqrt(math.pow(insertion_size_mean, 2) + math.pow(insertion_size_stdev, 2)))
     lognormal_variance = math.log(1 + math.pow(insertion_size_stdev, 2) / math.pow(insertion_size_mean, 2))
     lognormal_sigma = math.sqrt(lognormal_variance)
-    size = int(np.random.lognormal(
+    insertion_size = int(np.random.lognormal(
         mean=lognormal_mean,
         sigma=lognormal_sigma
     ))
     atcg = ['A', 'T', 'C', 'G']
-    sequence = [random.choice(atcg) for _ in range(0, size)]
-    return ''.join(sequence)
+    insertion_sequence = [random.choice(atcg) for _ in range(0, insertion_size)]
+    insertion_sequence = ''.join(insertion_sequence)
+    disallowed_subsequences = [i.upper() for i in disallowed_sequences]
+
+    # Find occurrences of all disallowed sequences and change them
+    while True:
+        # For each disallowed sequence, replace it with an allowed sequence
+        for subseq in disallowed_subsequences:
+            subseq_positions = [i for i in range(len(insertion_sequence)) if insertion_sequence.startswith(subseq, i)]
+            for curr_pos in subseq_positions:
+                # Generate a new sequence
+                new_subsequence = generate_random_sequence(size=len(subseq), disallowed_sequences=disallowed_sequences)
+                insertion_sequence[:curr_pos] + new_subsequence + insertion_sequence[curr_pos + len(subseq):]
+
+        # Make sure none of the disallowed sequences exists
+        allowed = True
+        for subseq in disallowed_subsequences:
+            subseq_positions = [i for i in range(len(insertion_sequence)) if insertion_sequence.startswith(subseq, i)]
+            if len(subseq_positions) > 0:
+                allowed = False
+                break
+        if allowed:
+            break
+
+    return insertion_sequence
 
 
 def generate_rna_deletion(rna_pos: RnaPos,

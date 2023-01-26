@@ -78,5 +78,4 @@ class Match(Exon):
         msg += "\tend\t\t\t:\t%i\n" % self.end
         msg += "\tlength\t\t\t:\t%i\n" % self.length
         msg += "\treference sequence\t:\t%s\n" % self.sequence
-        return msg + \
-               super(Match, self).__str__()
+        return msg + super(Match, self).__str__()

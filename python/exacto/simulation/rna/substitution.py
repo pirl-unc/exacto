@@ -51,5 +51,4 @@ class Substitution(Exon):
 
     def __str__(self):
         msg = "[SUBSTITUTION][%i:%i] %s\n" % (self.snv_pos, self.snv_pos, self.snv_alt)
-        return msg + \
-               super(Substitution, self).__str__()
+        return msg + super(Substitution, self).__str__()
