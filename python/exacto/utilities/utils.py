@@ -65,7 +65,7 @@ def get_reverse_complement_sequence(sequence: str) -> str:
         complement_nucleotide = get_complement_nucleotide(nucleotide=i)
         reverse_complement_sequence.append(complement_nucleotide)
     reverse_complement_sequence.reverse()
-    return reverse_complement_sequence
+    return ''.join(reverse_complement_sequence)
 
 
 def overlaps_any(df: pd.DataFrame,

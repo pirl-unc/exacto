@@ -48,6 +48,5 @@ class Deletion(Exon):
 
     def __str__(self):
         msg = "[DELETION][%i:%i]\n" % (self.del_start, self.del_end)
-        return msg + \
-               super(Deletion, self).__str__()
+        return msg + super(Deletion, self).__str__()
 

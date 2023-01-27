@@ -301,8 +301,19 @@ def generate_insertion_rna_variants(
             df_transcripts=df_transcripts,
             df_exons=df_exons
         )
+
+        # if rna_pos.pos == rna_pos.exon_start and rna_pos.strand == '+':
+        #
+        # elif rna_pos.pos == rna_pos.exon_start and rna_pos.strand == '-':
+        #
+        # elif rna_pos.pos == rna_pos.exon_end and rna_pos.strand == '+':
+        #
+        # elif rna_pos.pos == rna_pos.exon_end and rna_pos.strand == '-':
+        #
+        # else:
         alt_allele = generate_insertion(insertion_size_mean=insertion_size_mean,
-                                        insertion_size_stdev=insertion_size_stdev)
+                                        insertion_size_stdev=insertion_size_stdev,
+                                        disallowed_sequences=[])
 
         # Step 2. Skip if the randomly selected position is already in the list of variants
         df_rna_variants_curr_exon = df_rna_variants.loc[
