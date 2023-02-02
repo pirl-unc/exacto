@@ -20,8 +20,8 @@ def test_merge_dna_structural_variants():
     list_df = [df_sniffles2, df_pbsv, df_svim, df_cutesv]
     df_merged, df_merged_deduped = run_exacto_merge_genomic_structural_variants(
         list_df=list_df,
-        enforce_sv_type_matching=True,
-        max_sv_cluster_distance=MAX_SV_CLUSTER_DISTANCE
+        enforce_variant_type_matching=True,
+        max_clustering_distance=MAX_SV_CLUSTER_DISTANCE
     )
 
     # Step 3. Print output

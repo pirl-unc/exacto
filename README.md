@@ -1,6 +1,6 @@
 # Exacto
 
-Expression Quantification and Identification of Augmented Transcripts of Somatic Variant Origin
+Exacto (EXtracting And Counting Transcripts in Oncology) identifies and quantifies augmented transcripts in tumor samples.
 
 ## 01. Dependencies
 - python3 (3.9 tested)

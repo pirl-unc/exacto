@@ -121,6 +121,7 @@ def add_exacto_refine_arg_parser(sub_parsers):
         help="Normal sample ID. This parameter must be specified if "
              "--variant_class is '%s' and variant calling was performed "
              "using a tumor and matched normal."
+            % VariantClasses.SNV_INDEL
     )
     parser_optional.add_argument(
         "--keep_only_chromosomes",

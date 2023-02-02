@@ -416,35 +416,70 @@ def run_exacto_annotate_genomic_structural_variants(
 
 def run_exacto_merge_genomic_structural_variants(
         list_df: List[pd.DataFrame],
-        enforce_sv_type_matching: bool = True,
-        max_sv_cluster_distance: int = MAX_SV_CLUSTER_DISTANCE) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        enforce_variant_type_matching: bool = True,
+        max_clustering_distance: int = MAX_SV_CLUSTER_DISTANCE) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Merges a list of structural variant DataFrames.
 
     Parameters
     ----------
-    list_df                     :   List of DataFrames.
-                                    Expected columns in each DataFrame:
-                                    'chr_1'
-                                    'pos_1'
-                                    'chr_2'
-                                    'pos_2'
-                                    'sv_type'
-                                    'variant_calling_method'
-                                    'sequencing_platform'
-    enforce_sv_type_matching    :   If true, sv_type must match for two SVs
-                                    to be merged into one.
-    max_sv_cluster_distance     :   Maximum SV clustering distance.
+    list_df                         :   List of DataFrames.
+                                        Expected columns in each DataFrame:
+                                        'variant_id'
+                                        'chr_1'
+                                        'pos_1'
+                                        'chr_2'
+                                        'pos_2'
+                                        'sv_type'
+                                        'variant_calling_method'
+                                        'sequencing_platform'
+    enforce_variant_type_matching    :  If true, sv_type must match for two SVs
+                                        to be merged into one.
+    max_clustering_distance          :  Maximum SV clustering distance (default: 10).
+
+    Returns
+    -------
+    df_merged                       :   DataFrame of all variants from all DataFrames merged.
+    df_merged_deduped               :   DataFrame of all variants from all DataFrames merged and deduped.
+    """
+    df_merged, df_merged_deduped = merge_structural_variants(
+        list_df=list_df,
+        enforce_variant_type_matching=enforce_variant_type_matching,
+        max_clustering_distance=max_clustering_distance
+    )
+    return df_merged, df_merged_deduped
+
+
+def run_exacto_merge_genomic_small_variants(
+        list_df: List[pd.DataFrame],
+        enforce_variant_type_matching: bool = True,
+        max_clustering_distance: int = MAX_SMALL_VARIANT_CLUSTER_DISTANCE) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Merges a list of small variant DataFrames.
+
+    Parameters
+    ----------
+    list_df                             :   List of DataFrames.
+                                            Expected columns in each DataFrame:
+                                            'variant_id'
+                                            'chrom'
+                                            'pos'
+                                            'variant_type'
+                                            'variant_calling_method'
+                                            'sequencing_platform'
+    enforce_variant_type_matching       :   If true, sv_type must match for two SVs
+                                            to be merged into one.
+    max_clustering_distance             :   Maximum small variant clustering distance (default: 1).
 
     Returns
     -------
     df_merged               :   DataFrame of all variants from all DataFrames merged.
     df_merged_deduped       :   DataFrame of all variants from all DataFrames merged and deduped.
     """
-    df_merged, df_merged_deduped = merge_structural_variants(
+    df_merged, df_merged_deduped = merge_small_variants(
         list_df=list_df,
-        enforce_sv_type_matching=enforce_sv_type_matching,
-        max_sv_cluster_distance=max_sv_cluster_distance
+        enforce_variant_type_matching=enforce_variant_type_matching,
+        max_clustering_distance=max_clustering_distance
     )
     return df_merged, df_merged_deduped
 
