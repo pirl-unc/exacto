@@ -28,5 +28,5 @@ def test_merge_dna_small_variants():
     print(df_merged_deduped.iloc[0].to_dict())
 
     # Step 4. Write to file
-    output_tsv_file = get_data_path('hg002_small_variants_merged_deduped.tsv')
+    output_tsv_file = get_data_path('hg002_small_variants_mutect2_strelka2_merged_deduped.tsv')
     df_merged_deduped.to_csv(output_tsv_file, sep='\t', index=False)

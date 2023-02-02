@@ -27,6 +27,25 @@ from ..logging import get_logger
 logger = get_logger(__name__)
 
 
+def merge_annotations(list_df: List[pd.DataFrame] = []) -> pd.DataFrame:
+    """
+    Merges annotations into one DataFrame.
+
+    Parameters
+    ----------
+    list_df         :   List of DataFrames.
+                        Expected columns in each DataFrame:
+                        'variant_id'
+    Returns
+    -------
+    df_merged       :   DataFrame of all annotations.
+    """
+    df_merged = list_df[0]
+    for i in range(1, len(list_df)):
+        df_merged = pd.concat([df_merged, list_df[i]], axis=1, join="inner")
+    return df_merged
+
+
 def merge_small_variants(
         list_df: List[pd.DataFrame] = [],
         enforce_variant_type_matching = True,

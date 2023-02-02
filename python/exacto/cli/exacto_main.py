@@ -21,7 +21,8 @@ import exacto
 from .exacto_convert import *
 from .exacto_refine import *
 from .exacto_annotate import *
-from .exacto_merge import *
+from .exacto_merge_variants import *
+from .exacto_merge_annotations import *
 from .exacto_sim_transcripts import *
 from .exacto_sim_rna_variants import *
 from .exacto_sim_reads import *
@@ -61,7 +62,8 @@ def run():
     sub_parsers = add_exacto_refine_arg_parser(sub_parsers=sub_parsers)                 # refine
     sub_parsers = add_exacto_annotate_arg_parser(sub_parsers=sub_parsers)               # annotate
     sub_parsers = add_exacto_convert_arg_parser(sub_parsers=sub_parsers)                # convert
-    sub_parsers = add_exacto_merge_arg_parser(sub_parsers=sub_parsers)                  # merge
+    sub_parsers = add_exacto_merge_variants_arg_parser(sub_parsers=sub_parsers)         # merge-variants
+    sub_parsers = add_exacto_merge_annotations_arg_parser(sub_parsers=sub_parsers)      # merge-annotations
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
@@ -77,8 +79,10 @@ def run():
         run_exacto_refine_from_parsed_args(args=args)
     elif args.which == 'annotate':
         run_exacto_annotate_from_parsed_args(args=args)
-    elif args.which == 'merge':
-        run_exacto_merge_from_parsed_args(args=args)
+    elif args.which == 'merge-annotations':
+        run_exacto_merge_annotations_from_parsed_args(args=args)
+    elif args.which == 'merge-variants':
+        run_exacto_merge_variants_from_parsed_args(args=args)
     elif args.which == 'sim-rna-variants':
         run_exacto_sim_rna_variants_from_parsed_args(args=args)
     elif args.which == 'sim-reads':

@@ -450,6 +450,24 @@ def run_exacto_merge_genomic_structural_variants(
     return df_merged, df_merged_deduped
 
 
+def run_exacto_merge_annotations(list_df: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Merges a list of DataFrames.
+
+    Parameters
+    ----------
+    list_df                             :   List of DataFrames.
+                                            Expected columns in each DataFrame:
+                                            'variant_id'
+
+    Returns
+    -------
+    df_merged               :   DataFrame of all annotations from all DataFrames merged.
+    """
+    df_merged = merge_annotations(list_df=list_df)
+    return df_merged
+
+
 def run_exacto_merge_genomic_small_variants(
         list_df: List[pd.DataFrame],
         enforce_variant_type_matching: bool = True,
@@ -482,6 +500,7 @@ def run_exacto_merge_genomic_small_variants(
         max_clustering_distance=max_clustering_distance
     )
     return df_merged, df_merged_deduped
+
 
 
 def run_exacto_identify_rna_variants(bam_file: pysam.AlignmentFile,

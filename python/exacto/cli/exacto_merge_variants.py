@@ -13,7 +13,7 @@
 
 """
 The purpose of this python3 script is to create parser
-and run Exacto 'merge' command.
+and run Exacto 'merge-variants' command.
 """
 
 
@@ -27,9 +27,9 @@ from ..main import *
 logger = get_logger(__name__)
 
 
-def add_exacto_merge_arg_parser(sub_parsers):
+def add_exacto_merge_variants_arg_parser(sub_parsers):
     """
-    Adds 'merge' parser.
+    Adds 'merge-variants' parser.
 
     Parameters
     ----------
@@ -39,7 +39,7 @@ def add_exacto_merge_arg_parser(sub_parsers):
     -------
     An instance of argparse.ArgumentParser subparsers.
     """
-    parser = sub_parsers.add_parser('merge', help='Merge variants.')
+    parser = sub_parsers.add_parser('merge-variants', help='Merge variants.')
     parser._action_groups.pop()
 
     # Required arguments
@@ -100,13 +100,13 @@ def add_exacto_merge_arg_parser(sub_parsers):
         help="Maximum clustering distance (default: %i)."
              % MAX_SV_CLUSTER_DISTANCE
     )
-    parser.set_defaults(which='merge')
+    parser.set_defaults(which='merge-variants')
     return sub_parsers
 
 
-def run_exacto_merge_from_parsed_args(args):
+def run_exacto_merge_variants_from_parsed_args(args):
     """
-    Run Exacto 'merge' command using parameters from parsed arguments.
+    Run Exacto 'merge-variants' command using parameters from parsed arguments.
 
     Parameters
     ----------
