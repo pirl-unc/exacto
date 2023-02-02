@@ -154,7 +154,10 @@ EXCLUDE_SNV_INDEL_PADDING = 1
 
 """merge"""
 # Maximum distance (bases) for merging two structural variants.
-MAX_SV_CLUSTER_DISTANCE = 100
+MAX_SV_CLUSTER_DISTANCE = 10
+
+# Maximum distance (bases) for merging two small variants (i.e. insertions and deletions).
+MAX_SMALL_VARIANT_CLUSTER_DISTANCE = 1
 
 """annotate"""
 # ANNOVAR protocol and corresponding operation

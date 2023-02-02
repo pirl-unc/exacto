@@ -118,6 +118,7 @@ def add_exacto_convert_arg_parser(sub_parsers):
         help="Normal sample ID. This parameter must be specified if "
              "--variant_class is '%s' and variant calling was performed "
              "using a tumor and matched normal."
+            % VariantClasses.SNV_INDEL
     )
     parser.set_defaults(which='convert')
     return sub_parsers

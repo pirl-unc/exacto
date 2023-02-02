@@ -83,12 +83,13 @@ def add_exacto_merge_arg_parser(sub_parsers):
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
     parser_optional.add_argument(
-        "--enforce_sv_type_matching",
-        dest="enforce_sv_type_matching",
+        "--enforce_variant_type_matching",
+        dest="enforce_variant_type_matching",
         type=bool,
         default=True,
         required=False,
-        help="If true, 'sv_type' must match for 2 variants to be merged into one (default: True)."
+        help="If true, variant type (i.e. 'sv_type' for structural variants and 'variant_type' for small variants) "
+             "must match for 2 variants to be merged into one (default: True)."
     )
     parser_optional.add_argument(
         "--max_clustering_distance",
@@ -124,8 +125,8 @@ def run_exacto_merge_from_parsed_args(args):
             list_df.append(df_temp)
         df_merged, df_merged_deduped = run_exacto_merge_genomic_structural_variants(
             list_df=list_df,
-            enforce_sv_type_matching=args.enforce_sv_type_matching,
-            max_sv_cluster_distance=args.max_clustering_distance
+            enforce_variant_type_matching=args.enforce_variant_type_matching,
+            max_clustering_distance=args.max_clustering_distance
         )
         df_merged.to_csv(
             args.output_merged_tsv_file, sep='\t', index=False
@@ -138,6 +139,17 @@ def run_exacto_merge_from_parsed_args(args):
         for curr_tsv_file in args.tsv_files:
             df_temp = pd.read_csv(curr_tsv_file, sep='\t')
             list_df.append(df_temp)
+        df_merged, df_merged_deduped = run_exacto_merge_genomic_small_variants(
+            list_df=list_df,
+            enforce_variant_type_matching=args.enforce_variant_type_matching,
+            max_clustering_distance=args.max_clustering_distance
+        )
+        df_merged.to_csv(
+            args.output_merged_tsv_file, sep='\t', index=False
+        )
+        df_merged_deduped.to_csv(args.output_merged_deduped_tsv_file,
+                                 sep='\t',
+                                 index=False)
     else:
         raise Exception(
             "Invalid value for '--variant_class': %s. "
