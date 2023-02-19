@@ -17,18 +17,21 @@ and run Exacto 'sim-rna-variants' command.
 """
 
 
+import argparse
 import pysam
 from ..constants import *
 from ..default_parameters import *
 from ..logging import get_logger
 from ..main import *
-from ..utilities.gencode_utils import *
+from ..variants.annotations.gencode import *
 
 
 logger = get_logger(__name__)
 
 
-def add_exacto_simulate_rna_variants_arg_parser(sub_parsers):
+def add_exacto_simulate_rna_variants_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'sim-rna-variants' parser.
 
@@ -272,7 +275,9 @@ def add_exacto_simulate_rna_variants_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_sim_rna_variants_from_parsed_args(args):
+def run_exacto_sim_rna_variants_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'sim-rna-variants' command using parameters from parsed arguments.
 

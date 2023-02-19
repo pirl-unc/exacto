@@ -109,11 +109,13 @@ class VariantCallingMethods:
     class SmallVariantCallingMethods:
         GATK4_MUTECT2 = "gatk4_mutect2"
         DEEPVARIANT = "deepvariant"
-        STRELKA2 = "strelka2"
+        STRELKA2_GERMLINE = "strelka2_germline"
+        STRELKA2_SOMATIC = "strelka2_somatic"
         ALL = [
             GATK4_MUTECT2,
             DEEPVARIANT,
-            STRELKA2
+            STRELKA2_GERMLINE,
+            STRELKA2_SOMATIC
         ]
 
     ALL = StructuralVariantCallingMethods.ALL + \
@@ -173,4 +175,3 @@ class Sexes:
 class Strands:
     POSITIVE = '+'
     NEGATIVE = '-'
-

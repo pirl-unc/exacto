@@ -13,12 +13,11 @@
 
 import random
 import math
-import time
 import numpy as np
 from collections import Counter
-from typing import Tuple, List, Dict
-from dataclasses import dataclass, field
-from ..utilities.fasta_utils import Sequence
+from typing import List
+from dataclasses import dataclass
+from ..alignment.fasta import Sequence
 from ..logging import get_logger
 
 
@@ -32,12 +31,14 @@ class Read:
     base_quality_score_string: str
 
 
-def simulate_single_end_reads(sequences: List[Sequence],
-                              num_bases: int,
-                              read_length_mean: float,
-                              read_length_stdev: float,
-                              base_quality_mean: float,
-                              base_quality_stdev: float) -> List[Read]:
+def simulate_single_end_reads(
+        sequences: List[Sequence],
+        num_bases: int,
+        read_length_mean: float,
+        read_length_stdev: float,
+        base_quality_mean: float,
+        base_quality_stdev: float
+    ) -> List[Read]:
     """
     Simulates single-end reads.
 
@@ -107,4 +108,3 @@ def simulate_single_end_reads(sequences: List[Sequence],
                 % (len(sequenced_molecules.keys()), len(sequences)))
 
     return reads
-

@@ -28,10 +28,12 @@ class Substitution(Exon):
     snv_alt: str = ''
     edits: List = field(default_factory=lambda: [])
 
-    def __init__(self,
-                 ref_exon,
-                 snv_pos: int,
-                 snv_alt: str):
+    def __init__(
+            self,
+            ref_exon,
+            snv_pos: int,
+            snv_alt: str
+        ):
         self.ref_exon = ref_exon
         self.snv_pos = snv_pos
         self.snv_alt = snv_alt

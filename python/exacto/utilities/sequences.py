@@ -12,18 +12,20 @@
 
 
 """
-The purpose of this python3 script is to implement common utility functions.
+The purpose of this python3 script is to implement functions related to
+nucleic acid sequences.
 """
 
 
-import pandas as pd
 from ..logging import get_logger
 
 
 logger = get_logger(__name__)
 
 
-def get_complement_nucleotide(nucleotide: str) -> str:
+def get_complement_nucleotide(
+        nucleotide: str
+    ) -> str:
     """
     Returns the complement of a nucleotide.
 
@@ -48,7 +50,9 @@ def get_complement_nucleotide(nucleotide: str) -> str:
         logger.error("Unknown nucleotide: %s" % nucleotide)
 
 
-def get_reverse_complement_sequence(sequence: str) -> str:
+def get_reverse_complement_sequence(
+        sequence: str
+    ) -> str:
     """
     Returns the reverse complement sequence.
 
@@ -66,35 +70,3 @@ def get_reverse_complement_sequence(sequence: str) -> str:
         reverse_complement_sequence.append(complement_nucleotide)
     reverse_complement_sequence.reverse()
     return ''.join(reverse_complement_sequence)
-
-
-def overlaps_any(df: pd.DataFrame,
-                 chrom: str,
-                 start: int,
-                 end: int) -> bool:
-    """
-    Checks if a particular region overlaps with any regions in a DataFrame.
-
-    Parameters
-    ----------
-    df          :   DataFrame with the following columns:
-                    'chr_1', 'pos_1', 'chr_2', 'pos_2'
-    chrom       :   Chromosome.
-    start       :   Start position.
-    end         :   End position.
-
-    Returns
-    -------
-    True or False
-    """
-    # De Morgan's law on checking for non-overlapping regions
-    df_matched = df.loc[
-        (df['chr_1'] == chrom) &
-        (df['chr_2'] == chrom) &
-        (df['pos_2'] >= start) &
-        (df['pos_1'] <= end),:
-    ]
-    if len(df_matched) > 0:
-        return True
-    else:
-        return False

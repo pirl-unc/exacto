@@ -17,17 +17,20 @@ and run Exacto 'merge-variants' command.
 """
 
 
+import argparse
 import pandas as pd
-from ..logging import get_logger
 from ..constants import *
 from ..default_parameters import *
+from ..logging import get_logger
 from ..main import *
 
 
 logger = get_logger(__name__)
 
 
-def add_exacto_merge_variants_arg_parser(sub_parsers):
+def add_exacto_merge_variants_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'merge-variants' parser.
 
@@ -104,7 +107,9 @@ def add_exacto_merge_variants_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_merge_variants_from_parsed_args(args):
+def run_exacto_merge_variants_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'merge-variants' command using parameters from parsed arguments.
 

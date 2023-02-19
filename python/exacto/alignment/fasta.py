@@ -11,6 +11,12 @@
 # limitations under the License.
 
 
+"""
+The purpose of this python3 script is to implement classes and functions
+that are used to parse FASTA files.
+"""
+
+
 from typing import Tuple, List, Dict
 from dataclasses import dataclass, field
 
@@ -21,7 +27,9 @@ class Sequence:
     sequence: str
 
 
-def read_fasta_file(fasta_file: str) -> List[Sequence]:
+def read_fasta_file(
+        fasta_file: str
+    ) -> List[Sequence]:
     """
     Reads a FASTA file and returns sequence information.
 

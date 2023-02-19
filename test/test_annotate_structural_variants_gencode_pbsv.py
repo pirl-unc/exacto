@@ -1,7 +1,8 @@
 from .data import get_data_path
 from exacto.main import *
 from exacto.constants import *
-from exacto.utilities.gencode_utils import *
+from exacto.variants.vcf import *
+from exacto.variants.annotations.gencode import *
 
 
 def test_annotate_dna_structural_variants_gencode_pbsv():
@@ -9,7 +10,7 @@ def test_annotate_dna_structural_variants_gencode_pbsv():
     vcf_file = get_data_path(name='hg002_pbsv.vcf')
     gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
     germline_sv_tsv_file = get_data_path(name='audano_et_al_cell_2019_sv_list.tsv')
-    gencode_gtf_file = get_data_path(name='gencode.v41.annotation.gtf')
+    gencode_gtf_file = get_data_path(name='gencode.v41.annotations.gtf')
     df_structural_variants = convert_pbsv_vcf_to_dataframe(
         vcf_file=vcf_file,
         sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,

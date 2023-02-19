@@ -31,17 +31,19 @@ class Match(Exon):
     sequence: str = ''
     edits: List = field(default_factory=lambda: [])
 
-    def __init__(self,
-                 gene_id: str,
-                 transcript_id: str,
-                 exon_id: str,
-                 exon_number: int,
-                 strand: str,
-                 chrom: str,
-                 start: int,
-                 end: int,
-                 length: int,
-                 sequence: str):
+    def __init__(
+            self,
+            gene_id: str,
+            transcript_id: str,
+            exon_id: str,
+            exon_number: int,
+            strand: str,
+            chrom: str,
+            start: int,
+            end: int,
+            length: int,
+            sequence: str
+        ):
         super().__init__()
         self.gene_id = gene_id
         self.transcript_id = transcript_id

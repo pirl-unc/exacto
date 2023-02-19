@@ -17,15 +17,17 @@ and run Exacto 'identify' command.
 """
 
 
+import argparse
 import csv
 import pandas as pd
 import pysam
-
 from ..constants import *
 from ..main import *
 
 
-def add_exacto_identify_arg_parser(sub_parsers):
+def add_exacto_identify_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'identify' parser.
 
@@ -98,7 +100,9 @@ def add_exacto_identify_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_identify_from_parsed_args(args):
+def run_exacto_identify_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'identify' command using parameters from parsed arguments.
 

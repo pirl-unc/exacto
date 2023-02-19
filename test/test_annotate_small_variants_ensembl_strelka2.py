@@ -1,5 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
+from exacto.variants.vcf import *
 from exacto.constants import *
 
 
@@ -7,7 +8,7 @@ def test_annotate_dna_small_variants_ensembl_strelka2():
     # Step 1. Load data
     vcf_file = get_data_path(name='hg002_strelka2.vcf')
     gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
-    df_variants = convert_strelka2_vcf_to_dataframe(
+    df_variants = convert_strelka2_germline_vcf_to_dataframe(
         vcf_file=vcf_file,
         sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
         sample_id='hg002',
@@ -19,7 +20,8 @@ def test_annotate_dna_small_variants_ensembl_strelka2():
     df_variants_refined = run_exacto_refine_genomic_small_variants(
         df_variants=df_variants,
         df_gapped_regions=df_gapped_regions,
-        variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.STRELKA2,
+        df_exclude_snv_indel=None,
+        variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.STRELKA2_GERMLINE,
         is_tumor_normal_paired=False,
         keep_only_chromosomes=['chr' + str(i) for i in range(1, 23)] + ['chrX', 'chrY', 'chrM'],
         keep_only_filter_values=KEEP_ONLY_FILTER_VALUES,
@@ -35,6 +37,7 @@ def test_annotate_dna_small_variants_ensembl_strelka2():
         df_gencode_genes=None,
         df_gencode_exons=None,
         ensembl_release=95,
+        ensembl_species='human',
         perl_path='',
         annovar_path='',
         annovar_humandb_path='',

@@ -53,7 +53,7 @@ STRUCTURAL_VARIANT_ATTRIBUTES = {
     'std_span': 'unknown',                                                     # standard deviation in position of merged SV signatures
     'tandem_duplication_copy_number': 'unknown',                               # copy number of tandem duplication (2 for one additional copy)
     'strand_reads': 'unknown',                                                 # forward and reverse strand reads in each allele
-    'repeat_annotation': 'unknown'                                             # repeat annotation
+    'repeat_annotation': 'unknown'                                             # repeat annotations
 }
 
 # Small variant (SNVs and INDELs) attributes (union of attributes amongst SNV/INDEL callers)
@@ -147,9 +147,11 @@ GENOME_GAPPED_REGIONS_PADDING = 100000
 # of a structural variant to be excluded.
 EXCLUDE_SV_PADDING = 20
 
-# Padding for an excluded single-nucleotide variant or
-# small insertion / deletion (INDEL).
-EXCLUDE_SNV_INDEL_PADDING = 1
+# Enforce variant type checking.
+ENFORCE_VARIANT_TYPE_CHECK = True
+
+# Number of processes
+NUM_PROCESSES_REFINE = 4
 
 
 """merge"""
@@ -158,6 +160,7 @@ MAX_SV_CLUSTER_DISTANCE = 10
 
 # Maximum distance (bases) for merging two small variants (i.e. insertions and deletions).
 MAX_SMALL_VARIANT_CLUSTER_DISTANCE = 1
+
 
 """annotate"""
 # ANNOVAR protocol and corresponding operation
@@ -247,6 +250,7 @@ SIMULATE_READS_BASE_QUALITY_STDEV = 5
 
 # gzip
 SIMULATE_READS_GZIP = True
+
 
 """identify"""
 # Number of cores

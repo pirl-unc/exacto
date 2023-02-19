@@ -11,26 +11,22 @@
 # limitations under the License.
 
 
-from __future__ import print_function, division, absolute_import
+"""
+The purpose of this python3 script is to implement Exacto's main APIs.
+"""
 
 
-import pysam
-import random
-import pandas as pd
-from typing import Tuple, List
-from .constants import *
-from .default_parameters import *
-from .logging import get_logger
-from .variant_refinement.structural_variants import *
-from .variant_refinement.small_variants import *
-from .variant_annotation.ensembl import *
-from .variant_annotation.gencode import *
-from .variant_annotation.annovar import *
-from .utilities.merging_utils import *
-from .utilities.gencode_utils import *
+from exacto import exactors
+from .variants.refinement.small_variants import *
+from .variants.refinement.structural_variants import *
+from .variants.annotations.annovar import *
+from .variants.annotations.ensembl import *
+from .variants.annotations.gencode import *
+from .variants.merging.small_variants import *
+from .variants.merging.structural_variants import *
+from .variants.merging.annotations import *
 from .simulation.rna_variants import *
 from .simulation.reads import *
-from exacto import exactors
 
 
 logger = get_logger(__name__)
@@ -47,7 +43,9 @@ def run_exacto_refine_genomic_structural_variants(
         min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT,
         gapped_regions_padding: int = GENOME_GAPPED_REGIONS_PADDING,
-        exclude_variants_padding: int = EXCLUDE_SV_PADDING) -> pd.DataFrame:
+        exclude_variants_padding: int = EXCLUDE_SV_PADDING,
+        num_processes: int = NUM_PROCESSES_REFINE
+    ) -> pd.DataFrame:
     """
     Refines a set of structural variants and returns the refined set.
 
@@ -73,6 +71,7 @@ def run_exacto_refine_genomic_structural_variants(
                                             start and end positions.
     exclude_variants_padding            :   Number of bases to pad breakpoints of
                                             structural variants in df_structural_variants_to_exclude
+    num_processes                       :   Number of processes.
 
     Returns
     -------
@@ -128,7 +127,8 @@ def run_exacto_refine_genomic_structural_variants(
         df_structural_variants = remove_structural_variants_near_gapped_regions(
             df_structural_variants=df_structural_variants,
             df_gapped_regions=df_gapped_regions,
-            gapped_regions_padding=gapped_regions_padding
+            gapped_regions_padding=gapped_regions_padding,
+            num_processes=num_processes
         )
         logger.info(
             '%i variants after filtering out variants near the gapped regions.'
@@ -140,7 +140,8 @@ def run_exacto_refine_genomic_structural_variants(
         df_structural_variants = remove_structural_variants(
             df_structural_variants=df_structural_variants,
             df_structural_variants_to_exclude=df_structural_variants_to_exclude,
-            exclude_variants_padding=exclude_variants_padding
+            exclude_variants_padding=exclude_variants_padding,
+            num_processes=num_processes
         )
         logger.info('%i variants after filtering out excluded variants.' % len(df_structural_variants))
 
@@ -151,42 +152,53 @@ def run_exacto_refine_genomic_structural_variants(
 def run_exacto_refine_genomic_small_variants(
         df_variants: pd.DataFrame,
         df_gapped_regions: pd.DataFrame,
+        df_exclude_snv_indel: pd.DataFrame,
         variant_calling_method: str,
         is_tumor_normal_paired: bool,
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
         min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT,
-        gapped_regions_padding: int = GENOME_GAPPED_REGIONS_PADDING) -> pd.DataFrame:
+        gapped_regions_padding: int = GENOME_GAPPED_REGIONS_PADDING,
+        enforce_variant_type_check: bool = ENFORCE_VARIANT_TYPE_CHECK,
+        num_processes: int = NUM_PROCESSES_REFINE
+    ) -> pd.DataFrame:
     """
     Refines a set of variants and returns the refined set.
 
     Parameters
     ----------
-    df_variants             :   DataFrame of variants.
-                                Expected columns:
-                                'chrom'
-                                'pos'
-                                'tumor_total_coverage'
-                                'tumor_variant_reads_count'
-    df_gapped_regions       :   DataFrame of gapped regions in the genome.
-    variant_calling_method  :   Variant calling method.
-    is_tumor_normal_paired  :   If true, variants were called using
-                                tumor and matched normal pair.
-    keep_only_chromosomes   :   List of chromosomes to keep.
-                                Chromosomes not specified in this list
-                                will be removed.
-    keep_only_filter_values :   List of 'filter' values to keep.
-                                'filter' values not specified in this list
-                                will be removed.
-    min_total_depth         :   Minimum total depth.
-    min_variant_reads_count :   Minimum variant reads count.
-    gapped_regions_padding  :   Number of bases to pad gapped regions'
-                                start and end positions.
+    df_variants                 :   DataFrame of variants.
+                                    Expected columns:
+                                    'chrom'
+                                    'pos'
+                                    'tumor_total_coverage'
+                                    'tumor_variant_reads_count'
+    df_gapped_regions           :   DataFrame of gapped regions in the genome.
+    df_exclude_snv_indel        :   DataFrame of SNVs and INDELs to exclude.
+    variant_calling_method      :   Variant calling method.
+    is_tumor_normal_paired      :   If true, variants were called using
+                                    tumor and matched normal pair.
+    keep_only_chromosomes       :   List of chromosomes to keep.
+                                    Chromosomes not specified in this list
+                                    will be removed.
+    keep_only_filter_values     :   List of 'filter' values to keep.
+                                    'filter' values not specified in this list
+                                    will be removed.
+    min_total_depth             :   Minimum total depth.
+    min_variant_reads_count     :   Minimum variant reads count.
+    gapped_regions_padding      :   Number of bases to pad gapped regions'
+                                    start and end positions.
+    enforce_variant_type_check  :   If True, then the variant type and sequence
+                                    of the variants df_exclude_snv_indel are
+                                    considered when excluding a variant.
+                                    If false, only the chromosome and position
+                                    are considered when excluding a variant.
+    num_processes               :   Number of processes.
 
     Returns
     -------
-    DataFrame of refined structural variants.
+    DataFrame of refined small variants.
     """
     if variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2:
         if is_tumor_normal_paired:
@@ -214,24 +226,23 @@ def run_exacto_refine_genomic_small_variants(
             min_total_depth=min_total_depth,
             min_variant_reads_count=min_variant_reads_count
         )
-    elif variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2:
-        if is_tumor_normal_paired:
-            df_variants = refine_strelka2_tumor_normal_callset(
-                df_variants=df_variants,
-                keep_only_chromosomes=keep_only_chromosomes,
-                keep_only_filter_values=keep_only_filter_values,
-                min_total_depth=min_total_depth,
-                min_variant_reads_count=min_variant_reads_count,
-                min_normal_total_depth=min_total_depth
-            )
-        else:
-            df_variants = refine_strelka2_tumor_only_callset(
-                df_variants=df_variants,
-                keep_only_chromosomes=keep_only_chromosomes,
-                keep_only_filter_values=keep_only_filter_values,
-                min_total_depth=min_total_depth,
-                min_variant_reads_count=min_variant_reads_count
-            )
+    elif variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2_GERMLINE:
+        df_variants = refine_strelka2_tumor_only_callset(
+            df_variants=df_variants,
+            keep_only_chromosomes=keep_only_chromosomes,
+            keep_only_filter_values=keep_only_filter_values,
+            min_total_depth=min_total_depth,
+            min_variant_reads_count=min_variant_reads_count
+        )
+    elif variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2_SOMATIC:
+        df_variants = refine_strelka2_tumor_normal_callset(
+            df_variants=df_variants,
+            keep_only_chromosomes=keep_only_chromosomes,
+            keep_only_filter_values=keep_only_filter_values,
+            min_total_depth=min_total_depth,
+            min_variant_reads_count=min_variant_reads_count,
+            min_normal_total_depth=min_total_depth
+        )
     else:
         raise Exception(
             "Invalid value for 'variant_calling_method': %s. "
@@ -245,10 +256,24 @@ def run_exacto_refine_genomic_small_variants(
         df_variants = remove_small_variants_near_gapped_regions(
             df_variants=df_variants,
             df_gapped_regions=df_gapped_regions,
-            gapped_regions_padding=gapped_regions_padding
+            padding=gapped_regions_padding,
+            num_processes=num_processes
         )
         logger.info(
             '%i variants after filtering out variants near the gapped regions.'
+            % len(df_variants)
+        )
+
+    # Filter out variants to exclude
+    if df_exclude_snv_indel is not None:
+        df_variants = remove_small_variants(
+            df_variants=df_variants,
+            df_exclude_snv_indel=df_exclude_snv_indel,
+            enforce_variant_type_check=enforce_variant_type_check,
+            num_processes=num_processes
+        )
+        logger.info(
+            '%i variants after filtering out variants in the list of variants to exclude.'
             % len(df_variants)
         )
 
@@ -262,6 +287,7 @@ def run_exacto_annotate_genomic_small_variants(
         df_gencode_genes: pd.DataFrame,
         df_gencode_exons: pd.DataFrame,
         ensembl_release: int = -1,
+        ensembl_species: str = '',
         perl_path: str = '',
         annovar_path: str = '',
         annovar_humandb_path: str = '',
@@ -269,7 +295,8 @@ def run_exacto_annotate_genomic_small_variants(
         annovar_operation: str = '',
         annovar_genome_assembly: str = '',
         annovar_avinput_file: str = '',
-        annovar_output_file: str = '') -> pd.DataFrame:
+        annovar_output_file: str = ''
+    ) -> pd.DataFrame:
     """
     Annotates a set of variants and returns the annotated set.
 
@@ -303,6 +330,7 @@ def run_exacto_annotate_genomic_small_variants(
                                 'exon_end'
     ensembl_release         :   Ensembl release version.
                                 Specify this if 'annotation_source' is 'ensembl'.
+    ensembl_species         :   Ensembl species.
     perl_path               :   perl path.
     annovar_path            :   ANNOVAR path.
     annovar_humandb_path    :   ANNOVAR humandb/ directory path.
@@ -319,7 +347,8 @@ def run_exacto_annotate_genomic_small_variants(
     if annotation_source == AnnotationSources.ENSEMBL:
         df_small_variants = annotate_small_variants_using_pyensembl(
             df_small_variants=df_small_variants,
-            ensembl_release=ensembl_release
+            ensembl_release=ensembl_release,
+            species=ensembl_species
         )
     elif annotation_source == AnnotationSources.GENCODE:
         df_small_variants = annotate_small_variants_using_gencode(
@@ -350,7 +379,9 @@ def run_exacto_annotate_genomic_structural_variants(
         annotation_source: str,
         df_gencode_genes: pd.DataFrame,
         df_gencode_exons: pd.DataFrame,
-        ensembl_release: int = -1) -> pd.DataFrame:
+        ensembl_release: int = -1,
+        ensembl_species: str = ''
+    ) -> pd.DataFrame:
     """
     Annotates a set of variants and returns the annotated set.
 
@@ -388,6 +419,7 @@ def run_exacto_annotate_genomic_structural_variants(
                                 'exon_end'
     ensembl_release         :   Ensembl release version.
                                 Specify this if 'annotation_source' is 'ensembl'.
+    ensembl_species         :   Ensembl species.
 
     Returns
     -------
@@ -399,7 +431,8 @@ def run_exacto_annotate_genomic_structural_variants(
     if annotation_source == AnnotationSources.ENSEMBL:
         df_structural_variants = annotate_structural_variants_using_pyensembl(
             df_structural_variants=df_structural_variants,
-            ensembl_release=ensembl_release
+            ensembl_release=ensembl_release,
+            species=ensembl_species
         )
     elif annotation_source == AnnotationSources.GENCODE:
         df_structural_variants = annotate_structural_variants_using_gencode(
@@ -417,7 +450,8 @@ def run_exacto_annotate_genomic_structural_variants(
 def run_exacto_merge_genomic_structural_variants(
         list_df: List[pd.DataFrame],
         enforce_variant_type_matching: bool = True,
-        max_clustering_distance: int = MAX_SV_CLUSTER_DISTANCE) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        max_clustering_distance: int = MAX_SV_CLUSTER_DISTANCE
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Merges a list of structural variant DataFrames.
 
@@ -450,7 +484,9 @@ def run_exacto_merge_genomic_structural_variants(
     return df_merged, df_merged_deduped
 
 
-def run_exacto_merge_annotations(list_df: List[pd.DataFrame]) -> pd.DataFrame:
+def run_exacto_merge_annotations(
+        list_df: List[pd.DataFrame]
+    ) -> pd.DataFrame:
     """
     Merges a list of DataFrames.
 
@@ -471,7 +507,8 @@ def run_exacto_merge_annotations(list_df: List[pd.DataFrame]) -> pd.DataFrame:
 def run_exacto_merge_genomic_small_variants(
         list_df: List[pd.DataFrame],
         enforce_variant_type_matching: bool = True,
-        max_clustering_distance: int = MAX_SMALL_VARIANT_CLUSTER_DISTANCE) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        max_clustering_distance: int = MAX_SMALL_VARIANT_CLUSTER_DISTANCE
+    ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Merges a list of small variant DataFrames.
 
@@ -503,8 +540,10 @@ def run_exacto_merge_genomic_small_variants(
 
 
 
-def run_exacto_identify_rna_variants(bam_file: pysam.AlignmentFile,
-                                     num_cores: int) -> pd.DataFrame:
+def run_exacto_identify_rna_variants(
+        bam_file: pysam.AlignmentFile,
+        num_cores: int
+    ) -> pd.DataFrame:
     """
     Identifies RNA variants in a BAM file.
 
@@ -553,7 +592,8 @@ def run_exacto_simulate_rna_variants(
         herv_chimeric_proportion: float = SIMULATE_RNA_VARIANTS_HERV_PROPORTION_CHIMERIC,
         herv_chimeric_max_neighboring_distance: int = SIMULATE_RNA_VARIANTS_HERV_CHIMERIC_MAX_NEIGHBORING_DISTANCE,
         herv_full_length_proportion: float = SIMULATE_RNA_VARIANTS_HERV_PROPORTION_FULL_LENGTH,
-        infinite_sites_assumption: bool = SIMULATE_RNA_VARIANTS_INFINITE_SITES_ASSUMPTION) -> Tuple[pd.DataFrame, List]:
+        infinite_sites_assumption: bool = SIMULATE_RNA_VARIANTS_INFINITE_SITES_ASSUMPTION
+    ) -> Tuple[pd.DataFrame, List]:
     """
     Simulates RNA variants.
 
@@ -591,12 +631,14 @@ def run_exacto_simulate_rna_variants(
     return df_rna_variants, variant_transcript_sequences
 
 
-def run_exacto_simulate_reads(sequences: List[Sequence],
-                              num_gigabases: float,
-                              read_length_mean: float,
-                              read_length_stdev: float,
-                              base_quality_mean: float,
-                              base_quality_stdev: float) -> List[Read]:
+def run_exacto_simulate_reads(
+        sequences: List[Sequence],
+        num_gigabases: float,
+        read_length_mean: float,
+        read_length_stdev: float,
+        base_quality_mean: float,
+        base_quality_stdev: float
+    ) -> List[Read]:
     """
     Simulates sequencing reads.
 

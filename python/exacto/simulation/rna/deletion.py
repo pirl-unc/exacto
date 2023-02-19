@@ -24,10 +24,12 @@ class Deletion(Exon):
     del_end: int = -1
     edits: List = field(default_factory=lambda: [])
 
-    def __init__(self,
-                 ref_exon: Exon,
-                 del_start: int,
-                 del_end: int):
+    def __init__(
+            self,
+            ref_exon: Exon,
+            del_start: int,
+            del_end: int
+        ):
         super().__init__()
         self.ref_exon = ref_exon
         self.del_start = del_start

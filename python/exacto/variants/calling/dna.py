@@ -11,22 +11,23 @@
 # limitations under the License.
 
 
-import pandas as pd
-import numpy as np
-import re
-import pysam
 import multiprocessing as mp
+import numpy as np
+import pandas as pd
+import pysam
+import re
 from multiprocessing import Process, Manager
 from typing import Tuple, List
-
-
-from ..logging import get_logger
+from ...logging import get_logger
 
 
 logger = get_logger(__name__)
 
 
-def call_dna_variants_from_cs_tag(start_pos: int, cs_tag: str) -> pd.DataFrame:
+def call_dna_variants_from_cs_tag(
+        start_pos: int,
+        cs_tag: str
+    ) -> pd.DataFrame:
     """
     Calls variants based on start position and CS tag.
 
@@ -102,8 +103,10 @@ def call_dna_variants_from_cs_tag(start_pos: int, cs_tag: str) -> pd.DataFrame:
     return df_variants
 
 
-def call_dna_variants_worker(df_reads: pd.DataFrame,
-                             shared_list: list):
+def call_dna_variants_worker(
+        df_reads: pd.DataFrame,
+        shared_list: list
+    ) -> None:
     """
     Worker function for calling variants based on CS tags.
 
@@ -181,9 +184,11 @@ def call_dna_variants_worker(df_reads: pd.DataFrame,
                     logger.warning("Unknown CS element: %s" % curr_tag)
 
 
-def call_dna_variants(bam_file: pysam.AlignmentFile,
-                      target_chromosomes: List[str],
-                      num_processes) -> pd.DataFrame:
+def call_dna_variants(
+        bam_file: pysam.AlignmentFile,
+        target_chromosomes: List[str],
+        num_processes
+    ) -> pd.DataFrame:
     """
     Calls DNA variants in a BAM file.
 
@@ -263,6 +268,3 @@ def call_dna_variants(bam_file: pysam.AlignmentFile,
         variants_data['variant_size'].append(curr_element[7])
     df_variants = pd.DataFrame(variants_data)
     return df_variants
-
-
-

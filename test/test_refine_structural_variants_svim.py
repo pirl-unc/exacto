@@ -1,6 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
-from exacto.utilities.vcf_utils import convert_svim_vcf_to_dataframe
+from exacto.variants.vcf import *
 from exacto.constants import *
 from exacto.default_parameters import *
 

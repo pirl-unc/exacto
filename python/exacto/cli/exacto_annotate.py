@@ -17,13 +17,17 @@ and run Exacto 'annotate' command.
 """
 
 
+import argparse
 import pandas as pd
 from ..constants import *
+from ..default_parameters import *
 from ..main import *
-from ..utilities.gencode_utils import *
+from ..variants.annotations.gencode import *
 
 
-def add_exacto_annotate_arg_parser(sub_parsers):
+def add_exacto_annotate_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'annotate' parser.
 
@@ -98,6 +102,19 @@ def add_exacto_annotate_arg_parser(sub_parsers):
              "--annotation_source is '%s'. "
              "Please make sure the specified "
              "ensembl version is installed using pyensembl."
+             % AnnotationSources.ENSEMBL
+    )
+    parser_optional.add_argument(
+        "--ensembl_species",
+        dest="ensembl_species",
+        type=str,
+        required=False,
+        help="Ensembl species "
+             "(e.g. 'human' or 'mouse'). "
+             "This parameter must be supplied if "
+             "--annotation_source is '%s'. "
+             "Please make sure the specified "
+             "ensembl species is installed using pyensembl."
              % AnnotationSources.ENSEMBL
     )
     parser_optional.add_argument(
@@ -186,7 +203,9 @@ def add_exacto_annotate_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_annotate_from_parsed_args(args):
+def run_exacto_annotate_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'annotate' command using parameters from parsed arguments.
 
@@ -199,6 +218,7 @@ def run_exacto_annotate_from_parsed_args(args):
                 tsv_file
                 output_tsv_file
                 ensembl_release
+                ensembl_species
                 gencode_gtf_file
     """
     if args.variant_class == VariantClasses.SV:
@@ -209,7 +229,8 @@ def run_exacto_annotate_from_parsed_args(args):
                 annotation_source=args.annotation_source,
                 df_gencode_genes=None,
                 df_gencode_exons=None,
-                ensembl_release=args.ensembl_release
+                ensembl_release=args.ensembl_release,
+                ensembl_species=args.ensembl_species
             )
         elif args.annotation_source == AnnotationSources.GENCODE:
             df_gencode_genes, \
@@ -242,6 +263,7 @@ def run_exacto_annotate_from_parsed_args(args):
                 df_gencode_genes=None,
                 df_gencode_exons=None,
                 ensembl_release=args.ensembl_release,
+                ensembl_species=args.ensembl_species,
                 perl_path=None,
                 annovar_path=None,
                 annovar_humandb_path=None,

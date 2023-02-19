@@ -11,6 +11,12 @@
 # limitations under the License.
 
 
+"""
+The purpose of this python3 script is to implement classes and functions
+that are used to parse BAM files.
+"""
+
+
 import pysam
 from typing import Tuple, List, Dict
 from dataclasses import dataclass, field
@@ -50,7 +56,9 @@ class CSTag:
         return val
 
 
-def get_chrom_sizes(bam_file: pysam.AlignmentFile) -> dict:
+def get_chrom_sizes(
+        bam_file: pysam.AlignmentFile
+    ) -> dict:
     """
     Returns chromosomes and their sizes in a BAM file.
 
@@ -70,7 +78,9 @@ def get_chrom_sizes(bam_file: pysam.AlignmentFile) -> dict:
     return chrom_sizes_dict
 
 
-def get_read_count(bam_file: pysam.AlignmentFile) -> int:
+def get_read_count(
+        bam_file: pysam.AlignmentFile
+    ) -> int:
     """
     Returns number of reads in a BAM file.
 
@@ -88,7 +98,9 @@ def get_read_count(bam_file: pysam.AlignmentFile) -> int:
     return num_reads
 
 
-def get_cs_tag(md_tag, cigar) -> Tuple:
+def get_cs_tag(
+        md_tag, cigar
+    ) -> Tuple:
     """
     Returns the CS tag given a MD tag and a CIGAR string.
 

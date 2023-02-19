@@ -17,6 +17,7 @@ and run Exacto 'sim-transcripts' command.
 """
 
 
+import argparse
 import pandas as pd
 from ..constants import *
 from ..default_parameters import *
@@ -27,7 +28,9 @@ from ..main import *
 logger = get_logger(__name__)
 
 
-def add_exacto_simulate_transcripts_arg_parser(sub_parsers):
+def add_exacto_simulate_transcripts_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'sim-transcripts' parser.
 
@@ -86,7 +89,9 @@ def add_exacto_simulate_transcripts_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_simulate_transcripts_from_parsed_args(args):
+def run_exacto_simulate_transcripts_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'sim-transcripts' command using parameters from parsed arguments.
 

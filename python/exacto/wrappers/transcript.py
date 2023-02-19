@@ -17,13 +17,15 @@ from .exon import Exon
 
 class Transcript:
 
-    def __init__(self,
-                 ref_id: str,
-                 ref_chromosome: str,
-                 ref_start: int,
-                 ref_end: int,
-                 ref_type: str,
-                 ref_strand: str):
+    def __init__(
+            self,
+            ref_id: str,
+            ref_chromosome: str,
+            ref_start: int,
+            ref_end: int,
+            ref_type: str,
+            ref_strand: str
+        ):
         # Reference (original) transcript information
         self.__ref_id = ref_id
         self.__ref_chromosome = ref_chromosome
@@ -56,7 +58,10 @@ class Transcript:
     def get_head_exon(self):
         return self.__head_exon
 
-    def insert_exon(self, exon):
+    def insert_exon(
+            self,
+            exon
+        ):
         if self.__head_exon:
             current = self.__head_exon
             while current.get_next_exon():

@@ -24,10 +24,12 @@ class Insertion(Exon):
     ins_sequence: str = ''
     edits: List = field(default_factory=lambda: [])
 
-    def __init__(self,
-                 ref_exon,
-                 ins_pos: int,
-                 ins_sequence: str):
+    def __init__(
+            self,
+            ref_exon,
+            ins_pos: int,
+            ins_sequence: str
+        ):
         self.ref_exon = ref_exon
         self.ins_pos = ins_pos
         self.ins_sequence = ins_sequence

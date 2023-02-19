@@ -17,12 +17,14 @@ from .transcript import Transcript
 
 class Gene:
 
-    def __init__(self,
-                 ref_id: str,
-                 ref_chromosome: str,
-                 ref_start: int,
-                 ref_end: int,
-                 ref_strand: str):
+    def __init__(
+            self,
+            ref_id: str,
+            ref_chromosome: str,
+            ref_start: int,
+            ref_end: int,
+            ref_strand: str
+        ):
         self.__ref_id = ref_id
         self.__ref_chromosome = ref_chromosome
         self.__ref_start = ref_start
@@ -48,7 +50,10 @@ class Gene:
     def get_transcripts(self) -> List[Transcript]:
         return self.__transcripts
 
-    def add_transcript(self, transcript):
+    def add_transcript(
+            self,
+            transcript
+        ):
         """
         Adds a transcript.
 

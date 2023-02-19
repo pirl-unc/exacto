@@ -1,5 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
+from exacto.variants.vcf import *
 from exacto.constants import *
 
 
@@ -19,6 +20,7 @@ def test_annotate_dna_small_variants_ensembl_gatk4_mutect2():
     df_variants_refined = run_exacto_refine_genomic_small_variants(
         df_variants=df_variants,
         df_gapped_regions=df_gapped_regions,
+        df_exclude_snv_indel=None,
         variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2,
         is_tumor_normal_paired=False,
         keep_only_chromosomes=['chr' + str(i) for i in range(1, 23)] + ['chrX', 'chrY', 'chrM'],
@@ -35,6 +37,7 @@ def test_annotate_dna_small_variants_ensembl_gatk4_mutect2():
         df_gencode_genes=None,
         df_gencode_exons=None,
         ensembl_release=95,
+        ensembl_species='human',
         perl_path='',
         annovar_path='',
         annovar_humandb_path='',

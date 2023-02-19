@@ -13,11 +13,13 @@
 
 class Exon:
 
-    def __init__(self,
-                 ref_id: str,
-                 ref_start: int,
-                 ref_end: int,
-                 ref_sequence: str):
+    def __init__(
+            self,
+            ref_id: str,
+            ref_start: int,
+            ref_end: int,
+            ref_sequence: str
+        ):
         self.__ref_id = ref_id
         self.__ref_start = ref_start
         self.__ref_end = ref_end

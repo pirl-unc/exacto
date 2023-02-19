@@ -17,17 +17,18 @@ annotating variants using ANNOVAR.
 """
 
 
-import os
-import subprocess as sp
 import pandas as pd
-from ..logging import get_logger
+import subprocess as sp
+from ...logging import get_logger
 
 
 logger = get_logger(__name__)
 
 
-def write_annovar_avinput_file(tsv_file: str,
-                               output_avinput_file: str) -> int:
+def write_annovar_avinput_file(
+        tsv_file: str,
+        output_avinput_file: str
+    ) -> int:
     """
     Writes an AVINPUT file from a TSV file.
 
@@ -93,14 +94,16 @@ def write_annovar_avinput_file(tsv_file: str,
     return 0
 
 
-def annotate_small_variants_using_annovar(perl_path: str,
-                                          annovar_path: str,
-                                          humandb_path: str,
-                                          avinput_file: str,
-                                          genome_assembly: str,
-                                          protocol: str,
-                                          operation: str,
-                                          output_file: str) -> pd.DataFrame:
+def annotate_small_variants_using_annovar(
+        perl_path: str,
+        annovar_path: str,
+        humandb_path: str,
+        avinput_file: str,
+        genome_assembly: str,
+        protocol: str,
+        operation: str,
+        output_file: str
+    ) -> pd.DataFrame:
     """
     Annotates small variants using ANNOVAR.
 

@@ -1,5 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
+from exacto.variants.vcf import *
 from exacto.constants import *
 
 

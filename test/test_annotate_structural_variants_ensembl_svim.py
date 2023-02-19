@@ -1,5 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
+from exacto.variants.vcf import *
 from exacto.constants import *
 
 
@@ -37,7 +38,8 @@ def test_annotate_dna_structural_variants_ensembl_svim():
         annotation_source=AnnotationSources.ENSEMBL,
         df_gencode_genes=None,
         df_gencode_exons=None,
-        ensembl_release=95
+        ensembl_release=95,
+        ensembl_species='human'
     )
 
     # Step 4. Print output

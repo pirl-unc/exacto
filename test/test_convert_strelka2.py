@@ -1,5 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
+from exacto.variants.vcf import *
 from exacto.constants import *
 
 
@@ -8,7 +9,7 @@ def test_convert_deepvariant_vcf():
     vcf_file = get_data_path(name='hg002_strelka2.vcf')
 
     # Step 2. Convert
-    df_variants = convert_strelka2_vcf_to_dataframe(
+    df_variants = convert_strelka2_germline_vcf_to_dataframe(
         vcf_file=vcf_file,
         sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
         sample_id='hg002',

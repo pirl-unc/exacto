@@ -17,51 +17,22 @@ refine structural variants.
 """
 
 
-from __future__ import print_function, division, absolute_import
-
-
 import pandas as pd
+import numpy as np
+import multiprocessing as mp
 from typing import List
-from ..default_parameters import *
-from ..logging import get_logger
-from ..utilities.pandas_utils import *
+from ...default_parameters import *
+from ...logging import get_logger
+from ...utilities.pandas import *
 
 
 logger = get_logger(__name__)
 
 
-def remove_structural_variants_near_gapped_regions(
+def remove_structural_variants_near_gapped_regions_work(
         df_structural_variants: pd.DataFrame,
-        df_gapped_regions: pd.DataFrame,
-        gapped_regions_padding: int = GENOME_GAPPED_REGIONS_PADDING) -> pd.DataFrame:
-    """
-    Removes structural variants with breakpoints near gapped regions.
-
-    Parameters
-    ----------
-    df_structural_variants  :   DataFrame of structural variants.
-                                Expected columns:
-                                'chr_1'
-                                'pos_1'
-                                'chr_2'
-                                'pos_2'
-    df_gapped_regions       :   DataFrame of gapped regions.
-                                Expected columns:
-                                'chrom'
-                                'chromStart'
-                                'chromEnd'
-    gapped_regions_padding  :   Gapped regions padding.
-
-    Returns
-    -------
-    DataFrame of structural variants.
-    """
-    df_gapped_regions['start'] = df_gapped_regions.apply(
-        lambda row: int(row.chromStart - gapped_regions_padding), axis=1
-    )
-    df_gapped_regions['end'] = df_gapped_regions.apply(
-        lambda row: int(row.chromEnd + gapped_regions_padding), axis=1
-    )
+        df_gapped_regions: pd.DataFrame
+    ):
     keep = []
     for index, row in df_structural_variants.iterrows():
         conditions = ((df_gapped_regions['chrom'] == row['chr_1']) &
@@ -79,48 +50,55 @@ def remove_structural_variants_near_gapped_regions(
     return df_structural_variants
 
 
-def remove_structural_variants(
+def remove_structural_variants_near_gapped_regions(
         df_structural_variants: pd.DataFrame,
-        df_structural_variants_to_exclude: pd.DataFrame,
-        exclude_variants_padding: int = EXCLUDE_SV_PADDING) -> pd.DataFrame:
+        df_gapped_regions: pd.DataFrame,
+        gapped_regions_padding: int = GENOME_GAPPED_REGIONS_PADDING,
+        num_processes: int = NUM_PROCESSES_REFINE
+    ) -> pd.DataFrame:
     """
-    Removes structural variants with breakpoints near a list of structural variants to exclude.
+    Removes structural variants with breakpoints near gapped regions.
 
     Parameters
     ----------
-    df_structural_variants              :   DataFrame of structural variants.
-                                            Expected columns:
-                                            'chr_1'
-                                            'pos_1'
-                                            'chr_2'
-                                            'pos_2'
-                                            'sv_type'
-    df_structural_variants_to_exclude   :   DataFrame of structural variants to exclude.
-                                            Expected columns:
-                                            'chr_1'
-                                            'pos_1'
-                                            'chr_2'
-                                            'pos_2'
-                                            'sv_type'
-    exclude_variants_padding            :   Number of bases to pad breakpoints of
-                                            structural variants in df_structural_variants_to_exclude
+    df_structural_variants  :   DataFrame of structural variants.
+                                Expected columns:
+                                'chr_1'
+                                'pos_1'
+                                'chr_2'
+                                'pos_2'
+    df_gapped_regions       :   DataFrame of gapped regions.
+                                Expected columns:
+                                'chrom'
+                                'chromStart'
+                                'chromEnd'
+    gapped_regions_padding  :   Gapped regions padding.
+    num_processes           :   Number of processes.
 
     Returns
     -------
     DataFrame of structural variants.
     """
-    df_structural_variants_to_exclude['pos_1_start'] = df_structural_variants_to_exclude.apply(
-        lambda row: int(row.pos_1 - exclude_variants_padding), axis=1
+    df_gapped_regions['start'] = df_gapped_regions.apply(
+        lambda row: int(row.chromStart - gapped_regions_padding), axis=1
     )
-    df_structural_variants_to_exclude['pos_1_end'] = df_structural_variants_to_exclude.apply(
-        lambda row: int(row.pos_1 + exclude_variants_padding), axis=1
+    df_gapped_regions['end'] = df_gapped_regions.apply(
+        lambda row: int(row.chromEnd + gapped_regions_padding), axis=1
     )
-    df_structural_variants_to_exclude['pos_2_start'] = df_structural_variants_to_exclude.apply(
-        lambda row: int(row.pos_2 - exclude_variants_padding), axis=1
-    )
-    df_structural_variants_to_exclude['pos_2_end'] = df_structural_variants_to_exclude.apply(
-        lambda row: int(row.pos_2 + exclude_variants_padding), axis=1
-    )
+    list_df = np.array_split(df_structural_variants, num_processes)
+    pool = mp.Pool(processes=num_processes)
+    async_results = [pool.apply_async(remove_structural_variants_near_gapped_regions_work, args=(df_curr, df_gapped_regions)) for df_curr in list_df]
+    pool.close()
+    pool.join()
+    df_structural_variants_list = [ar.get() for ar in async_results]
+    df_structural_variants = pd.concat(df_structural_variants_list)
+    return df_structural_variants
+
+
+def remove_structural_variants_work(
+        df_structural_variants: pd.DataFrame,
+        df_structural_variants_to_exclude: pd.DataFrame
+    ):
     keep = []
     for index, row in df_structural_variants.iterrows():
         conditions = \
@@ -149,13 +127,69 @@ def remove_structural_variants(
     return df_structural_variants
 
 
+def remove_structural_variants(
+        df_structural_variants: pd.DataFrame,
+        df_structural_variants_to_exclude: pd.DataFrame,
+        exclude_variants_padding: int = EXCLUDE_SV_PADDING,
+        num_processes: int = NUM_PROCESSES_REFINE
+    ) -> pd.DataFrame:
+    """
+    Removes structural variants with breakpoints near a list of structural variants to exclude.
+
+    Parameters
+    ----------
+    df_structural_variants              :   DataFrame of structural variants.
+                                            Expected columns:
+                                            'chr_1'
+                                            'pos_1'
+                                            'chr_2'
+                                            'pos_2'
+                                            'sv_type'
+    df_structural_variants_to_exclude   :   DataFrame of structural variants to exclude.
+                                            Expected columns:
+                                            'chr_1'
+                                            'pos_1'
+                                            'chr_2'
+                                            'pos_2'
+                                            'sv_type'
+    exclude_variants_padding            :   Number of bases to pad breakpoints of
+                                            structural variants in df_structural_variants_to_exclude
+    num_processes                       :   Number of processes.
+
+    Returns
+    -------
+    DataFrame of structural variants.
+    """
+    df_structural_variants_to_exclude['pos_1_start'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_1 - exclude_variants_padding), axis=1
+    )
+    df_structural_variants_to_exclude['pos_1_end'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_1 + exclude_variants_padding), axis=1
+    )
+    df_structural_variants_to_exclude['pos_2_start'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_2 - exclude_variants_padding), axis=1
+    )
+    df_structural_variants_to_exclude['pos_2_end'] = df_structural_variants_to_exclude.apply(
+        lambda row: int(row.pos_2 + exclude_variants_padding), axis=1
+    )
+    list_df = np.array_split(df_structural_variants, num_processes)
+    pool = mp.Pool(processes=num_processes)
+    async_results = [pool.apply_async(remove_structural_variants_work, args=(df_curr, df_structural_variants_to_exclude)) for df_curr in list_df]
+    pool.close()
+    pool.join()
+    df_structural_variants_list = [ar.get() for ar in async_results]
+    df_structural_variants = pd.concat(df_structural_variants_list)
+    return df_structural_variants
+
+
 def refine_sniffles2_sv_callset(
         df_structural_variants: pd.DataFrame,
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
         min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
-        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT
+    ) -> pd.DataFrame:
     """
     Refines structural variants called using Sniffles2 and returns a DataFrame
     of refined structural variants.
@@ -217,7 +251,8 @@ def refine_cutesv_sv_callset(
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
         min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
-        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT
+    ) -> pd.DataFrame:
     """
     Refines structural variants called using cuteSV and returns a DataFrame
     of refined structural variants.
@@ -278,7 +313,8 @@ def refine_svim_sv_callset(
         keep_only_chromosomes: List[str] = [],
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
-        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT
+    ) -> pd.DataFrame:
     """
     Refines structural variants called using SVIM and returns a DataFrame
     of refined structural variants.
@@ -333,7 +369,8 @@ def refine_pbsv_sv_callset(
         keep_only_filter_values: List[str] = KEEP_ONLY_FILTER_VALUES,
         keep_only_precise: bool = KEEP_ONLY_PRECISE_SV,
         min_total_depth: int = MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH,
-        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT) -> pd.DataFrame:
+        min_variant_reads_count: int = MIN_GENOMIC_VARIANT_READS_COUNT
+    ) -> pd.DataFrame:
     """
     Refines structural variants called using PBSV and returns a DataFrame
     of refined structural variants.
@@ -387,4 +424,3 @@ def refine_pbsv_sv_callset(
         df_structural_variants['variant_reads_count'] >= min_variant_reads_count
     ]
     return df_structural_variants
-

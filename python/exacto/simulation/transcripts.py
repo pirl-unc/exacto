@@ -19,12 +19,14 @@ from ..wrappers.transcript import Transcript
 from ..wrappers.exon import Exon
 
 
-def simulate_transcripts(df_ref_genes: pd.DataFrame,
-                         df_ref_transcripts: pd.DataFrame,
-                         df_ref_exons: pd.DataFrame,
-                         ref_fasta: pysam.FastaFile,
-                         df_germline_variants: pd.DataFrame,
-                         df_somatic_variants: pd.DataFrame) -> List[Gene]:
+def simulate_transcripts(
+        df_ref_genes: pd.DataFrame,
+        df_ref_transcripts: pd.DataFrame,
+        df_ref_exons: pd.DataFrame,
+        ref_fasta: pysam.FastaFile,
+        df_germline_variants: pd.DataFrame,
+        df_somatic_variants: pd.DataFrame
+    ) -> List[Gene]:
     """
     Simulates transcript sequences.
 

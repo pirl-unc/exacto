@@ -19,24 +19,26 @@ simulating RNA variants.
 
 import pandas as pd
 import pysam
-from ..utilities.utils import *
 from ..constants import *
-from ..utilities.gencode_utils import *
-from ..wrappers.gene import *
-from ..wrappers.transcript import *
-from ..wrappers.exon import *
-from .rna.match import Match
+from .common import *
 from .rna.deletion import Deletion
 from .rna.insertion import Insertion
+from .rna.match import Match
 from .rna.substitution import Substitution
-from .utils import *
+from ..utilities.sequences import *
+from ..utilities.pandas import *
+from ..variants.annotations.gencode import *
+from ..wrappers.exon import *
+from ..wrappers.gene import *
+from ..wrappers.transcript import *
 
 
 def build_variant_transcript_sequence(
         genome_fasta: pysam.FastaFile,
         df_transcript_variants: pd.DataFrame,
         df_transcripts: pd.DataFrame,
-        df_exons: pd.DataFrame):
+        df_exons: pd.DataFrame
+    ) -> str:
     """
     Builds variant transcript sequence for a transcript.
 
@@ -50,7 +52,7 @@ def build_variant_transcript_sequence(
 
     Returns
     -------
-
+    variant_transcript_sequence :   Variant transcript sequence string.
     """
     # Append to list of variants information on reference exons that
     # were not included in the list of variants
@@ -157,7 +159,8 @@ def generate_single_nucleotide_rna_variants(
         df_genes: pd.DataFrame,
         df_transcripts: pd.DataFrame,
         df_exons: pd.DataFrame,
-        df_rna_variants: pd.DataFrame) -> pd.DataFrame:
+        df_rna_variants: pd.DataFrame
+    ) -> pd.DataFrame:
     """
     Simulates single-nucleotide RNA variants.
 
@@ -257,7 +260,8 @@ def generate_insertion_rna_variants(
         df_genes: pd.DataFrame,
         df_transcripts: pd.DataFrame,
         df_exons: pd.DataFrame,
-        df_rna_variants: pd.DataFrame) -> pd.DataFrame:
+        df_rna_variants: pd.DataFrame
+    ) -> pd.DataFrame:
     """
     Simulates single-nucleotide RNA variants.
 
@@ -363,7 +367,8 @@ def generate_deletion_rna_variants(
         df_genes: pd.DataFrame,
         df_transcripts: pd.DataFrame,
         df_exons: pd.DataFrame,
-        df_rna_variants: pd.DataFrame) -> pd.DataFrame:
+        df_rna_variants: pd.DataFrame
+    ) -> pd.DataFrame:
     """
     Simulates single-nucleotide RNA variants.
 
@@ -485,7 +490,8 @@ def simulate_rna_variants(
         herv_chimeric_proportion: float,
         herv_chimeric_max_neighboring_distance: int,
         herv_full_length_proportion: float,
-        infinite_sites_assumption: bool) -> Tuple[pd.DataFrame, List[Tuple[str, str]]]:
+        infinite_sites_assumption: bool
+    ) -> Tuple[pd.DataFrame, List[Tuple[str, str]]]:
     """
     Simulates RNA variants.
 

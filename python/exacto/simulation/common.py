@@ -17,13 +17,13 @@ to the simulation module.
 """
 
 
-import random
 import math
 import numpy as np
+import random
 from typing import Tuple
 from dataclasses import dataclass
-from ..logging import get_logger
 from ..constants import VariantTypes, Strands
+from ..logging import get_logger
 
 
 logger = get_logger(__name__)

@@ -1,6 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
-from exacto.utilities.vcf_utils import convert_deepvariant_vcf_to_dataframe
+from exacto.variants.vcf import *
 from exacto.constants import *
 from exacto.default_parameters import *
 
@@ -20,6 +20,7 @@ def test_refine_dna_small_variants_deepvariant():
     df_variants_refined = run_exacto_refine_genomic_small_variants(
         df_variants=df_variants,
         df_gapped_regions=df_gapped_regions,
+        df_exclude_snv_indel=None,
         variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.DEEPVARIANT,
         is_tumor_normal_paired=False,
         keep_only_chromosomes=['chr1'],

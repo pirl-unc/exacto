@@ -17,19 +17,19 @@ and run Exacto 'refine' command.
 """
 
 
-from ..default_parameters import *
-from ..constants import *
+import argparse
 from ..main import *
-from ..logging import get_logger
-from ..utilities.vcf_utils import *
-from ..variant_refinement.structural_variants import *
-from ..variant_refinement.small_variants import *
+from ..variants.vcf import *
+from ..variants.refinement.small_variants import *
+from ..variants.refinement.structural_variants import *
 
 
 logger = get_logger(__name__)
 
 
-def add_exacto_refine_arg_parser(sub_parsers):
+def add_exacto_refine_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'refine' parser.
 
@@ -225,27 +225,35 @@ def add_exacto_refine_arg_parser(sub_parsers):
         help="TSV files of SNVs and INDELs to explicitly exclude. "
              "SNVs and INDELs in the input VCF file with breakpoints near "
              "the variants specified in this file will be removed. "
-             "Expected headers: 'chr_1', 'pos_1', 'chr_2', 'pos_2'. "
-             "This parameter can be used to filter out germline SNVs and INDELs. "
-             "Keep 'chr_1' the same as 'chr_2' and 'pos_1' the same as 'pos_2' "
-             "for SNVs and insertions. Note that this parameter does not take "
-             "into consideration the variant type."
+             "Expected headers: 'chrom', 'pos', 'variant_type', 'variant_sequence'. "
+             "This parameter can be used to filter out germline SNVs and INDELs."
     )
     parser_optional.add_argument(
-        "--exclude_snv_indel_padding",
-        dest="exclude_snv_indel_padding",
+        "--enforce_variant_type_check",
+        dest="enforce_variant_type_check",
+        type=bool,
+        required=False,
+        default=ENFORCE_VARIANT_TYPE_CHECK,
+        help="If true, then the variant type and sequence of the variants "
+             "in --exclude_snv_indel_tsv_files are considered when excluding "
+             "a variant. If false, only the chromosome and position are considered "
+             "when excluding a variant."
+    )
+    parser_optional.add_argument(
+        "--num_processes",
+        dest="num_processes",
         type=int,
         required=False,
-        default=EXCLUDE_SNV_INDEL_PADDING,
-        help="Number of bases to pad the breakpoints of SNVs and INDELs "
-             "to exclude (default: %i)."
-             % EXCLUDE_SNV_INDEL_PADDING
+        default=NUM_PROCESSES_REFINE,
+        help="Number of processes (default: %i)." % NUM_PROCESSES_REFINE
     )
     parser.set_defaults(which='refine')
     return sub_parsers
 
 
-def run_exacto_refine_from_parsed_args(args):
+def run_exacto_refine_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'refine' command using parameters from parsed arguments.
 
@@ -270,7 +278,8 @@ def run_exacto_refine_from_parsed_args(args):
                 exclude_sv_tsv_files
                 exclude_sv_padding
                 exclude_snv_indel_tsv_files
-                exclude_snv_indel_padding
+                enforce_variant_type_check
+                num_processes
     """
     # Step 1. Load gapped regions
     if args.gapped_regions_tsv_file is not None:
@@ -347,7 +356,8 @@ def run_exacto_refine_from_parsed_args(args):
             min_total_depth=args.min_total_depth,
             min_variant_reads_count=args.min_variant_reads_count,
             gapped_regions_padding=args.gapped_regions_padding,
-            exclude_variants_padding=args.exclude_sv_padding
+            exclude_variants_padding=args.exclude_sv_padding,
+            num_processes=args.num_processes
         )
 
         # Write refined structural variants to a TSV file
@@ -362,8 +372,8 @@ def run_exacto_refine_from_parsed_args(args):
                 tumor_sample_id=args.tumor_sample_id,
                 normal_sample_id=args.normal_sample_id
             )
-        elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2:
-            df_variants = convert_strelka2_vcf_to_dataframe(
+        elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2_GERMLINE:
+            df_variants = convert_strelka2_germline_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
                 sequencing_platform=args.sequencing_platform,
                 sample_id=args.sample_id,
@@ -384,6 +394,17 @@ def run_exacto_refine_from_parsed_args(args):
                    ', '.join(f"'{item}'" for item in VariantCallingMethods.SmallVariantCallingMethods.ALL))
             )
 
+        # Load small variants to exclude
+        if args.exclude_snv_indel_tsv_files is not None:
+            df_small_variants_to_exclude = pd.DataFrame()
+            for curr_tsv_file in args.exclude_snv_indel_tsv_files:
+                df_temp = pd.read_csv(curr_tsv_file, sep='\t')
+                df_small_variants_to_exclude = pd.concat(
+                    [df_small_variants_to_exclude, df_temp]
+                )
+        else:
+            df_small_variants_to_exclude = None
+
         # Perform refinement
         if args.normal_sample_id == '':
             is_tumor_normal_paired = False
@@ -392,13 +413,16 @@ def run_exacto_refine_from_parsed_args(args):
         df_variants = run_exacto_refine_genomic_small_variants(
             df_variants=df_variants,
             df_gapped_regions=df_gapped_regions,
+            df_exclude_snv_indel=df_small_variants_to_exclude,
             variant_calling_method=args.variant_calling_method,
             is_tumor_normal_paired=is_tumor_normal_paired,
             keep_only_chromosomes=keep_only_chromosomes,
             keep_only_filter_values=keep_only_filter_values,
             min_total_depth=args.min_total_depth,
             min_variant_reads_count=args.min_variant_reads_count,
-            gapped_regions_padding=args.gapped_regions_padding
+            gapped_regions_padding=args.gapped_regions_padding,
+            enforce_variant_type_check=args.enforce_variant_type_check,
+            num_processes=args.num_processes
         )
 
         # Write refined variants to a TSV file

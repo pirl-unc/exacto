@@ -17,17 +17,20 @@ and run Exacto 'convert' command.
 """
 
 
-from ..default_parameters import *
+import argparse
 from ..constants import *
-from ..main import *
+from ..default_parameters import *
 from ..logging import get_logger
-from ..utilities.vcf_utils import *
+from ..main import *
+from ..variants.vcf import *
 
 
 logger = get_logger(__name__)
 
 
-def add_exacto_convert_arg_parser(sub_parsers):
+def add_exacto_convert_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'convert' parser.
 
@@ -124,7 +127,9 @@ def add_exacto_convert_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_convert_from_parsed_args(args):
+def run_exacto_convert_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'convert' command using parameters from parsed arguments.
 
@@ -187,8 +192,8 @@ def run_exacto_convert_from_parsed_args(args):
                 tumor_sample_id=args.tumor_sample_id,
                 normal_sample_id=args.normal_sample_id
             )
-        elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2:
-            df_variants = convert_strelka2_vcf_to_dataframe(
+        elif args.variant_calling_method == VariantCallingMethods.SmallVariantCallingMethods.STRELKA2_GERMLINE:
+            df_variants = convert_strelka2_germline_vcf_to_dataframe(
                 vcf_file=args.vcf_file,
                 sequencing_platform=args.sequencing_platform,
                 sample_id=args.sample_id,

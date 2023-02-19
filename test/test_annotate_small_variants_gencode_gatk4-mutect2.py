@@ -1,5 +1,7 @@
 from .data import get_data_path
 from exacto.main import *
+from exacto.variants.vcf import *
+from exacto.variants.annotations.gencode import *
 from exacto.constants import *
 
 
@@ -7,7 +9,7 @@ def test_annotate_dna_small_variants_gencode_gatk4_mutect2():
     # Step 1. Load data
     vcf_file = get_data_path(name='hg002_gatk4-mutect2.vcf')
     gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
-    gencode_gtf_file = get_data_path(name='gencode.v41.annotation.gtf')
+    gencode_gtf_file = get_data_path(name='gencode.v41.annotations.gtf')
     df_variants = convert_gatk4_mutect2_vcf_to_dataframe(
         vcf_file=vcf_file,
         sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
@@ -20,6 +22,7 @@ def test_annotate_dna_small_variants_gencode_gatk4_mutect2():
     df_variants_refined = run_exacto_refine_genomic_small_variants(
         df_variants=df_variants,
         df_gapped_regions=df_gapped_regions,
+        df_exclude_snv_indel=None,
         variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.GATK4_MUTECT2,
         is_tumor_normal_paired=False,
         keep_only_chromosomes=['chr' + str(i) for i in range(1, 23)] + ['chrX', 'chrY', 'chrM'],

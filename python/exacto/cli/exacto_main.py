@@ -18,15 +18,16 @@ The purpose of this python3 script is to implement the primary Exacto command.
 
 import argparse
 import exacto
-from .exacto_convert import *
-from .exacto_refine import *
+from ..logging import get_logger
 from .exacto_annotate import *
-from .exacto_merge_variants import *
+from .exacto_convert import *
+from .exacto_identify import *
 from .exacto_merge_annotations import *
+from .exacto_merge_variants import *
+from .exacto_refine import *
 from .exacto_sim_transcripts import *
 from .exacto_sim_rna_variants import *
 from .exacto_sim_reads import *
-from .exacto_identify import *
 
 
 logger = get_logger(__name__)

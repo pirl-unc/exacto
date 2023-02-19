@@ -13,13 +13,13 @@
 
 """
 The purpose of this python3 script is to implement functions related to
-reading and parsing GENCODE files.
+annotating variants using GENCODE.
 """
 
 
 import pandas as pd
 from typing import Tuple, List
-from ..logging import get_logger
+from ...logging import get_logger
 
 
 logger = get_logger(__name__)
@@ -27,12 +27,14 @@ logger = get_logger(__name__)
 
 class GencodeExon:
 
-    def __init__(self,
-                 exon_id: str,
-                 exon_number: int,
-                 exon_chrom: str,
-                 exon_start: int,
-                 exon_end: int):
+    def __init__(
+            self,
+            exon_id: str,
+            exon_number: int,
+            exon_chrom: str,
+            exon_start: int,
+            exon_end: int
+        ):
         self.__exon_id = exon_id
         self.__exon_number = exon_number
         self.__exon_chrom = exon_chrom
@@ -57,16 +59,18 @@ class GencodeExon:
 
 class GencodeTranscript:
 
-    def __init__(self,
-                 gene_id: str,
-                 transcript_id: str,
-                 transcript_name: str,
-                 transcript_type: str,
-                 transcript_chrom: str,
-                 transcript_start: int,
-                 transcript_end: int,
-                 transcript_strand:str,
-                 level: int):
+    def __init__(
+            self,
+            gene_id: str,
+            transcript_id: str,
+            transcript_name: str,
+            transcript_type: str,
+            transcript_chrom: str,
+            transcript_start: int,
+            transcript_end: int,
+            transcript_strand:str,
+            level: int
+        ):
         self.__gene_id = gene_id
         self.__transcript_id = transcript_id
         self.__transcript_name = transcript_name
@@ -84,19 +88,34 @@ class GencodeTranscript:
         self.__utr_end = -1
         self.__exons = []
 
-    def set_start_codon(self, start: int, end: int) -> None:
+    def set_start_codon(
+            self,
+            start: int,
+            end: int
+        ) -> None:
         self.__start_codon_start = start
         self.__start_codon_end = end
 
-    def set_stop_codon(self, start: int, end: int) -> None:
+    def set_stop_codon(
+            self,
+            start: int,
+            end: int
+        ) -> None:
         self.__stop_codon_start = start
         self.__stop_codon_end = end
 
-    def set_utr(self, start: int, end: int) -> None:
+    def set_utr(
+            self,
+            start: int,
+            end: int
+        ) -> None:
         self.__utr_start = start
         self.__utr_end = end
 
-    def add_exon(self, exon: GencodeExon) -> None:
+    def add_exon(
+            self,
+            exon: GencodeExon
+        ) -> None:
         self.__exons.append(exon)
 
     def get_gene_id(self) -> str:
@@ -145,15 +164,17 @@ class GencodeTranscript:
 
 class GencodeGene:
 
-    def __init__(self,
-                 gene_id: str,
-                 gene_name: str,
-                 gene_type: str,
-                 gene_chrom: str,
-                 gene_start: int,
-                 gene_end: int,
-                 gene_strand: str,
-                 level: int):
+    def __init__(
+            self,
+            gene_id: str,
+            gene_name: str,
+            gene_type: str,
+            gene_chrom: str,
+            gene_start: int,
+            gene_end: int,
+            gene_strand: str,
+            level: int
+        ):
         self.__gene_id = gene_id
         self.__gene_name = gene_name
         self.__gene_type = gene_type
@@ -164,30 +185,36 @@ class GencodeGene:
         self.__level = level
         self.__transcripts = []
 
-    def set_start_codon(self,
-                        transcript_id: str,
-                        start_codon_start: int,
-                        start_codon_end: int) -> None:
+    def set_start_codon(
+            self,
+            transcript_id: str,
+            start_codon_start: int,
+            start_codon_end: int
+        ) -> None:
         for i in range(0, len(self.__transcripts)):
             if self.__transcripts[i].get_transcript_id() == transcript_id:
                 self.__transcripts[i].set_start_codon(start=start_codon_start,
                                                       end=start_codon_end)
                 return
 
-    def set_stop_codon(self,
-                       transcript_id: str,
-                       stop_codon_start: int,
-                       stop_codon_end: int) -> None:
+    def set_stop_codon(
+            self,
+            transcript_id: str,
+            stop_codon_start: int,
+            stop_codon_end: int
+        ) -> None:
         for i in range(0, len(self.__transcripts)):
             if self.__transcripts[i].get_transcript_id() == transcript_id:
                 self.__transcripts[i].set_stop_codon(start=stop_codon_start,
                                                      end=stop_codon_end)
                 return
 
-    def set_utr(self,
-                transcript_id: str,
-                utr_start: int,
-                utr_end: int) -> None:
+    def set_utr(
+            self,
+            transcript_id: str,
+            utr_start: int,
+            utr_end: int
+        ) -> None:
         for i in range(0, len(self.__transcripts)):
             if self.__transcripts[i].get_transcript_id() == transcript_id:
                 self.__transcripts[i].set_utr(start=utr_start,
@@ -218,7 +245,10 @@ class GencodeGene:
     def get_level(self) -> int:
         return self.__level
 
-    def add_transcript(self, transcript: GencodeTranscript) -> None:
+    def add_transcript(
+            self,
+            transcript: GencodeTranscript
+        ) -> None:
         self.__transcripts.append(transcript)
 
     def get_transcripts(self) -> List[GencodeTranscript]:
@@ -228,9 +258,11 @@ class GencodeGene:
         transcript_ids = [i.get_transcript_id() for i in self.__transcripts]
         return transcript_ids
 
-    def add_exon(self,
-                 transcript_id: str,
-                 exon: GencodeExon) -> None:
+    def add_exon(
+            self,
+            transcript_id: str,
+            exon: GencodeExon
+        ) -> None:
         for i in range(0, len(self.__transcripts)):
             if self.__transcripts[i].get_transcript_id() == transcript_id:
                 if exon.get_exon_id() not in self.__transcripts[i].get_exon_ids():
@@ -238,56 +270,9 @@ class GencodeGene:
                     return
 
 
-def subset_gencode_dataframes(df_target_regions: pd.DataFrame,
-                              df_genes: pd.DataFrame,
-                              df_transcripts: pd.DataFrame,
-                              df_exons: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Subsets GENCODE DataFrames by target regions.
-
-    Parameters
-    ----------
-    df_target_regions   :   DataFrame with the following columns:
-    df_genes            :   DataFrame of genes.
-    df_transcripts      :   DataFrame of transcripts.
-    df_exons            :   DataFrame of exons.
-
-    Returns
-    -------
-    df_genes            :   DataFrame of genes.
-    df_transcripts      :   DataFrame of transcripts.
-    df_exons            :   DataFrame of exons.
-    """
-    # Filter genes
-    df_genes_filtered = pd.DataFrame()
-    for _, row in df_target_regions.iterrows():
-        df_genes_matched = df_genes.loc[
-            (df_genes['gene_chrom'] == row['chrom']) &
-            (df_genes['gene_start'] >= row['start']) &
-            (df_genes['gene_end'] <= row['end']),:
-        ]
-        if len(df_genes_matched) > 0:
-            df_genes_filtered = pd.concat([df_genes_filtered, df_genes_matched])
-    df_genes = df_genes_filtered.drop_duplicates()
-
-    # Check if any gene falls within the specified target regions
-    if len(df_genes) == 0:
-        logger.error("No gene falls within specified target regions.")
-        exit()
-
-    # Filter transcripts
-    df_transcripts = df_transcripts.loc[
-        df_transcripts['gene_id'].isin(df_genes['gene_id'].unique()),:
-    ]
-
-    # Filter exons
-    df_exons = df_exons.loc[
-        df_exons['transcript_id'].isin(df_transcripts['transcript_id'].unique()),:
-    ]
-    return df_genes, df_transcripts, df_exons
-
-
-def read_gencode_gtf_file(gencode_gtf_file: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def read_gencode_gtf_file(
+        gencode_gtf_file: str
+    ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Reads a GENCODE GTF file and returns a DataFrame.
 
@@ -629,7 +614,9 @@ def read_gencode_gtf_file(gencode_gtf_file: str) -> Tuple[pd.DataFrame, pd.DataF
     return df_genes, df_transcripts, df_exons
 
 
-def read_gencode_refseq_file(gencode_refseq_metadata_file: str) -> pd.DataFrame:
+def read_gencode_refseq_file(
+        gencode_refseq_metadata_file: str
+    ) -> pd.DataFrame:
     """
     Reads a GENCODE RefSeq metadata file and returns a DataFrame
 
@@ -655,7 +642,9 @@ def read_gencode_refseq_file(gencode_refseq_metadata_file: str) -> pd.DataFrame:
     return df_refseq
 
 
-def read_gencode_transcripts_fasta_file(gencode_fasta_file: str) -> pd.DataFrame:
+def read_gencode_transcripts_fasta_file(
+        gencode_fasta_file: str
+    ) -> pd.DataFrame:
     """
 
     Parameters
@@ -773,3 +762,352 @@ def read_gencode_transcripts_fasta_file(gencode_fasta_file: str) -> pd.DataFrame
     df = pd.DataFrame(data)
     logger.info('Finished reading GENCODE transcripts FASTA file.')
     return df
+
+
+def subset_gencode_dataframes(
+        df_target_regions: pd.DataFrame,
+        df_genes: pd.DataFrame,
+        df_transcripts: pd.DataFrame,
+        df_exons: pd.DataFrame
+    ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Subsets GENCODE DataFrames by target regions.
+
+    Parameters
+    ----------
+    df_target_regions   :   DataFrame with the following columns:
+    df_genes            :   DataFrame of genes.
+    df_transcripts      :   DataFrame of transcripts.
+    df_exons            :   DataFrame of exons.
+
+    Returns
+    -------
+    df_genes            :   DataFrame of genes.
+    df_transcripts      :   DataFrame of transcripts.
+    df_exons            :   DataFrame of exons.
+    """
+    # Filter genes
+    df_genes_filtered = pd.DataFrame()
+    for _, row in df_target_regions.iterrows():
+        df_genes_matched = df_genes.loc[
+            (df_genes['gene_chrom'] == row['chrom']) &
+            (df_genes['gene_start'] >= row['start']) &
+            (df_genes['gene_end'] <= row['end']),:
+        ]
+        if len(df_genes_matched) > 0:
+            df_genes_filtered = pd.concat([df_genes_filtered, df_genes_matched])
+    df_genes = df_genes_filtered.drop_duplicates()
+
+    # Check if any gene falls within the specified target regions
+    if len(df_genes) == 0:
+        logger.error("No gene falls within specified target regions.")
+        exit()
+
+    # Filter transcripts
+    df_transcripts = df_transcripts.loc[
+        df_transcripts['gene_id'].isin(df_genes['gene_id'].unique()),:
+    ]
+
+    # Filter exons
+    df_exons = df_exons.loc[
+        df_exons['transcript_id'].isin(df_transcripts['transcript_id'].unique()),:
+    ]
+    return df_genes, df_transcripts, df_exons
+
+
+def annotate_small_variants_using_gencode(
+        df_small_variants: pd.DataFrame,
+        df_gencode_genes: pd.DataFrame,
+        df_gencode_exons: pd.DataFrame
+    ) -> pd.DataFrame:
+    """
+    Annotates small variants using GENCODE.
+
+    Parameters
+    ----------
+    df_small_variants       :   DataFrame of small variants.
+                                Expected columns:
+                                'variant_id'
+                                'chrom'
+                                'pos'
+    df_gencode_genes        :   DataFrame of GENCODE genes.
+                                Expected columns:
+                                'gene_id'
+                                'gene_name'
+                                'gene_type'
+                                'gene_chrom'
+                                'gene_start'
+                                'gene_end'
+                                'gene_strand'
+                                'level'
+                                'transcripts_count'
+    df_gencode_exons        :   DataFrame of GENCODE exons.
+                                Expected columns:
+                                'gene_id'
+                                'transcript_id'
+                                'exon_id'
+                                'exon_number'
+                                'exon_chrom'
+                                'exon_start'
+                                'exon_end'
+
+    Returns
+    -------
+    DataFrame with the following columns appended:
+    'ensembl_pos_region'
+    'ensembl_pos_gene_id'
+    'ensembl_pos_gene_name'
+    'ensembl_pos_gene_type'
+    'ensembl_pos_gene_strand'
+    'ensembl_pos_gene_start'
+    'ensembl_pos_gene_end'
+    """
+    # Step 1. Annotate each variant
+    data = {
+        'variant_id': [],
+        'gencode_pos_region': [],
+        'gencode_pos_gene_id': [],
+        'gencode_pos_gene_name': [],
+        'gencode_pos_gene_type': [],
+        'gencode_pos_gene_strand': [],
+        'gencode_pos_gene_start': [],
+        'gencode_pos_gene_end': [],
+        'gencode_pos_exon_id': [],
+        'gencode_pos_exon_number': []
+    }
+    for index, row in df_small_variants.iterrows():
+        data['variant_id'].append(row['variant_id'])
+
+        # Position 1 annotations
+        curr_chrom = row['chrom']
+        curr_pos = row['pos']
+        curr_pos_region = ''
+        curr_pos_gene_id = ''
+        curr_pos_gene_name = ''
+        curr_pos_gene_type = ''
+        curr_pos_gene_strand = ''
+        curr_pos_gene_start = ''
+        curr_pos_gene_end = ''
+        curr_pos_exon_id = ''
+        curr_pos_exon_number = ''
+        df_gencode_genes_matched = df_gencode_genes.loc[
+            (df_gencode_genes['gene_chrom'] == curr_chrom) &
+            (df_gencode_genes['gene_start'] <= curr_pos) &
+            (df_gencode_genes['gene_end'] >= curr_pos),:
+        ]
+        if len(df_gencode_genes_matched) > 0:
+             df_gencode_exons_matched = df_gencode_exons.loc[
+                (df_gencode_exons['exon_chrom'] == curr_chrom) &
+                (df_gencode_exons['exon_start'] <= curr_pos) &
+                (df_gencode_exons['exon_end'] >= curr_pos), :
+             ]
+             if len(df_gencode_exons_matched) > 0:
+                 curr_pos_region = 'exonic'
+                 curr_pos_exon_id = ','.join(df_gencode_exons_matched['exon_id'].values.tolist())
+                 curr_pos_exon_number = ','.join(map(str, df_gencode_exons_matched['exon_number'].values.tolist()))
+             else:
+                 curr_pos_region = 'intronic'
+             curr_pos_gene_id = ','.join(df_gencode_genes_matched['gene_id'].values.tolist())
+             curr_pos_gene_name = ','.join(df_gencode_genes_matched['gene_name'].values.tolist())
+             curr_pos_gene_type = ','.join(df_gencode_genes_matched['gene_type'].values.tolist())
+             curr_pos_gene_strand = ','.join(df_gencode_genes_matched['gene_strand'].values.tolist())
+             curr_pos_gene_start = ','.join(map(str, df_gencode_genes_matched['gene_start'].values.tolist()))
+             curr_pos_gene_end = ','.join(map(str, df_gencode_genes_matched['gene_end'].values.tolist()))
+
+        else:
+            curr_pos_region = 'intergenic'
+        data['gencode_pos_region'].append(curr_pos_region)
+        data['gencode_pos_gene_id'].append(curr_pos_gene_id)
+        data['gencode_pos_gene_name'].append(curr_pos_gene_name)
+        data['gencode_pos_gene_type'].append(curr_pos_gene_type)
+        data['gencode_pos_gene_strand'].append(curr_pos_gene_strand)
+        data['gencode_pos_gene_start'].append(curr_pos_gene_start)
+        data['gencode_pos_gene_end'].append(curr_pos_gene_end)
+        data['gencode_pos_exon_id'].append(curr_pos_exon_id)
+        data['gencode_pos_exon_number'].append(curr_pos_exon_number)
+
+    df_annotations = pd.DataFrame(data)
+    df_small_variants = pd.merge(df_small_variants, df_annotations, on='variant_id')
+    return df_small_variants
+
+
+def annotate_structural_variants_using_gencode(
+        df_structural_variants: pd.DataFrame,
+        df_gencode_genes: pd.DataFrame,
+        df_gencode_exons: pd.DataFrame
+    ) -> pd.DataFrame:
+    """
+    Annotates structural variants using GENCODE.
+
+    Parameters
+    ----------
+    df_structural_variants  :   DataFrame of structural variants.
+                                Expected columns:
+                                'variant_id'
+                                'chr_1'
+                                'pos_1'
+                                'chr_2'
+                                'pos_2'
+                                'sv_type' (DEL, INS, INV, DUP, BND or TRA)
+    df_gencode_genes        :   DataFrame of GENCODE genes.
+                                Expected columns:
+                                'gene_id'
+                                'gene_name'
+                                'gene_type'
+                                'gene_chrom'
+                                'gene_start'
+                                'gene_end'
+                                'gene_strand'
+                                'level'
+                                'transcripts_count'
+    df_gencode_exons        :   DataFrame of GENCODE exons.
+                                Expected columns:
+                                'gene_id'
+                                'transcript_id'
+                                'exon_id'
+                                'exon_number'
+                                'exon_chrom'
+                                'exon_start'
+                                'exon_end'
+
+    Returns
+    -------
+    DataFrame with the following columns appended:
+    'ensembl_pos_1_region'
+    'ensembl_pos_1_gene_id'
+    'ensembl_pos_1_gene_name'
+    'ensembl_pos_1_gene_type'
+    'ensembl_pos_1_gene_strand'
+    'ensembl_pos_1_gene_start'
+    'ensembl_pos_1_gene_end'
+    'ensembl_pos_2_region'
+    'ensembl_pos_2_gene_id'
+    'ensembl_pos_2_gene_name'
+    'ensembl_pos_2_gene_type'
+    'ensembl_pos_2_gene_strand'
+    'ensembl_pos_2_gene_start'
+    'ensembl_pos_2_gene_end'
+    """
+    # Step 1. Annotate each variant
+    data = {
+        'variant_id': [],
+        'gencode_pos_1_region': [],
+        'gencode_pos_1_gene_id': [],
+        'gencode_pos_1_gene_name': [],
+        'gencode_pos_1_gene_type': [],
+        'gencode_pos_1_gene_strand': [],
+        'gencode_pos_1_gene_start': [],
+        'gencode_pos_1_gene_end': [],
+        'gencode_pos_1_exon_id': [],
+        'gencode_pos_1_exon_number': [],
+        'gencode_pos_2_region': [],
+        'gencode_pos_2_gene_id': [],
+        'gencode_pos_2_gene_name': [],
+        'gencode_pos_2_gene_type': [],
+        'gencode_pos_2_gene_strand': [],
+        'gencode_pos_2_gene_start': [],
+        'gencode_pos_2_gene_end': [],
+        'gencode_pos_2_exon_id': [],
+        'gencode_pos_2_exon_number': []
+    }
+    for index, row in df_structural_variants.iterrows():
+        data['variant_id'].append(row['variant_id'])
+
+        # Position 1 annotations
+        curr_chr_1 = row['chr_1']
+        curr_pos_1 = row['pos_1']
+        curr_pos_1_region = ''
+        curr_pos_1_exon_id = ''
+        curr_pos_1_exon_number = ''
+        curr_pos_1_gene_id = ''
+        curr_pos_1_gene_name = ''
+        curr_pos_1_gene_type = ''
+        curr_pos_1_gene_strand = ''
+        curr_pos_1_gene_start = ''
+        curr_pos_1_gene_end = ''
+        df_gencode_genes_matched = df_gencode_genes.loc[
+            (df_gencode_genes['gene_chrom'] == curr_chr_1) &
+            (df_gencode_genes['gene_start'] <= curr_pos_1) &
+            (df_gencode_genes['gene_end'] >= curr_pos_1),:
+        ]
+        if len(df_gencode_genes_matched) > 0:
+             df_gencode_exons_matched = df_gencode_exons.loc[
+                (df_gencode_exons['exon_chrom'] == curr_chr_1) &
+                (df_gencode_exons['exon_start'] <= curr_pos_1) &
+                (df_gencode_exons['exon_end'] >= curr_pos_1), :
+            ]
+             if len(df_gencode_exons_matched) > 0:
+                 curr_pos_1_region = 'exonic'
+                 curr_pos_1_exon_id = ','.join(df_gencode_exons_matched['exon_id'].values.tolist())
+                 curr_pos_1_exon_number = ','.join(map(str, df_gencode_exons_matched['exon_number'].values.tolist()))
+             else:
+                 curr_pos_1_region = 'intronic'
+             curr_pos_1_gene_id = ','.join(df_gencode_genes_matched['gene_id'].values.tolist())
+             curr_pos_1_gene_name = ','.join(df_gencode_genes_matched['gene_name'].values.tolist())
+             curr_pos_1_gene_type = ','.join(df_gencode_genes_matched['gene_type'].values.tolist())
+             curr_pos_1_gene_strand = ','.join(df_gencode_genes_matched['gene_strand'].values.tolist())
+             curr_pos_1_gene_start = ','.join(map(str, df_gencode_genes_matched['gene_start'].values.tolist()))
+             curr_pos_1_gene_end = ','.join(map(str, df_gencode_genes_matched['gene_end'].values.tolist()))
+
+        else:
+            curr_pos_1_region = 'intergenic'
+        data['gencode_pos_1_region'].append(curr_pos_1_region)
+        data['gencode_pos_1_gene_id'].append(curr_pos_1_gene_id)
+        data['gencode_pos_1_gene_name'].append(curr_pos_1_gene_name)
+        data['gencode_pos_1_gene_type'].append(curr_pos_1_gene_type)
+        data['gencode_pos_1_gene_strand'].append(curr_pos_1_gene_strand)
+        data['gencode_pos_1_gene_start'].append(curr_pos_1_gene_start)
+        data['gencode_pos_1_gene_end'].append(curr_pos_1_gene_end)
+        data['gencode_pos_1_exon_id'].append(curr_pos_1_exon_id)
+        data['gencode_pos_1_exon_number'].append(curr_pos_1_exon_number)
+
+        # Position 2 annotations
+        curr_chr_2 = row['chr_2']
+        curr_pos_2 = row['pos_2']
+        curr_pos_2_region = ''
+        curr_pos_2_exon_id = ''
+        curr_pos_2_exon_number = ''
+        curr_pos_2_gene_id = ''
+        curr_pos_2_gene_name = ''
+        curr_pos_2_gene_type = ''
+        curr_pos_2_gene_strand = ''
+        curr_pos_2_gene_start = ''
+        curr_pos_2_gene_end = ''
+        df_gencode_genes_matched = df_gencode_genes.loc[
+            (df_gencode_genes['gene_chrom'] == curr_chr_2) &
+            (df_gencode_genes['gene_start'] <= curr_pos_2) &
+            (df_gencode_genes['gene_end'] >= curr_pos_2), :
+        ]
+        if len(df_gencode_genes_matched) > 0:
+            df_gencode_exons_matched = df_gencode_exons.loc[
+                (df_gencode_exons['exon_chrom'] == curr_chr_2) &
+                (df_gencode_exons['exon_start'] <= curr_pos_2) &
+                (df_gencode_exons['exon_end'] >= curr_pos_2), :
+            ]
+            if len(df_gencode_exons_matched) > 0:
+                curr_pos_2_region = 'exonic'
+                curr_pos_2_exon_id = ','.join(df_gencode_exons_matched['exon_id'].values.tolist())
+                curr_pos_2_exon_number = ','.join(map(str, df_gencode_exons_matched['exon_number'].values.tolist()))
+            else:
+                curr_pos_2_region = 'intronic'
+            curr_pos_2_gene_id = ','.join(df_gencode_genes_matched['gene_id'].values.tolist())
+            curr_pos_2_gene_name = ','.join(df_gencode_genes_matched['gene_name'].values.tolist())
+            curr_pos_2_gene_type = ','.join(df_gencode_genes_matched['gene_type'].values.tolist())
+            curr_pos_2_gene_strand = ','.join(df_gencode_genes_matched['gene_strand'].values.tolist())
+            curr_pos_2_gene_start = ','.join(map(str, df_gencode_genes_matched['gene_start'].values.tolist()))
+            curr_pos_2_gene_end = ','.join(map(str, df_gencode_genes_matched['gene_end'].values.tolist()))
+        else:
+            curr_pos_2_region = 'intergenic'
+        data['gencode_pos_2_region'].append(curr_pos_2_region)
+        data['gencode_pos_2_gene_id'].append(curr_pos_2_gene_id)
+        data['gencode_pos_2_gene_name'].append(curr_pos_2_gene_name)
+        data['gencode_pos_2_gene_type'].append(curr_pos_2_gene_type)
+        data['gencode_pos_2_gene_strand'].append(curr_pos_2_gene_strand)
+        data['gencode_pos_2_gene_start'].append(curr_pos_2_gene_start)
+        data['gencode_pos_2_gene_end'].append(curr_pos_2_gene_end)
+        data['gencode_pos_2_exon_id'].append(curr_pos_2_exon_id)
+        data['gencode_pos_2_exon_number'].append(curr_pos_2_exon_number)
+
+    df_annotations = pd.DataFrame(data)
+    df_structural_variants = pd.merge(df_structural_variants, df_annotations, on='variant_id')
+    return df_structural_variants

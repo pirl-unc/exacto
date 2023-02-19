@@ -1,6 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
-from exacto.utilities.vcf_utils import convert_strelka2_vcf_to_dataframe
+from exacto.variants.vcf import *
 from exacto.constants import *
 from exacto.default_parameters import *
 
@@ -9,7 +9,7 @@ def test_refine_dna_small_variants_strelka2():
     # Step 1. Load data
     vcf_file = get_data_path(name='hg002_strelka2.vcf')
     gapped_tsv_file = get_data_path(name='hg38_ucsc_gap_table.txt')
-    df_variants = convert_strelka2_vcf_to_dataframe(
+    df_variants = convert_strelka2_germline_vcf_to_dataframe(
         vcf_file=vcf_file,
         sequencing_platform=SequencingPlatforms.ILLUMINA,
         sample_id='hg002',
@@ -21,7 +21,8 @@ def test_refine_dna_small_variants_strelka2():
     df_variants_refined = run_exacto_refine_genomic_small_variants(
         df_variants=df_variants,
         df_gapped_regions=df_gapped_regions,
-        variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.STRELKA2,
+        df_exclude_snv_indel=None,
+        variant_calling_method=VariantCallingMethods.SmallVariantCallingMethods.STRELKA2_GERMLINE,
         is_tumor_normal_paired=False,
         keep_only_chromosomes=['chr' + str(i) for i in range(1, 23)] + ['chrX', 'chrY', 'chrM'],
         keep_only_filter_values=KEEP_ONLY_FILTER_VALUES,

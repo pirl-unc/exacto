@@ -17,20 +17,19 @@ and run Exacto 'sim-reads' command.
 """
 
 
-import pysam
+import argparse
 import gzip
-from ..constants import *
-from ..default_parameters import *
-from ..logging import get_logger
+from ..alignment.fasta import *
 from ..main import *
-from ..utilities.gencode_utils import *
-from ..utilities.fasta_utils import *
+from ..variants.annotations.gencode import *
 
 
 logger = get_logger(__name__)
 
 
-def add_exacto_simulate_reads_arg_parser(sub_parsers):
+def add_exacto_simulate_reads_arg_parser(
+        sub_parsers
+    ) -> argparse._SubParsersAction:
     """
     Adds 'sim-reads' parser.
 
@@ -123,7 +122,9 @@ def add_exacto_simulate_reads_arg_parser(sub_parsers):
     return sub_parsers
 
 
-def run_exacto_sim_reads_from_parsed_args(args):
+def run_exacto_sim_reads_from_parsed_args(
+        args
+    ) -> None:
     """
     Run Exacto 'sim-reads' command using parameters from parsed arguments.
 

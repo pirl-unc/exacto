@@ -1,8 +1,6 @@
 from .data import get_data_path
 from exacto.main import *
-from exacto.utilities.merging_utils import *
-from exacto.constants import *
-from exacto.default_parameters import *
+from exacto.variants.merging.annotations import *
 
 
 def test_merge_annotations():
