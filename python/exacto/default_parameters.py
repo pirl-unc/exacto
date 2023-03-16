@@ -17,112 +17,11 @@ The purpose of this python3 script is to define Exacto default parameters.
 
 
 """convert"""
-# Structural variant attributes (union of attributes amongst SV callers)
-STRUCTURAL_VARIANT_ATTRIBUTES = {
-    'sample_id': 'unknown',                                                    # sample ID
-    'variant_id': 'unknown',                                                   # variant ID
-    'variant_calling_method': 'unknown',                                       # variant calling method
-    'sequencing_platform': 'unknown',                                          # sequencing platform
-    'chr_1': 'unknown',                                                        # chromosome 1
-    'pos_1': 'unknown',                                                        # position 1
-    'chr_2': 'unknown',                                                        # chromosome 2
-    'pos_2': 'unknown',                                                        # position 2
-    'ref': 'unknown',                                                          # reference allele
-    'alt': 'unknown',                                                          # alternate allele
-    'quality_score': 'unknown',                                                # quality score
-    'filter': 'unknown',                                                       # filter
-    'is_precise': 'unknown',                                                   # is breakpoint precise?
-    'sv_type': 'unknown',                                                      # SV type
-    'sv_size': 'unknown',                                                      # SV size
-    'sv_size_stdev': 'unknown',                                                # SV size standard deviation
-    'variant_reads_count': 'unknown',                                          # variant reads count
-    'reference_reads_count': 'unknown',                                        # reference reads count
-    'total_depth': 'unknown',                                                  # total depth
-    'variant_allele_fraction': 'unknown',                                      # variant allele fraction
-    'read_ids': 'unknown',                                                     # read IDs
-    'strand': 'unknown',                                                       # strand
-    'insertion_sequence': 'unknown',                                           # insertion sequence
-    'genotype': 'unknown',                                                     # genotype
-    'genotype_quality': 'unknown',                                             # genotype quality
-    'sv_pos_stdev': 'unknown',                                                 # SV start position standard deviation
-    'coverage': 'unknown',                                                     # coverage (upstream, start, center, end, downstream)
-    'query_alignment_length_adjusted_mismatches_mean_count': 'unknown',        # mean number of query alignment length adjusted mismatches of supporting reads
-    'support_long': 'unknown',                                                 # number of soft-clipped reads putatively supporting the long insertion SV
-    'ci_pos': 'unknown',                                                       # confidence interval around POS for impreicse variants
-    'ci_len': 'unknown',                                                       # confidence interval around inserted / deleted material between breakends
-    'std_span': 'unknown',                                                     # standard deviation in position of merged SV signatures
-    'tandem_duplication_copy_number': 'unknown',                               # copy number of tandem duplication (2 for one additional copy)
-    'strand_reads': 'unknown',                                                 # forward and reverse strand reads in each allele
-    'repeat_annotation': 'unknown'                                             # repeat annotations
-}
 
-# Small variant (SNVs and INDELs) attributes (union of attributes amongst SNV/INDEL callers)
-SMALL_VARIANT_ATTRIBUTES = {
-    'sample_id': '',                                                           # sample ID
-    'tumor_sample_id': '',                                                     # tumor sample ID
-    'normal_sample_id': '',                                                    # normal sample ID
-    'variant_id': 'unknown',                                                   # variant ID
-    'variant_calling_method': 'unknown',                                       # variant calling method
-    'sequencing_platform': 'unknown',                                          # sequencing platform
-    'chrom': 'unknown',                                                        # chromosome
-    'pos': 'unknown',                                                          # position
-    'ref': 'unknown',                                                          # reference allele
-    'alt': 'unknown',                                                          # alternate allele
-    'filter': 'unknown',                                                       # filter
-    'quality_score': 'unknown',                                                # quality score
-    'variant_type': 'unknown',                                                 # variant type
-    'variant_sequence': 'unknown',                                             # variant sequence
-    'variant_size': 'unknown',                                                 # variant size
-    'genotype': 'unknown',                                                     # genotype
-    'genotype_quality': 'unknown',                                             # genotype quality
-    'genotype_quality_recalibrated': 'unknown',                                # empirically calibrated genotype quality score for variant sites, otherwise minimum of {Genotype quality assuming variant position,Genotype quality assuming non-variant position}
-    'filtered_basecalls_prior_to_genotyping': 'unknown',                       # basecalls filtered from input prior to site genotyping. In a non-variant multi-site block this value represents the average of all sites in the block
-    'normal_genotype': 'unknown',                                              # normal genotype
-    'normal_genotype_quality': 'unknown',                                      # normal genotype quality
-    'normal_genotype_quality_recalibrated': 'unknown',                         # empirically calibrated genotype quality score for variant sites, otherwise minimum of {Genotype quality assuming variant position,Genotype quality assuming non-variant position}
-    'normal_filtered_basecalls_prior_to_genotyping': 'unknown',                # basecalls filtered from input prior to site genotyping. In a non-variant multi-site block this value represents the average of all sites in the block
-    'total_depth': 'unknown',                                                  # total depth
-    'reference_reads_count': 'unknown',                                        # reference reads count
-    'variant_reads_count': 'unknown',                                          # variant reads count
-    'variant_allele_fraction': 'unknown',                                      # variant allele fraction
-    'normal_total_depth': 'unknown',                                           # normal total depth
-    'normal_reference_reads_count': 'unknown',                                 # normal reference reads count
-    'phred_scale_genotype_likelihoods': 'unknown',                             # phred-scale genotype likelihoods
-    'normal_phred_scale_genotype_likelihoods': 'unknown',                      # normal phred-scale genotype likelihoods
-    'allele_specific_strand_bias_table': 'unknown',                            # allele-specific forward/reverse read counts for strand bias tests
-    'strand_bias_fisher_exact_test_component_statistics': 'unknown',           # per-sample component statistics which comprise the Fisher's Exact Test to detect strand bias
-    'normal_strand_bias_fisher_exact_test_component_statistics': 'unknown',    # normal per-sample component statistics which comprise the Fisher's Exact Test to detect strand bias
-    'haplotype_events': 'unknown',                                             # number of events in this haplotype
-    'alt_allele_germline_quality': 'unknown',                                  # phred-scale quality that alt alleles are not germline variants
-    'allele_median_base_qualities': 'unknown',                                 # median base quality by allele
-    'allele_median_fragment_length': 'unknown',                                # median fragment length by allele
-    'allele_median_mapping_quality': 'unknown',                                # median mapping quality by allele
-    'median_distance_from_read_end': 'unknown',                                # median distance from end of read
-    'negative_log10_odds_artifact': 'unknown',                                 # negative log 10 odds of artifact in normal with same allele fraction
-    'log10_odds_artifact': 'unknown',                                          # normal log 10 odds of artifact in normal with same allele fraction
-    'negative_log_10_population': 'unknown',                                   # negative log 10 population allele frequencies of alt alleles
-    'log10_likelihood_ratio_score_variant_exists': 'unknown',                  # log10 likelihood ratio score of variant existing versus not existing
-    'f1r2_reads_count': 'unknown',                                             # F1R2 pair orientation supporting each allele
-    'f2r1_reads_count': 'unknown',                                             # F2R1 pair orientation supporting each allele
-    'normal_f1r2_reads_count': 'unknown',                                      # F1R2 pair orientation supporting each allele in normal
-    'normal_f2r1_reads_count': 'unknown',                                      # F2R1 pair orientation supporting each allele in normal
-    'region_end_position': 'unknown',                                          # end position of the region described int this record
-    'snv_contextual_homopolymer_length': 'unknown',                            # SNV contextual homopolymer length
-    'cigar': 'unknown',                                                        # CIGAR alignment for each alternate INDEL allele
-    'smallest_repeating_sequence_unit': 'unknown',                             # Smallest repeating sequence unit (RU) extended or contracted in the indel allele relative to the reference. RUs are not reported if longer than 20 bases
-    'smallest_repeating_sequence_unit_reference_repeat_count': 'unknown',      # number of times RU is repeated in reference
-    'smallest_repeating_sequence_unit_allele_repeat_count': 'unknown',         # number of times RU is repeated in indel allele
-    'mapping_quality_root_mean_square': 'unknown',                             # root-mean-square of mapping quality
-    'normal_genotype_quality_recalibrated': 'unknown',                         # empirically calibrated genotype quality score for variant sites of normal, otherwise minimum of {Genotype quality assuming variant position,Genotype quality assuming non-variant position}
-    'minimum_filtered_basecall_depth': 'unknown',                              # minimum filtered basecall depth used for site genotyping within a non-variant multi-site block
-    'allelic_depths_forward_strand': 'unknown',                                # allelic depths on the forward strand
-    'allelic_depths_reverse_strand': 'unknown',                                # allelic depths on the reverse strand
-    'normal_allelic_depths_forward_strand': 'unknown',                         # normal allelic depths on the forward strand
-    'normal_allelic_depths_reverse_strand': 'unknown',                         # normal allelic depths on the reverse strand
-    'read_depth_preceding_indel': 'unknown',                                   # read depth associated with INDEL, taken from the site preceding the INDEL
-    'strand_bias': 'unknown',                                                  # strand bias
-    'normal_strand_bias': 'unknown'                                            # normal strand bias
-}
+
+"""merge"""
+# Maximum neighbor distance (bases).
+MAX_NEIGHBOR_DISTANCE = 1
 
 
 """refine"""
@@ -152,14 +51,6 @@ ENFORCE_VARIANT_TYPE_CHECK = True
 
 # Number of processes
 NUM_PROCESSES_REFINE = 4
-
-
-"""merge"""
-# Maximum distance (bases) for merging two structural variants.
-MAX_SV_CLUSTER_DISTANCE = 10
-
-# Maximum distance (bases) for merging two small variants (i.e. insertions and deletions).
-MAX_SMALL_VARIANT_CLUSTER_DISTANCE = 1
 
 
 """annotate"""

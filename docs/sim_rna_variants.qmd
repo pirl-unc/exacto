@@ -1,0 +1,49 @@
+---
+title: "sim-rna-variants"
+---
+
+This command simulates random RNA variants.
+
+<div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
+<pre>
+usage: exacto.py sim-rna-variants [-h] 
+  --nucleic_acid {dna,rna} 
+  --target_regions_tsv_file TARGET_REGIONS_TSV_FILE
+  --variants_tsv_file VARIANTS_TSV_FILE 
+  --clones_tsv_file CLONES_TSV_FILE 
+  --reference_genome_fasta_file REFERENCE_GENOME_FASTA_FILE 
+  --base_error_rate BASE_ERROR_RATE 
+  --indel_error_rate INDEL_ERROR_RATE 
+  --indel_error_size_mean INDEL_ERROR_SIZE_MEAN 
+  --read_length_mean READ_LENGTH_MEAN 
+  --read_length_stdev READ_LENGTH_STDEV 
+  --target_throughput TARGET_THROUGHPUT
+  --base_score_beta_dist_alpha BASE_SCORE_BETA_DIST_ALPHA 
+  --base_score_beta_dist_beta BASE_SCORE_BETA_DIST_BETA 
+  --num_threads NUM_THREADS
+  --output_fastq_gz_file OUTPUT_FASTQ_GZ_FILE 
+  [--gtf_file GTF_FILE]
+</pre>
+</div>
+
+| Required Parameter | Description |
+| ----- | -------- |
+| `--nucleic_acid` | Nucleic acid type ('dna' or 'rna').
+| `--target_regions_tsv_file` | List of genomic regions to simulate. TSV file with the following columns:<br/>• chr</br>• start<br/>• end |
+| `--variants_tsv_file` | List of variants to simulate. TSV file with the following columns:<br/>• chr_1<br/>• pos_1<br/>• chr_2<br/>• pos_2<br/>• variant_type</br>• clone_id<br/><br/>Values in `chr_1` and `chr_2` must match the contig names in `--reference_genome_fasta_file`<br/><br/>Note that for SNVs, keep the values for `chr_2` and `pos_2` the same as `chr_1` and `pos_2`, respectively.<br/><br/> The column `variant_type` should be one of the following types:<br/>• SNV<br/>• INS<br/>• INV_5to5<br/>• INV_5to3<br/>• INV_3to3<br/>• TANDEM_DUP<br/>• SEG_DUP<br/>• TRA<br/>• SPVAR<br/>• IR<br/>• CIRC_RNA<br/>• ERV<br/>• HLA_VAR|
+| `--clones_tsv_file` | List of clones to simulate. TSV file with the following columns:<br/>• clone_id<br/>• proportion (a value between 0.0 and 1.0).<br/><br/>In genomic regions where there is no variant specified in `variants_tsv_file`, Exacto will simulate reads based on the reference genome. Note that if you specify `reference` for the `clone_id`, Exacto will simulate reads based on the reference genome.|
+| `--reference_genome_fasta_file` | Reference genome FASTA file.|
+| `--base_error_rate` | Recommended value for simulating Pacific Biosciences HiFi CCS reads: 0.0009<br/><br/>$\text{error rate} = \frac{FP+FN}{TP+FP+FN+TN}$<br/><br/>Based on [Wenger et al., Nature Biotechnology 2019](https://www.nature.com/articles/s41587-019-0217-9):<br/>precision $= \frac{TP}{TP+FP} = 0.9991$<br/>recall $= \frac{TP}{TP+FN} = 0.9991$<br/><br/>Assume:<br/>TN $= 1,000,000$<br/>TP $= 1,000,000$<br/>Then:<br/>FP $\approx 901$<br/>FN $\approx 901$<br/>$\therefore$ error rate $= 0.0009$|
+| `--indel_error_rate` | Recommended value for simulating Pacific Biosciences HiFi CCS reads: 0.0402<br/><br/>$\text{error rate} = \frac{FP+FN}{TP+FP+FN+TN}$<br/><br/>Based on [Wenger et al., Nature Biotechnology 2019](https://www.nature.com/articles/s41587-019-0217-9):<br/>precision $= \frac{TP}{TP+FP} = 0.9598$<br/>recall $= \frac{TP}{TP+FN} = 0.9598$<br/><br/>Assume:<br/>TN $= 1,000,000$<br/>TP $= 1,000,000$<br/>Then:<br/>FP $\approx 41,884$<br/>FN $\approx 41,884$<br/>$\therefore$ error rate $= 0.0402$|
+| `--indel_error_size_mean` | INDEL error size mean ($=\frac{1}{\lambda}$).<br/>INDEL error size sampled from an exponential probability density function:<br/>$\lambda e^{-\lambda x}$|
+| `--read_length_mean` | Simulated sequencing read length mean. Recommended value for simulating Pacific Biosciences HiFi CCS reads: 17,500. The read length is modeled as a log-normal distribution. | 
+| `--read_length_stdev` | Simulated sequencing read length standard deviation. Recommended value for simulating Pacific Biosciences HiFi CCS reads: 3,000. The read length is modeled as a log-normal distribution. |
+| `--target_throughput` | Target throughput in gigabases (default: 90). Simulating 90 gigabses (Gb) for the human genome (3 Gb) will result in approximately 30x coverage. |
+| `--base_score_beta_dist_alpha` | Alpha (shape 1) value of beta distribution for sampling base quality score (Phred33) value. Recommended value for simulating Pacific Biosciences HiFi CCS reads: 0.400. |
+| `--base_score_beta_dist_beta` | Beta (shape 2) value of beta distribution for sampling base quality score (Phred33) value. Recommended value for simulating Pacific Biosciences HiFi CCS reads: 1.526. |
+| `--num_threads` | Number of threads to use. |
+| `--output_fastq_gz_file` | Output fastq.gz file. |
+
+| Optional Parameter | Description |
+| ----- | -------- |
+| `--gtf_file` | Please specify this parameter if 'nucleic_acid' is 'rna'. |

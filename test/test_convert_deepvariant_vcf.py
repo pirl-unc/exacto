@@ -1,6 +1,5 @@
 from .data import get_data_path
-from exacto.main import *
-from exacto.variants.vcf import *
+from exacto.main import run_exacto_convert
 from exacto.constants import *
 
 
@@ -9,12 +8,19 @@ def test_convert_deepvariant_vcf():
     vcf_file = get_data_path(name='hg002_deepvariant.vcf')
 
     # Step 2. Convert
-    df_variants = convert_deepvariant_vcf_to_dataframe(
+    variants_list = run_exacto_convert(
         vcf_file=vcf_file,
-        sequencing_platform=SequencingPlatforms.PACBIO_HIFI_CCS,
-        sample_id='hg002'
+        source_id='hg002',
+        variant_calling_method=VariantCallingMethods.DEEPVARIANT,
+        sequencing_platform='pacbio',
+        tumor_sample_id='hg002',
+        normal_sample_id=''
     )
 
     # Step 3. Write to file
-    output_tsv_file = get_data_path('hg002_deepvariant.tsv')
-    df_variants.to_csv(output_tsv_file, sep='\t', index=False)
+    df_variants = variants_list.to_dataframe()
+    df_variants.to_csv(
+        get_data_path('hg002_deepvariant.tsv'),
+        sep='\t',
+        index=False
+    )

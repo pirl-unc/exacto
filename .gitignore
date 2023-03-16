@@ -11,4 +11,6 @@ docs/.ipynb_checkpoints/
 examples/
 target/
 playground/
+docs/_site
+docs/.quarto
 Cargo.lock

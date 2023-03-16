@@ -1,0 +1,279 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+"""
+The purpose of this python3 script is to implement the VariantsList dataclass.
+"""
+
+
+import pandas as pd
+from copy import deepcopy
+from dataclasses import dataclass, field
+from typing import List
+from .common import safely_convert_value, get_variant_calling_method_attr_types
+from .constants import *
+from .default_parameters import *
+from .variant import Variant
+from .variant_call import VariantCall
+from .variant_annotation import VariantAnnotation
+from .logging import get_logger
+
+
+logger = get_logger(__name__)
+
+
+@dataclass
+class VariantsList:
+    variants: List[Variant] = field(default_factory=list)
+
+    @property
+    def variant_ids(self) -> List[str]:
+        return [variant.id for variant in self.variants]
+
+    @staticmethod
+    def merge(
+            variants_lists: List,
+            max_neighbor_distance: int,
+            enforce_variant_type_matching: bool = True
+        ):
+        """
+        Merges a list of VariantsList instances into one.
+
+        Parameters
+        ----------
+        variants_lists                  :   List of VariantsList instances.
+        max_neighbor_distance           :   Maximum neighbor distance.
+                                            This value is used to decide if
+                                            the specified VariantCall should be
+                                            appended to an existing Variant.
+                                            If there exists a VariantCall in a given Variant
+                                            where the distances to both pos_1 and pos_2
+                                            are equal to or less than max_neighbor_distance
+                                            to pos_1 and pos_2 of the specified VariantCall,
+                                            respectively, then the specified VariantCall is
+                                            appended to the Variant. If such VariantCall
+                                            is not identified, then a new Variant is constructed
+                                            and added to self.variants.
+        enforce_variant_type_matching   :   If true, variant_type must match for 2 variant calls
+                                            to be considered to be in the same variant (default: True).
+
+        Returns
+        -------
+        variants_list   :   An instance of VariantsList.
+        """
+        if len(variants_lists) > 1:
+            variants_list = deepcopy(variants_lists[0])
+            for i in range(1, len(variants_lists)):
+                for j in range(0, len(variants_lists[i].variants)):
+                    for k in range(0, len(variants_lists[i].variants[j].variant_calls)):
+                        variants_list.add_variant_call(
+                            variant_call=variants_lists[i].variants[j].variant_calls[k],
+                            enforce_variant_type_matching=enforce_variant_type_matching,
+                            max_neighbor_distance=max_neighbor_distance
+                        )
+            return variants_list
+        else:
+            return variants_lists[0]
+
+    @staticmethod
+    def convert_row_value(value, default_value, type):
+        """
+        Converts a row value.
+
+        Parameters
+        ----------
+        value           :   Value.
+        default_value   :   Default value.
+        type            :   Desired value type.
+
+        Returns
+        -------
+        value           :   Type converted value.
+        """
+        if pd.isna(value):
+            return default_value
+        else:
+            if type == str:
+                value = str(value)
+            if type == int:
+                value = int(value)
+            if type == float:
+                value = float(value)
+            if type == bool:
+                value = bool(value)
+            return value
+
+    @staticmethod
+    def read_tsv_file(tsv_file: str):
+        """
+        Reads a TSV file and returns an instance of the VariantsList class.
+
+        Parameters
+        ----------
+        tsv_file        :   TSV file.
+
+        Returns
+        -------
+        variants_list   :   An instance of the VariantsList class.
+        """
+        df = pd.read_csv(tsv_file, sep='\t')
+        variants_list = VariantsList()
+        for index, row in df.iterrows():
+            variant_call = VariantCall()
+            variant_call.id = VariantsList.convert_row_value(value=row['variant_call_id'], default_value=None, type=str)
+            variant_call.source_id = VariantsList.convert_row_value(value=row['source_id'], default_value=None, type=str)
+            variant_call.tumor_sample_id = VariantsList.convert_row_value(value=row['tumor_sample_id'], default_value=None, type=str)
+            variant_call.normal_sample_id = VariantsList.convert_row_value(value=row['normal_sample_id'], default_value=None, type=str)
+            variant_call.nucleic_acid = VariantsList.convert_row_value(value=row['nucleic_acid'], default_value=None, type=str)
+            variant_call.variant_calling_method = VariantsList.convert_row_value(value=row['variant_calling_method'], default_value=None, type=str)
+            variant_call.sequencing_platform = VariantsList.convert_row_value(value=row['sequencing_platform'], default_value=None, type=str)
+            variant_call.chr_1 = VariantsList.convert_row_value(value=row['chr_1'], default_value=None, type=str)
+            variant_call.pos_1 = VariantsList.convert_row_value(value=row['pos_1'], default_value=None, type=int)
+            variant_call.chr_2 = VariantsList.convert_row_value(value=row['chr_2'], default_value=None, type=str)
+            variant_call.pos_2 = VariantsList.convert_row_value(value=row['pos_2'], default_value=None, type=int)
+            variant_call.ref = VariantsList.convert_row_value(value=row['ref'], default_value=None, type=str)
+            variant_call.alt = VariantsList.convert_row_value(value=row['alt'], default_value=None, type=str)
+            variant_call.filter = VariantsList.convert_row_value(value=row['filter'], default_value=None, type=str)
+            variant_call.quality_score = VariantsList.convert_row_value(value=row['quality_score'], default_value=None, type=float)
+            variant_call.precise = VariantsList.convert_row_value(value=row['precise'], default_value=None, type=bool)
+            variant_call.variant_type = VariantsList.convert_row_value(value=row['variant_type'], default_value=None, type=str)
+            variant_call.variant_subtype = VariantsList.convert_row_value(value=row['variant_subtype'], default_value=None, type=str)
+            variant_call.variant_size = VariantsList.convert_row_value(value=row['variant_size'], default_value=None, type=int)
+            variant_call.total_tumor_reads = VariantsList.convert_row_value(value=row['total_tumor_reads'], default_value=None, type=int)
+            variant_call.ref_tumor_reads = VariantsList.convert_row_value(value=row['ref_tumor_reads'], default_value=None, type=int)
+            variant_call.alt_tumor_reads = VariantsList.convert_row_value(value=row['alt_tumor_reads'], default_value=None, type=int)
+            variant_call.other_tumor_reads = VariantsList.convert_row_value(value=row['other_tumor_reads'], default_value=None, type=int)
+            variant_call.alt_tumor_fraction = VariantsList.convert_row_value(value=row['alt_tumor_fraction'], default_value=None, type=float)
+            variant_call.total_normal_reads = VariantsList.convert_row_value(value=row['total_normal_reads'], default_value=None, type=int)
+            variant_call.ref_normal_reads = VariantsList.convert_row_value(value=row['ref_normal_reads'], default_value=None, type=int)
+            variant_call.alt_normal_reads = VariantsList.convert_row_value(value=row['alt_normal_reads'], default_value=None, type=int)
+            variant_call.other_normal_reads = VariantsList.convert_row_value(value=row['other_normal_reads'], default_value=None, type=int)
+            variant_call.alt_normal_fraction = VariantsList.convert_row_value(value=row['alt_normal_fraction'], default_value=None, type=float)
+            variant_call.alt_tumor_softclip_direction = VariantsList.convert_row_value(value=row['alt_tumor_softclip_direction'], default_value=None, type=str)
+            variant_call.alt_normal_softclip_direction = VariantsList.convert_row_value(value=row['alt_normal_softclip_direction'], default_value=None, type=str)
+
+            variant_sequences = VariantsList.convert_row_value(value=row['variant_sequences'], default_value='', type=str)
+            alt_tumor_read_ids = VariantsList.convert_row_value(value=row['alt_tumor_read_ids'], default_value='', type=str)
+            alt_normal_read_ids = VariantsList.convert_row_value(value=row['alt_normal_read_ids'], default_value='', type=str)
+
+            if variant_sequences != '':
+                variant_call.variant_sequences = variant_sequences.split(';')
+            if alt_tumor_read_ids != '':
+                variant_call.alt_tumor_read_ids = alt_tumor_read_ids.split(';')
+            if alt_normal_read_ids != '':
+                variant_call.alt_normal_read_ids = alt_normal_read_ids.split(';')
+
+            # Tool attributes
+            if row['tool_attributes'] != '':
+                curr_tool_attr_types = get_variant_calling_method_attr_types(variant_calling_method=variant_call.variant_calling_method)
+                for curr_attr in row['tool_attributes'].split(';'):
+                    curr_attr_key = curr_attr.split('=')[0]
+                    curr_attr_key_query = curr_attr_key.replace('_tumor_', '_')
+                    curr_attr_key_query = curr_attr_key_query.replace('_normal_', '_')
+                    curr_attr_value = curr_attr.split('=')[1]
+                    curr_attr_value = safely_convert_value(
+                        value=curr_attr_value,
+                        default_value=None,
+                        type=curr_tool_attr_types[curr_attr_key_query]
+                    )
+                    if curr_attr_value is not None:
+                        variant_call.tool_attributes[curr_attr_key] = curr_attr_value
+
+            # Annotations
+            # todo handle reading annotations
+            # if row['pos_1_annotation_chrom'] != '':
+            #     pos_1_annotation_counts = len(row['pos_1_annotation_chrom'].split(';'))
+            #     for idx in range(0, pos_1_annotation_counts):
+            #         pos_1_annotation_chrom = row['pos_1_annotation_chrom'].split(';')[idx]
+            #         pos_1_annotation_chrom = row['pos_1_annotation_chrom'].split(';')[idx]
+            #         pos_1_annotation_chrom = row['pos_1_annotation_chrom'].split(';')[idx]
+            # variant_annotation = VariantAnnotation()
+            # self.__convert_tsv_file_element(value=row['pos_1_annotation_chrom'], nested=True, )
+
+            if row['variant_id'] not in variants_list.variant_ids:
+                variant = Variant()
+                variant.id = row['variant_id']
+                variant.variant_calls.append(variant_call)
+                variants_list.variants.append(variant)
+            else:
+                for i in range(0, len(variants_list.variants)):
+                    if variants_list.variants[i].id == row['variant_id']:
+                        variants_list.variants[i].variant_calls.append(variant_call)
+        return variants_list
+
+    def add_variant_call(
+            self,
+            variant_call: VariantCall,
+            max_neighbor_distance: int,
+            enforce_variant_type_matching: bool = True
+        ):
+        """
+        Adds a VariantCall object.
+
+        Parameters
+        ----------
+        variant_call                    :   An instance of the VariantCall class.
+        max_neighbor_distance           :   Maximum neighbor distance.
+                                            This value is used to decide if
+                                            the specified VariantCall should be
+                                            appended to an existing Variant.
+                                            If there exists a VariantCall in a given Variant
+                                            where the distances to both pos_1 and pos_2
+                                            are equal to or less than max_neighbor_distance
+                                            to pos_1 and pos_2 of the specified VariantCall,
+                                            respectively, then the specified VariantCall is
+                                            appended to the Variant. If such VariantCall
+                                            is not identified, then a new Variant is constructed
+                                            and added to self.variants.
+        enforce_variant_type_matching   :   If true, variant_type must match for 2 variant calls
+                                            to be considered to be in the same variant (default: True).
+        """
+        # Add variant_call if it can be appended to an existing Variant
+        query_variant_type = VariantTypes.QueryTypeDictionary[variant_call.variant_type]
+        matched_variant_ids = []
+        for i in range(0, len(self.variants)):
+            for j in range(0, len(self.variants[i].variant_calls)):
+                pos_1_delta = abs(self.variants[i].variant_calls[j].pos_1 - variant_call.pos_1)
+                pos_2_delta = abs(self.variants[i].variant_calls[j].pos_2 - variant_call.pos_2)
+                if (self.variants[i].variant_calls[j].chr_1 == variant_call.chr_1) and \
+                        (self.variants[i].variant_calls[j].chr_2 == variant_call.chr_2) and \
+                        (pos_1_delta <= max_neighbor_distance) and \
+                        (pos_2_delta <= max_neighbor_distance):
+                    if enforce_variant_type_matching:
+                        if self.variants[i].variant_calls[j].variant_type in query_variant_type:
+                            self.variants[i].variant_calls.append(variant_call)
+                            matched_variant_ids.append(self.variants[i].variant_calls[j].id)
+                            return
+                    else:
+                        self.variants[i].variant_calls.append(variant_call)
+                        matched_variant_ids.append(self.variants[i].variant_calls[j].id)
+                        return
+
+        # Add a new Variant
+        variant = Variant(id='variant_%i' % (len(self.variants) + 1))
+        variant.variant_calls.append(variant_call)
+
+    def load_annotations(self):
+        # todo load Ensembl or Gencode annotations into each VariantAnnotation Gene
+        pass
+
+    def filter(self, a):
+        pass
+
+    def to_dataframe(self) -> pd.DataFrame:
+        df_variants = pd.DataFrame()
+        for variant in self.variants:
+            df_variant = variant.to_dataframe()
+            df_variants = pd.concat([df_variants, df_variant], axis=0)
+        return df_variants
+

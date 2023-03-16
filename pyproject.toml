@@ -23,7 +23,7 @@ build-backend = "maturin"
 
 [project]
 name = "exacto"
-version = "0.1.6.3"
+version = "0.1.7.0"
 requires-python = ">=3.7"
 keywords = [
     "long-read",
@@ -47,4 +47,4 @@ classifiers = [
 python-source = "python"
 
 [project.scripts]
-exacto = "exacto.cli.exacto_main:run"
+exacto = "exacto.cli_main:run"

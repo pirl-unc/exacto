@@ -1,0 +1,38 @@
+project:
+  type: website
+
+website:
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - section: "Basics"
+        contents:
+          - index.qmd
+          - pipeline.qmd
+      - section: "Main Commands"
+        contents:
+          - align.qmd
+          - identify.qmd
+          - quantify.qmd
+          - sim_rna_variants.qmd
+      - section: "Accessory Commands"
+        contents:
+          - convert.qmd
+          - refine.qmd
+          - merge.qmd
+      - section: "File Formats"
+        contents:
+          - variants_tsv_file.qmd
+      - section: "API"
+        contents:
+          - python_api.qmd
+          - rust_api.qmd
+      - section: "Support"
+        contents:
+          - faq.qmd
+
+format:
+  html:
+    theme: simplex
+    css: styles.css

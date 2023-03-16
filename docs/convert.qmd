@@ -1,0 +1,22 @@
+---
+title: "convert"
+---
+
+This command converts a VCF (variant call format) file to a TSV (tab-separated values) file. Please refer to the [Variants TSV](variants_tsv_file.qmd) for more information on the headers found in a `Exacto` converted TSV file.
+
+<div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
+<pre>
+usage: exacto convert [-h] 
+
+</pre>
+</div>
+
+| Required Parameter | Description |
+| ----- | -------- |
+| `--` |           |
+
+
+### Notes on Variant Types
+
+#### Deletions
+For `DEL` (deletion), `pos_1` is the start position of the deletion (i.e. the first position of the deleted DNA segment) and `pos_2` is the end position of the deletion (i.e. the last position of the deleted DNA segment). In other words, the DNA segment from `pos_1` to `pos_2` (inclusive) corresponds to the deleted DNA segment.

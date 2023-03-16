@@ -1,0 +1,80 @@
+---
+title: "Python API"
+---
+
+Here is a list of `Exacto` classes and methods:
+
+<div class="table">
+
+| Class                                   | Description                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------------- |
+| [Variant](#variant)                     | A variant composed of one or more [VariantCall](#variantcall) objects           |
+| [VariantAnnotation](#variantannotation) | An annotation of a [VariantCall](#variantcall) object                           |
+| [VariantCall](#variantcall)             | A variant call from a variant calling software                                  |
+| [VariantsList](#variantlist)            | A list composed of of one or more [Variant](#variant) objects                   |
+| [VariantListEdit](#variantcallsetedit)  | An edit history to a [VariantList](#variantlist) object                         |
+: {tbl-colwidths="[30,70]"}
+
+</div>
+
+## Variant
+
+## VariantCall
+
+## VariantAnnotation
+
+## VariantsList
+
+### **add_variant_call**
+
+```add_variant_call(variant_call: VariantCall) -> None```
+
+Add a [VariantCall](#variantcall).
+
+<div class="table">
+
+| Parameter               | Description                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **variant_call**        | A [VariantCall](#variantcall) object.                                                                      |
+: {tbl-colwidths="[30,70]"}
+
+### **filter**
+
+```filter(queries: List[str]) -> None```
+
+Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#variant) object(s) based on a list of filter queries.
+
+<div class="table">
+
+| Parameter               | Description                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **queries**             | List of [pandas.DataFrame.query](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.query.html).|
+: {tbl-colwidths="[30,70]"}
+
+### **filter_regions**
+
+```filter_regions(regions: pd.DataFrame, padding=100000, num_processes=1) -> None```
+
+Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#variant) object(s) that are near the specified regions.
+
+<div class="table">
+
+| Parameter               | Description                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **regions**             | A pandas.DataFrame of with the following headers: 'chrom', 'start', 'end'.                                 |
+| **padding**             | Padding to apply to 'start' and 'end' in regions (default: 100,000).                                       |
+| **num_processes**       | Number of processes to parallelize the computation (default: 1).                                           |
+: {tbl-colwidths="[30,70]"}
+
+### **filter_variants**
+
+```filter_variants(variant_list: VariantList, padding=1000, num_processes=1) -> None```
+
+Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#variant) object(s) that appear in the specified [VariantList](#variantlist). Note that this function can be used to obtain a somatic callset by supplying germline variants to **variant_list**.
+
+| Parameter               | Description                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **variant_list**        | A [VariantList](#variantlist) object.                                                                      |
+| **padding**             | Padding to apply to 'pos_1' and 'pos_2' of [VariantCall](#variantcall) (default: 1,000).                   |
+| **num_processes**       | Number of processes to parallelize the computation (default: 1).                                           |
+: {tbl-colwidths="[30,70]"}
