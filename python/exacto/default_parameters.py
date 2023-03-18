@@ -24,30 +24,18 @@ The purpose of this python3 script is to define Exacto default parameters.
 MAX_NEIGHBOR_DISTANCE = 1
 
 
-"""refine"""
-# Only keep structural variants with the "precise" tag.
-KEEP_ONLY_PRECISE_SV = True
-
-# Only keep structural variants with the following FILTER values.
-KEEP_ONLY_FILTER_VALUES = ['PASS']
-
-# Minimum genomic total depth for a variant position.
-MIN_GENOMIC_VARIANT_POSITION_TOTAL_DEPTH = 7
-
-# Minimum genomic variant reads count.
-MIN_GENOMIC_VARIANT_READS_COUNT = 3
-
-# Padding for a genome gapped region.
+"""filter"""
+# Padding for an excluded region.
 # The pad is applied to upstream and downstream of a gapped genomic region.
-GENOME_GAPPED_REGIONS_PADDING = 100000
+EXCLUDED_REGION_PADDING = 100000
 
-# Padding for an excluded structural variant breakpoint.
+# Padding for an excluded variant.
 # The pad is applied to upstream and downstream of the two breakpoints
-# of a structural variant to be excluded.
-EXCLUDE_SV_PADDING = 20
+# of a variant to be excluded.
+EXCLUDED_VARIANT_PADDING = 100
 
-# Enforce variant type checking.
-ENFORCE_VARIANT_TYPE_CHECK = True
+# Enforce variant type matching.
+ENFORCE_VARIANT_TYPE_MATCHING = True
 
 # Number of processes
 NUM_PROCESSES_REFINE = 4

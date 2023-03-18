@@ -18,6 +18,7 @@ The purpose of this python3 script is to implement Variant class.
 
 import statistics
 import pandas as pd
+from collections import defaultdict
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, ClassVar
@@ -186,10 +187,13 @@ class Variant:
     def pos_2_annotations(self) -> List[List[VariantAnnotation]]:
         return [i.pos_2_annotations for i in self.variant_calls]
 
-    def to_dataframe(self) -> pd.DataFrame:
-        df_variant_calls = pd.DataFrame()
+    def to_dict(self) -> Dict:
+        data = defaultdict(list)
         for variant_call in self.variant_calls:
-            df_variant_call = variant_call.to_dataframe()
-            df_variant_call.insert(0, 'variant_id', self.id)
-            df_variant_calls = pd.concat([df_variant_calls, df_variant_call], axis=0)
-        return df_variant_calls
+            data['variant_id'].append(self.id)
+            for key, value in variant_call.to_dict().items():
+                data[key].append(value[0])
+        return data
+
+    def to_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(self.to_dict())

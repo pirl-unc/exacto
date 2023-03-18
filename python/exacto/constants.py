@@ -307,6 +307,7 @@ class VariantCallingMethods:
             'svim_std_pos': float,
             'svim_std_pos1': float,
             'svim_std_pos2': float,
+            'svim_zmws': int,
             'svim_seqs': str,
             'svim_reads': str,
             'svim_cutpaste': bool,
@@ -375,3 +376,17 @@ class SoftclipDirections:
     TOWWARDS_FIVE_PRIME = '5prime'
 
 
+class VariantFilterQuantifiers:
+    ALL = 'all'
+    ANY = 'any'
+    MEDIAN = 'median'
+    AVERAGE = 'average'
+
+
+class VariantFilterOperators:
+    LESS_THAN = '<'
+    LESS_THAN_OR_EQUAL_TO = '<='
+    GREATER_THAN = '>'
+    GREATER_THAN_OR_EQUAL_TO = '>='
+    EQUALS = '=='
+    IN = 'in'

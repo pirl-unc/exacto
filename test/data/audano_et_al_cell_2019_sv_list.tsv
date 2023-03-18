@@ -1,4 +1,4 @@
-chr_1	pos_1	chr_2	pos_2	sv_type	sv_size	samples_count	samples
+chr_1	pos_1	chr_2	pos_2	variant_type	variant_size	samples_count	samples
 chr1	59598	chr1	59599	INS	308	1	NA19434
 chr1	90068	chr1	90069	INS	59	1	NA19240
 chr1	90178	chr1	90179	INS	58	1	NA19434

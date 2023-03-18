@@ -20,7 +20,9 @@ import pyensembl
 import pandas as pd
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, ClassVar
+from .annotation import Annotation
 from .constants import *
+from .gene import Gene
 from .variant_call import VariantCall
 from .variant_annotation import VariantAnnotation
 from .variants_list import VariantsList
@@ -31,7 +33,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class Ensembl:
+class Ensembl(Annotation):
     release: int = None
     species: str = None
     ensembl_txt_file: str = None
@@ -69,22 +71,35 @@ class Ensembl:
             )
             pos_1_annotations.append(variant_annotation)
         else:
-            is_exonic = False
-            for gene in pos_1_genes:
-                exons = self.ensembl.exon_ids_of_gene_id(gene.gene_id)
-                for exon in exons:
+            for pos_1_gene in pos_1_genes:
+                gene = Gene(
+                    id=pos_1_gene.gene_id,
+                    source=AnnotationSources.ENSEMBL,
+                    name=pos_1_gene.gene_name,
+                    chromosome=chr_1,
+                    start=pos_1_gene.start,
+                    end=pos_1_gene.end,
+                    strand=pos_1_gene.strand,
+                    type=pos_1_gene.biotype,
+
+                )
+                is_exonic = False
+                exon_ids = self.ensembl.exon_ids_of_gene_id(pos_1_gene.gene_id)
+                for exon_id in exon_ids:
+                    exon = self.ensembl.exon_by_id(exon_id=exon_id)
                     if exon.start <= variant_call.pos_1 <= exon.end:
                         is_exonic = True
-            if is_exonic:
-                region = GenomicRegionTypes.EXONIC
-            else:
-                region = GenomicRegionTypes.INTRONIC
-            variant_annotation = VariantAnnotation(
-                chrom=variant_call.chr_1,
-                pos=variant_call.pos_1,
-                region=region
-            )
-            pos_1_annotations.append(variant_annotation)
+                if is_exonic:
+                    region = GenomicRegionTypes.EXONIC
+                else:
+                    region = GenomicRegionTypes.INTRONIC
+                variant_annotation = VariantAnnotation(
+                    chrom=variant_call.chr_1,
+                    pos=variant_call.pos_1,
+                    region=region,
+                    gene=gene
+                )
+                pos_1_annotations.append(variant_annotation)
 
         # Position 2
         pos_2_annotations = []
@@ -99,22 +114,35 @@ class Ensembl:
             )
             pos_2_annotations.append(variant_annotation)
         else:
-            is_exonic = False
-            for gene in pos_2_genes:
-                exons = self.ensembl.exon_ids_of_gene_id(gene.gene_id)
-                for exon in exons:
+            for pos_2_gene in pos_2_genes:
+                gene = Gene(
+                    id=pos_2_gene.gene_id,
+                    source=AnnotationSources.ENSEMBL,
+                    name=pos_2_gene.gene_name,
+                    chromosome=chr_1,
+                    start=pos_2_gene.start,
+                    end=pos_2_gene.end,
+                    strand=pos_2_gene.strand,
+                    type=pos_2_gene.biotype,
+
+                )
+                is_exonic = False
+                exon_ids = self.ensembl.exon_ids_of_gene_id(pos_2_gene.gene_id)
+                for exon_id in exon_ids:
+                    exon = self.ensembl.exon_by_id(exon_id=exon_id)
                     if exon.start <= variant_call.pos_2 <= exon.end:
                         is_exonic = True
-            if is_exonic:
-                region = GenomicRegionTypes.EXONIC
-            else:
-                region = GenomicRegionTypes.INTRONIC
-            variant_annotation = VariantAnnotation(
-                chrom=variant_call.chr_2,
-                pos=variant_call.pos_2,
-                region=region
-            )
-            pos_2_annotations.append(variant_annotation)
+                if is_exonic:
+                    region = GenomicRegionTypes.EXONIC
+                else:
+                    region = GenomicRegionTypes.INTRONIC
+                variant_annotation = VariantAnnotation(
+                    chrom=variant_call.chr_2,
+                    pos=variant_call.pos_2,
+                    region=region,
+                    gene=gene
+                )
+                pos_2_annotations.append(variant_annotation)
 
         return pos_1_annotations, pos_2_annotations
 

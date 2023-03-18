@@ -137,6 +137,10 @@ def parse_svim_callset(
         if VariantCallingMethods.SVIM + '_svtype' in variant_call.tool_attributes.keys():
             variant_call.variant_type = variant_call.tool_attributes[VariantCallingMethods.SVIM + '_svtype']
 
+        if variant_call.variant_type == 'DUP:TANDEM':
+            variant_call.variant_type = VariantTypes.DUPLICATION
+            variant_call.variant_subtype = VariantTypes.DuplicationSubtypes.TANDEM_DUPLICATION
+
         # Update pos_2
         if VariantCallingMethods.SVIM + '_end' in variant_call.tool_attributes.keys():
             variant_call.pos_2 = variant_call.tool_attributes[VariantCallingMethods.SVIM + '_end']

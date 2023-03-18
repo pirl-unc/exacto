@@ -25,6 +25,7 @@ from .exon import Exon
 from .transcript import Transcript
 from .gene import Gene
 from .gene_set import GeneSet
+from .annotation import Annotation
 from .variant import Variant
 from .variant_call import VariantCall
 from .variants_list import VariantsList
@@ -36,7 +37,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class Gencode:
+class Gencode(Annotation):
     gene_set: GeneSet = None
     comprehensive_gene_annotation_gtf_file: str = None
     transcripts_fasta_file: str = None
@@ -137,6 +138,9 @@ class Gencode:
                         curr_metadata_elements_ = curr_metadata_elements.split(' ')
                         curr_metadata_dict[curr_metadata_elements_[0]] = curr_metadata_elements_[1].replace('"', '')
                     curr_gene_id = str(curr_metadata_dict['gene_id'])
+                    if 'ENSG' in curr_gene_id and '.' in curr_gene_id:
+                        curr_gene_version = curr_gene_id.split('.')[1]
+                        curr_gene_id = curr_gene_id.split('.')[0]
                     curr_transcript_id = str(curr_metadata_dict['transcript_id'])
                     if 'ENST' in curr_transcript_id and '.' in curr_transcript_id:
                         curr_transcript_version = curr_transcript_id.split('.')[1]
@@ -163,8 +167,8 @@ class Gencode:
                     self.gene_set.add_transcript(gene_id=curr_gene_id, transcript=transcript)
 
         transcripts_count = 0
-        for curr_gene in self.gene_set.genes:
-            transcripts_count += len(curr_gene.transcript_ids)
+        for gene in self.gene_set.genes.values():
+            transcripts_count += len(gene.transcript_ids)
         logger.info('Loaded %i transcripts in total.' % transcripts_count)
 
     def __read_gtf_file_exons(self):
@@ -198,7 +202,13 @@ class Gencode:
                         else:
                             curr_metadata_dict[curr_metadata_elements_[0]] = curr_metadata_elements_[1].replace('"', '')
                     curr_gene_id = str(curr_metadata_dict['gene_id'])
+                    if 'ENSG' in curr_gene_id and '.' in curr_gene_id:
+                        curr_gene_version = curr_gene_id.split('.')[1]
+                        curr_gene_id = curr_gene_id.split('.')[0]
                     curr_transcript_id = str(curr_metadata_dict['transcript_id'])
+                    if 'ENST' in curr_transcript_id and '.' in curr_transcript_id:
+                        curr_transcript_version = curr_transcript_id.split('.')[1]
+                        curr_transcript_id = curr_transcript_id.split('.')[0]
                     curr_exon_id = str(curr_metadata_dict['exon_id'])
                     if 'ENSE' in curr_exon_id and '.' in curr_exon_id:
                         curr_exon_version = curr_exon_id.split('.')[1]
@@ -222,8 +232,8 @@ class Gencode:
                         exon=exon
                     )
         exons_count = 0
-        for gene in self.gene_set.genes:
-            for transcript in gene.transcripts:
+        for gene in self.gene_set.genes.values():
+            for transcript in gene.transcripts.values():
                 exons_count += len(transcript.exon_ids)
         logger.info('Loaded %i exons in total.' % exons_count)
 
@@ -322,6 +332,7 @@ class Gencode:
         gtf_file    :   GTF file.
         """
         logger.info('Started reading GTF file: %s' % gtf_file)
+        self.gene_set = GeneSet()
         self.comprehensive_gene_annotation_gtf_file = gtf_file
         self.__read_gtf_file_genes()            # add genes
         self.__read_gtf_file_transcripts()      # add transcripts
@@ -378,7 +389,7 @@ class Gencode:
         """
         # Position 1
         pos_1_annotations = []
-        for gene in self.gene_set.genes:
+        for gene in self.gene_set.genes.values():
             if (gene.chromosome == variant_call.chr_1) and (gene.start <= variant_call.pos_1 <= gene.end):
                 # Check if position 1 is exonic or intronic
                 is_exonic = False
@@ -407,7 +418,7 @@ class Gencode:
 
         # Position 2
         pos_2_annotations = []
-        for gene in self.gene_set.genes:
+        for gene in self.gene_set.genes.values():
             if (gene.chromosome == variant_call.chr_2) and (gene.start <= variant_call.pos_2 <= gene.end):
                 # Check if position 2 is exonic or intronic
                 is_exonic = False
@@ -432,7 +443,7 @@ class Gencode:
                 pos=variant_call.pos_2,
                 region=GenomicRegionTypes.INTERGENIC
             )
-            pos_1_annotations.append(variant_annotation)
+            pos_2_annotations.append(variant_annotation)
         return pos_1_annotations, pos_2_annotations
 
     def annotate_variants(self, variants_list) -> VariantsList:

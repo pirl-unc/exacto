@@ -20,6 +20,10 @@ import pandas as pd
 from typing import List
 from exacto import exactors
 from .vcf import read_vcf_file
+from .annotation import Annotation
+from .ensembl import Ensembl
+from .gencode import Gencode
+from .variant_filter import VariantFilter
 from .variants_list import VariantsList
 from .logging import get_logger
 from .default_parameters import *
@@ -89,148 +93,85 @@ def run_exacto_merge(
     )
     return variants_lists
 
-#
-# def run_exacto_refine(
-#         variants_list: VariantsList,
-#         df_variants_to_exclude: pd.DataFrame,
-#         df_gapped_regions: pd.DataFrame,
-#         queries: List[str] = [],
-#         gapped_regions_padding: int = GENOME_GAPPED_REGIONS_PADDING,
-#         exclude_variants_padding: int = EXCLUDE_SV_PADDING,
-#         num_processes: int = NUM_PROCESSES_REFINE
-#     ) -> pd.DataFrame:
-#     """
-#     Refines a set of structural variants and returns the refined set.
-#
-#     Parameters
-#     ----------
-#     df_variants                         :   DataFrame of structural variants.
-#                                             Expected columns:
-#                                             'chr_1'
-#                                             'pos_1'
-#                                             'chr_2'
-#                                             'pos_2'
-#                                             'variant_type'
-#     df_variants_to_exclude              :   DataFrame of variants to exclude.
-#     df_gapped_regions                   :   DataFrame of gapped regions in the genome.
-#     gapped_regions_padding              :   Number of bases to pad gapped regions'
-#                                             start and end positions.
-#     exclude_variants_padding            :   Number of bases to pad breakpoints of
-#                                             structural variants in df_structural_variants_to_exclude
-#     num_processes                       :   Number of processes.
-#
-#     Returns
-#     -------
-#     DataFrame of refined variants.
-#     """
-#     logger.info('%i variants before refinement.' % len(df_variants))
-#
-#     # Filter out variants based on queries
-#     df_variants = refine_variants(df_variants=df_variants, queries=queries)
-#
-#     # Filter out variants near the gapped regions.
-#     if df_gapped_regions is not None:
-#         df_variants = remove_variants_near_gapped_regions(
-#             df_variants=df_variants,
-#             df_gapped_regions=df_gapped_regions,
-#             gapped_regions_padding=gapped_regions_padding,
-#             num_processes=num_processes
-#         )
-#         logger.info(
-#             '%i variants after filtering out variants near the gapped regions.'
-#             % len(df_variants)
-#         )
-#
-#     # Filter out excluded variants.
-#     if df_variants_to_exclude is not None:
-#         df_variants = remove_variants(
-#             df_variants=df_variants,
-#             df_variants_to_exclude=df_variants_to_exclude,
-#             exclude_variants_padding=exclude_variants_padding,
-#             num_processes=num_processes
-#         )
-#         logger.info('%i variants after filtering out excluded variants.' % len(df_variants))
-#
-#     logger.info('%i variants after refinement.' % len(df_variants))
-#     return df_variants
-#
-#
-# def run_exacto_annotate(
-#         df_variants: pd.DataFrame,
-#         annotation_source: str,
-#         df_gencode_genes: pd.DataFrame,
-#         df_gencode_exons: pd.DataFrame,
-#         ensembl_release: int = -1,
-#         ensembl_species: str = ''
-#     ) -> pd.DataFrame:
-#     """
-#     Annotates a set of variants and returns the annotated set.
-#
-#     Parameters
-#     ----------
-#     df_variants         :   DataFrame of variants.
-#                             Expected columns:
-#                             'chr_1'
-#                             'pos_1'
-#                             'chr_2'
-#                             'pos_2'
-#                             'sv_type' (DEL, INS, INV, DUP, BND or TRA)
-#     annotation_source   :   Annotation source ('ensembl' or 'gencode').
-#     df_gencode_genes    :   DataFrame of GENCODE genes.
-#                             Specify this if 'annotation_source' is 'gencode'.
-#                             Expected columns:
-#                             'gene_id'
-#                             'gene_name'
-#                             'gene_type'
-#                             'gene_chrom'
-#                             'gene_start'
-#                             'gene_end'
-#                             'gene_strand'
-#                             'level'
-#                             'transcripts_count'
-#     df_gencode_exons    :   DataFrame of GENCODE exons.
-#                             Specify this if 'annotation_source' is 'gencode'.
-#                             Expected columns:
-#                             'gene_id'
-#                             'transcript_id'
-#                             'exon_id'
-#                             'exon_number'
-#                             'exon_chrom'
-#                             'exon_start'
-#                             'exon_end'
-#     ensembl_release     :   Ensembl release version.
-#                             Specify this if 'annotation_source' is 'ensembl'.
-#     ensembl_species     :   Ensembl species.
-#
-#     Returns
-#     -------
-#     DataFrame of annotated genomic structural variants.
-#     """
-#     if len(df_variants) == 0:
-#         logger.warning('DataFrame is empty. Returning without annotating.')
-#         return df_variants
-#     if annotation_source == AnnotationSources.ENSEMBL:
-#         df_structural_variants = annotate_variants_using_pyensembl(
-#             df_variants=df_variants,
-#             ensembl_release=ensembl_release,
-#             species=ensembl_species
-#         )
-#     elif annotation_source == AnnotationSources.GENCODE:
-#         df_structural_variants = annotate_variants_using_gencode(
-#             df_variants=df_variants,
-#             df_gencode_genes=df_gencode_genes,
-#             df_gencode_exons=df_gencode_exons
-#         )
-#     else:
-#         raise Exception(
-#             "Invalid value for 'annotation_source': %s. Allowed 'annotation_source' values are %s "
-#             % (annotation_source, ', '.join(AnnotationSources.ALL)))
-#     return df_structural_variants
-#
-#
 
-#
-#
+def run_exacto_filter(
+        variants_list: VariantsList,
+        df_excluded_variants: pd.DataFrame,
+        df_excluded_regions: pd.DataFrame,
+        variant_filters: List[VariantFilter],
+        excluded_region_padding: int = EXCLUDED_REGION_PADDING,
+        excluded_variant_padding: int = EXCLUDED_VARIANT_PADDING,
+        enforce_variant_type_checking: bool = ENFORCE_VARIANT_TYPE_MATCHING
+    ) -> VariantsList:
+    """
+    Filters a variants list.
+
+    Parameters
+    ----------
+    variants_list               :   An instance of the VariantsList class.
+    df_excluded_variants        :   DataFrame. Expected columns:
+                                    'chr_1', 'pos_1', 'chr_2', 'pos_2'
+    df_excluded_regions         :   DataFrame. Expected columns:
+                                    'chrom', 'chromStart', 'chromEnd'
+    variant_filters             :   List of instances of the VariantFilter class.
+    excluded_region_padding     :   Number of bases to pad each region to exclude.
+    excluded_variant_padding    :   Number of bases to pad each variant's positions 1 and 2.
+
+    Returns
+    -------
+    variants_list               :   An instance of the VariantsList class.
+    """
+    logger.info('%i variants in the original list before filtering.' % len(variants_list.variant_ids))
+    logger.info('%i variant calls in the original list before filtering.' % len(variants_list.variant_call_ids))
+
+    # Step .1 Filter out variants based on variant filters
+    if len(variant_filters) > 0:
+        variants_list.filter(variant_filters=variant_filters)
+        logger.info('%i variants remain after applying variant filters.' % len(variants_list.variant_ids))
+        logger.info('%i variant calls remain after applying variant filters.' % len(variants_list.variant_call_ids))
+
+    # Step 2. Filter out variants near the excluded regions.
+    if len(df_excluded_regions) > 0:
+        variants_list.filter_regions(
+            df_excluded_regions=df_excluded_regions,
+            excluded_regions_padding=excluded_region_padding
+        )
+        logger.info('%i variants remain after removing variant calls near excluded regions.' % len(variants_list.variant_ids))
+        logger.info('%i variant calls remain after removing variant calls near excluded regions.' % len(variants_list.variant_call_ids))
+
+    # Step 3. Filter out variants near the excluded variants
+    if len(df_excluded_variants) > 0:
+        variants_list.filter_variants(
+            df_excluded_variants=df_excluded_variants,
+            excluded_variant_padding=excluded_variant_padding,
+            enforce_variant_type_checking=enforce_variant_type_checking
+        )
+        logger.info('%i variants remain after removing variant calls near excluded variants.' % len(variants_list.variant_ids))
+        logger.info('%i variant calls remain after removing variant calls near excluded variants.' % len(variants_list.variant_call_ids))
+
+    return variants_list
+
+
+def run_exacto_annotate(
+        variants_list: VariantsList,
+        annotation: Annotation,
+    ) -> pd.DataFrame:
+    """
+    Annotates a variants list and returns the annotated variants list.
+
+    Parameters
+    ----------
+    variants_list       :   An instance of the VariantsList class.
+    annotation          :   An instance of the Annotation class.
+
+    Returns
+    -------
+    variants_list       :   An instance of the VariantsList class.
+    """
+    variants_list = annotation.annotate_variants(variants_list=variants_list)
+    return variants_list
+
+
 # def run_exacto_identify_rna_variants(
 #         bam_file: pysam.AlignmentFile,
 #         num_cores: int

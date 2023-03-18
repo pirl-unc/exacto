@@ -67,7 +67,7 @@ class GeneSet:
         if gene_id in self.genes.keys():
             self.genes[gene_id].add_transcript(transcript=transcript)
         else:
-            logger.error('Gene with ID %s does not exist.')
+            logger.error('Gene with ID %s does not exist.' % gene_id)
             exit(1)
 
     def add_exon(
@@ -86,7 +86,7 @@ class GeneSet:
         """
         if gene_id in self.genes.keys():
             if transcript_id in self.genes[gene_id].transcript_ids:
-                self.genes[gene_id].add_exon(exon=exon)
+                self.genes[gene_id].add_exon(exon=exon, transcript_id=transcript_id)
             else:
                 logger.error('Transcript with ID %s does not exist.' % transcript_id)
         else:

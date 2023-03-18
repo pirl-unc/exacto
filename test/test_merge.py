@@ -26,8 +26,7 @@ def test_merge():
     )
 
     # Step 3. Write to file
-    df_variants = variants_list.to_dataframe()
-    df_variants.to_csv(
+    variants_list.to_dataframe().to_csv(
         get_data_path('hg002_merged.tsv'),
         sep='\t',
         index=False

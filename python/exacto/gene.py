@@ -42,7 +42,7 @@ class Gene:
     transcripts: Dict = field(default_factory=dict)     # key = transcript ID, value = an instance of the Transcript class
 
     @property
-    def transcript_ids(self):
+    def transcript_ids(self) -> List[str]:
         return [transcript.id for transcript in self.transcripts.values()]
 
     def add_transcript(

@@ -63,7 +63,7 @@ class VariantCall:
     pos_1_annotations: List[VariantAnnotation] = field(default_factory=list)
     pos_2_annotations: List[VariantAnnotation] = field(default_factory=list)
 
-    def to_dataframe(self) -> pd.DataFrame:
+    def to_dict(self) -> Dict:
         data = {
             'variant_call_id': ['' if self.id is None else self.id],
             'source_id': ['' if self.source_id is None else self.source_id],
@@ -147,7 +147,7 @@ class VariantCall:
         pos_2_annotation_gene_type = []
         pos_2_annotation_gene_level = []
         pos_2_annotation_gene_version = []
-        for pos_2_annotation in self.pos_2_annotations:
+        for i in self.pos_2_annotations:
             pos_2_annotation_chrom.append(str(i.chrom))
             pos_2_annotation_pos.append(str(i.pos))
             pos_2_annotation_region.append(str(i.region))
@@ -189,6 +189,7 @@ class VariantCall:
         data['pos_2_annotation_gene_type'] = [';'.join(pos_2_annotation_gene_type)]
         data['pos_2_annotation_gene_level'] = [';'.join(pos_2_annotation_gene_level)]
         data['pos_2_annotation_gene_version'] = [';'.join(pos_2_annotation_gene_version)]
+        return data
 
-        df_variant_call = pd.DataFrame(data)
-        return df_variant_call
+    def to_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(self.to_dict())
