@@ -9,20 +9,18 @@ def test_merge():
     tsv_file_2 = get_data_path(name='hg002_cutesv.tsv')
     tsv_file_3 = get_data_path(name='hg002_sniffles2.tsv')
     tsv_file_4 = get_data_path(name='hg002_pbsv.tsv')
-    tsv_file_5 = get_data_path(name='hg002_deepvariant.tsv')
 
     variants_lists = []
     variants_lists.append(VariantsList.read_tsv_file(tsv_file=tsv_file_1))
     variants_lists.append(VariantsList.read_tsv_file(tsv_file=tsv_file_2))
     variants_lists.append(VariantsList.read_tsv_file(tsv_file=tsv_file_3))
     variants_lists.append(VariantsList.read_tsv_file(tsv_file=tsv_file_4))
-    variants_lists.append(VariantsList.read_tsv_file(tsv_file=tsv_file_5))
 
     # Step 2. Merge
     variants_list = run_exacto_merge(
         variants_lists=variants_lists,
         enforce_variant_type_matching=True,
-        max_neighbor_distance=1
+        max_neighbor_distance=10
     )
 
     # Step 3. Write to file

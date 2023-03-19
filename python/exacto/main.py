@@ -86,12 +86,12 @@ def run_exacto_merge(
     -------
     variants_list                   :   An instance of the VariantsList class.
     """
-    variants_lists = VariantsList.merge(
+    variants_list = VariantsList.merge(
         variants_lists=variants_lists,
         enforce_variant_type_matching=enforce_variant_type_matching,
         max_neighbor_distance=max_neighbor_distance
     )
-    return variants_lists
+    return variants_list
 
 
 def run_exacto_filter(
@@ -101,32 +101,38 @@ def run_exacto_filter(
         variant_filters: List[VariantFilter],
         excluded_region_padding: int = EXCLUDED_REGION_PADDING,
         excluded_variant_padding: int = EXCLUDED_VARIANT_PADDING,
-        enforce_variant_type_checking: bool = ENFORCE_VARIANT_TYPE_MATCHING
+        enforce_variant_type_matching: bool = ENFORCE_VARIANT_TYPE_MATCHING,
+        num_processes: int = NUM_PROCESSES_FILTER
     ) -> VariantsList:
     """
     Filters a variants list.
 
     Parameters
     ----------
-    variants_list               :   An instance of the VariantsList class.
-    df_excluded_variants        :   DataFrame. Expected columns:
-                                    'chr_1', 'pos_1', 'chr_2', 'pos_2'
-    df_excluded_regions         :   DataFrame. Expected columns:
-                                    'chrom', 'chromStart', 'chromEnd'
-    variant_filters             :   List of instances of the VariantFilter class.
-    excluded_region_padding     :   Number of bases to pad each region to exclude.
-    excluded_variant_padding    :   Number of bases to pad each variant's positions 1 and 2.
+    variants_list                   :   An instance of the VariantsList class.
+    df_excluded_variants            :   DataFrame. Expected columns:
+                                        'chr_1', 'pos_1', 'chr_2', 'pos_2'
+    df_excluded_regions             :   DataFrame. Expected columns:
+                                        'chrom', 'chromStart', 'chromEnd'
+    variant_filters                 :   List of instances of the VariantFilter class.
+    excluded_region_padding         :   Number of bases to pad each region to exclude.
+    excluded_variant_padding        :   Number of bases to pad each variant's positions 1 and 2.
+    enforce_variant_type_matching   :   Enforce variant type matching.
+    num_processes                   :   Number of processes.
 
     Returns
     -------
-    variants_list               :   An instance of the VariantsList class.
+    variants_list                   :   An instance of the VariantsList class.
     """
     logger.info('%i variants in the original list before filtering.' % len(variants_list.variant_ids))
     logger.info('%i variant calls in the original list before filtering.' % len(variants_list.variant_call_ids))
 
     # Step .1 Filter out variants based on variant filters
     if len(variant_filters) > 0:
-        variants_list.filter(variant_filters=variant_filters)
+        variants_list.filter(
+            variant_filters=variant_filters,
+            num_processes=num_processes
+        )
         logger.info('%i variants remain after applying variant filters.' % len(variants_list.variant_ids))
         logger.info('%i variant calls remain after applying variant filters.' % len(variants_list.variant_call_ids))
 
@@ -144,7 +150,7 @@ def run_exacto_filter(
         variants_list.filter_variants(
             df_excluded_variants=df_excluded_variants,
             excluded_variant_padding=excluded_variant_padding,
-            enforce_variant_type_checking=enforce_variant_type_checking
+            enforce_variant_type_matching=enforce_variant_type_matching
         )
         logger.info('%i variants remain after removing variant calls near excluded variants.' % len(variants_list.variant_ids))
         logger.info('%i variant calls remain after removing variant calls near excluded variants.' % len(variants_list.variant_call_ids))

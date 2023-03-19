@@ -18,7 +18,9 @@ and run Exacto 'merge' command.
 
 
 import argparse
+import numpy as np
 import pandas as pd
+import multiprocessing as mp
 from .constants import *
 from .default_parameters import *
 from .logging import get_logger
@@ -46,11 +48,11 @@ def add_cli_merge_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        "--tsv-files",
-        dest="tsv_files",
-        nargs='+',
+        "--tsv-file",
+        dest="tsv_file",
+        action='append',
         required=True,
-        help="List of variant TSV files."
+        help="Variants list TSV file."
     )
     parser_required.add_argument(
         "--output-tsv-file",
@@ -58,6 +60,14 @@ def add_cli_merge_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         type=str,
         required=True,
         help="Output TSV file."
+    )
+    parser_required.add_argument(
+        "--num-processes",
+        dest="num_processes",
+        type=int,
+        default=NUM_PROCESSES_MERGE,
+        required=True,
+        help="Number of processes (default: %i)." % NUM_PROCESSES_MERGE
     )
 
     # Optional arguments
@@ -84,6 +94,11 @@ def add_cli_merge_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     return sub_parsers
 
 
+def load_tsv_file_worker(tsv_file):
+    variants_list = VariantsList.read_tsv_file(tsv_file=tsv_file)
+    return variants_list
+
+
 def run_cli_merge_from_parsed_args(args):
     """
     Run Exacto 'merge' command using parameters from parsed arguments.
@@ -91,19 +106,30 @@ def run_cli_merge_from_parsed_args(args):
     Parameters
     ----------
     args    :   An instance of argparse.ArgumentParser with the following variables:
-                'tsv_files'
+                'tsv_file'
                 'output_tsv_file'
                 'enforce_variant_type_matching'
                 'max_neighbor_distance'
+                'num_processes'
     """
-    variants_lists = []
-    for tsv_file in args.tsv_files:
-        variants_lists.append(VariantsList.read_tsv_file(tsv_file=tsv_file))
+    # Step 1. Load variants lists
+    if args.num_processes > len(args.tsv_file):
+        args.num_processes = len(args.tsv_file)
+    tsv_files = np.array_split(args.tsv_file, args.num_processes)
+    pool = mp.Pool(processes=args.num_processes)
+    async_results = [pool.apply_async(load_tsv_file_worker, args=(tsv_file)) for tsv_file in tsv_files]
+    pool.close()
+    pool.join()
+    variants_lists = [ar.get() for ar in async_results]
+
+    # Step 2. Merge variants lists
     variants_list = run_exacto_merge(
         variants_lists=variants_lists,
         enforce_variant_type_matching=args.enforce_variant_type_matching,
-        max_neighbor_distance=args.max_variant_merge_distance
+        max_neighbor_distance=args.max_neighbor_distance
     )
+
+    # Step 3. Write to a TSV file
     variants_list.to_dataframe().to_csv(
         args.output_tsv_file,
         sep='\t',

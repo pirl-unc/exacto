@@ -93,6 +93,8 @@ class Gencode(Annotation):
                     if 'ENSG' in curr_gene_id and '.' in curr_gene_id:
                         curr_gene_version = curr_gene_id.split('.')[1]
                         curr_gene_id = curr_gene_id.split('.')[0]
+                    else:
+                        curr_gene_version = None
                     curr_gene_name = str(curr_metadata_dict['gene_name'])
                     curr_gene_type = str(curr_metadata_dict['gene_type'])
                     curr_gene_level = int(curr_metadata_dict['level'])
@@ -145,6 +147,8 @@ class Gencode(Annotation):
                     if 'ENST' in curr_transcript_id and '.' in curr_transcript_id:
                         curr_transcript_version = curr_transcript_id.split('.')[1]
                         curr_transcript_id = curr_transcript_id.split('.')[0]
+                    else:
+                        curr_transcript_version = None
                     curr_transcript_type = str(curr_metadata_dict['transcript_type'])
                     try:
                         curr_transcript_level = int(curr_metadata_dict['transcript_support_level'])
@@ -213,6 +217,8 @@ class Gencode(Annotation):
                     if 'ENSE' in curr_exon_id and '.' in curr_exon_id:
                         curr_exon_version = curr_exon_id.split('.')[1]
                         curr_exon_id = curr_exon_id.split('.')[0]
+                    else:
+                        curr_exon_version = None
                     curr_exon_number = int(curr_metadata_dict['exon_number'])
                     exon = Exon(
                         id=curr_exon_id,
@@ -463,9 +469,11 @@ class Gencode(Annotation):
             logger.error('Please read a GENCODE comprehensive gene annotation '
                          'GTF file first before annotating variants.')
             exit(1)
-        for i in range(0, len(variants_list.variant_ids)):
-            for j in range(0, len(variants_list.variants[i].variant_calls)):
-                pos_1_annotations, pos_2_annotations = self.annotate_variant_call(variant_call=variants_list.variants[i].variant_calls[j])
-                variants_list.variants[i].variant_calls[j].pos_1_annotations = pos_1_annotations
-                variants_list.variants[i].variant_calls[j].pos_2_annotations = pos_2_annotations
+        for variant_id in variants_list.variants.keys():
+            for variant_call_id in variants_list.variants[variant_id].variant_calls.keys():
+                pos_1_annotations, pos_2_annotations = self.annotate_variant_call(
+                    variant_call=variants_list.variants[variant_id].variant_calls[variant_call_id]
+                )
+                variants_list.variants[variant_id].variant_calls[variant_call_id].pos_1_annotations = pos_1_annotations
+                variants_list.variants[variant_id].variant_calls[variant_call_id].pos_2_annotations = pos_2_annotations
         return variants_list

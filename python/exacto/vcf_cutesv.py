@@ -218,8 +218,8 @@ def parse_cutesv_callset(
                            variant_call.variant_type,
                            curr_idx)
         variant = Variant(id='variant_%i' % curr_idx)
-        variant.variant_calls.append(variant_call)
-        variants_list.variants.append(variant)
+        variant.variant_calls[variant_call.id] = variant_call
+        variants_list.variants[variant.id] = variant
         curr_idx += 1
 
     logger.info('%i rows in the returning VariantsList.' % len(variants_list.variants))

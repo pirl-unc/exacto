@@ -37,7 +37,8 @@ def test_filter():
         variant_filters=variant_filters,
         excluded_region_padding=100000,
         excluded_variant_padding=100,
-        enforce_variant_type_checking=True
+        enforce_variant_type_matching=True,
+        num_processes=4
     )
 
     # Step 3. Write to file

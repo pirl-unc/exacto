@@ -38,10 +38,13 @@ class Ensembl(Annotation):
     species: str = None
     ensembl_txt_file: str = None
     use_pyensembl: bool = True
+    _ensembl = None
 
     @property
     def ensembl(self):
-        return pyensembl.EnsemblRelease(release=self.release, species=self.species)
+        if self._ensembl is None:
+            self._ensembl = pyensembl.EnsemblRelease(release=self.release, species=self.species)
+        return self._ensembl
 
     def annotate_variant_call_using_pyensembl(
             self,
@@ -166,11 +169,13 @@ class Ensembl(Annotation):
                 exit(1)
 
         if self.use_pyensembl:
-            for i in range(0, len(variants_list.variant_ids)):
-                for j in range(0, len(variants_list.variants[i].variant_calls)):
-                    pos_1_annotations, pos_2_annotations = self.annotate_variant_call_using_pyensembl(variants_list.variants[i].variant_calls[j])
-                    variants_list.variants[i].variant_calls[j].pos_1_annotations = pos_1_annotations
-                    variants_list.variants[i].variant_calls[j].pos_2_annotations = pos_2_annotations
+            for variant_id in variants_list.variants.keys():
+                for variant_call_id in variants_list.variants[variant_id].variant_calls.keys():
+                    pos_1_annotations, pos_2_annotations = self.annotate_variant_call_using_pyensembl(
+                        variants_list.variants[variant_id].variant_calls[variant_call_id]
+                    )
+                    variants_list.variants[variant_id].variant_calls[variant_call_id].pos_1_annotations = pos_1_annotations
+                    variants_list.variants[variant_id].variant_calls[variant_call_id].pos_2_annotations = pos_2_annotations
         else:
             # todo: implement variant annotation using Ensembl TXT file
             a = 1

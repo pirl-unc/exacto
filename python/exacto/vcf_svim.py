@@ -120,7 +120,7 @@ def parse_svim_callset(
                     type=VariantCallingMethods.AttributeTypes.SVIM[VariantCallingMethods.SVIM + '_' + curr_info_elements[0].lower()]
                 )
             else:
-                variant_call.tool_attributes[VariantCallingMethods.PBSV + '_' + curr_info.lower()] = True
+                variant_call.tool_attributes[VariantCallingMethods.SVIM + '_' + curr_info.lower()] = True
 
         # Extract FORMAT (sample)
         format = str(row['FORMAT']).split(':')
@@ -140,6 +140,10 @@ def parse_svim_callset(
         if variant_call.variant_type == 'DUP:TANDEM':
             variant_call.variant_type = VariantTypes.DUPLICATION
             variant_call.variant_subtype = VariantTypes.DuplicationSubtypes.TANDEM_DUPLICATION
+
+        if variant_call.variant_type == 'DUP:INT':
+            variant_call.variant_type = VariantTypes.DUPLICATION
+            variant_call.variant_subtype = VariantTypes.DuplicationSubtypes.INTERSPERSED_DUPLICATION
 
         # Update pos_2
         if VariantCallingMethods.SVIM + '_end' in variant_call.tool_attributes.keys():
@@ -214,8 +218,8 @@ def parse_svim_callset(
                            variant_call.variant_type,
                            curr_idx)
         variant = Variant(id='variant_%i' % curr_idx)
-        variant.variant_calls.append(variant_call)
-        variants_list.variants.append(variant)
+        variant.variant_calls[variant_call.id] = variant_call
+        variants_list.variants[variant.id] = variant
         curr_idx += 1
 
     logger.info('%i rows in the returning VariantsList.' % len(variants_list.variants))

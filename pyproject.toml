@@ -23,7 +23,7 @@ build-backend = "maturin"
 
 [project]
 name = "exacto"
-version = "0.1.7.0"
+version = "0.1.7.1"
 requires-python = ">=3.7"
 keywords = [
     "long-read",

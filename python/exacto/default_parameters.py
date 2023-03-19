@@ -23,6 +23,8 @@ The purpose of this python3 script is to define Exacto default parameters.
 # Maximum neighbor distance (bases).
 MAX_NEIGHBOR_DISTANCE = 1
 
+# Number of processes
+NUM_PROCESSES_MERGE = 4
 
 """filter"""
 # Padding for an excluded region.
@@ -38,7 +40,7 @@ EXCLUDED_VARIANT_PADDING = 100
 ENFORCE_VARIANT_TYPE_MATCHING = True
 
 # Number of processes
-NUM_PROCESSES_REFINE = 4
+NUM_PROCESSES_FILTER = 4
 
 
 """annotate"""

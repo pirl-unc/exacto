@@ -67,9 +67,11 @@ class VariantTypes:
     class DuplicationSubtypes:
         TANDEM_DUPLICATION = 'DUP_TANDEM'
         SEGMENTAL_DUPLICATION = 'DUP_SEG'
+        INTERSPERSED_DUPLICATION = 'DUP_INTERSPERSED'
         ALL = [
             TANDEM_DUPLICATION,
-            SEGMENTAL_DUPLICATION
+            SEGMENTAL_DUPLICATION,
+            INTERSPERSED_DUPLICATION
         ]
 
     QueryTypeDictionary = {

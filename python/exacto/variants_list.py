@@ -17,6 +17,8 @@ The purpose of this python3 script is to implement the VariantsList dataclass.
 
 
 import pandas as pd
+import numpy as np
+import multiprocessing as mp
 from copy import deepcopy
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -36,23 +38,23 @@ logger = get_logger(__name__)
 
 @dataclass
 class VariantsList:
-    variants: List[Variant] = field(default_factory=list)
+    variants: Dict = field(default_factory=dict)
 
     @property
     def variant_ids(self) -> List[str]:
-        return [variant.id for variant in self.variants]
+        return self.variants.keys()
 
     @property
     def variant_call_ids(self) -> List[str]:
         variant_call_ids = []
-        for variant in self.variants:
-            for variant_call in variant.variant_calls:
+        for variant in self.variants.values():
+            for variant_call in variant.variant_calls.values():
                 variant_call_ids.append(variant_call.id)
         return variant_call_ids
 
     @property
     def size(self):
-        return len(self.variant_ids)
+        return len(self.variants)
 
     @staticmethod
     def merge(
@@ -86,12 +88,12 @@ class VariantsList:
         variants_list   :   An instance of VariantsList.
         """
         if len(variants_lists) > 1:
-            variants_list = deepcopy(variants_lists[0])
-            for i in range(1, len(variants_lists)):
-                for j in range(0, len(variants_lists[i].variants)):
-                    for k in range(0, len(variants_lists[i].variants[j].variant_calls)):
+            variants_list = VariantsList()
+            for i in range(0, len(variants_lists)):
+                for variant_id in variants_lists[i].variants.keys():
+                    for variant_call_id in variants_lists[i].variants[variant_id].variant_calls.keys():
                         variants_list.add_variant_call(
-                            variant_call=variants_lists[i].variants[j].variant_calls[k],
+                            variant_call=variants_lists[i].variants[variant_id].variant_calls[variant_call_id],
                             enforce_variant_type_matching=enforce_variant_type_matching,
                             max_neighbor_distance=max_neighbor_distance
                         )
@@ -214,15 +216,13 @@ class VariantsList:
             # variant_annotation = VariantAnnotation()
             # self.__convert_tsv_file_element(value=row['pos_1_annotation_chrom'], nested=True, )
 
-            if row['variant_id'] not in variants_list.variant_ids:
+            if row['variant_id'] in variants_list.variants.keys():
+                variants_list.variants[row['variant_id']].variant_calls[variant_call.id] = variant_call
+            else:
                 variant = Variant()
                 variant.id = row['variant_id']
-                variant.variant_calls.append(variant_call)
-                variants_list.variants.append(variant)
-            else:
-                for i in range(0, len(variants_list.variants)):
-                    if variants_list.variants[i].id == row['variant_id']:
-                        variants_list.variants[i].variant_calls.append(variant_call)
+                variant.variant_calls[variant_call.id] = variant_call
+                variants_list.variants[variant.id] = variant
         return variants_list
 
     def add_variant_call(
@@ -253,55 +253,91 @@ class VariantsList:
                                             to be considered to be in the same variant (default: True).
         """
         # Add variant_call if it can be appended to an existing Variant
-        query_variant_type = VariantTypes.QueryTypeDictionary[variant_call.variant_type]
-        matched_variant_ids = []
-        for i in range(0, len(self.variants)):
-            for j in range(0, len(self.variants[i].variant_calls)):
-                pos_1_delta = abs(self.variants[i].variant_calls[j].pos_1 - variant_call.pos_1)
-                pos_2_delta = abs(self.variants[i].variant_calls[j].pos_2 - variant_call.pos_2)
-                if (self.variants[i].variant_calls[j].chr_1 == variant_call.chr_1) and \
-                        (self.variants[i].variant_calls[j].chr_2 == variant_call.chr_2) and \
+        query_variant_types = VariantTypes.QueryTypeDictionary[variant_call.variant_type]
+        for variant_id in self.variants.keys():
+            for variant_call_id in self.variants[variant_id].variant_calls.keys():
+                pos_1_delta = abs(self.variants[variant_id].variant_calls[variant_call_id].pos_1 - variant_call.pos_1)
+                pos_2_delta = abs(self.variants[variant_id].variant_calls[variant_call_id].pos_2 - variant_call.pos_2)
+                if (self.variants[variant_id].variant_calls[variant_call_id].chr_1 == variant_call.chr_1) and \
+                        (self.variants[variant_id].variant_calls[variant_call_id].chr_2 == variant_call.chr_2) and \
                         (pos_1_delta <= max_neighbor_distance) and \
                         (pos_2_delta <= max_neighbor_distance):
                     if enforce_variant_type_matching:
-                        if self.variants[i].variant_calls[j].variant_type in query_variant_type:
-                            self.variants[i].variant_calls.append(variant_call)
-                            matched_variant_ids.append(self.variants[i].variant_calls[j].id)
+                        if self.variants[variant_id].variant_calls[variant_call_id].variant_type in query_variant_types:
+                            self.variants[variant_id].variant_calls[variant_call.id] = variant_call
                             return
                     else:
-                        self.variants[i].variant_calls.append(variant_call)
-                        matched_variant_ids.append(self.variants[i].variant_calls[j].id)
+                        self.variants[variant_id].variant_calls[variant_call.id] = variant_call
                         return
 
         # Add a new Variant
-        variant = Variant(id='variant_%i' % (len(self.variants) + 1))
-        variant.variant_calls.append(variant_call)
+        i = self.size
+        while True:
+            variant_id = 'variant_%i' % i
+            if variant_id not in self.variants.keys():
+                break
+            i += 1
+        variant = Variant(id='variant_%i' % i)
+        variant.variant_calls[variant_call.id] = variant_call
+        self.variants[variant.id] = variant
 
     def load_annotations(self):
         # todo load Ensembl or Gencode annotations into each VariantAnnotation Gene
         pass
 
-    def filter(self, variant_filters: List[VariantFilter]):
+    def filter_worker(self, variant_ids, variant_filters):
+        """
+        Multiprocessing worker function for identifying variant IDs to remove.
+
+        Parameters
+        ----------
+        variant_ids             :   List of variant IDs.
+        variant_filters         :   List of instances of the VariantFilter class.
+
+        Returns
+        -------
+        variant_ids_to_remove   :   List of variant IDs.
+        """
+        variant_ids_to_remove = set()
+        for variant_id in variant_ids:
+            for variant_filter in variant_filters:
+                if not variant_filter.is_predicate(variant=self.variants[variant_id]):
+                    variant_ids_to_remove.add(variant_id)
+        return list(variant_ids_to_remove)
+
+    def filter(
+            self,
+            variant_filters: List[VariantFilter],
+            num_processes: int
+        ):
         """
         Applies a filter condition to self.variants
 
         Parameters
         ----------
-        variant_call_filters :   A list of instances of the VariantCallFilter class.
+        variant_call_filters    :   A list of instances of the VariantCallFilter class.
+        num_processes           :   Number of cores.
         """
-        # Step 1. Identify variants to remove
-        variant_ids_to_remove = set()
-        for variant_filter in variant_filters:
-            for variant in self.variants:
-                if not variant_filter.is_predicate(variant=variant):
-                    variant_ids_to_remove.add(variant.id)
+        variant_ids_list = np.array_split([str(id) for id in list(self.variant_ids)], num_processes)
+        pool = mp.Pool(processes=num_processes)
+        async_results = [pool.apply_async(self.filter_worker, args=(variant_ids, variant_filters)) for variant_ids in variant_ids_list]
+        pool.close()
+        pool.join()
+        variant_ids_to_remove = [ar.get() for ar in async_results]
+        for curr_list in variant_ids_to_remove:
+            for variant_id in curr_list:
+                del self.variants[variant_id]
+
+        # # Step 1. Identify variants to remove
+        # variant_ids_to_remove = set()
+        # for variant in self.variants.values():
+        #     for variant_filter in variant_filters:
+        #         if not variant_filter.is_predicate(variant=variant):
+        #             variant_ids_to_remove.add(variant.id)
 
         # Step 2. Remove variants
-        variants = []
-        for variant in self.variants:
-            if variant.id not in variant_ids_to_remove:
-                variants.append(variant)
-        self.variants = variants
+        # for variant_id in variant_ids_to_remove:
+        #     del self.variants[variant_id]
 
     def filter_regions(
             self,
@@ -324,11 +360,10 @@ class VariantsList:
         df_excluded_regions['chr_2'] = df_excluded_regions['chrom']
 
         # Step 2. Filter variant calls
-        variants = []
-        for variant in self.variants:
-            # Identify variant call IDs to remove
-            variant_call_ids_to_remove = set()
-            for variant_call in variant.variant_calls:
+        variant_call_ids_to_remove = set()
+        for variant in self.variants.values():
+            # Identify variant calls to remove
+            for variant_call in variant.variant_calls.values():
                 pos_1_overlaps = overlaps_any(
                     df=df_excluded_regions,
                     chrom=variant_call.chr_1,
@@ -342,23 +377,23 @@ class VariantsList:
                     end=variant_call.pos_2
                 )
                 if pos_1_overlaps or pos_2_overlaps:
-                    variant_call_ids_to_remove.add(variant_call.id)
+                    variant_call_ids_to_remove.add((variant.id, variant_call.id))
 
-            variant_ = Variant()
-            variant_.id = variant.id
-            for variant_call in variant.variant_calls:
-                if variant_call.id not in variant_call_ids_to_remove:
-                    variant_.variant_calls.append(variant_call)
-            if len(variant_.variant_calls) > 0:
-                variants.append(variant_)
+        # Remove variant calls
+        for ids in variant_call_ids_to_remove:
+            del self.variants[ids[0]].variant_calls[ids[1]]
 
-        self.variants = variants
+        # Remove variant if there isn't any variant call
+        for ids in variant_call_ids_to_remove:
+            if ids[0] in self.variants.keys():
+                if self.variants[ids[0]].size == 0:
+                    del self.variants[ids[0]]
 
     def filter_variants(
             self,
             df_excluded_variants: pd.DataFrame,
             excluded_variant_padding: int,
-            enforce_variant_type_checking: bool
+            enforce_variant_type_matching: bool
         ):
         """
         Filters variant calls that are near excluded variants.
@@ -368,7 +403,7 @@ class VariantsList:
         df_excluded_variants            :   DataFrame. Expected columns are:
                                             'chr_1', 'pos_1', 'chr_2', 'pos_2'
         excluded_variant_padding        :   Number of bases to pad each excluded variant.
-        enforce_variant_type_checking   :   Enforce variant type checking.
+        enforce_variant_type_matching   :   Enforce variant type checking.
         """
         # Step 1. Apply padding to excluded variants
         df_excluded_variants['pos_1_start'] = df_excluded_variants.apply(
@@ -385,31 +420,29 @@ class VariantsList:
         )
 
         # Step 2. Filter variants
-        variants = []
-        for variant in self.variants:
-            # Identify variant call IDs to remove
-            variant_call_ids_to_remove = set()
-            for variant_call in variant.variant_calls:
-                if enforce_variant_type_checking:
-                    query_variant_type = VariantTypes.QueryTypeDictionary[variant_call.variant_type]
+        variant_call_ids_to_remove = set()
+        for variant in self.variants.values():
+            for variant_call in variant.variant_calls.values():
+                if enforce_variant_type_matching:
+                    query_variant_types = VariantTypes.QueryTypeDictionary[variant_call.variant_type]
                     conditions = \
                         ((df_excluded_variants['chr_1'] == variant_call.chr_1) &
                          (df_excluded_variants['pos_1_start'] <= variant_call.pos_1) &
                          (df_excluded_variants['pos_1_end'] >= variant_call.pos_1) &
-                         (df_excluded_variants['variant_type'].isin(query_variant_type))) | \
+                         (df_excluded_variants['variant_type'].isin(query_variant_types))) | \
                         ((df_excluded_variants['chr_2'] == variant_call.chr_1) &
                          (df_excluded_variants['pos_2_start'] <= variant_call.pos_1) &
                          (df_excluded_variants['pos_2_end'] >= variant_call.pos_1) &
-                         (df_excluded_variants['variant_type'].isin(query_variant_type))) | \
+                         (df_excluded_variants['variant_type'].isin(query_variant_types))) | \
                         ((df_excluded_variants['chr_1'] == variant_call.chr_2) &
                          (df_excluded_variants['pos_1_start'] <= variant_call.pos_2) &
                          (df_excluded_variants['pos_1_end'] >= variant_call.pos_2) &
-                         (df_excluded_variants['variant_type'].isin(query_variant_type))) | \
+                         (df_excluded_variants['variant_type'].isin(query_variant_types))) | \
                         ((df_excluded_variants['chr_2'] == variant_call.chr_2) &
                          (df_excluded_variants['pos_2_start'] <= variant_call.pos_2) &
                          (df_excluded_variants['pos_2_end'] >= variant_call.pos_2) &
-                         (df_excluded_variants['variant_type'].isin(query_variant_type)))
-                    df_matched = df_excluded_variants[conditions]
+                         (df_excluded_variants['variant_type'].isin(query_variant_types)))
+                    df_matched = df_excluded_variants.loc[conditions,:]
                 else:
                     conditions = \
                         ((df_excluded_variants['chr_1'] == variant_call.chr_1) &
@@ -424,24 +457,26 @@ class VariantsList:
                         ((df_excluded_variants['chr_2'] == variant_call.chr_2) &
                          (df_excluded_variants['pos_2_start'] <= variant_call.pos_2) &
                          (df_excluded_variants['pos_2_end'] >= variant_call.pos_2))
-                    df_matched = df_excluded_variants[conditions]
+                    df_matched = df_excluded_variants.loc[conditions,:]
                 if len(df_matched) > 0:
-                    variant_call_ids_to_remove.add(variant_call.id)
+                    variant_call_ids_to_remove.add((variant.id, variant_call.id))
 
-            variant_ = Variant()
-            variant_.id = variant.id
-            for variant_call in variant.variant_calls:
-                if variant_call.id not in variant_call_ids_to_remove:
-                    variant_.variant_calls.append(variant_call)
-            if len(variant_.variant_calls) > 0:
-                variants.append(variant_)
-        self.variants = variants
+        # Step 3. Remove variant calls
+        for ids in variant_call_ids_to_remove:
+            del self.variants[ids[0]].variant_calls[ids[1]]
+
+        # Step 4. Remove variant if there isn't any variant call
+        for ids in variant_call_ids_to_remove:
+            if ids[0] in self.variants.keys():
+                if self.variants[ids[0]].size == 0:
+                    del self.variants[ids[0]]
 
     def to_dict(self) -> Dict:
         data = defaultdict(list)
-        for variant in self.variants:
-            for key, value in variant.to_dict().items():
-                data[key].append(value[0])
+        for variant in self.variants.values():
+            for key, values in variant.to_dict().items():
+                for value in values:
+                    data[key].append(value)
         return data
 
     def to_dataframe(self) -> pd.DataFrame:

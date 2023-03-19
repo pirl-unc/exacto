@@ -49,23 +49,29 @@ class VariantFilter:
         """
         if self.quantifier == VariantFilterQuantifiers.ALL:
             query = '%s %s %s' % (self.attribute, self.operator, self.value)
-            for variant_call in variant.variant_calls:
+            for variant_call in variant.variant_calls.values():
                 df_variant_call = variant_call.to_dataframe()
-                df_variant_call_match = df_variant_call.query(query)
-                if len(df_variant_call_match) == 0:
+                try:
+                    df_variant_call_match = df_variant_call.query(query)
+                    if len(df_variant_call_match) == 0:
+                        return False
+                except:
                     return False
             return True
         elif self.quantifier == VariantFilterQuantifiers.ANY:
             query = '%s %s %s' % (self.attribute, self.operator, self.value)
-            for variant_call in variant.variant_calls:
+            for variant_call in variant.variant_calls.values():
                 df_variant_call = variant_call.to_dataframe()
-                df_variant_call_match = df_variant_call.query(query)
-                if len(df_variant_call_match) > 0:
-                    return True
+                try:
+                    df_variant_call_match = df_variant_call.query(query)
+                    if len(df_variant_call_match) > 0:
+                        return True
+                except:
+                    pass
             return False
         elif self.quantifier == VariantFilterQuantifiers.AVERAGE:
             attribute_values = []
-            for variant_call in variant.variant_calls:
+            for variant_call in variant.variant_calls.values():
                 df_variant_call = variant_call.to_dataframe()
                 attribute_values.append(df_variant_call[self.attribute].values.tolist()[0])
             summarized_value = np.mean(attribute_values)
@@ -82,7 +88,7 @@ class VariantFilter:
                 exit(1)
         elif self.quantifier == VariantFilterQuantifiers.MEDIAN:
             attribute_values = []
-            for variant_call in variant.variant_calls:
+            for variant_call in variant.variant_calls.values():
                 df_variant_call = variant_call.to_dataframe()
                 attribute_values.append(df_variant_call[self.attribute].values.tolist()[0])
             summarized_value = np.median(attribute_values)

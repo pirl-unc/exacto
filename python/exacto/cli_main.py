@@ -53,12 +53,21 @@ def init_arg_parser():
 def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
-    sub_parsers = add_cli_convert_arg_parser(sub_parsers=sub_parsers)                     # convert
+    sub_parsers = add_cli_convert_arg_parser(sub_parsers=sub_parsers)           # convert
+    sub_parsers = add_cli_merge_arg_parser(sub_parsers=sub_parsers)             # merge
+    sub_parsers = add_cli_filter_arg_parser(sub_parsers=sub_parsers)            # filter
+    sub_parsers = add_cli_annotate_arg_parser(sub_parsers=sub_parsers)          # annotate
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
     if args.which == 'convert':
         run_cli_convert_from_parsed_args(args=args)
+    elif args.which == 'merge':
+        run_cli_merge_from_parsed_args(args=args)
+    elif args.which == 'filter':
+        run_cli_filter_from_parsed_args(args=args)
+    elif args.which == 'annotate':
+        run_cli_annotate_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)
 
