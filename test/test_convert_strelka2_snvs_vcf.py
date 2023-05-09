@@ -1,5 +1,5 @@
 from .data import get_data_path
-from exacto.main import run_exacto_convert
+from exacto.main import run_exacto_convert_vcf
 from exacto.constants import *
 
 
@@ -8,13 +8,11 @@ def test_convert_strelka2_snvs_vcf():
     vcf_file = get_data_path(name='hg002_hg001_strelka2_snvs.vcf')
 
     # Step 2. Convert
-    variants_list = run_exacto_convert(
+    variants_list = run_exacto_convert_vcf(
         vcf_file=vcf_file,
         source_id='hg002',
-        variant_calling_method=VariantCallingMethods.STRELKA2_SOMATIC,
-        sequencing_platform='pacbio',
-        tumor_sample_id='hg002',
-        normal_sample_id='hg001'
+        variant_calling_method=VariantCallingMethods.STRELKA2,
+        sequencing_platform='pacbio'
     )
 
     # Step 3. Write to file

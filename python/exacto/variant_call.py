@@ -16,89 +16,100 @@ The purpose of this python3 script is to implement the VariantCall class.
 """
 
 
+import string
+import random
 import pandas as pd
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, ClassVar
+from functools import total_ordering
+from .nucleotide_sequence import NucleotideSequence
 from .variant_annotation import VariantAnnotation
 
 
-@dataclass
+@total_ordering
+@dataclass(frozen=True)
 class VariantCall:
-    id: str = None
+    id: str
     source_id: str = None
-    tumor_sample_id: str = None
-    normal_sample_id: str = None
+    sample_id: str = None
     nucleic_acid: str = None
     variant_calling_method: str = None
     sequencing_platform: str = None
-    chr_1: str = None
-    pos_1: int = None
-    chr_2: str = None
-    pos_2: int = None
-    ref: str = None
-    alt: str = None
+    chromosome_1: str = None
+    position_1: int = None
+    chromosome_2: str = None
+    position_2: int = None
+    reference_allele: str = None
+    alternate_allele: str = None
     filter: str = None
     quality_score: float = None
     precise: bool = None
     variant_type: str = None
     variant_subtype: str = None
     variant_size: int = None
-    variant_sequences: List[str] = field(default_factory=list)
-    total_tumor_reads: int = None
-    ref_tumor_reads: int = None
-    alt_tumor_reads: int = None
-    other_tumor_reads: int = None
-    alt_tumor_fraction: float = None
-    total_normal_reads: int = None
-    ref_normal_reads: int = None
-    alt_normal_reads: int = None
-    other_normal_reads: int = None
-    alt_normal_fraction: float = None
-    alt_tumor_read_ids: List[str] = field(default_factory=list)
-    alt_normal_read_ids: List[str] = field(default_factory=list)
-    alt_tumor_softclip_direction: str = None                                    # ++, +-, -+, --    <pos_1,pos_2>
-    alt_normal_softclip_direction: str = None                                   # ++, +-, -+, --    <pos_1,pos_2>
-    tool_attributes: OrderedDict = field(default_factory=dict)
-    pos_1_annotations: List[VariantAnnotation] = field(default_factory=list)
-    pos_2_annotations: List[VariantAnnotation] = field(default_factory=list)
+    variant_sequences: List[NucleotideSequence] = field(default_factory=list, repr=False)
+    total_read_count: int = None
+    reference_allele_read_count: int = None
+    alternate_allele_read_count: int = None
+    alternate_allele_fraction: float = None
+    alternate_allele_read_ids: List[str] = field(default_factory=list)
+    alternate_allele_softclip_direction: str = None    # ++, +-, -+, --    <pos_1,pos_2>
+    tool_attributes: OrderedDict = field(default_factory=dict, repr=False, compare=False)
+    position_1_annotations: List[VariantAnnotation] = field(default_factory=list, repr=False, compare=False)
+    position_2_annotations: List[VariantAnnotation] = field(default_factory=list, repr=False, compare=False)
+
+    def __lt__(self, other):
+        if isinstance(other, VariantCall):
+            return (self.chromosome_1,
+                    self.position_1,
+                    self.chromosome_2,
+                    self.position_2) < \
+                   (other.chromosome_1,
+                    other.position_1,
+                    other.chromosome_2,
+                    other.position_2)
+        return NotImplemented
+
+    def __eq__(self, other):
+        if isinstance(other, VariantCall):
+            return (self.chromosome_1,
+                    self.position_1,
+                    self.chromosome_2,
+                    self.position_2) == \
+                   (other.chromosome_1,
+                    other.position_1,
+                    other.chromosome_2,
+                    other.position_2)
+        return NotImplemented
 
     def to_dict(self) -> Dict:
         data = {
             'variant_call_id': ['' if self.id is None else self.id],
             'source_id': ['' if self.source_id is None else self.source_id],
-            'tumor_sample_id': ['' if self.tumor_sample_id is None else self.tumor_sample_id],
-            'normal_sample_id': ['' if self.normal_sample_id is None else self.normal_sample_id],
+            'sample_id': ['' if self.sample_id is None else self.sample_id],
             'nucleic_acid': ['' if self.nucleic_acid is None else self.nucleic_acid],
             'variant_calling_method': ['' if self.variant_calling_method is None else self.variant_calling_method],
             'sequencing_platform': ['' if self.sequencing_platform is None else self.sequencing_platform],
-            'chr_1': ['' if self.chr_1 is None else self.chr_1],
-            'pos_1': ['' if self.pos_1 is None else self.pos_1],
-            'chr_2': ['' if self.chr_2 is None else self.chr_2],
-            'pos_2': ['' if self.pos_2 is None else self.pos_2],
-            'ref': ['' if self.ref is None else self.ref],
-            'alt': ['' if self.alt is None else self.alt],
+            'chromosome_1': ['' if self.chromosome_1 is None else self.chromosome_1],
+            'position_1': ['' if self.position_1 is None else self.position_1],
+            'chromosome_2': ['' if self.chromosome_2 is None else self.chromosome_2],
+            'position_2': ['' if self.position_2 is None else self.position_2],
+            'reference_allele': ['' if self.reference_allele is None else self.reference_allele],
+            'alternate_allele': ['' if self.alternate_allele is None else self.alternate_allele],
             'filter': ['' if self.filter is None else self.filter],
             'quality_score': ['' if self.quality_score is None else self.quality_score],
             'precise': ['' if self.precise is None else self.precise],
             'variant_type': ['' if self.variant_type is None else self.variant_type],
             'variant_subtype': ['' if self.variant_subtype is None else self.variant_subtype],
             'variant_size': ['' if self.variant_size is None else self.variant_size],
-            'variant_sequences': [';'.join(self.variant_sequences)],
-            'total_tumor_reads': ['' if self.total_tumor_reads is None else self.total_tumor_reads],
-            'ref_tumor_reads': ['' if self.ref_tumor_reads is None else self.ref_tumor_reads],
-            'alt_tumor_reads': ['' if self.alt_tumor_reads is None else self.alt_tumor_reads],
-            'other_tumor_reads': ['' if self.other_tumor_reads is None else self.other_tumor_reads],
-            'alt_tumor_fraction': ['' if self.alt_tumor_fraction is None else self.alt_tumor_fraction],
-            'total_normal_reads': ['' if self.total_normal_reads is None else self.total_normal_reads],
-            'ref_normal_reads': ['' if self.ref_normal_reads is None else self.ref_normal_reads],
-            'alt_normal_reads': ['' if self.alt_normal_reads is None else self.alt_normal_reads],
-            'other_normal_reads': ['' if self.other_normal_reads is None else self.other_normal_reads],
-            'alt_normal_fraction': ['' if self.alt_normal_fraction is None else self.alt_normal_fraction],
-            'alt_tumor_read_ids': [';'.join(self.alt_tumor_read_ids)],
-            'alt_normal_read_ids': [';'.join(self.alt_normal_read_ids)],
-            'alt_tumor_softclip_direction': ['' if self.alt_tumor_softclip_direction is None else self.alt_tumor_softclip_direction],
-            'alt_normal_softclip_direction': ['' if self.alt_normal_softclip_direction is None else self.alt_normal_softclip_direction],
+            'variant_sequences': [';'.join([i.sequence for i in self.variant_sequences])],
+            'total_read_count': ['' if self.total_read_count is None else self.total_read_count],
+            'reference_allele_read_count': ['' if self.reference_allele_read_count is None else self.reference_allele_read_count],
+            'alternate_allele_read_count': ['' if self.alternate_allele_read_count is None else self.alternate_allele_read_count],
+            'alternate_allele_fraction': ['' if self.alternate_allele_fraction is None else self.alternate_allele_fraction],
+            'alternate_allele_read_ids': [';'.join(self.alternate_allele_read_ids)],
+            'alternate_allele_softclip_direction': ['' if self.alternate_allele_softclip_direction is None else self.alternate_allele_softclip_direction]
         }
 
         tool_attributes = []
@@ -119,7 +130,7 @@ class VariantCall:
         pos_1_annotation_gene_type = []
         pos_1_annotation_gene_level = []
         pos_1_annotation_gene_version = []
-        for i in self.pos_1_annotations:
+        for i in self.position_1_annotations:
             pos_1_annotation_chrom.append(str(i.chrom))
             pos_1_annotation_pos.append(str(i.pos))
             pos_1_annotation_region.append(str(i.region))
@@ -147,7 +158,7 @@ class VariantCall:
         pos_2_annotation_gene_type = []
         pos_2_annotation_gene_level = []
         pos_2_annotation_gene_version = []
-        for i in self.pos_2_annotations:
+        for i in self.position_2_annotations:
             pos_2_annotation_chrom.append(str(i.chrom))
             pos_2_annotation_pos.append(str(i.pos))
             pos_2_annotation_region.append(str(i.region))
@@ -162,33 +173,33 @@ class VariantCall:
             pos_2_annotation_gene_level.append('' if i.gene is None else str(i.gene.level))
             pos_2_annotation_gene_version.append('' if i.gene is None else str(i.gene.version))
 
-        data['pos_1_annotation_chrom'] = [';'.join(pos_1_annotation_chrom)]
-        data['pos_1_annotation_pos'] = [';'.join(pos_1_annotation_pos)]
-        data['pos_1_annotation_region'] = [';'.join(pos_1_annotation_region)]
-        data['pos_1_annotation_gene_id'] = [';'.join(pos_1_annotation_gene_id)]
-        data['pos_1_annotation_gene_source'] = [';'.join(pos_1_annotation_gene_source)]
-        data['pos_1_annotation_gene_name'] = [';'.join(pos_1_annotation_gene_name)]
-        data['pos_1_annotation_gene_chromosome'] = [';'.join(pos_1_annotation_gene_chromosome)]
-        data['pos_1_annotation_gene_start'] = [';'.join(pos_1_annotation_gene_start)]
-        data['pos_1_annotation_gene_end'] = [';'.join(pos_1_annotation_gene_end)]
-        data['pos_1_annotation_gene_strand'] = [';'.join(pos_1_annotation_gene_strand)]
-        data['pos_1_annotation_gene_type'] = [';'.join(pos_1_annotation_gene_type)]
-        data['pos_1_annotation_gene_level'] = [';'.join(pos_1_annotation_gene_level)]
-        data['pos_1_annotation_gene_version'] = [';'.join(pos_1_annotation_gene_version)]
+        data['position_1_annotation_chromosome'] = [';'.join(pos_1_annotation_chrom)]
+        data['position_1_annotation_position'] = [';'.join(pos_1_annotation_pos)]
+        data['position_1_annotation_region'] = [';'.join(pos_1_annotation_region)]
+        data['position_1_annotation_gene_id'] = [';'.join(pos_1_annotation_gene_id)]
+        data['position_1_annotation_gene_source'] = [';'.join(pos_1_annotation_gene_source)]
+        data['position_1_annotation_gene_name'] = [';'.join(pos_1_annotation_gene_name)]
+        data['position_1_annotation_gene_chromosome'] = [';'.join(pos_1_annotation_gene_chromosome)]
+        data['position_1_annotation_gene_start'] = [';'.join(pos_1_annotation_gene_start)]
+        data['position_1_annotation_gene_end'] = [';'.join(pos_1_annotation_gene_end)]
+        data['position_1_annotation_gene_strand'] = [';'.join(pos_1_annotation_gene_strand)]
+        data['position_1_annotation_gene_type'] = [';'.join(pos_1_annotation_gene_type)]
+        data['position_1_annotation_gene_level'] = [';'.join(pos_1_annotation_gene_level)]
+        data['position_1_annotation_gene_version'] = [';'.join(pos_1_annotation_gene_version)]
 
-        data['pos_2_annotation_chrom'] = [';'.join(pos_2_annotation_chrom)]
-        data['pos_2_annotation_pos'] = [';'.join(pos_2_annotation_pos)]
-        data['pos_2_annotation_region'] = [';'.join(pos_2_annotation_region)]
-        data['pos_2_annotation_gene_id'] = [';'.join(pos_2_annotation_gene_id)]
-        data['pos_2_annotation_gene_source'] = [';'.join(pos_2_annotation_gene_source)]
-        data['pos_2_annotation_gene_name'] = [';'.join(pos_2_annotation_gene_name)]
-        data['pos_2_annotation_gene_chromosome'] = [';'.join(pos_2_annotation_gene_chromosome)]
-        data['pos_2_annotation_gene_start'] = [';'.join(pos_2_annotation_gene_start)]
-        data['pos_2_annotation_gene_end'] = [';'.join(pos_2_annotation_gene_end)]
-        data['pos_2_annotation_gene_strand'] = [';'.join(pos_2_annotation_gene_strand)]
-        data['pos_2_annotation_gene_type'] = [';'.join(pos_2_annotation_gene_type)]
-        data['pos_2_annotation_gene_level'] = [';'.join(pos_2_annotation_gene_level)]
-        data['pos_2_annotation_gene_version'] = [';'.join(pos_2_annotation_gene_version)]
+        data['position_2_annotation_chrom'] = [';'.join(pos_2_annotation_chrom)]
+        data['position_2_annotation_pos'] = [';'.join(pos_2_annotation_pos)]
+        data['position_2_annotation_region'] = [';'.join(pos_2_annotation_region)]
+        data['position_2_annotation_gene_id'] = [';'.join(pos_2_annotation_gene_id)]
+        data['position_2_annotation_gene_source'] = [';'.join(pos_2_annotation_gene_source)]
+        data['position_2_annotation_gene_name'] = [';'.join(pos_2_annotation_gene_name)]
+        data['position_2_annotation_gene_chromosome'] = [';'.join(pos_2_annotation_gene_chromosome)]
+        data['position_2_annotation_gene_start'] = [';'.join(pos_2_annotation_gene_start)]
+        data['position_2_annotation_gene_end'] = [';'.join(pos_2_annotation_gene_end)]
+        data['position_2_annotation_gene_strand'] = [';'.join(pos_2_annotation_gene_strand)]
+        data['position_2_annotation_gene_type'] = [';'.join(pos_2_annotation_gene_type)]
+        data['position_2_annotation_gene_level'] = [';'.join(pos_2_annotation_gene_level)]
+        data['position_2_annotation_gene_version'] = [';'.join(pos_2_annotation_gene_version)]
         return data
 
     def to_dataframe(self) -> pd.DataFrame:

@@ -18,12 +18,13 @@ The purpose of this python3 script is to implement the primary Exacto command.
 
 import argparse
 import exacto
-from exacto.logging import get_logger
+from .logging import get_logger
 from .cli_annotate import *
-from .cli_convert import *
-from .cli_merge import *
-from .cli_filter import *
+from .cli_call_variants import *
+from .cli_filter_variants import *
+from .cli_merge_variant_calls import *
 from .cli_sim_reads import *
+from .cli_convert_vcf_to_tsv import *
 
 
 logger = get_logger(__name__)
@@ -31,12 +32,12 @@ logger = get_logger(__name__)
 
 def init_arg_parser():
     """
-    Initializes the input argument parser.
+    Initialize the input argument parser.
 
     Returns
     -------
-    An instance of argparse.ArgumentParser
-    An instance of argparse.ArgumentParser subparsers
+    argparse.ArgumentParser object
+    argparse.ArgumentParser subparsers object
     """
     arg_parser = argparse.ArgumentParser(
         description="Exacto: EXtracting And Counting Transcripts in Oncology."
@@ -53,42 +54,26 @@ def init_arg_parser():
 def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
-    sub_parsers = add_cli_convert_arg_parser(sub_parsers=sub_parsers)           # convert
-    sub_parsers = add_cli_merge_arg_parser(sub_parsers=sub_parsers)             # merge
-    sub_parsers = add_cli_filter_arg_parser(sub_parsers=sub_parsers)            # filter
-    sub_parsers = add_cli_annotate_arg_parser(sub_parsers=sub_parsers)          # annotate
+    sub_parsers = add_cli_convert_vcf_to_tsv_arg_parser(sub_parsers=sub_parsers)    # convert-vcf-to-tsv
+    sub_parsers = add_cli_merge_variant_calls_arg_parser(sub_parsers=sub_parsers)   # merge-variant-calls
+    sub_parsers = add_cli_filter_variants_arg_parser(sub_parsers=sub_parsers)       # filter-variants
+    sub_parsers = add_cli_annotate_arg_parser(sub_parsers=sub_parsers)              # annotate
+    sub_parsers = add_cli_call_variants_arg_parser(sub_parsers=sub_parsers)         # call-variants
+    sub_parsers = add_cli_simulate_reads_arg_parser(sub_parsers=sub_parsers)        # sim-reads
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
-    if args.which == 'convert':
-        run_cli_convert_from_parsed_args(args=args)
-    elif args.which == 'merge':
-        run_cli_merge_from_parsed_args(args=args)
-    elif args.which == 'filter':
-        run_cli_filter_from_parsed_args(args=args)
+    if args.which == 'convert-vcf-to-tsv':
+        run_cli_convert_vcf_to_tsv_from_parsed_args(args=args)
+    elif args.which == 'merge-variant-calls':
+        run_cli_merge_variant_calls_from_parsed_args(args=args)
+    elif args.which == 'filter-variants':
+        run_cli_filter_variants_from_parsed_args(args=args)
     elif args.which == 'annotate':
         run_cli_annotate_from_parsed_args(args=args)
+    elif args.which == 'call-variants':
+        run_cli_call_variants_from_parsed_args(args=args)
+    elif args.which == 'sim-reads':
+        run_cli_sim_reads_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)
-
-    # if args.which == 'identify':
-    #     run_exacto_identify_from_parsed_args(args=args)
-    # elif args.which == 'graph':
-    #     a = 1
-    # elif args.which == 'quantify':
-    #     a = 1
-    # elif args.which == 'convert':
-    #     run_exacto_convert_from_parsed_args(args=args)
-    # # elif args.which == 'refine':
-    # #     run_exacto_refine_from_parsed_args(args=args)
-    # elif args.which == 'annotate':
-    #     run_exacto_annotate_from_parsed_args(args=args)
-    # elif args.which == 'merge':
-    #     run_exacto_merge_from_parsed_args(args=args)
-    # elif args.which == 'sim-rna-variants':
-    #     run_exacto_sim_rna_variants_from_parsed_args(args=args)
-    # elif args.which == 'sim-reads':
-    #     run_exacto_sim_reads_from_parsed_args(args=args)
-    # else:
-    #     raise Exception("Invalid command: %s" % args.which)
-

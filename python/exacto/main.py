@@ -17,31 +17,38 @@ The purpose of this python3 script is to implement Exacto's main APIs.
 
 
 import pandas as pd
+import pysam
+from dataclasses import dataclass, field
 from typing import List
 from exacto import exactors
-from .vcf import read_vcf_file
+from .alignment import Alignment
 from .annotation import Annotation
+from .constants import VariantCallingMethods
+from .default_parameters import *
 from .ensembl import Ensembl
+from .fasta import Sequence
+from .gene_set import GeneSet
 from .gencode import Gencode
+from .genomic_ranges_list import  GenomicRangesList
+from .logging import get_logger
+from .simulation_reads import simulate_single_end_reads
+from .variant_calling import call_rna_variants
 from .variant_filter import VariantFilter
 from .variants_list import VariantsList
-from .logging import get_logger
-from .default_parameters import *
+from .vcf import Vcf
 
 
 logger = get_logger(__name__)
 
 
-def run_exacto_convert(
+def run_exacto_convert_vcf(
         vcf_file: str,
         source_id: str,
         variant_calling_method: str,
-        sequencing_platform: str,
-        tumor_sample_id: str,
-        normal_sample_id: str
+        sequencing_platform: str
     ) -> VariantsList:
     """
-    Converts a VCF file to a VariantsList.
+    Convert a VCF file to a VariantsList.
 
     Parameters
     ----------
@@ -49,163 +56,238 @@ def run_exacto_convert(
     source_id               :   Source ID (e.g. patient ID or cell line sample ID).
     variant_calling_method  :   Variant calling method.
     sequencing_platform     :   Sequencing platform.
-    tumor_sample_id         :   Tumor sample ID.
-    normal_sample_id        :   Normal sample ID.
 
     Returns
     -------
-    variants_list           :   An instance of the class VariantsList.
+    variants_list           :   VariantsList object.
     """
-    variants_list = read_vcf_file(
-        vcf_file=vcf_file,
-        variant_calling_method=variant_calling_method,
-        sequencing_platform=sequencing_platform,
-        source_id=source_id,
-        tumor_sample_id=tumor_sample_id,
-        normal_sample_id=normal_sample_id
-    )
+    df_vcf = Vcf.read_vcf_file(vcf_file=vcf_file)
+    if variant_calling_method == VariantCallingMethods.CUTESV:
+        variants_list = Vcf.parse_cutesv_callset(
+            df_vcf=df_vcf,
+            sequencing_platform=sequencing_platform,
+            source_id=source_id
+        )
+    elif variant_calling_method == VariantCallingMethods.DEEPVARIANT:
+        variants_list = Vcf.parse_deepvariant_callset(
+            df_vcf=df_vcf,
+            sequencing_platform=sequencing_platform,
+            source_id=source_id
+        )
+    elif variant_calling_method == VariantCallingMethods.GATK4_MUTECT2:
+        variants_list = Vcf.parse_gatk4_mutect2_callset(
+            df_vcf=df_vcf,
+            sequencing_platform=sequencing_platform,
+            source_id=source_id
+        )
+    elif variant_calling_method == VariantCallingMethods.PBSV:
+        variants_list = Vcf.parse_pbsv_callset(
+            df_vcf=df_vcf,
+            sequencing_platform=sequencing_platform,
+            source_id=source_id
+        )
+    elif variant_calling_method == VariantCallingMethods.SNIFFLES2:
+        variants_list = Vcf.parse_sniffles2_callset(
+            df_vcf=df_vcf,
+            sequencing_platform=sequencing_platform,
+            source_id=source_id
+        )
+    elif variant_calling_method == VariantCallingMethods.STRELKA2:
+        variants_list = Vcf.parse_strelka2_callset(
+            df_vcf=df_vcf,
+            sequencing_platform=sequencing_platform,
+            source_id=source_id
+        )
+    elif variant_calling_method == VariantCallingMethods.SVIM:
+        variants_list = Vcf.parse_svim_callset(
+            df_vcf=df_vcf,
+            sequencing_platform=sequencing_platform,
+            source_id=source_id
+        )
+    else:
+        raise Exception('Unsupported variant calling method: %s' % variant_calling_method)
     return variants_list
 
 
-def run_exacto_merge(
+def run_exacto_merge_variant_calls(
         variants_lists: List[VariantsList],
-        enforce_variant_type_matching: bool = True,
-        max_neighbor_distance: int = MAX_NEIGHBOR_DISTANCE,
+        max_neighbor_distance: int = MERGE_MAX_NEIGHBOR_DISTANCE,
     ) -> VariantsList:
     """
-    Merges a list of variant.
+    Merges VariantsList objects into one.
 
     Parameters
     ----------
-    variants_lists                  :   List of instances of the VariantsList class.
-    enforce_variant_type_matching   :   If true, variant_type must match for two VariantCalls
-                                        to be in the same Variant.
+    variants_lists                  :   List of VariantsList objects.
     max_neighbor_distance           :   Maximum neighbor distance.
 
     Returns
     -------
-    variants_list                   :   An instance of the VariantsList class.
+    variants_list                   :   VariantsList object.
     """
     variants_list = VariantsList.merge(
         variants_lists=variants_lists,
-        enforce_variant_type_matching=enforce_variant_type_matching,
         max_neighbor_distance=max_neighbor_distance
     )
     return variants_list
 
 
-def run_exacto_filter(
+def run_exacto_filter_variants(
         variants_list: VariantsList,
-        df_excluded_variants: pd.DataFrame,
-        df_excluded_regions: pd.DataFrame,
-        variant_filters: List[VariantFilter],
-        excluded_region_padding: int = EXCLUDED_REGION_PADDING,
-        excluded_variant_padding: int = EXCLUDED_VARIANT_PADDING,
-        enforce_variant_type_matching: bool = ENFORCE_VARIANT_TYPE_MATCHING,
-        num_processes: int = NUM_PROCESSES_FILTER
-    ) -> VariantsList:
+        variant_filters: List[VariantFilter] = field(default_factory=list),
+        excluded_variants_list: VariantsList = None,
+        excluded_regions_list: GenomicRangesList = None,
+        excluded_variants_padding: int = FILTER_VARIANTS_EXCLUDED_VARIANT_PADDING,
+        excluded_regions_padding: int = FILTER_VARIANTS_EXCLUDED_REGION_PADDING,
+        num_processes: int = FILTER_VARIANTS_NUM_PROCESSES
+) -> VariantsList:
     """
-    Filters a variants list.
+    Filters a VariantsList object.
 
     Parameters
     ----------
-    variants_list                   :   An instance of the VariantsList class.
-    df_excluded_variants            :   DataFrame. Expected columns:
-                                        'chr_1', 'pos_1', 'chr_2', 'pos_2'
-    df_excluded_regions             :   DataFrame. Expected columns:
-                                        'chrom', 'chromStart', 'chromEnd'
-    variant_filters                 :   List of instances of the VariantFilter class.
-    excluded_region_padding         :   Number of bases to pad each region to exclude.
-    excluded_variant_padding        :   Number of bases to pad each variant's positions 1 and 2.
-    enforce_variant_type_matching   :   Enforce variant type matching.
-    num_processes                   :   Number of processes.
+    variants_list               :   VariantsList object.
+    variant_filters             :   List of VariantFilter objects.
+    excluded_variants_list      :   VariantsList object of variants to exclude.
+    excluded_regions_list       :   GenomicRangesList object of regions to exclude.
+    excluded_variants_padding   :   Number of bases to pad each variant's positions 1 and 2.
+    excluded_regions_padding    :   Number of bases to pad each region to exclude.
+    num_processes               :   Number of processes.
 
     Returns
     -------
-    variants_list                   :   An instance of the VariantsList class.
+    variants_list               :   VariantsList object.
     """
-    logger.info('%i variants in the original list before filtering.' % len(variants_list.variant_ids))
-    logger.info('%i variant calls in the original list before filtering.' % len(variants_list.variant_call_ids))
+    logger.info('%i variants in the original list before any filtering.' % variants_list.size)
+    logger.info('%i variant calls in the original list before any filtering.' % len(variants_list.variant_call_ids))
 
-    # Step .1 Filter out variants based on variant filters
+    # Step 1. Filter out variants based on VariantFilter
     if len(variant_filters) > 0:
-        variants_list.filter(
+        variants = variants_list.filter(
             variant_filters=variant_filters,
-            num_processes=num_processes
+            num_processes=num_processes,
         )
-        logger.info('%i variants remain after applying variant filters.' % len(variants_list.variant_ids))
+        variant_ids = [variant.id for variant in variants]
+        for variant in variants_list.variants:
+            if variant.id not in variant_ids:
+                variants_list.remove_by_id(id=variant.id)
+        logger.info('%i variants remain after applying variant filters.' % variants_list.size)
         logger.info('%i variant calls remain after applying variant filters.' % len(variants_list.variant_call_ids))
 
-    # Step 2. Filter out variants near the excluded regions.
-    if len(df_excluded_regions) > 0:
-        variants_list.filter_regions(
-            df_excluded_regions=df_excluded_regions,
-            excluded_regions_padding=excluded_region_padding
+    # Step 2. Filter out variants near the excluded variants
+    if excluded_variants_list is not None:
+        nearby_variants = variants_list.find_nearby_variants(
+            variants=excluded_variants_list.variants,
+            padding=excluded_variants_padding,
+            num_processes=num_processes
         )
-        logger.info('%i variants remain after removing variant calls near excluded regions.' % len(variants_list.variant_ids))
-        logger.info('%i variant calls remain after removing variant calls near excluded regions.' % len(variants_list.variant_call_ids))
+        for nearby_variant in nearby_variants:
+            variants_list.remove_by_id(id=nearby_variant.id)
+        logger.info('%i variants remain after removing variants near excluded variants.' % variants_list.size)
+        logger.info('%i variant calls remain after removing variants near excluded variants.' % len(variants_list.variant_call_ids))
 
-    # Step 3. Filter out variants near the excluded variants
-    if len(df_excluded_variants) > 0:
-        variants_list.filter_variants(
-            df_excluded_variants=df_excluded_variants,
-            excluded_variant_padding=excluded_variant_padding,
-            enforce_variant_type_matching=enforce_variant_type_matching
+    # Step 3. Filter out variants near the excluded regions
+    if excluded_regions_list is not None:
+        nearby_variants = variants_list.filter_regions(
+            genomic_ranges_list=excluded_regions_list,
+            padding=excluded_regions_padding,
+            num_processes=num_processes
         )
-        logger.info('%i variants remain after removing variant calls near excluded variants.' % len(variants_list.variant_ids))
-        logger.info('%i variant calls remain after removing variant calls near excluded variants.' % len(variants_list.variant_call_ids))
+        for nearby_variant in nearby_variants:
+            variants_list.remove_by_id(id=nearby_variant.id)
+        logger.info('%i variants remain after removing variants near excluded regions.' % variants_list.size)
+        logger.info('%i variant calls remain after removing variants near excluded regions.' % len(variants_list.variant_call_ids))
 
     return variants_list
 
 
-def run_exacto_annotate(
-        variants_list: VariantsList,
-        annotation: Annotation,
-    ) -> pd.DataFrame:
+def run_exacto_annotate(variants_list: VariantsList, annotation: Annotation) -> VariantsList:
     """
     Annotates a variants list and returns the annotated variants list.
 
     Parameters
     ----------
-    variants_list       :   An instance of the VariantsList class.
-    annotation          :   An instance of the Annotation class.
+    variants_list       :   VariantsList object.
+    annotation          :   Annotation object.
 
     Returns
     -------
-    variants_list       :   An instance of the VariantsList class.
+    variants_list       :   VariantsList object.
     """
-    variants_list = annotation.annotate_variants(variants_list=variants_list)
-    return variants_list
+    return annotation.annotate_variants(variants_list=variants_list)
 
 
-# def run_exacto_identify_rna_variants(
-#         bam_file: pysam.AlignmentFile,
-#         num_cores: int
-#     ) -> pd.DataFrame:
-#     """
-#     Identifies RNA variants in a BAM file.
-#
-#     Parameters
-#     ----------
-#     bam_file    :   Pysam AlignmentFile object of a BAM file.
-#     num_cores   :   Number of cores to use.
-#
-#     Returns
-#     -------
-#     """
-#     bam_filename = str(bam_file.filename.decode())
-#     variant_callset = exactors.identify_rna_variants(bam_filename, num_cores)
-#     df_variants = pd.DataFrame({
-#         'chromosome': variant_callset.chromosomes,
-#         'position': variant_callset.positions,
-#         'read_id': variant_callset.read_ids,
-#         'variant_type': variant_callset.variant_types,
-#         'reference_allele': variant_callset.reference_alleles,
-#         'alternate_allele': variant_callset.alternate_alleles,
-#         'sequence': variant_callset.sequences,
-#         'variant_size': variant_callset.variant_sizes
-#     })
-#     return df_variants
+def run_exacto_simulate_variants(
+        genome_fasta: pysam.FastaFile,
+        gene_set: GeneSet,
+        df_target_regions: pd.DataFrame,
+        num_snv: int = SIMULATE_VARIANTS_NUM_SNV,
+        num_insertion: int = SIMULATE_VARIANTS_NUM_INSERTION,
+        num_deletion: int = SIMULATE_VARIANTS_NUM_DELETION,
+        insertion_size_mean: int = SIMULATE_VARIANTS_INSERTION_SIZE_MEAN,
+        insertion_size_stdev: int = SIMULATE_VARIANTS_INSERTION_SIZE_STDEV,
+        deletion_size_mean: int = SIMULATE_VARIANTS_DELETION_MEAN,
+        deletion_size_stdev: int = SIMULATE_VARIANTS_DELETION_STDEV,
+        enforce_infinite_sites_model: bool = SIMULATE_VARIANTS_ENFORCE_INFINITE_SITES_MODEL
+    ) -> pd.DataFrame:
+    """
+    Simulates DNA and RNA variants.
+
+    Parameters
+    ----------
+    genome_fasta                            :   pysam.FastaFile object of reference genome.
+    gene_set                                :   An instance of 'GeneSet' class.
+    num_snv                                 :   Number of SNVs to simulate.
+    num_insertion                           :   Number of insertions to simulate.
+    num_deletion                            :   Number of deletions to simulate.
+    insertion_size_mean                     :   Mean value of insertion size.
+    insertion_size_stdev                    :   Standard deviation of insertion size.
+    deletion_size_mean                      :   Mean value of deletion size.
+    deletion_size_stdev                     :   Standard deviation of deletion size.
+    enforce_infinite_sites_model            :   If true, the simulation enforces the infinite sites model.
+
+    Returns
+    -------
+    df_variants                             :   DataFrame of variants.
+    """
+    a = 1
+    # df_rna_variants, variant_transcript_sequences = simulate_rna_variants(**locals())
+    # return df_rna_variants, variant_transcript_sequences
+
+
+def run_exacto_call_variants(
+        bam: pysam.AlignmentFile,
+        nucleic_acid_type: str,
+        num_processes: int
+    ) -> pd.DataFrame:
+    """
+    Calls variants in a BAM file.
+
+    Parameters
+    ----------
+    bam                 :   Pysam AlignmentFile object of a BAM file.
+    nucleic_acid_type   :   Nucleic acid type.
+    num_processes       :   Number of processes.
+
+    Returns
+    -------
+    variants_list       :   An instance of 'VariantsList' class.
+    """
+    alignment = Alignment(bam=bam, nucleic_acid_type=nucleic_acid_type)
+    return alignment.call_variants(num_processes=num_processes)
+    # bam_filename = str(bam_file.filename.decode())
+    # variant_callset = exactors.identify_rna_variants(bam_filename, num_cores)
+    # df_variants = pd.DataFrame({
+    #     'chromosome': variant_callset.chromosomes,
+    #     'position': variant_callset.positions,
+    #     'read_id': variant_callset.read_ids,
+    #     'variant_type': variant_callset.variant_types,
+    #     'reference_allele': variant_callset.reference_alleles,
+    #     'alternate_allele': variant_callset.alternate_alleles,
+    #     'sequence': variant_callset.sequences,
+    #     'variant_size': variant_callset.variant_sizes
+    # })
+    # return df_variants
 #
 #
 # def run_exacto_simulate_rna_variants(
@@ -269,33 +351,36 @@ def run_exacto_annotate(
 #     return df_rna_variants, variant_transcript_sequences
 #
 #
-# def run_exacto_simulate_reads(
-#         sequences: List[Sequence],
-#         num_gigabases: float,
-#         read_length_mean: float,
-#         read_length_stdev: float,
-#         base_quality_mean: float,
-#         base_quality_stdev: float
-#     ) -> List[Read]:
-#     """
-#     Simulates sequencing reads.
-#
-#     Parameters
-#     ----------
-#     sequences           :   List of instances of the class Sequence.
-#     num_gigabases       :   Number of gigabases to sequence.
-#     read_length_mean    :   Mean value of read length.
-#     read_length_stdev   :   Standard deviation of read length.
-#     base_quality_mean   :   Mean value of base quality.
-#     base_quality_stdev  :   Standard deviation of base quality.
-#
-#     Returns
-#     -------
-#     reads               :   List of instances of the class Read.
-#     """
-#     return simulate_single_end_reads(sequences=sequences,
-#                                      num_bases=num_gigabases * 10e9,
-#                                      read_length_mean=read_length_mean,
-#                                      read_length_stdev=read_length_stdev,
-#                                      base_quality_mean=base_quality_mean,
-#                                      base_quality_stdev=base_quality_stdev)
+def run_exacto_simulate_reads(
+        sequences: List[Sequence],
+        output_fastq_gz_file: str,
+        num_gigabases: float,
+        read_length_mean: float,
+        read_length_stdev: float,
+        base_quality_mean: float,
+        base_quality_stdev: float
+    ) -> None:
+    """
+    Simulates sequencing reads.
+
+    Parameters
+    ----------
+    sequences               :   List of instances of the class Sequence.
+    output_fastq_gz_file    :   Output .fastq.gz file.
+    num_gigabases           :   Number of gigabases to sequence.
+    read_length_mean        :   Mean value of read length.
+    read_length_stdev       :   Standard deviation of read length.
+    base_quality_mean       :   Mean value of base quality.
+    base_quality_stdev      :   Standard deviation of base quality.
+
+    Returns
+    -------
+    reads               :   List of instances of the class Read.
+    """
+    return simulate_single_end_reads(sequences=sequences,
+                                     output_fastq_gz_file=output_fastq_gz_file,
+                                     num_bases=num_gigabases * 10e9,
+                                     read_length_mean=read_length_mean,
+                                     read_length_stdev=read_length_stdev,
+                                     base_quality_mean=base_quality_mean,
+                                     base_quality_stdev=base_quality_stdev)

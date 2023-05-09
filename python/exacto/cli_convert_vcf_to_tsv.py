@@ -13,33 +13,32 @@
 
 """
 The purpose of this python3 script is to create parser
-and run Exacto 'convert' command.
+and run Exacto 'convert-vcf-to-tsv' command.
 """
 
 
 import argparse
 from .main import *
 from .constants import *
-from .default_parameters import *
 from .logging import get_logger
 
 
 logger = get_logger(__name__)
 
 
-def add_cli_convert_arg_parser(sub_parsers) -> argparse._SubParsersAction:
+def add_cli_convert_vcf_to_tsv_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     """
-    Adds 'convert' parser.
+    Add 'convert-vcf-to-tsv' parser.
 
     Parameters
     ----------
-    sub_parsers  :   An instance of argparse.ArgumentParser subparsers.
+    sub_parsers     :  argparse.ArgumentParser subparsers.
 
     Returns
     -------
-    An instance of argparse.ArgumentParser subparsers.
+    sub_parsers     :   argparse.ArgumentParser subparsers
     """
-    parser = sub_parsers.add_parser('convert', help='Convert a VCF file to a TSV file.')
+    parser = sub_parsers.add_parser('convert-vcf-to-tsv', help='Convert a VCF file to a TSV file.')
     parser._action_groups.pop()
 
     # Required arguments
@@ -81,36 +80,13 @@ def add_cli_convert_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=True,
         help="Output TSV file."
     )
-
-    # Optional arguments
-    parser_optional = parser.add_argument_group('optional arguments')
-    parser_optional.add_argument(
-        "--tumor-sample-id",
-        dest="tumor_sample_id",
-        type=str,
-        required=False,
-        default='',
-        help="Tumor sample ID. This parameter must be specified if the variant "
-             "calling was performed using a tumor and a normal. This information "
-             "is necessary to select the column for the tumor sample."
-    )
-    parser_optional.add_argument(
-        "--normal-sample-id",
-        dest="normal_sample_id",
-        type=str,
-        required=False,
-        default='',
-        help="Normal sample ID. This parameter must be specified if the variant "
-             "calling was performed using a tumor and a normal. This information "
-             "is necessary to select the column for the normal sample."
-    )
-    parser.set_defaults(which='convert')
+    parser.set_defaults(which='vcf2tsv')
     return sub_parsers
 
 
-def run_cli_convert_from_parsed_args(args) -> None:
+def run_cli_convert_vcf_to_tsv_from_parsed_args(args) -> None:
     """
-    Run Exacto 'convert' command using parameters from parsed arguments.
+    Run Exacto 'convert-vcf-to-tsv' command using parameters from parsed arguments.
 
     Parameters
     ----------
@@ -120,16 +96,12 @@ def run_cli_convert_from_parsed_args(args) -> None:
                 sequencing_platform
                 output_tsv_file
                 source_id
-                tumor_sample_id
-                normal_sample_id
     """
-    variants_list = run_exacto_convert(
+    variants_list = run_exacto_convert_vcf(
         vcf_file=args.vcf_file,
         variant_calling_method=args.variant_calling_method,
         sequencing_platform=args.sequencing_platform,
-        source_id=args.source_id,
-        tumor_sample_id=args.tumor_sample_id,
-        normal_sample_id=args.normal_sample_id
+        source_id=args.source_id
     )
     df_variants = variants_list.to_dataframe()
     df_variants.to_csv(args.output_tsv_file, sep='\t', index=False)

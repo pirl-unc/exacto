@@ -1,1 +1,1 @@
-nosetests test --with-coverage --cover-package=exacto
+pytest --cov-report=term-missing --cov=exacto test/

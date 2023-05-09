@@ -18,9 +18,11 @@ The purpose of this python3 script is to implement the Exon class.
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, ClassVar
+from functools import total_ordering
 
 
-@dataclass
+@total_ordering
+@dataclass(frozen=True)
 class Exon:
     id: str                                         # e.g. 'ENSE00001910415'
     chromosome: str                                 # e.g. 'chr1'
@@ -39,3 +41,13 @@ class Exon:
         Returns exon.
         """
         return len(self.sequence)
+
+    def __lt__(self, other):
+        if isinstance(other, Exon):
+            return self.number < other.number
+        return NotImplemented
+
+    def __eq__(self, other):
+        if isinstance(other, Exon):
+            return self.number == other.number
+        return NotImplemented

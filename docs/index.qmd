@@ -6,15 +6,15 @@ title: "Getting Started"
 
 **Source code**:
 
-**License**: MIT License
+**License**: Apache 2.0 License
 
-**Latest Stable Version**: **`0.1.6.3`**
+**Latest Stable Version**: **`0.1.7.2`**
 
-**Updated date**: March 2, 2023
+**Updated date**: April 13, 2023
 
 `Exacto` is a versatile python/Rust library and command-line software for:
 
-1. aligning tumor and normal `long-read` `RNA` sequencing reads to a reference genome using a graph approach.
+1. aligning tumor and normal `long-read` `RNA` sequencing reads to an augmented (reference + germline variants + somatic variants) genome using a graph approach.
 2. identifying various types of somatic transcript variants in tumor with `long-read` `RNA` sequencing reads.
 3. quantifying known, novel, somatic/splice variant transcripts in tumor with `long-read` `RNA` sequencing reads.
 4. simulating tumor and normal genomes and transcriptomes (i.e. somatic and germline DNA/RNA variants).
@@ -54,10 +54,13 @@ optional arguments:
 * [align](align.qmd) (align long-read RNA reads)
 * [identify](identify.qmd) (identify RNA variants)
 * [quantify](quantify.qmd) (quantify transcripts)
+* [sim-variants](sim_variants.qmd) (simulate DNA and RNA variants)
+
+<!-- 
 * [sim-variants](sim_rna_variants.qmd) (simulate DNA/RNA variants)
 * [sim-reads](sim_reads.qmd) (simulate DNA/RNA long-reads)
 * [sim-meiosis](sim_meiosis.qmd) (simulate meiosis)
-* [sim-fertilization](sim_fertilization.qmd) (simulate random fertilization)
+* [sim-fertilization](sim_fertilization.qmd) (simulate random fertilization) -->
 
 **Exacto also includes the following accessory commands:**
 

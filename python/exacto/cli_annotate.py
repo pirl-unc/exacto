@@ -22,9 +22,7 @@ from exacto.main import *
 from exacto.gencode import *
 
 
-def add_cli_annotate_arg_parser(
-        sub_parsers
-    ) -> argparse._SubParsersAction:
+def add_cli_annotate_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     """
     Adds 'annotate' parser.
 
@@ -184,9 +182,7 @@ def add_cli_annotate_arg_parser(
     return sub_parsers
 
 
-def run_cli_annotate_from_parsed_args(
-        args
-    ) -> None:
+def run_cli_annotate_from_parsed_args(args) -> None:
     """
     Run Exacto 'annotate' command using parameters from parsed arguments.
 

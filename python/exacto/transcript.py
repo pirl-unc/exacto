@@ -17,7 +17,8 @@ The purpose of this python3 script is to implement the Transcript class.
 
 
 from dataclasses import dataclass, field
-from typing import List, Dict, Tuple, ClassVar
+from typing import List, Dict, Tuple, ClassVar, Set
+from bisect import insort
 from .exon import Exon
 
 
@@ -74,20 +75,17 @@ class Transcript:
         cds_length += abs(self.three_prime_utr_start - self.three_prime_utr_end) + 1
         return cds_length
 
-
     @property
     def cds_length(self):
         """
-        Returns trancript CDS length.
+        Returns transcript CDS length.
         """
         length = 0
         for curr_exon in self.exons:
             length += curr_exon.length
         return length
 
-    def add_exon(
-            self,
-            exon: Exon):
+    def add_exon(self, exon: Exon):
         """
         Adds an exon.
 
@@ -95,4 +93,4 @@ class Transcript:
         ----------
         exon        :   An instance of the Exon class.
         """
-        self.exons.append(exon)
+        insort(self.exons, exon)

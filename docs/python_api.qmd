@@ -8,6 +8,10 @@ Here is a list of `Exacto` classes and methods:
 
 | Class                                   | Description                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------------- |
+| [Exon](#exon)                           | An exon                                                                         |
+| [Gene](#gene)                           | A gene composed of one or more [Transcript](#transcript) objects                |                                                                      
+| [GeneSet](#geneset)                     | A set of [Gene](#gene) objects                                                  |
+| [Transcript](#transcript)               | A transcript composed of one or more [Exon](#exon) objects                      |
 | [Variant](#variant)                     | A variant composed of one or more [VariantCall](#variantcall) objects           |
 | [VariantAnnotation](#variantannotation) | An annotation of a [VariantCall](#variantcall) object                           |
 | [VariantCall](#variantcall)             | A variant call from a variant calling software                                  |
@@ -16,6 +20,14 @@ Here is a list of `Exacto` classes and methods:
 : {tbl-colwidths="[30,70]"}
 
 </div>
+
+## Exon
+
+## Gene
+
+## GeneSet
+
+## Transcript
 
 ## Variant
 

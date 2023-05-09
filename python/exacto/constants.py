@@ -94,10 +94,10 @@ class VariantTypes:
 
 
 class VariantCallingMethods:
-    GATK4_MUTECT2 = "gatk4-mutect2"
-    DEEPVARIANT = "deepvariant"
-    STRELKA2_GERMLINE = "strelka2-germline"
-    STRELKA2_SOMATIC = "strelka2-somatic"
+    GATK4_MUTECT2 = 'gatk4-mutect2'
+    DEEPVARIANT = 'deepvariant'
+    EXACTO = 'exacto'
+    STRELKA2 = 'strelka2'
     SNIFFLES2 = 'sniffles2'
     SVIM = 'svim'
     CUTESV = 'cutesv'
@@ -107,8 +107,7 @@ class VariantCallingMethods:
     ALL = [
         GATK4_MUTECT2,
         DEEPVARIANT,
-        STRELKA2_GERMLINE,
-        STRELKA2_SOMATIC,
+        STRELKA2,
         SNIFFLES2,
         SVIM,
         CUTESV,
@@ -119,213 +118,211 @@ class VariantCallingMethods:
 
     class AttributeTypes:
         CUTESV = {
-            'cutesv_id': str,
-            'cutesv_svtype': str,
-            'cutesv_svlen': int,
-            'cutesv_chr2': str,
-            'cutesv_end': int,
-            'cutesv_cipos': str,
-            'cutesv_cilen': str,
-            'cutesv_re': int,
-            'cutesv_strand': str,
-            'cutesv_rnames': str,
-            'cutesv_af': float,
-            'cutesv_precise': bool,
-            'cutesv_gt': str,
-            'cutesv_gq': float,
-            'cutesv_pl': str,
-            'cutesv_dr': int,
-            'cutesv_dv': int
+            'id': str,
+            'svtype': str,
+            'svlen': int,
+            'chr2': str,
+            'end': int,
+            'cipos': str,
+            'cilen': str,
+            're': int,
+            'strand': str,
+            'rnames': str,
+            'af': float,
+            'precise': bool,
+            'gt': str,
+            'gq': float,
+            'pl': str,
+            'dr': int,
+            'dv': int
         }
         DEEPVARIANT = {
-            'deepvariant_id': str,
-            'deepvariant_end': int,
-            'deepvariant_gt': str,
-            'deepvariant_gq': int,
-            'deepvariant_dp': int,
-            'deepvariant_min_dp': int,
-            'deepvariant_ad': str,
-            'deepvariant_vaf': float,
-            'deepvariant_pl': str,
-            'deepvariant_med_dp': int
+            'id': str,
+            'end': int,
+            'gt': str,
+            'gq': int,
+            'dp': int,
+            'min_dp': int,
+            'ad': str,
+            'vaf': float,
+            'pl': str,
+            'med_dp': int
         }
         GATK4_MUTECT2 = {
-            'gatk4-mutect2_id': str,
-            'gatk4-mutect2_as_filterstatus': str,
-            'gatk4-mutect2_as_sb_table': str,
-            'gatk4-mutect2_as_uniq_alt_read_count': int,
-            'gatk4-mutect2_contq': float,
-            'gatk4-mutect2_dp': int,
-            'gatk4-mutect2_ecnt': int,
-            'gatk4-mutect2_germq': int,
-            'gatk4-mutect2_mbq': int,
-            'gatk4-mutect2_mfrl': int,
-            'gatk4-mutect2_mmq': int,
-            'gatk4-mutect2_mpos': int,
-            'gatk4-mutect2_nalod': float,
-            'gatk4-mutect2_ncount': int,
-            'gatk4-mutect2_nlod': float,
-            'gatk4-mutect2_ocm': int,
-            'gatk4-mutect2_pon': bool,
-            'gatk4-mutect2_popaf': float,
-            'gatk4-mutect2_af': float,
-            'gatk4-mutect2_roq': float,
-            'gatk4-mutect2_rpa': int,
-            'gatk4-mutect2_ru': str,
-            'gatk4-mutect2_seqq': int,
-            'gatk4-mutect2_str': bool,
-            'gatk4-mutect2_strandq': int,
-            'gatk4-mutect2_strq': int,
-            'gatk4-mutect2_tlod': float,
-            'gatk4-mutect2_ad': str,
-            'gatk4-mutect2_dp': int,
-            'gatk4-mutect2_f1r2': str,
-            'gatk4-mutect2_f2r1': str,
-            'gatk4-mutect2_fad': str,
-            'gatk4-mutect2_gq': float,
-            'gatk4-mutect2_gt': str,
-            'gatk4-mutect2_pgt': str,
-            'gatk4-mutect2_pid': str,
-            'gatk4-mutect2_pl': int,
-            'gatk4-mutect2_ps': int,
-            'gatk4-mutect2_sb': str
+            'id': str,
+            'as_filterstatus': str,
+            'as_sb_table': str,
+            'as_uniq_alt_read_count': int,
+            'contq': float,
+            'ecnt': int,
+            'germq': int,
+            'mbq': int,
+            'mfrl': int,
+            'mmq': int,
+            'mpos': int,
+            'nalod': float,
+            'ncount': int,
+            'nlod': float,
+            'ocm': int,
+            'pon': bool,
+            'popaf': float,
+            'af': float,
+            'roq': float,
+            'rpa': int,
+            'ru': str,
+            'seqq': int,
+            'str': bool,
+            'strandq': int,
+            'strq': int,
+            'tlod': float,
+            'ad': str,
+            'dp': int,
+            'f1r2': str,
+            'f2r1': str,
+            'fad': str,
+            'gq': float,
+            'gt': str,
+            'pgt': str,
+            'pid': str,
+            'pl': int,
+            'ps': int,
+            'sb': str
         }
         PBSV = {
-            'pbsv_id': str,
-            'pbsv_svtype': str,
-            'pbsv_end': int,
-            'pbsv_svlen': int,
-            'pbsv_svann': str,
-            'pbsv_cipos': str,
-            'pbsv_mateid': str,
-            'pbsv_matedist': int,
-            'pbsv_precise': bool,
-            'pbsv_gt': str,
-            'pbsv_dp': int,
-            'pbsv_ad': str,
-            'pbsv_sac': str
+            'id': str,
+            'svtype': str,
+            'end': int,
+            'svlen': int,
+            'svann': str,
+            'cipos': str,
+            'mateid': str,
+            'matedist': int,
+            'precise': bool,
+            'gt': str,
+            'dp': int,
+            'ad': str,
+            'sac': str
         }
         SNIFFLES2 = {
-            'sniffles2_id': str,
-            'sniffles2_svlen': int,
-            'sniffles2_svtype': str,
-            'sniffles2_chr2': str,
-            'sniffles2_support': int,
-            'sniffles2_support_inline': int,
-            'sniffles2_support_long': int,
-            'sniffles2_end': int,
-            'sniffles2_stdev_pos': float,
-            'sniffles2_stdev_len': float,
-            'sniffles2_coverage': str,
-            'sniffles2_strand': str,
-            'sniffles2_ac': int,
-            'sniffles2_supp_vec': str,
-            'sniffles2_consensus_support': int,
-            'sniffles2_rnames': str,
-            'sniffles2_af': float,
-            'sniffles2_nm': float,
-            'sniffles2_phase': str,
-            'sniffles2_gt': str,
-            'sniffles2_gq': int,
-            'sniffles2_dr': int,
-            'sniffles2_dv': int,
-            'sniffles2_precise': bool
+            'id': str,
+            'svlen': int,
+            'svtype': str,
+            'chr2': str,
+            'support': int,
+            'support_inline': int,
+            'support_long': int,
+            'end': int,
+            'stdev_pos': float,
+            'stdev_len': float,
+            'coverage': str,
+            'strand': str,
+            'ac': int,
+            'supp_vec': str,
+            'consensus_support': int,
+            'rnames': str,
+            'af': float,
+            'nm': float,
+            'phase': str,
+            'gt': str,
+            'gq': int,
+            'dr': int,
+            'dv': int,
+            'precise': bool
         }
-        STRELKA2_SOMATIC = {
-            'strelka2-somatic_id': str,
-            'strelka2-somatic_qss': int,
-            'strelka2-somatic_tqss': int,
-            'strelka2-somatic_nt': str,
-            'strelka2-somatic_qss_nt': int,
-            'strelka2-somatic_tqss_nt': int,
-            'strelka2-somatic_sgt': str,
-            'strelka2-somatic_dp': int,
-            'strelka2-somatic_mq': float,
-            'strelka2-somatic_mq0': int,
-            'strelka2-somatic_readposranksum': float,
-            'strelka2-somatic_pnoise': float,
-            'strelka2-somatic_pnoise2': float,
-            'strelka2-somatic_somaticevs': float,
-            'strelka2-somatic_qsi': int,
-            'strelka2-somatic_tqsi': int,
-            'strelka2-somatic_qsi_nt': int,
-            'strelka2-somatic_tqsi_nt': int,
-            'strelka2-somatic_ru': str,
-            'strelka2-somatic_rc': int,
-            'strelka2-somatic_ic': int,
-            'strelka2-somatic_ihp': int,
-            'strelka2-somatic_somatic': bool,
-            'strelka2-somatic_overlap': bool,
-            'strelka2-somatic_fdp': int,
-            'strelka2-somatic_sdp': int,
-            'strelka2-somatic_subdp': int,
-            'strelka2-somatic_au': str,
-            'strelka2-somatic_cu': str,
-            'strelka2-somatic_gu': str,
-            'strelka2-somatic_tu': str,
-            'strelka2-somatic_dp': int,
-            'strelka2-somatic_dp2': int,
-            'strelka2-somatic_tar': int,
-            'strelka2-somatic_tir': int,
-            'strelka2-somatic_tor': int,
-            'strelka2-somatic_snvsb': float,
-            'strelka2-somatic_dp50': float,
-            'strelka2-somatic_fdp50': float,
-            'strelka2-somatic_subdp50': float,
-            'strelka2-somatic_bcn50': float
-        }
-        STRELKA2_GERMLINE = {
-            'strelka2-germline_id': str,
-            'strelka2-germline_end': int,
-            'strelka2-germline_snvhpol': int,
-            'strelka2-germline_cigar': str,
-            'strelka2-germline_ru': str,
-            'strelka2-germline_refrep': int,
-            'strelka2-germline_idrep': int,
-            'strelka2-germline_mq': int,
-            'strelka2-germline_blockavg_min30p3a': bool,
-            'strelka2-germline_gt': str,
-            'strelka2-germline_gq': int,
-            'strelka2-germline_gqx': int,
-            'strelka2-germline_dp': int,
-            'strelka2-germline_dpf': int,
-            'strelka2-germline_min_dp': int,
-            'strelka2-germline_ad': str,
-            'strelka2-germline_adf': str,
-            'strelka2-germline_adr': str,
-            'strelka2-germline_ft': str,
-            'strelka2-germline_dpi': int,
-            'strelka2-germline_pl': int,
-            'strelka2-germline_ps': int,
-            'strelka2-germline_sb': float
+        STRELKA2 = {
+            'id': str,
+            'qss': int,
+            'tqss': int,
+            'nt': str,
+            'qss_nt': int,
+            'tqss_nt': int,
+            'sgt': str,
+            'mq': float,
+            'mq0': int,
+            'readposranksum': float,
+            'pnoise': float,
+            'pnoise2': float,
+            'somaticevs': float,
+            'qsi': int,
+            'tqsi': int,
+            'qsi_nt': int,
+            'tqsi_nt': int,
+            'ru': str,
+            'rc': int,
+            'ic': int,
+            'ihp': int,
+            'somatic': bool,
+            'overlap': bool,
+            'fdp': int,
+            'sdp': int,
+            'subdp': int,
+            'au': str,
+            'cu': str,
+            'gu': str,
+            'tu': str,
+            'dp': int,
+            'dp2': int,
+            'tar': int,
+            'tir': int,
+            'tor': int,
+            'snvsb': float,
+            'dp50': float,
+            'fdp50': float,
+            'subdp50': float,
+            'bcn50': float,
+            'end': int,
+            'snvhpol': int,
+            'cigar': str,
+            'refrep': int,
+            'idrep': int,
+            'blockavg_min30p3a': bool,
+            'gt': str,
+            'gq': int,
+            'gqx': int,
+            'dpf': int,
+            'min_dp': int,
+            'ad': str,
+            'adf': str,
+            'adr': str,
+            'ft': str,
+            'dpi': int,
+            'pl': int,
+            'ps': int,
+            'sb': float
+
         }
         SVIM = {
-            'svim_id': str,
-            'svim_svtype': str,
-            'svim_end': int,
-            'svim_svlen': int,
-            'svim_support': int,
-            'svim_std_span': float,
-            'svim_std_pos': float,
-            'svim_std_pos1': float,
-            'svim_std_pos2': float,
-            'svim_zmws': int,
-            'svim_seqs': str,
-            'svim_reads': str,
-            'svim_cutpaste': bool,
-            'svim_gt': bool,
-            'svim_dp': int,
-            'svim_ad': str,
-            'svim_cn': int
+            'id': str,
+            'svtype': str,
+            'end': int,
+            'svlen': int,
+            'support': int,
+            'std_span': float,
+            'std_pos': float,
+            'std_pos1': float,
+            'std_pos2': float,
+            'zmws': int,
+            'seqs': str,
+            'reads': str,
+            'cutpaste': bool,
+            'gt': bool,
+            'dp': int,
+            'ad': str,
+            'cn': int
         }
+
 
 class GenomicRegionTypes:
     EXONIC = 'exonic'
     INTRONIC = 'intronic'
+    FIVE_PRIME_UTR = '5prime_utr'
+    THREE_PRIME_UTR = '3prime_utr'
     INTERGENIC = 'intergenic'
     ALL = [
         EXONIC,
         INTRONIC,
+        FIVE_PRIME_UTR,
+        THREE_PRIME_UTR,
         INTERGENIC
     ]
 
@@ -378,11 +375,18 @@ class SoftclipDirections:
     TOWWARDS_FIVE_PRIME = '5prime'
 
 
+class VariantFilterSampleTypes:
+    CASE = 'case'
+    CONTROL = 'control'
+
+
 class VariantFilterQuantifiers:
     ALL = 'all'
     ANY = 'any'
     MEDIAN = 'median'
     AVERAGE = 'average'
+    MIN = 'min'
+    MAX = 'max'
 
 
 class VariantFilterOperators:
@@ -392,3 +396,78 @@ class VariantFilterOperators:
     GREATER_THAN_OR_EQUAL_TO = '>='
     EQUALS = '=='
     IN = 'in'
+
+
+RNA_CODONS = {
+    # U
+    'UUU': 'Phe', 'UCU': 'Ser', 'UAU': 'Tyr', 'UGU': 'Cys',  # UxU
+    'UUC': 'Phe', 'UCC': 'Ser', 'UAC': 'Tyr', 'UGC': 'Cys',  # UxC
+    'UUA': 'Leu', 'UCA': 'Ser', 'UAA': '---', 'UGA': '---',  # UxA
+    'UUG': 'Leu', 'UCG': 'Ser', 'UAG': '---', 'UGG': 'Trp',  # UxG
+
+    # C
+    'CUU': 'Leu', 'CCU': 'Pro', 'CAU': 'His', 'CGU': 'Arg',  # CxU
+    'CUC': 'Leu', 'CCC': 'Pro', 'CAC': 'His', 'CGC': 'Arg',  # CxC
+    'CUA': 'Leu', 'CCA': 'Pro', 'CAA': 'Gln', 'CGA': 'Arg',  # CxA
+    'CUG': 'Leu', 'CCG': 'Pro', 'CAG': 'Gln', 'CGG': 'Arg',  # CxG
+
+    # A
+    'AUU': 'Ile', 'ACU': 'Thr', 'AAU': 'Asn', 'AGU': 'Ser',  # AxU
+    'AUC': 'Ile', 'ACC': 'Thr', 'AAC': 'Asn', 'AGC': 'Ser',  # AxC
+    'AUA': 'Ile', 'ACA': 'Thr', 'AAA': 'Lys', 'AGA': 'Arg',  # AxA
+    'AUG': 'Met', 'ACG': 'Thr', 'AAG': 'Lys', 'AGG': 'Arg',  # AxG
+
+    # G
+    'GUU': 'Val', 'GCU': 'Ala', 'GAU': 'Asp', 'GGU': 'Gly',  # GxU
+    'GUC': 'Val', 'GCC': 'Ala', 'GAC': 'Asp', 'GGC': 'Gly',  # GxC
+    'GUA': 'Val', 'GCA': 'Ala', 'GAA': 'Glu', 'GGA': 'Gly',  # GxA
+    'GUG': 'Val', 'GCG': 'Ala', 'GAG': 'Glu', 'GGG': 'Gly'   # GxG
+}
+
+AMINO_ACID_CODES = {
+    'Cys': 'C',
+    'Asp': 'D',
+    'Ser': 'S',
+    'Gln': 'Q',
+    'Lys': 'K',
+    'Trp': 'W',
+    'Asn': 'N',
+    'Pro': 'P',
+    'Thr': 'T',
+    'Phe': 'F',
+    'Ala': 'A',
+    'Gly': 'G',
+    'Ile': 'I',
+    'Leu': 'L',
+    'His': 'H',
+    'Arg': 'R',
+    'Met': 'M',
+    'Val': 'V',
+    'Glu': 'E',
+    'Tyr': 'Y',
+    '---': '*'
+}
+
+AMINO_ACID_THREE_LETTER_CODES = {
+    'A': 'Ala',
+    'R': 'Arg',
+    'N': 'Asn',
+    'D': 'Asp',
+    'C': 'Cys',
+    'E': 'Glu',
+    'Q': 'Gln',
+    'G': 'Gly',
+    'H': 'His',
+    'I': 'Ile',
+    'L': 'Leu',
+    'K': 'Lys',
+    'M': 'Met',
+    'F': 'Phe',
+    'P': 'Pro',
+    'S': 'Ser',
+    'T': 'Thr',
+    'W': 'Trp',
+    'Y': 'Tyr',
+    'V': 'Val',
+    '*': '---'
+}

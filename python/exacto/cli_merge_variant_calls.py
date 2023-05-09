@@ -30,9 +30,9 @@ from .main import *
 logger = get_logger(__name__)
 
 
-def add_cli_merge_arg_parser(sub_parsers) -> argparse._SubParsersAction:
+def add_cli_merge_variant_calls_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     """
-    Adds 'merge' parser.
+    Adds 'merge-variants' parser.
 
     Parameters
     ----------
@@ -42,7 +42,7 @@ def add_cli_merge_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     -------
     An instance of argparse.ArgumentParser subparsers.
     """
-    parser = sub_parsers.add_parser('merge', help='Merge variant TSV files.')
+    parser = sub_parsers.add_parser('merge-variant-calls', help='Merge variant TSV files.')
     parser._action_groups.pop()
 
     # Required arguments
@@ -65,54 +65,56 @@ def add_cli_merge_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         "--num-processes",
         dest="num_processes",
         type=int,
-        default=NUM_PROCESSES_MERGE,
+        default=MERGE_NUM_PROCESSES,
         required=True,
-        help="Number of processes (default: %i)." % NUM_PROCESSES_MERGE
+        help="Number of processes (default: %i)." % MERGE_NUM_PROCESSES
     )
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
     parser_optional.add_argument(
-        "--enforce_variant_type_matching",
-        dest="enforce_variant_type_matching",
-        type=bool,
-        default=True,
-        required=False,
-        help="If true, variant type (i.e. 'sv_type' for structural variants and 'variant_type' for small variants) "
-             "must match for 2 variants to be merged into one (default: True)."
-    )
-    parser_optional.add_argument(
         "--max-neighbor-distance",
         dest="max_neighbor_distance",
         type=int,
         required=False,
-        default=MAX_NEIGHBOR_DISTANCE,
+        default=MERGE_MAX_NEIGHBOR_DISTANCE,
         help="Maximum neighbor distance (default: %i)."
-             % MAX_NEIGHBOR_DISTANCE
+             % MERGE_MAX_NEIGHBOR_DISTANCE
     )
     parser.set_defaults(which='merge')
     return sub_parsers
 
 
-def load_tsv_file_worker(tsv_file):
+def load_tsv_file_worker(tsv_file) -> VariantsList:
+    """
+    Loads a TSV file and returns a VariantsList object.
+
+    Parameters
+    ----------
+    tsv_file        :   TSV file.
+
+    Returns
+    -------
+    variants_list   :   VariantsList object.
+    """
     variants_list = VariantsList.read_tsv_file(tsv_file=tsv_file)
     return variants_list
 
 
-def run_cli_merge_from_parsed_args(args):
+def run_cli_merge_variant_calls_from_parsed_args(args):
     """
-    Run Exacto 'merge' command using parameters from parsed arguments.
+    Run Exacto 'merge-variant-calls' command using parameters from parsed arguments.
 
     Parameters
     ----------
     args    :   An instance of argparse.ArgumentParser with the following variables:
                 'tsv_file'
                 'output_tsv_file'
-                'enforce_variant_type_matching'
                 'max_neighbor_distance'
                 'num_processes'
     """
     # Step 1. Load variants lists
+    logger.info("Started reading all TSV files")
     if args.num_processes > len(args.tsv_file):
         args.num_processes = len(args.tsv_file)
     tsv_files = np.array_split(args.tsv_file, args.num_processes)
@@ -121,13 +123,15 @@ def run_cli_merge_from_parsed_args(args):
     pool.close()
     pool.join()
     variants_lists = [ar.get() for ar in async_results]
+    logger.info("Finished reading all TSV files")
 
     # Step 2. Merge variants lists
-    variants_list = run_exacto_merge(
+    logger.info("Started merging all variant calls into one list")
+    variants_list = run_exacto_merge_variant_calls(
         variants_lists=variants_lists,
-        enforce_variant_type_matching=args.enforce_variant_type_matching,
         max_neighbor_distance=args.max_neighbor_distance
     )
+    logger.info("Finished merging all variant calls into one list")
 
     # Step 3. Write to a TSV file
     variants_list.to_dataframe().to_csv(

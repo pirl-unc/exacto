@@ -16,31 +16,29 @@ The purpose of this python3 script is to define Exacto default parameters.
 """
 
 
-"""convert"""
+"""convert-vcf-to-tsv"""
 
 
-"""merge"""
+"""merge-variant-calls"""
 # Maximum neighbor distance (bases).
-MAX_NEIGHBOR_DISTANCE = 1
+MERGE_MAX_NEIGHBOR_DISTANCE = 1
 
 # Number of processes
-NUM_PROCESSES_MERGE = 4
+MERGE_NUM_PROCESSES = 4
 
-"""filter"""
+
+"""filter-variants"""
 # Padding for an excluded region.
 # The pad is applied to upstream and downstream of a gapped genomic region.
-EXCLUDED_REGION_PADDING = 100000
+FILTER_VARIANTS_EXCLUDED_REGION_PADDING = 100000
 
 # Padding for an excluded variant.
 # The pad is applied to upstream and downstream of the two breakpoints
 # of a variant to be excluded.
-EXCLUDED_VARIANT_PADDING = 100
-
-# Enforce variant type matching.
-ENFORCE_VARIANT_TYPE_MATCHING = True
+FILTER_VARIANTS_EXCLUDED_VARIANT_PADDING = 1000
 
 # Number of processes
-NUM_PROCESSES_FILTER = 4
+FILTER_VARIANTS_NUM_PROCESSES = 4
 
 
 """annotate"""
@@ -58,62 +56,33 @@ ANNOVAR_PROTOCOL_OPERATION = {
 }
 
 
-"""sim-dna-variants"""
+"""sim-variants"""
 # Probability of simulating a genic variant
-SIMULATE_GENIC_VARIANT_PROBABILITY = 0.2
+SIMULATE_VARIANTS_GENIC_PROBABILITY = 0.2
 
-
-"""sim-rna-variants"""
 # Number of single-nucleotide variants to simulate
-SIMULATE_RNA_VARIANTS_NUM_SNV = 300
+SIMULATE_VARIANTS_NUM_SNV = 300
 
-# Number of small insertions to simulate
-SIMULATE_RNA_VARIANTS_NUM_INSERTION = 50
+# Number of insertions to simulate
+SIMULATE_VARIANTS_NUM_INSERTION = 50
 
 # Insertion size mean
-SIMULATE_RNA_VARIANTS_INSERTION_SIZE_MEAN = 100
+SIMULATE_VARIANTS_INSERTION_SIZE_MEAN = 100
 
 # Insertion size standard deviation
-SIMULATE_RNA_VARIANTS_INSERTION_SIZE_STDEV = 50
+SIMULATE_VARIANTS_INSERTION_SIZE_STDEV = 50
 
-# Number of small deletions to simulate
-SIMULATE_RNA_VARIANTS_NUM_DELETION = 50
+# Number of deletions to simulate
+SIMULATE_VARIANTS_NUM_DELETION = 50
 
 # Deletion size mean
-SIMULATE_RNA_VARIANTS_DELETION_MEAN = 100
+SIMULATE_VARIANTS_DELETION_MEAN = 100
 
 # Deletion size standard deviation
-SIMULATE_RNA_VARIANTS_DELETION_STDEV = 50
+SIMULATE_VARIANTS_DELETION_STDEV = 50
 
-# Number of fusion genes to simulate
-SIMULATE_RNA_VARIANTS_NUM_FUSION = 5
-
-# Number of inversions to simulate
-SIMULATE_RNA_VARIANTS_NUM_INVERSION = 5
-
-# Number of intron retentions to simulate
-SIMULATE_RNA_VARIANTS_NUM_INTRON_RETENTION = 5
-
-# Number of HERVs to simulate
-SIMULATE_RNA_VARIANTS_NUM_HERV = 20
-
-# Proportion of solo-LTR HERV
-SIMULATE_RNA_VARIANTS_HERV_PROPORTION_SOLO_LTR = 0.586 # She et al., Genome Biology 2022
-
-# Proportion of truncated HERV
-SIMULATE_RNA_VARIANTS_HERV_PROPORTION_TRUNCATED = 0.23 # She et al., Genome Biology 2022
-
-# Proportion of chimeric HERV
-SIMULATE_RNA_VARIANTS_HERV_PROPORTION_CHIMERIC = 0.132 # She et al., Genome Biology 2022
-
-# Chimeric HERV maximum neighboring distance
-SIMULATE_RNA_VARIANTS_HERV_CHIMERIC_MAX_NEIGHBORING_DISTANCE = 1000
-
-# Proportion of full-length HERV
-SIMULATE_RNA_VARIANTS_HERV_PROPORTION_FULL_LENGTH = 0.052 # She et al., Genome Biology 2022
-
-# Enforce infinite sites assumption
-SIMULATE_RNA_VARIANTS_INFINITE_SITES_ASSUMPTION = True
+# Enforce infinite sites model
+SIMULATE_VARIANTS_ENFORCE_INFINITE_SITES_MODEL = True
 
 
 """sim-reads"""
@@ -133,9 +102,9 @@ SIMULATE_READS_BASE_QUALITY_STDEV = 5
 SIMULATE_READS_GZIP = True
 
 
-"""identify"""
-# Number of cores
-NUM_CORES = 4
+"""call-variants"""
+# Number of processes
+CALL_VARIANTS_NUM_PROCESSES = 4
 
 
 """sim-meiosis"""

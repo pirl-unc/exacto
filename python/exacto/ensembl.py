@@ -46,108 +46,104 @@ class Ensembl(Annotation):
             self._ensembl = pyensembl.EnsemblRelease(release=self.release, species=self.species)
         return self._ensembl
 
-    def annotate_variant_call_using_pyensembl(
-            self,
-            variant_call: VariantCall) -> Tuple[List[VariantAnnotation], List[VariantAnnotation]]:
+    def annotate_variant_call_using_pyensembl(self, variant_call: VariantCall) -> Tuple[List[VariantAnnotation], List[VariantAnnotation]]:
         """
         Annotates an instance of the VariantCall class and returns two lists of VariantAnnotation instances.
 
         Parameters
         ----------
-        variant_call        :   An instance of the VariantCall class.
+        variant_call            :   VariantCall object.
 
         Returns
         -------
-        pos_1_annotations   :   List of instances of the VariantAnnotation class for position 1.
-        pos_2_annotations   :   List of instances of the VariantAnnotation class for position 2.
+        position_1_annotations  :   List of VariantAnnotation objects for position 1.
+        position_2_annotations  :   List of VariantAnnotation objects for position 2.
         """
         # Position 1
-        pos_1_annotations = []
-        chr_1 = variant_call.chr_1
-        chr_1 = chr_1.replace('chr', '')
-        pos_1_genes = self.ensembl.genes_at_locus(contig=chr_1, position=variant_call.pos_1)
-        if len(pos_1_genes) == 0:
+        position_1_annotations = []
+        chromosome_1 = variant_call.chromosome_1
+        chromosome_1 = chromosome_1.replace('chr', '')
+        position_1_genes = self.ensembl.genes_at_locus(contig=chromosome_1, position=variant_call.position_1)
+        if len(position_1_genes) == 0:
             variant_annotation = VariantAnnotation(
-                chrom=variant_call.chr_1,
-                pos=variant_call.pos_1,
+                chrom=variant_call.chromosome_1,
+                pos=variant_call.position_1,
                 region=GenomicRegionTypes.INTERGENIC
             )
-            pos_1_annotations.append(variant_annotation)
+            position_1_annotations.append(variant_annotation)
         else:
-            for pos_1_gene in pos_1_genes:
+            for position_1_gene in position_1_genes:
                 gene = Gene(
-                    id=pos_1_gene.gene_id,
+                    id=position_1_gene.gene_id,
                     source=AnnotationSources.ENSEMBL,
-                    name=pos_1_gene.gene_name,
-                    chromosome=chr_1,
-                    start=pos_1_gene.start,
-                    end=pos_1_gene.end,
-                    strand=pos_1_gene.strand,
-                    type=pos_1_gene.biotype,
-
+                    name=position_1_gene.gene_name,
+                    chromosome=chromosome_1,
+                    start=position_1_gene.start,
+                    end=position_1_gene.end,
+                    strand=position_1_gene.strand,
+                    type=position_1_gene.biotype
                 )
                 is_exonic = False
-                exon_ids = self.ensembl.exon_ids_of_gene_id(pos_1_gene.gene_id)
+                exon_ids = self.ensembl.exon_ids_of_gene_id(position_1_gene.gene_id)
                 for exon_id in exon_ids:
                     exon = self.ensembl.exon_by_id(exon_id=exon_id)
-                    if exon.start <= variant_call.pos_1 <= exon.end:
+                    if exon.start <= variant_call.position_1 <= exon.end:
                         is_exonic = True
                 if is_exonic:
                     region = GenomicRegionTypes.EXONIC
                 else:
                     region = GenomicRegionTypes.INTRONIC
                 variant_annotation = VariantAnnotation(
-                    chrom=variant_call.chr_1,
-                    pos=variant_call.pos_1,
+                    chrom=variant_call.chromosome_1,
+                    pos=variant_call.position_1,
                     region=region,
                     gene=gene
                 )
-                pos_1_annotations.append(variant_annotation)
+                position_1_annotations.append(variant_annotation)
 
         # Position 2
-        pos_2_annotations = []
-        chr_2 = variant_call.chr_2
-        chr_2 = chr_2.replace('chr', '')
-        pos_2_genes = self.ensembl.genes_at_locus(contig=chr_2, position=variant_call.pos_2)
-        if len(pos_2_genes) == 0:
+        position_2_annotations = []
+        chromosome_2 = variant_call.chromosome_2
+        chromosome_2 = chromosome_2.replace('chr', '')
+        position_2_genes = self.ensembl.genes_at_locus(contig=chromosome_2, position=variant_call.position_2)
+        if len(position_2_genes) == 0:
             variant_annotation = VariantAnnotation(
-                chrom=variant_call.chr_2,
-                pos=variant_call.pos_2,
+                chrom=variant_call.chromosome_2,
+                pos=variant_call.position_2,
                 region=GenomicRegionTypes.INTERGENIC
             )
-            pos_2_annotations.append(variant_annotation)
+            position_2_annotations.append(variant_annotation)
         else:
-            for pos_2_gene in pos_2_genes:
+            for position_2_gene in position_2_genes:
                 gene = Gene(
-                    id=pos_2_gene.gene_id,
+                    id=position_2_gene.gene_id,
                     source=AnnotationSources.ENSEMBL,
-                    name=pos_2_gene.gene_name,
-                    chromosome=chr_1,
-                    start=pos_2_gene.start,
-                    end=pos_2_gene.end,
-                    strand=pos_2_gene.strand,
-                    type=pos_2_gene.biotype,
-
+                    name=position_2_gene.gene_name,
+                    chromosome=chromosome_2,
+                    start=position_2_gene.start,
+                    end=position_2_gene.end,
+                    strand=position_2_gene.strand,
+                    type=position_2_gene.biotype
                 )
                 is_exonic = False
-                exon_ids = self.ensembl.exon_ids_of_gene_id(pos_2_gene.gene_id)
+                exon_ids = self.ensembl.exon_ids_of_gene_id(position_2_gene.gene_id)
                 for exon_id in exon_ids:
                     exon = self.ensembl.exon_by_id(exon_id=exon_id)
-                    if exon.start <= variant_call.pos_2 <= exon.end:
+                    if exon.start <= variant_call.position_2 <= exon.end:
                         is_exonic = True
                 if is_exonic:
                     region = GenomicRegionTypes.EXONIC
                 else:
                     region = GenomicRegionTypes.INTRONIC
                 variant_annotation = VariantAnnotation(
-                    chrom=variant_call.chr_2,
-                    pos=variant_call.pos_2,
+                    chrom=variant_call.chromosome_2,
+                    pos=variant_call.position_2,
                     region=region,
                     gene=gene
                 )
-                pos_2_annotations.append(variant_annotation)
+                position_2_annotations.append(variant_annotation)
 
-        return pos_1_annotations, pos_2_annotations
+        return position_1_annotations, position_2_annotations
 
     def annotate_variants(self, variants_list) -> VariantsList:
         """
@@ -155,12 +151,11 @@ class Ensembl(Annotation):
 
         Parameters
         ----------
-        variants_list   :   An instance of the VariantsList class.
+        variants_list   :   VariantsList object.
 
         Returns
         -------
-        variants_list   :   An instance of the VariantsList class with
-                            each variant_call annotated.
+        variants_list   :   VariantsList object.
         """
         # Check if member variables for pyensembl have been set
         if self.use_pyensembl:
@@ -169,13 +164,15 @@ class Ensembl(Annotation):
                 exit(1)
 
         if self.use_pyensembl:
-            for variant_id in variants_list.variants.keys():
-                for variant_call_id in variants_list.variants[variant_id].variant_calls.keys():
-                    pos_1_annotations, pos_2_annotations = self.annotate_variant_call_using_pyensembl(
-                        variants_list.variants[variant_id].variant_calls[variant_call_id]
+            for i in range(0, variants_list.size):
+                for j in range(0, variants_list.variants[i].size):
+                    position_1_annotations, position_2_annotations = self.annotate_variant_call_using_pyensembl(
+                        variants_list.variants[i].variant_calls[j]
                     )
-                    variants_list.variants[variant_id].variant_calls[variant_call_id].pos_1_annotations = pos_1_annotations
-                    variants_list.variants[variant_id].variant_calls[variant_call_id].pos_2_annotations = pos_2_annotations
+                    for annotation in position_1_annotations:
+                        variants_list.variants[i].variant_calls[j].position_1_annotations.append(annotation)
+                    for annotation in position_2_annotations:
+                        variants_list.variants[i].variant_calls[j].position_2_annotations.append(annotation)
         else:
             # todo: implement variant annotation using Ensembl TXT file
             a = 1

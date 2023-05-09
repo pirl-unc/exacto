@@ -25,7 +25,7 @@ from .logging import get_logger
 logger = get_logger(__name__)
 
 
-def safely_retrieve_value(dict, key,  default_value, type):
+def retrieve_with_default(dict, key, default_value, type):
     """
     Safely retrieves a value from a dictionary.
 
@@ -62,7 +62,7 @@ def safely_retrieve_value(dict, key,  default_value, type):
     return value
 
 
-def safely_convert_value(value, default_value, type):
+def get_typed_value(value, default_value, type):
     """
     Safely converts a value from a VCF row.
 
@@ -208,9 +208,7 @@ def get_variant_calling_method_attr_types(variant_calling_method: str) -> Dict:
         return VariantCallingMethods.AttributeTypes.PBSV
     if variant_calling_method == VariantCallingMethods.SNIFFLES2:
         return VariantCallingMethods.AttributeTypes.SNIFFLES2
-    if variant_calling_method == VariantCallingMethods.STRELKA2_SOMATIC:
-        return VariantCallingMethods.AttributeTypes.STRELKA2_SOMATIC
-    if variant_calling_method == VariantCallingMethods.STRELKA2_GERMLINE:
-        return VariantCallingMethods.AttributeTypes.STRELKA2_GERMLINE
+    if variant_calling_method == VariantCallingMethods.STRELKA2:
+        return VariantCallingMethods.AttributeTypes.STRELKA2
     if variant_calling_method == VariantCallingMethods.SVIM:
         return VariantCallingMethods.AttributeTypes.SVIM

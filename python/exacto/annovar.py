@@ -19,7 +19,7 @@ annotating variants using ANNOVAR.
 
 import pandas as pd
 import subprocess as sp
-from exacto.logging import get_logger
+from .logging import get_logger
 
 
 logger = get_logger(__name__)

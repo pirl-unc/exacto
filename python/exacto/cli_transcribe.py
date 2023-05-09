@@ -13,7 +13,7 @@
 
 """
 The purpose of this python3 script is to create parser
-and run Exacto 'sim-reads' command.
+and run Exacto 'transcribe' command.
 """
 
 
@@ -31,7 +31,7 @@ def add_cli_simulate_reads_arg_parser(
         sub_parsers
     ) -> argparse._SubParsersAction:
     """
-    Adds 'sim-reads' parser.
+    Adds 'transcribe' parser.
 
     Parameters
     ----------
@@ -42,73 +42,45 @@ def add_cli_simulate_reads_arg_parser(
     An instance of argparse.ArgumentParser subparsers.
     """
     parser = sub_parsers.add_parser(
-        'sim-reads',
-        help='Simulate long-read sequencing reads.'
+        'transcribe',
+        help='Transcribes a genic sequence with DNA variants.'
     )
     parser._action_groups.pop()
 
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        '--fasta_file',
-        dest='fasta_file',
+        '--reference-genome-fasta-file',
+        dest='reference_genome_fasta_file',
         type=str,
         required=True,
-        help="FASTA file."
+        help="Reference genome FASTA file."
     )
     parser_required.add_argument(
-        '--num_gigabases',
-        dest='num_gigabases',
-        type=float,
-        required=True,
-        help="Number of gigabases to sequence."
-    )
-    parser_required.add_argument(
-        '--output_fastq_gz_file',
-        dest='output_fastq_gz_file',
+        '--variants-tsv-file',
+        dest='variants_tsv_file',
         type=str,
         required=True,
-        help="Output .fastq.gz file."
+        help="Variants TSV file."
     )
+    parser_required.add_argument(
+        '--reference-transcripts-gtf-file',
+        dest='reference_transcripts_gtf_file',
+        type=str,
+        required=True,
+        help="GENCODE reference transcripts GTF file."
+    )
+    parser_required.add_argument(
+        '--output_transcripts_fasta_file',
+        dest='output_transcripts_fasta_file',
+        type=str,
+        required=True,
+        help="Output variants TSV file."
+    )
+
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
-    parser_optional.add_argument(
-        '--read_length_mean',
-        dest='read_length_mean',
-        type=float,
-        default=SIMULATE_READS_READ_LENGTH_MEAN,
-        required=False,
-        help="Mean value of read length (default: %f)."
-             % SIMULATE_READS_READ_LENGTH_MEAN
-    )
-    parser_optional.add_argument(
-        '--read_length_stdev',
-        dest='read_length_stdev',
-        type=float,
-        default=SIMULATE_READS_READ_LENGTH_STDEV,
-        required=False,
-        help="Standard deviation of read length (default: %f)."
-             % SIMULATE_READS_READ_LENGTH_STDEV
-    )
-    parser_optional.add_argument(
-        '--base_quality_mean',
-        dest='base_quality_mean',
-        type=float,
-        default=SIMULATE_READS_BASE_QUALITY_MEAN,
-        required=False,
-        help="Mean value of base quality (default: %f)."
-             % SIMULATE_READS_BASE_QUALITY_MEAN
-    )
-    parser_optional.add_argument(
-        '--base_quality_stdev',
-        dest='base_quality_stdev',
-        type=float,
-        default=SIMULATE_READS_BASE_QUALITY_STDEV,
-        required=False,
-        help="Standard deviation of base quality (default: %f)."
-             % SIMULATE_READS_BASE_QUALITY_STDEV
-    )
     parser.set_defaults(which='sim-reads')
     return sub_parsers
 

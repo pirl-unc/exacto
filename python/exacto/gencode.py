@@ -90,11 +90,7 @@ class Gencode(Annotation):
                         curr_metadata_elements_ = curr_metadata_elements.split(' ')
                         curr_metadata_dict[curr_metadata_elements_[0]] = curr_metadata_elements_[1].replace('"', '')
                     curr_gene_id = str(curr_metadata_dict['gene_id'])
-                    if 'ENSG' in curr_gene_id and '.' in curr_gene_id:
-                        curr_gene_version = curr_gene_id.split('.')[1]
-                        curr_gene_id = curr_gene_id.split('.')[0]
-                    else:
-                        curr_gene_version = None
+                    curr_gene_id_, curr_gene_version = Gencode.get_stable_ensembl_id(id=str(curr_metadata_dict['gene_id']))
                     curr_gene_name = str(curr_metadata_dict['gene_name'])
                     curr_gene_type = str(curr_metadata_dict['gene_type'])
                     curr_gene_level = int(curr_metadata_dict['level'])
@@ -140,15 +136,8 @@ class Gencode(Annotation):
                         curr_metadata_elements_ = curr_metadata_elements.split(' ')
                         curr_metadata_dict[curr_metadata_elements_[0]] = curr_metadata_elements_[1].replace('"', '')
                     curr_gene_id = str(curr_metadata_dict['gene_id'])
-                    if 'ENSG' in curr_gene_id and '.' in curr_gene_id:
-                        curr_gene_version = curr_gene_id.split('.')[1]
-                        curr_gene_id = curr_gene_id.split('.')[0]
                     curr_transcript_id = str(curr_metadata_dict['transcript_id'])
-                    if 'ENST' in curr_transcript_id and '.' in curr_transcript_id:
-                        curr_transcript_version = curr_transcript_id.split('.')[1]
-                        curr_transcript_id = curr_transcript_id.split('.')[0]
-                    else:
-                        curr_transcript_version = None
+                    curr_transcript_id_, curr_transcript_version = Gencode.get_stable_ensembl_id(id=str(curr_metadata_dict['transcript_id']))
                     curr_transcript_type = str(curr_metadata_dict['transcript_type'])
                     try:
                         curr_transcript_level = int(curr_metadata_dict['transcript_support_level'])
@@ -206,19 +195,9 @@ class Gencode(Annotation):
                         else:
                             curr_metadata_dict[curr_metadata_elements_[0]] = curr_metadata_elements_[1].replace('"', '')
                     curr_gene_id = str(curr_metadata_dict['gene_id'])
-                    if 'ENSG' in curr_gene_id and '.' in curr_gene_id:
-                        curr_gene_version = curr_gene_id.split('.')[1]
-                        curr_gene_id = curr_gene_id.split('.')[0]
                     curr_transcript_id = str(curr_metadata_dict['transcript_id'])
-                    if 'ENST' in curr_transcript_id and '.' in curr_transcript_id:
-                        curr_transcript_version = curr_transcript_id.split('.')[1]
-                        curr_transcript_id = curr_transcript_id.split('.')[0]
                     curr_exon_id = str(curr_metadata_dict['exon_id'])
-                    if 'ENSE' in curr_exon_id and '.' in curr_exon_id:
-                        curr_exon_version = curr_exon_id.split('.')[1]
-                        curr_exon_id = curr_exon_id.split('.')[0]
-                    else:
-                        curr_exon_version = None
+                    curr_exon_id_, curr_exon_version = Gencode.get_stable_ensembl_id(id=str(curr_metadata_dict['exon_id']))
                     curr_exon_number = int(curr_metadata_dict['exon_number'])
                     exon = Exon(
                         id=curr_exon_id,

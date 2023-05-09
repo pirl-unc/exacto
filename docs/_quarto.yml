@@ -15,6 +15,7 @@ website:
           - align.qmd
           - identify.qmd
           - quantify.qmd
+          - sim_variants.qmd
           - sim_rna_variants.qmd
       - section: "Accessory Commands"
         contents:

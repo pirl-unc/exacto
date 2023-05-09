@@ -27,7 +27,7 @@ from exacto.logging import get_logger
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Gene:
     id: str                                             # e.g. 'ENSG00000122674'
     source: str                                         # e.g. 'ENSEMBL'
@@ -45,9 +45,7 @@ class Gene:
     def transcript_ids(self) -> List[str]:
         return [transcript.id for transcript in self.transcripts.values()]
 
-    def add_transcript(
-            self,
-            transcript: Transcript):
+    def add_transcript(self, transcript: Transcript):
         """
         Adds a transcript.
 
@@ -61,10 +59,7 @@ class Gene:
             logger.error('Transcript with ID %s already exists.' % transcript.id)
             exit(1)
 
-    def add_exon(
-            self,
-            transcript_id: str,
-            exon: Exon):
+    def add_exon(self, transcript_id: str, exon: Exon):
         if transcript_id in self.transcripts.keys():
             self.transcripts[transcript_id].add_exon(exon=exon)
         else:

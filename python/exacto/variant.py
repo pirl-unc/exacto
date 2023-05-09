@@ -14,186 +14,166 @@
 """
 The purpose of this python3 script is to implement Variant class.
 """
-
-
+import logging
 import statistics
+import numpy as np
 import pandas as pd
-from collections import defaultdict
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, ClassVar
+from bisect import bisect_left, bisect_right, insort
+from functools import total_ordering
 from .variant_call import VariantCall
 from .variant_annotation import VariantAnnotation
 
 
-@dataclass
+@total_ordering
+@dataclass(frozen=True)
 class Variant:
-    id: str = None
-    variant_calls: Dict = field(default_factory=dict)
+    id: str
+    chromosome_1: str
+    chromosome_2: str
+    variant_calls: List[VariantCall] = field(default_factory=list)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self.variant_calls)
 
     @property
-    def variant_call_id(self) -> List[str]:
-        return self.variant_calls.keys()
+    def variant_call_ids(self) -> List[str]:
+        return list(self.variant_calls.keys())
 
     @property
-    def source_id(self) -> str:
-        return [i.source_id for i in self.variant_calls.values()]
+    def source_ids(self) -> List[str]:
+        return [i.source_id for i in self.variant_calls]
 
     @property
-    def tumor_sample_id(self) -> str:
-        return [i.tumor_sample_id for i in self.variant_calls.values()]
+    def sample_ids(self) -> str:
+        return [i.sample_id for i in self.variant_calls]
 
     @property
-    def normal_sample_id(self) -> List[str]:
-        return [i.normal_sample_id for i in self.variant_calls.values()]
+    def nucleic_acids(self) -> List[str]:
+        return [i.nucleic_acid for i in self.variant_calls]
 
     @property
-    def nucleic_acid(self) -> List[str]:
-        return [i.nucleic_acid for i in self.nucleic_acid.values()]
-
-    @property
-    def variant_calling_method(self) -> List[str]:
-        return [i.variant_calling_method for i in self.variant_calls.values()]
+    def variant_calling_methods(self) -> List[str]:
+        return [i.variant_calling_method for i in self.variant_calls]
 
     @property
     def sequencing_platform(self) -> List[str]:
-        return [i.sequencing_platform for i in self.variant_calls.values()]
+        return [i.sequencing_platform for i in self.variant_calls]
 
     @property
-    def chr_1(self) -> str:
-        return self.variant_calls.values()[0].chr_1
+    def position_1(self) -> List[int]:
+        return [i.position_1 for i in self.variant_calls]
 
     @property
-    def pos_1(self) -> List[int]:
-        return [i.pos_1 for i in self.variant_calls.values()]
+    def position_1_stdev(self) -> float:
+        return 0.0 if len(self.position_1) == 1 else statistics.stdev(self.position_1)
 
     @property
-    def pos_1_stdev(self) -> float:
-        return 0.0 if len(self.pos_1) == 1 else statistics.stdev(self.pos_1)
+    def position_2(self) -> List[int]:
+        return [i.position_2 for i in self.variant_calls]
 
     @property
-    def chr_2(self) -> str:
-        return self.variant_calls.values()[0].chr_2
+    def position_2_stdev(self) -> float:
+        return 0.0 if len(self.position_2) == 1 else statistics.stdev(self.position_2)
 
     @property
-    def pos_2(self) -> List[int]:
-        return [i.pos_2 for i in self.variant_calls.values()]
+    def reference_alleles(self) -> List[str]:
+        return [i.reference_allele for i in self.variant_calls]
 
     @property
-    def pos_2_stdev(self) -> float:
-        return 0.0 if len(self.pos_2) == 1 else statistics.stdev(self.pos_2)
-
-    @property
-    def ref(self) -> List[str]:
-        return [i.ref for i in self.variant_calls.values()]
-
-    @property
-    def alt(self) -> List[str]:
-        return [i.alt for i in self.variant_calls.values()]
+    def alternate_alleles(self) -> List[str]:
+        return [i.alternate_allele for i in self.variant_calls]
 
     @property
     def filter(self) -> List[str]:
-        return [i.filter for i in self.variant_calls.values()]
+        return [i.filter for i in self.variant_calls]
 
     @property
-    def quality_score(self) -> List[float]:
-        return [i.quality_score for i in self.variant_calls.values()]
+    def quality_scores(self) -> List[float]:
+        return [i.quality_score for i in self.variant_calls]
 
     @property
     def precise(self) -> List[bool]:
-        return [i.precise for i in self.variant_calls.values()]
+        return [i.precise for i in self.variant_calls]
 
     @property
-    def variant_type(self) -> List[str]:
-        return [i.variant_type for i in self.variant_calls.values()]
+    def variant_type(self) -> str:
+        return self.variant_calls[0].variant_type
 
     @property
-    def variant_subtype(self) -> List[str]:
-        return [i.variant_subtype for i in self.variant_calls.values()]
+    def variant_subtypes(self) -> List[str]:
+        return [i.variant_subtype for i in self.variant_calls]
 
     @property
-    def variant_size(self) -> List[int]:
-        return [i.variant_size for i in self.variant_calls.values()]
+    def variant_sizes(self) -> List[int]:
+        return [i.variant_size for i in self.variant_calls]
 
     @property
-    def variant_sequence(self) -> List[List[str]]:
-        return [i.variant_sequence for i in self.variant_calls.values()]
+    def variant_size_stdev(self) -> float:
+        return 0.0 if len(self.variant_sizes) == 1 else statistics.stdev(self.variant_sizes)
 
     @property
-    def total_tumor_reads(self) -> List[int]:
-        return [i.total_tumor_reads for i in self.variant_calls.values()]
+    def variant_sequences(self) -> List[List[str]]:
+        return [i.variant_sequence for i in self.variant_calls]
 
     @property
-    def ref_tumor_reads(self) -> List[int]:
-        return [i.ref_tumor_reads for i in self.variant_calls.values()]
+    def total_read_counts(self) -> List[int]:
+        return [i.total_read_count for i in self.variant_calls]
 
     @property
-    def alt_tumor_reads(self) -> List[int]:
-        return [i.alt_tumor_reads for i in self.variant_calls.values()]
+    def reference_allele_read_counts(self) -> List[int]:
+        return [i.reference_allele_read_count for i in self.variant_calls]
 
     @property
-    def other_tumor_reads(self) -> List[int]:
-        return [i.other_tumor_reads for i in self.variant_calls.values()]
+    def alternate_allele_read_counts(self) -> List[int]:
+        return [i.alternate_allele_read_count for i in self.variant_calls]
 
     @property
-    def alt_tumor_fraction(self) -> List[float]:
-        return [i.alt_tumor_fraction for i in self.variant_calls.values()]
+    def alternate_allele_fractions(self) -> List[float]:
+        return [i.alternate_allele_fraction for i in self.variant_calls]
 
     @property
-    def total_normal_reads(self) -> List[int]:
-        return [i.total_normal_reads for i in self.variant_calls.values()]
+    def alternate_allele_read_ids(self) -> List[List[str]]:
+        return [i.alternate_allele_read_ids for i in self.variant_calls]
 
     @property
-    def ref_normal_reads(self) -> List[int]:
-        return [i.ref_normal_reads for i in self.variant_calls.values()]
-
-    @property
-    def alt_normal_reads(self) -> List[int]:
-        return [i.alt_normal_reads for i in self.variant_calls.values()]
-
-    @property
-    def other_normal_reads(self) -> List[int]:
-        return [i.other_normal_reads for i in self.variant_calls.values()]
-
-    @property
-    def alt_normal_fraction(self) -> List[float]:
-        return [i.alt_normal_fraction for i in self.variant_calls.values()]
-
-    @property
-    def alt_tumor_read_id(self) -> List[List[str]]:
-        return [i.alt_tumor_read_id for i in self.variant_calls.values()]
-
-    @property
-    def alt_normal_read_id(self) -> List[List[str]]:
-        return [i.alt_normal_read_id for i in self.variant_calls.values()]
-
-    @property
-    def alt_tumor_softclip_direction(self) -> List[str]:
-        return [i.alt_tumor_softclip_direction for i in self.variant_calls.values()]
-
-    @property
-    def alt_normal_softclip_direction(self) -> List[str]:
-        return [i.alt_normal_softclip_direction for i in self.variant_calls.values()]
+    def alternate_allele_softclip_directions(self) -> List[str]:
+        return [i.alternate_allele_softclip_direction for i in self.variant_calls]
 
     @property
     def tool_attributes(self) -> List[OrderedDict]:
-        return [i.tool_attributes for i in self.variant_calls.values()]
+        return [i.tool_attributes for i in self.variant_calls]
 
     @property
-    def pos_1_annotations(self) -> List[List[VariantAnnotation]]:
-        return [i.pos_1_annotations for i in self.variant_calls.values()]
+    def position_1_annotations(self) -> List[List[VariantAnnotation]]:
+        return [i.position_1_annotations for i in self.variant_calls]
 
     @property
-    def pos_2_annotations(self) -> List[List[VariantAnnotation]]:
-        return [i.pos_2_annotations for i in self.variant_calls.values()]
+    def position_2_annotations(self) -> List[List[VariantAnnotation]]:
+        return [i.position_2_annotations for i in self.variant_calls]
+
+    def __lt__(self, other):
+        if isinstance(other, Variant):
+            return (self.chromosome_1,
+                    self.chromosome_2) < \
+                   (other.chromosome_1,
+                    other.chromosome_2)
+        return NotImplemented
+
+    def __eq__(self, other):
+        if isinstance(other, Variant):
+            return (self.chromosome_1,
+                    self.chromosome_2) == \
+                   (other.chromosome_1,
+                    other.chromosome_2)
+        return NotImplemented
 
     def to_dict(self) -> Dict:
         data = defaultdict(list)
-        for variant_call in self.variant_calls.values():
+        for variant_call in self.variant_calls:
             data['variant_id'].append(self.id)
             for key, value in variant_call.to_dict().items():
                 data[key].append(value[0])
@@ -201,3 +181,86 @@ class Variant:
 
     def to_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(self.to_dict())
+
+    def add_variant_call(self, variant_call: VariantCall):
+        """
+        Adds a VariantCall object.
+
+        Parameters
+        ----------
+        variant_call    :   VariantCall object.
+        """
+        # Check that variant_call chromsome_1 and chromosome_2 match
+        # self.chromosome_1 and self.chromosome_2
+        if self.chromosome_1 == variant_call.chromosome_1 and self.chromosome_2 == variant_call.chromosome_2:
+            insort(self.variant_calls, variant_call)
+        else:
+            logging.error('variant_call.chromosome_1 and variant_call.chromosome_2 '
+                          'must match self.chromosome_1 and self.chromosome_2')
+            logging.error("Variant:")
+            logging.error(self.id)
+            logging.error(self.chromosome_1)
+            logging.error(self.chromosome_2)
+            logging.error("VariantCall:")
+            logging.error(variant_call)
+            exit(1)
+
+    def find_variant_calls(
+            self,
+            chromosome_1,
+            chromosome_2,
+            position_1_start,
+            position_1_end,
+            position_2_start,
+            position_2_end
+    ) -> List[VariantCall]:
+        """
+        Finds instances of VariantCall that match the query parameters.
+
+        Parameters
+        ----------
+        chromosome_1        :   Chromosome 1.
+        chromosome_2        :   Chromosome 2.
+        position_1_start    :   Position 1 start.
+        position_1_end      :   Position 1 end.
+        position_2_start    :   Position 2 start.
+        position_2_end      :   Position 2 end.
+
+        Returns
+        -------
+        variant_calls       :   List of VariantCall objects.
+        """
+        # Find the leftmost index where chromosome_1 and chromosome_2 match
+        left_index = bisect_left(
+            self.variant_calls,
+            VariantCall(
+                id='',
+                chromosome_1=chromosome_1,
+                position_1=position_1_start,
+                chromosome_2=chromosome_1,
+                position_2=position_2_start
+            )
+        )
+
+        # Find the rightmost index where chromosome_1 and chromosome_2 match
+        right_index = bisect_right(
+            self.variant_calls,
+            VariantCall(
+                id='',
+                chromosome_1=chromosome_1,
+                position_1=position_1_end,
+                chromosome_2=chromosome_2,
+                position_2=position_2_end
+            )
+        )
+
+        variant_calls = []
+        for variant_call in self.variant_calls[left_index:right_index]:
+            if chromosome_1 == variant_call.chromosome_1 and \
+                    chromosome_2 == variant_call.chromosome_2 and \
+                    position_1_start <= variant_call.position_1 <= position_1_end and \
+                    position_2_start <= variant_call.position_2 <= position_2_end:
+                variant_calls.append(variant_call)
+
+        return variant_calls
+
