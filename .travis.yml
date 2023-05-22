@@ -39,6 +39,8 @@ install:
   - mamba install pytest
   - mamba install pytest-cov
   - mamba install pysam
+  - mamba install networkx
+  - mamba install matplotlib
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
   - pip install . --verbose
