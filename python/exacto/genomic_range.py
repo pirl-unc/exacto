@@ -33,14 +33,14 @@ class GenomicRange:
 
     def __lt__(self, other):
         if isinstance(other, GenomicRange):
-            return (self.chromosome, self.start) < \
-                   (other.chromosome, other.start)
+            return (self.chromosome, self.start, self.end) < \
+                   (other.chromosome, other.start, self.end)
         return NotImplemented
 
     def __eq__(self, other):
         if isinstance(other, GenomicRange):
-            return (self.chromosome, self.start) == \
-                   (other.chromosome, other.start)
+            return (self.chromosome, self.start, self.end) == \
+                   (other.chromosome, other.start, self.end)
         return NotImplemented
 
     def overlaps(self, chromosome, start, end) -> bool:

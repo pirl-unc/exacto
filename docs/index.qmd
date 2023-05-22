@@ -4,57 +4,54 @@ title: "Getting Started"
 
 # **Exacto: EXtracting And Counting Transcripts in Oncology**
 
-**Source code**:
+**Source code**: [link](https://github.com/pirl-unc/exacto)
 
 **License**: Apache 2.0 License
 
-**Latest Stable Version**: **`0.1.7.2`**
+**Latest Stable Version**: `0.1.8.0`
 
 **Updated date**: April 13, 2023
 
 `Exacto` is a versatile python/Rust library and command-line software for:
 
-1. aligning tumor and normal `long-read` `RNA` sequencing reads to an augmented (reference + germline variants + somatic variants) genome using a graph approach.
-2. identifying various types of somatic transcript variants in tumor with `long-read` `RNA` sequencing reads.
-3. quantifying known, novel, somatic/splice variant transcripts in tumor with `long-read` `RNA` sequencing reads.
-4. simulating tumor and normal genomes and transcriptomes (i.e. somatic and germline DNA/RNA variants).
-5. simulating tumor and normal `long-read` `DNA` and `RNA` sequencing reads.
+1. aligning tumor and normal long-read RNA sequencing reads to an augmented (reference + germline variants + somatic variants) genome using a graph approach.
+2. identifying various types of somatic transcript variants in tumor with long-read RNA sequencing reads.
+3. quantifying known, novel, somatic/splice variant transcripts in tumor with long-read RNA sequencing reads.
+4. simulating tumor and normal genomes and transcriptomes with germline and somatic DNA and RNA variants.
+5. simulating tumor and normal long-read DNA and RNA sequencing reads.
 
 ## **Installation**
 
-<div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
-<pre>
+```bash
 conda install exacto
-</pre>
-</div>
+```
 
 ## **Command Line Interface**
 
-<div style="background-color:#f8f8f8; padding:12px; font-family: monospace, monospace;">
-<pre>
-usage: exacto [-h] [--version] {refine,annotate,merge} ...
+```markdown
+usage: exacto [-h] [--version]
 
 Exacto: EXtracting And Counting Transcripts in Oncology.
 
-positional arguments:
-  {refine,annotate,merge}
-                        Exacto sub-commands.
-    refine              Refine variants.
-    annotate            Annotate variants.
-    merge               Merge variants.
+positional arguments (sub-commands):
+    annotate-variant-calls    Annotate variant calls.
+    call-rna-variants         Call RNA variants.
+    filter-variants           Filter variants.
+    merge-variant-calls       Merge variant TSV files.
+    sim-reads                 Simulate long-read sequencing reads.
+    vcf-to-tsv                Convert a VCF file to a TSV file.
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --version, -v         show program's version number and exit
-</pre>
-</div>
+  -h, --help                  show this help message and exit
+  --version, -v               show program's version number and exit
+
+```
 
 **Exacto includes the following main commands:** 
 
-* [align](align.qmd) (align long-read RNA reads)
+* [graph](graph.qmd) (generate augmented genome)
 * [identify](identify.qmd) (identify RNA variants)
-* [quantify](quantify.qmd) (quantify transcripts)
-* [sim-variants](sim_variants.qmd) (simulate DNA and RNA variants)
+* [sim-reads](sim_reads.qmd) (simulate DNA and RNA variants)
 
 <!-- 
 * [sim-variants](sim_rna_variants.qmd) (simulate DNA/RNA variants)
@@ -64,9 +61,9 @@ optional arguments:
 
 **Exacto also includes the following accessory commands:**
 
-* [convert](convert.qmd) (convert a VCF file to a TSV file)
-* [refine](refine.qmd) (refines DNA or RNA variants)
-* [merge](merge_variants.qmd) (merges and deduplicates DNA or RNA variants)
+* [vcf-to-tsv](vcf_to_tsv.qmd) (convert a VCF file to a TSV file)
+* [merge-variant-calls](merge_variant_calls.qmd) (merges and deduplicates DNA or RNA variant calls)
+* [filter-variants](filter_variants.qmd) (filters variants)
 * [annotate](annotate.qmd) (annotates DNA or RNA variants)
 
 ## **Citation**

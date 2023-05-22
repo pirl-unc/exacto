@@ -16,7 +16,7 @@ The purpose of this python3 script is to define Exacto default parameters.
 """
 
 
-"""convert-vcf-to-tsv"""
+"""convert-variant-to-tsv"""
 
 
 """merge-variant-calls"""

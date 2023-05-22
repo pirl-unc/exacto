@@ -39,7 +39,9 @@ Here is a list of `Exacto` classes and methods:
 
 ### **add_variant_call**
 
-```add_variant_call(variant_call: VariantCall) -> None```
+```python
+add_variant_call(variant_call: VariantCall) -> None
+```
 
 Add a [VariantCall](#variantcall).
 
@@ -52,7 +54,9 @@ Add a [VariantCall](#variantcall).
 
 ### **filter**
 
-```filter(queries: List[str]) -> None```
+```python
+filter(queries: List[str]) -> None
+```
 
 Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#variant) object(s) based on a list of filter queries.
 
@@ -65,7 +69,9 @@ Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#va
 
 ### **filter_regions**
 
-```filter_regions(regions: pd.DataFrame, padding=100000, num_processes=1) -> None```
+```python
+filter_regions(regions: pd.DataFrame, padding=100000, num_processes=1) -> None
+```
 
 Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#variant) object(s) that are near the specified regions.
 
@@ -80,7 +86,9 @@ Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#va
 
 ### **filter_variants**
 
-```filter_variants(variant_list: VariantList, padding=1000, num_processes=1) -> None```
+```python
+filter_variants(variant_list: VariantList, padding=1000, num_processes=1) -> None
+```
 
 Filter out (i.e. remove) [VariantCall](#variantcall) object(s) and [Variant](#variant) object(s) that appear in the specified [VariantList](#variantlist). Note that this function can be used to obtain a somatic callset by supplying germline variants to **variant_list**.
 

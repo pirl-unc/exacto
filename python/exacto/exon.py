@@ -12,35 +12,38 @@
 
 
 """
-The purpose of this python3 script is to implement the Exon class.
+The purpose of this python3 script is to implement the Exon dataclass.
 """
 
 
+import pandas as pd
 from dataclasses import dataclass, field
-from typing import List, Dict, Tuple, ClassVar
 from functools import total_ordering
+from typing import List
+from .nucleotide_sequence import NucleotideSequence
 
 
 @total_ordering
 @dataclass(frozen=True)
 class Exon:
-    id: str                                         # e.g. 'ENSE00001910415'
+    id: str                                         # e.g. 'ENSE00001910415.10'
+    stable_id: str                                  # e.g. 'ENSE00001910415'
+    source: str                                     # e.g. 'ENSEMBL'
+    source_version: str                             # e.g. '107'
     chromosome: str                                 # e.g. 'chr1'
     start: int                                      # e.g. 1000 (5' start)
     end: int                                        # e.g. 1200 (3' end)
-    sequence: str                                   # e.g. 'AAATCCT...TTGG' (5' to 3' sequence)
     number: int                                     # e.g. 1
     strand: str                                     # e.g. '+'
-    version: int                                    # e.g. 1
-    source: str = None                              # e.g. 'ENSEMBL'
+    sequence: NucleotideSequence
+    utr_start: int = None                           # e.g. 10000
+    utr_end: int = None                             # e.g. 10500
+    version: int = None                             # e.g. 10
     tags: List[str] = field(default_factory=list)   # e.g. 'Ensembl_canonical'
 
     @property
     def length(self) -> int:
-        """
-        Returns exon.
-        """
-        return len(self.sequence)
+        return len(self.sequence.sequence)
 
     def __lt__(self, other):
         if isinstance(other, Exon):
@@ -49,5 +52,28 @@ class Exon:
 
     def __eq__(self, other):
         if isinstance(other, Exon):
-            return self.number == other.number
+            return self.id == other.id
         return NotImplemented
+
+    def to_dict(self):
+        data = {
+            'exon_id': [self.id],
+            'exon_stable_id': [self.stable_id],
+            'exon_source': [self.source],
+            'exon_source_version': [self.source_version],
+            'exon_chromosome': [self.chromosome],
+            'exon_start': [self.start],
+            'exon_end': [self.end],
+            'exon_number': [self.number],
+            'exon_strand': [self.strand],
+            'exon_sequence': [self.sequence.sequence],
+            'exon_utr_start': ['' if self.utr_start is None else self.utr_start],
+            'exon_utr_end': ['' if self.utr_end is None else self.utr_end],
+            'exon_version': [self.version],
+            'exon_tags': [';'.join(self.tags)]
+        }
+        return data
+
+    def to_dataframe(self):
+        return pd.DataFrame(self.to_dict())
+

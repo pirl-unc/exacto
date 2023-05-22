@@ -19,35 +19,21 @@ that are used to parse FASTA files.
 
 from typing import Tuple, List, Dict
 from dataclasses import dataclass, field
+from .nucleotide_sequence import NucleotideSequence
 
 
 @dataclass
-class Sequence:
-    id: str
-    sequence: str
+class Fasta:
+    fasta_file: str
+    sequences: Dict = field(default_factory=dict)     # key = ID, value = NucleotideSequence object
 
-
-def read_fasta_file(
-        fasta_file: str
-    ) -> List[Sequence]:
-    """
-    Reads a FASTA file and returns sequence information.
-
-    Parameters
-    ----------
-    fasta_file  :   FASTA file.
-
-    Returns
-    -------
-    sequences   :   List of instances of the class Sequence.
-    """
-    sequences = []
-    curr_id = ''
-    with open(fasta_file, 'r') as f:
-        for line in f.readlines():
-            if '>' == line[0]:
-                curr_id = line[1:].replace('\n', '')
-            else:
-                sequences.append(Sequence(id=curr_id, sequence=line.replace('\n','')))
-    return sequences
-
+    def __post_init__(self):
+        curr_id = ''
+        with open(self.fasta_file, 'r') as f:
+            for line in f.readlines():
+                if '>' == line[0]:
+                    curr_id = line[1:].replace('\n', '')
+                else:
+                    self.sequences[curr_id] = NucleotideSequence(
+                        sequence=line.replace('\n', '')
+                    )

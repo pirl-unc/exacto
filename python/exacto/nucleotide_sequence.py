@@ -21,9 +21,12 @@ from .constants import RNA_CODONS, AMINO_ACID_CODES
 from .peptide_sequence import PeptideSequence
 
 
-@dataclass
+@dataclass(frozen=True)
 class NucleotideSequence:
-    sequence: str
+    sequence: str   # always in 5' to 3' orientation
+
+    def __str__(self):
+        return self.sequence
 
     @property
     def length(self) -> int:
@@ -37,16 +40,31 @@ class NucleotideSequence:
                    self.sequence.count('c')
         return gc_count / len(self.sequence)
 
-    def reverse_complement(self) -> str:
+    def reverse(self) -> str:
         """
-        Returns the reverse complement of the sequence.
+        Returns the reverse of the sequence.
 
         Returns
         -------
-        sequence   :   The reverse complement of the sequence.
+        sequence   :   The reverse of the sequence.
+        """
+        return self.sequence[::-1]
+
+    @staticmethod
+    def reverse_complement(sequence) -> str:
+        """
+        Returns the reverse complement of the sequence.
+
+        Parameters
+        ----------
+        sequence    :   Sequence.
+
+        Returns
+        -------
+        sequence    :   The reverse complement of the sequence.
         """
         complement = str.maketrans('ATCGatcg', 'TAGCtagc')
-        return self.sequence.translate(complement)[::-1]
+        return sequence.translate(complement)[::-1]
 
     def translate(self) -> PeptideSequence:
         """
@@ -63,7 +81,6 @@ class NucleotideSequence:
                 codon = nucleotide_seq[i:i + 3]
                 amino_acid = AMINO_ACID_CODES[RNA_CODONS[codon]]
                 peptide_seq += amino_acid
-                aa_idx += 1
             except:
                 raise Exception('')
         peptide_sequence = PeptideSequence(sequence=peptide_seq)

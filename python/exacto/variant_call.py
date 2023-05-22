@@ -16,13 +16,13 @@ The purpose of this python3 script is to implement the VariantCall class.
 """
 
 
-import string
-import random
+import re
 import pandas as pd
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from typing import List, Dict, Tuple, ClassVar
+from typing import List, Dict
 from functools import total_ordering
+from .constants import TranslocationOrientations, VariantTypes
 from .nucleotide_sequence import NucleotideSequence
 from .variant_annotation import VariantAnnotation
 
@@ -33,6 +33,8 @@ class VariantCall:
     id: str
     source_id: str = None
     sample_id: str = None
+    phase_block_id: str = None
+    clone_set_id: str = None
     nucleic_acid: str = None
     variant_calling_method: str = None
     sequencing_platform: str = None
@@ -54,7 +56,6 @@ class VariantCall:
     alternate_allele_read_count: int = None
     alternate_allele_fraction: float = None
     alternate_allele_read_ids: List[str] = field(default_factory=list)
-    alternate_allele_softclip_direction: str = None    # ++, +-, -+, --    <pos_1,pos_2>
     tool_attributes: OrderedDict = field(default_factory=dict, repr=False, compare=False)
     position_1_annotations: List[VariantAnnotation] = field(default_factory=list, repr=False, compare=False)
     position_2_annotations: List[VariantAnnotation] = field(default_factory=list, repr=False, compare=False)
@@ -83,6 +84,54 @@ class VariantCall:
                     other.position_2)
         return NotImplemented
 
+    def get_translocation_orientation(self):
+        """
+        Returns translocation metadata.
+
+        Returns
+        -------
+        metadata    :   Tuple (orientation, t_chromosome, t_position, p_chromosome, p_position).
+        """
+        if self.variant_type == VariantTypes.TRANSLOCATION:
+            if re.search("^.*\[.*\[$", self.alternate_allele):                  # t[p[ piece extending to the right of p is joined after t
+                orientation = TranslocationOrientations.ORIENTATION_1
+                alternate_allele_elements = self.alternate_allele.split('[')
+                t = alternate_allele_elements[0]
+                p = alternate_allele_elements[1]
+            elif re.search("^.*\].*\]$", self.alternate_allele):                # t]p] reverse comp piece extending left of p is joined after t
+                orientation = TranslocationOrientations.ORIENTATION_2
+                alternate_allele_elements = self.alternate_allele.split(']')
+                t = alternate_allele_elements[0]
+                p = alternate_allele_elements[1]
+            elif re.search("^\].*\].*$", self.alternate_allele):                # ]p]t piece extending to the left of p is joined before t
+                orientation = TranslocationOrientations.ORIENTATION_3
+                alternate_allele_elements = self.alternate_allele.split(']')
+                t = alternate_allele_elements[2]
+                p = alternate_allele_elements[1]
+            elif re.search("^\[.*\[.*$", self.alternate_allele):                # [p[t  reverse comp piece extending right of p is joined before t
+                orientation = TranslocationOrientations.ORIENTATION_4
+                alternate_allele_elements = self.alternate_allele.split('[')
+                t = alternate_allele_elements[2]
+                p = alternate_allele_elements[1]
+            else:
+                raise Exception('Unknown ALT format to infer translocation orientation type: %s' % self.alternate_allele)
+
+            if p == '%s:%i' % (self.chromosome_1, self.position_1):
+                p_chromosome = self.chromosome_1
+                p_position = self.position_1
+                t_chromosome = self.chromosome_2
+                t_position = self.position_2
+            elif p == '%s:%i' % (self.chromosome_2, self.position_2):
+                p_chromosome = self.chromosome_2
+                p_position = self.position_2
+                t_chromosome = self.chromosome_1
+                t_position = self.position_1
+            else:
+                raise Exception('Positions for p and t could not be inferred from self.alternate_allele: %s' % self.alternate_allele)
+            return orientation, t_chromosome, t_position, p_chromosome, p_position
+        else:
+            raise Exception('This VariantCall object does not encode a translocation. Therefore translocation orientation cannot be inferred.')
+
     def to_dict(self) -> Dict:
         data = {
             'variant_call_id': ['' if self.id is None else self.id],
@@ -108,8 +157,7 @@ class VariantCall:
             'reference_allele_read_count': ['' if self.reference_allele_read_count is None else self.reference_allele_read_count],
             'alternate_allele_read_count': ['' if self.alternate_allele_read_count is None else self.alternate_allele_read_count],
             'alternate_allele_fraction': ['' if self.alternate_allele_fraction is None else self.alternate_allele_fraction],
-            'alternate_allele_read_ids': [';'.join(self.alternate_allele_read_ids)],
-            'alternate_allele_softclip_direction': ['' if self.alternate_allele_softclip_direction is None else self.alternate_allele_softclip_direction]
+            'alternate_allele_read_ids': [';'.join(self.alternate_allele_read_ids)]
         }
 
         tool_attributes = []

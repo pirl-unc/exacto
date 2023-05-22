@@ -19,10 +19,10 @@ The purpose of this python3 script is to implement the VCF dataclass.
 import gzip
 import pandas as pd
 from collections import OrderedDict
-from .common import retrieve_with_default, get_typed_value
 from .constants import *
 from .logging import get_logger
 from .nucleotide_sequence import NucleotideSequence
+from .utilities import retrieve_with_default, get_typed_value
 from .variant_call import VariantCall
 from .variant import Variant
 from .variants_list import VariantsList

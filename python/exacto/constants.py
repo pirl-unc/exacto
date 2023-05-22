@@ -46,6 +46,7 @@ class VariantTypes:
     CIRCULAR_RNA = 'CIR'                # RNA
     JET = 'JET'                         # RNA
     ENDOGENOUS_RETROVIRUS = 'ERV'       # RNA
+    REFERENCE = 'REF'                   # REFERENCE
     ALL = [
         SINGLE_NUCLEOTIDE_VARIANT,
         MULTI_NUCLEOTIDE_VARIANT,
@@ -63,6 +64,16 @@ class VariantTypes:
         JET,
         ENDOGENOUS_RETROVIRUS
     ]
+
+    FULL_NAMES = {
+        REFERENCE: 'Reference',
+        SINGLE_NUCLEOTIDE_VARIANT: 'SNV',
+        INSERTION: 'Insertion',
+        DELETION: 'Deletion',
+        DUPLICATION: 'Duplication',
+        INVERSION: 'Inversion',
+        TRANSLOCATION: 'Translocation'
+    }
 
     class DuplicationSubtypes:
         TANDEM_DUPLICATION = 'DUP_TANDEM'
@@ -312,6 +323,19 @@ class VariantCallingMethods:
         }
 
 
+class TranslocationOrientations:
+    ORIENTATION_1 = 't[p['  # piece extending to the right of p is joined after t
+    ORIENTATION_2 = 't]p]'  # reverse complement piece extending left of p is joined after t
+    ORIENTATION_3 = ']p]t'  # piece extending to the left of p is joined before t
+    ORIENTATION_4 = '[p[t'  # reverse complement extending right of p is joined before t
+    ALL = [
+        ORIENTATION_1,
+        ORIENTATION_2,
+        ORIENTATION_3,
+        ORIENTATION_4
+    ]
+
+
 class GenomicRegionTypes:
     EXONIC = 'exonic'
     INTRONIC = 'intronic'
@@ -345,14 +369,6 @@ class AnnotationSources:
         GENCODE,
         ANNOVAR
     ]
-
-
-class GeneTypes:
-    PROTEIN_CODING = 'protein_coding'
-
-
-class TranscriptTypes:
-    PROTEIN_CODING = 'protein_coding'
 
 
 class Sexes:

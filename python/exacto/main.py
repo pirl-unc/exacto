@@ -18,21 +18,16 @@ The purpose of this python3 script is to implement Exacto's main APIs.
 
 import pandas as pd
 import pysam
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import List
-from exacto import exactors
-from .alignment import Alignment
-from .annotation import Annotation
-from .constants import VariantCallingMethods
+from .alignment_map import AlignmentMap
+from .annotation_db import AnnotationDb
+from .constants import VariantCallingMethods, NucleicAcidTypes
 from .default_parameters import *
-from .ensembl import Ensembl
-from .fasta import Sequence
+from .fasta import Fasta
 from .gene_set import GeneSet
-from .gencode import Gencode
 from .genomic_ranges_list import  GenomicRangesList
 from .logging import get_logger
-from .simulation_reads import simulate_single_end_reads
-from .variant_calling import call_rna_variants
 from .variant_filter import VariantFilter
 from .variants_list import VariantsList
 from .vcf import Vcf
@@ -41,12 +36,12 @@ from .vcf import Vcf
 logger = get_logger(__name__)
 
 
-def run_exacto_convert_vcf(
+def run_exacto_vcf_to_tsv(
         vcf_file: str,
         source_id: str,
         variant_calling_method: str,
         sequencing_platform: str
-    ) -> VariantsList:
+) -> VariantsList:
     """
     Convert a VCF file to a VariantsList.
 
@@ -112,7 +107,7 @@ def run_exacto_convert_vcf(
 def run_exacto_merge_variant_calls(
         variants_lists: List[VariantsList],
         max_neighbor_distance: int = MERGE_MAX_NEIGHBOR_DISTANCE,
-    ) -> VariantsList:
+) -> VariantsList:
     """
     Merges VariantsList objects into one.
 
@@ -201,20 +196,23 @@ def run_exacto_filter_variants(
     return variants_list
 
 
-def run_exacto_annotate(variants_list: VariantsList, annotation: Annotation) -> VariantsList:
+def run_exacto_annotate_variants_list(
+        variants_list: VariantsList,
+        annotation_db: AnnotationDb
+) -> VariantsList:
     """
     Annotates a variants list and returns the annotated variants list.
 
     Parameters
     ----------
     variants_list       :   VariantsList object.
-    annotation          :   Annotation object.
+    annotation_db       :   AnnotationDb object.
 
     Returns
     -------
     variants_list       :   VariantsList object.
     """
-    return annotation.annotate_variants(variants_list=variants_list)
+    return annotation_db.annotate_variants_list(variants_list=variants_list)
 
 
 def run_exacto_simulate_variants(
@@ -255,26 +253,24 @@ def run_exacto_simulate_variants(
     # return df_rna_variants, variant_transcript_sequences
 
 
-def run_exacto_call_variants(
+def run_exacto_call_rna_variants(
         bam: pysam.AlignmentFile,
-        nucleic_acid_type: str,
         num_processes: int
     ) -> pd.DataFrame:
     """
-    Calls variants in a BAM file.
+    Call RNA variants in a BAM file.
 
     Parameters
     ----------
     bam                 :   Pysam AlignmentFile object of a BAM file.
-    nucleic_acid_type   :   Nucleic acid type.
     num_processes       :   Number of processes.
 
     Returns
     -------
     variants_list       :   An instance of 'VariantsList' class.
     """
-    alignment = Alignment(bam=bam, nucleic_acid_type=nucleic_acid_type)
-    return alignment.call_variants(num_processes=num_processes)
+    alignment_map = AlignmentMap(bam=bam, nucleic_acid_type=NucleicAcidTypes.RNA)
+    return alignment_map.call_variants(num_processes=num_processes)
     # bam_filename = str(bam_file.filename.decode())
     # variant_callset = exactors.identify_rna_variants(bam_filename, num_cores)
     # df_variants = pd.DataFrame({
@@ -352,7 +348,7 @@ def run_exacto_call_variants(
 #
 #
 def run_exacto_simulate_reads(
-        sequences: List[Sequence],
+        fasta: Fasta,
         output_fastq_gz_file: str,
         num_gigabases: float,
         read_length_mean: float,
@@ -377,10 +373,11 @@ def run_exacto_simulate_reads(
     -------
     reads               :   List of instances of the class Read.
     """
-    return simulate_single_end_reads(sequences=sequences,
-                                     output_fastq_gz_file=output_fastq_gz_file,
-                                     num_bases=num_gigabases * 10e9,
-                                     read_length_mean=read_length_mean,
-                                     read_length_stdev=read_length_stdev,
-                                     base_quality_mean=base_quality_mean,
-                                     base_quality_stdev=base_quality_stdev)
+    pass
+    # return simulate_single_end_reads(sequences=sequences,
+    #                                  output_fastq_gz_file=output_fastq_gz_file,
+    #                                  num_bases=num_gigabases * 10e9,
+    #                                  read_length_mean=read_length_mean,
+    #                                  read_length_stdev=read_length_stdev,
+    #                                  base_quality_mean=base_quality_mean,
+    #                                  base_quality_stdev=base_quality_stdev)

@@ -10,7 +10,7 @@ website:
         contents:
           - index.qmd
           - pipeline.qmd
-      - section: "Main Commands"
+      - section: "Primary Commands"
         contents:
           - align.qmd
           - identify.qmd
@@ -19,12 +19,13 @@ website:
           - sim_rna_variants.qmd
       - section: "Accessory Commands"
         contents:
-          - convert.qmd
-          - refine.qmd
-          - merge.qmd
+          - annotate_variant_calls.qmd
+          - filter_variants.qmd
+          - merge_variant_calls.qmd
+          - vcf_to_tsv.qmd
       - section: "File Formats"
         contents:
-          - variants_tsv_file.qmd
+          - variants_list_tsv_file.qmd
       - section: "API"
         contents:
           - python_api.qmd
@@ -35,5 +36,5 @@ website:
 
 format:
   html:
-    theme: simplex
+    theme: materia
     css: styles.css

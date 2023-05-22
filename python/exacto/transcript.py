@@ -12,29 +12,34 @@
 
 
 """
-The purpose of this python3 script is to implement the Transcript class.
+The purpose of this python3 script is to implement the Transcript dataclass.
 """
 
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Tuple, ClassVar, Set
+import pandas as pd
 from bisect import insort
+from dataclasses import dataclass, field
+from typing import List
 from .exon import Exon
+from .nucleotide_sequence import NucleotideSequence
 
 
-@dataclass
+@dataclass(frozen=True)
 class Transcript:
-    id: str                                                     # e.g. 'ENST00000445840'
+    id: str                                                     # e.g. 'ENST00000445840.10'
+    stable_id: str                                              # e.g. 'ENST00000445840'
+    source: str                                                 # e.g. 'ENSEMBL'
+    source_version: str                                         # e.g. '107'
     chromosome: str                                             # e.g. 'chr7'
     start: int                                                  # e.g. 1000
     end: int                                                    # e.g. 10000
-    type: str                                                   # e.g. 'protein_coding' (one of the TranscriptTypes values in constants.py)
+    type: str                                                   # e.g. 'protein_coding'
     strand: str                                                 # e.g. '+' or '-' (one of the Strands values in constants.py)
-    transcript_start_site: int = None                           # e.g. 1000
-    source: str = None                                          # e.g. 'ENSEMBL'
-    version: int = None                                         # e.g. 1
+    transcription_start_site: int = None                        # e.g. 1000
+    version: int = None                                         # e.g. 10
     name: str = None                                            # e.g. 'CCZ1-201'
     level: int = None                                           # e.g. 1
+    support_level: int = None                                   # e.g. 1
     five_prime_utr_start: int = None                            # e.g. 1000 (5' position)
     five_prime_utr_end: int = None                              # e.g. 1500 (3' position)
     three_prime_utr_start: int = None                           # e.g. 10000 (5' position)
@@ -45,28 +50,40 @@ class Transcript:
     stop_codon_end: int = None                                  # e.g. 10000
     utr_start: int = None                                       # e.g. 10000
     utr_end: int = None                                         # e.g. 10500
-    _sequence: str = None                                       # e.g. 'ATA...CGT'
+    genome: str = None                                          # e.g. 'GRCh38'
+    tags: List[str] = field(default_factory=list)
     exons: List[Exon] = field(default_factory=list)
 
-    @property
-    def sequence(self):
-        if self._sequence is None:
-            sequence = ''
-            for exon in self.exons:
-                sequence += exon.sequence
-        else:
-            return self._sequence
+    def __lt__(self, other):
+        if isinstance(other, Transcript):
+            return (self.start, self.end) < (other.start, other.end)
+        return NotImplemented
 
-    @sequence.setter
-    def sequence(self, sequence: str) -> None:
-        self._sequence = sequence
+    def __eq__(self, other):
+        if isinstance(other, Transcript):
+            return self.id == self.id
+        return NotImplemented
+
+    @property
+    def cds_length(self) -> int:
+        """
+        Returns transcript CDS length.
+        """
+        length = 0
+        for curr_exon in self.exons:
+            length += curr_exon.length
+        return length
+
+    @property
+    def exons_count(self) -> int:
+        return len(self.exons)
 
     @property
     def exon_ids(self) -> List[str]:
         return [exon.id for exon in self.exons]
 
     @property
-    def length(self):
+    def length(self) -> int:
         """
         Returns transcript length (including UTRs and CDS).
         """
@@ -76,14 +93,11 @@ class Transcript:
         return cds_length
 
     @property
-    def cds_length(self):
-        """
-        Returns transcript CDS length.
-        """
-        length = 0
-        for curr_exon in self.exons:
-            length += curr_exon.length
-        return length
+    def sequence(self) -> NucleotideSequence:
+        sequence = ''
+        for exon in self.exons:
+            sequence += exon.sequence.sequence
+        return NucleotideSequence(sequence=sequence)
 
     def add_exon(self, exon: Exon):
         """
@@ -94,3 +108,39 @@ class Transcript:
         exon        :   An instance of the Exon class.
         """
         insort(self.exons, exon)
+
+    def to_dict(self):
+        data = {
+            'transcript_id': [self.id],
+            'transcript_stable_id': [self.stable_id],
+            'transcript_source': [self.source],
+            'transcript_source_version': [self.source_version],
+            'transcript_chromosome': [self.chromosome],
+            'transcript_start': [self.start],
+            'transcript_end': [self.end],
+            'transcript_type': [self.type],
+            'transcript_strand': [self.strand],
+            'transcript_transcription_start_site': [self.transcription_start_site],
+            'transcript_version': [self.version],
+            'transcript_name': [self.name],
+            'transcript_level': [self.level],
+            'transcript_support_level': [self.support_level],
+            'transcript_five_prime_utr_start': [self.five_prime_utr_start],
+            'transcript_five_prime_utr_end': [self.five_prime_utr_end],
+            'transcript_three_prime_utr_start': [self.three_prime_utr_start],
+            'transcript_three_prime_utr_end': [self.three_prime_utr_end],
+            'transcript_start_codon_start': [self.start_codon_start],
+            'transcript_start_codon_end': [self.start_codon_end],
+            'transcript_stop_codon_start': [self.stop_codon_start],
+            'transcript_stop_codon_end': [self.stop_codon_end],
+            'transcript_utr_start': [self.utr_start],
+            'transcript_utr_end': [self.utr_end],
+            'transcript_genome': [self.genome],
+            'transcript_exons_count': [self.exons_count],
+            'transcript_tags': [';'.join(self.tags)]
+        }
+        return data
+
+    def to_dataframe(self):
+        return pd.DataFrame(self.to_dict())
+

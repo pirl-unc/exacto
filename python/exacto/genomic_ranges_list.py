@@ -35,7 +35,7 @@ class GenomicRangesList:
     @property
     def size(self):
         size = 0
-        for i in self.genomic_ranges.values():
+        for _ in self.genomic_ranges.values():
             size += 1
         return size
 
@@ -112,3 +112,15 @@ class GenomicRangesList:
                 genomic_ranges.append(genomic_range)
         return genomic_ranges
 
+    def remove_genomic_range(self, genomic_range: GenomicRange):
+        """
+        Removes a GenomicRange object.
+
+        Parameters
+        ----------
+        genomic_range   :   GenomicRange object.
+        """
+        for i in range(0, len(self.genomic_ranges[genomic_range.chromosome])):
+            if self.genomic_ranges[genomic_range.chromosome][i] == genomic_range:
+                self.genomic_ranges[genomic_range.chromosome].remove(i)
+                break

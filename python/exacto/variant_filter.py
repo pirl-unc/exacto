@@ -12,7 +12,7 @@
 
 
 """
-The purpose of this python3 script is to implement the Filter dataclass.
+The purpose of this python3 script is to implement the VariantFilter dataclass.
 """
 
 
@@ -20,8 +20,8 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import List
 from .constants import VariantFilterQuantifiers, VariantFilterOperators
-from .variant import Variant
 from .logging import get_logger
+from .variant import Variant
 
 
 logger = get_logger(__name__)

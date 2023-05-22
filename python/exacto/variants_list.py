@@ -22,15 +22,13 @@ import multiprocessing as mp
 from collections import defaultdict
 from dataclasses import dataclass, field
 from bisect import bisect_left, bisect_right, insort
-from typing import List, Type, Dict, Optional, Tuple
-from .common import get_typed_value, get_variant_calling_method_attr_types, overlaps_any
+from typing import List, Type, Dict
 from .constants import *
-from .default_parameters import *
 from .genomic_ranges_list import GenomicRangesList
 from .logging import get_logger
 from .nucleotide_sequence import NucleotideSequence
+from .utilities import get_typed_value, get_variant_calling_method_attr_types
 from .variant import Variant
-from .variant_annotation import VariantAnnotation
 from .variant_call import VariantCall
 from .variant_filter import VariantFilter
 
@@ -127,7 +125,6 @@ class VariantsList:
             reference_allele_read_count = VariantsList.convert_row_value(value=row['reference_allele_read_count'], default_value=None, type=int)
             alternate_allele_read_count = VariantsList.convert_row_value(value=row['alternate_allele_read_count'], default_value=None, type=int)
             alternate_allele_fraction = VariantsList.convert_row_value(value=row['alternate_allele_fraction'], default_value=None, type=float)
-            alternate_allele_softclip_direction = VariantsList.convert_row_value(value=row['alternate_allele_softclip_direction'], default_value=None, type=str)
             variant_sequences_ = VariantsList.convert_row_value(value=row['variant_sequences'], default_value='', type=str)
             alternate_allele_read_ids = VariantsList.convert_row_value(value=row['alternate_allele_read_ids'], default_value='', type=str)
 
@@ -164,7 +161,7 @@ class VariantsList:
             #         pos_1_annotation_chrom = row['pos_1_annotation_chrom'].split(';')[idx]
             #         pos_1_annotation_chrom = row['pos_1_annotation_chrom'].split(';')[idx]
             #         pos_1_annotation_chrom = row['pos_1_annotation_chrom'].split(';')[idx]
-            # variant_annotation = VariantAnnotation()
+            # annotation = VariantAnnotation()
             # self.__convert_tsv_file_element(value=row['pos_1_annotation_chrom'], nested=True, )
 
             variant_call = VariantCall(
@@ -192,7 +189,6 @@ class VariantsList:
                 alternate_allele_read_count=alternate_allele_read_count,
                 alternate_allele_fraction=alternate_allele_fraction,
                 alternate_allele_read_ids=alternate_allele_read_ids,
-                alternate_allele_softclip_direction=alternate_allele_softclip_direction,
                 tool_attributes=tool_attributes
             )
             variants_list.add_variant_call_to_variant(

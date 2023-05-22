@@ -12,19 +12,20 @@
 
 
 """
-The purpose of this python3 script is to implement Variant class.
+The purpose of this python3 script is to implement Variant dataclass.
 """
+
+
 import logging
 import statistics
-import numpy as np
 import pandas as pd
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, ClassVar
 from bisect import bisect_left, bisect_right, insort
 from functools import total_ordering
-from .variant_call import VariantCall
 from .variant_annotation import VariantAnnotation
+from .variant_call import VariantCall
 
 
 @total_ordering
@@ -41,7 +42,7 @@ class Variant:
 
     @property
     def variant_call_ids(self) -> List[str]:
-        return list(self.variant_calls.keys())
+        return [variant_call.id for variant_call in self.variant_calls]
 
     @property
     def source_ids(self) -> List[str]:
@@ -215,7 +216,7 @@ class Variant:
             position_2_end
     ) -> List[VariantCall]:
         """
-        Finds instances of VariantCall that match the query parameters.
+        Finds VariantCall objects that match the query parameters.
 
         Parameters
         ----------
