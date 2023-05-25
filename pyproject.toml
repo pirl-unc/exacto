@@ -47,4 +47,4 @@ classifiers = [
 python-source = "python"
 
 [project.scripts]
-exacto = "exacto.cli_main:run"
+exacto = "exacto.cli.cli_main:run"

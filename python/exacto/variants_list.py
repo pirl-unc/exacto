@@ -16,12 +16,13 @@ The purpose of this python3 script is to implement the VariantsList dataclass.
 """
 
 
+import itertools
 import pandas as pd
 import numpy as np
 import multiprocessing as mp
 from collections import defaultdict
 from dataclasses import dataclass, field
-from bisect import bisect_left, bisect_right, insort
+from functools import partial
 from typing import List, Type, Dict
 from .constants import *
 from .genomic_ranges_list import GenomicRangesList
@@ -38,23 +39,26 @@ logger = get_logger(__name__)
 
 @dataclass(frozen=True)
 class VariantsList:
-    variants: List[Variant] = field(default_factory=list)
+    variants: defaultdict(list) = field(default_factory=lambda: defaultdict(list))      # key = (chromosome_1, chromosome_2, [variant_types]), value = list of Variant objects
 
     @property
     def size(self) -> int:
-        return len(self.variants)
+        return len(list(itertools.chain.from_iterable(self.variants.values())))
 
     @property
     def variant_call_ids(self) -> List[str]:
         variant_call_ids = []
-        for variant in self.variants:
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
             for variant_call in variant.variant_calls:
                 variant_call_ids.append(variant_call.id)
         return variant_call_ids
 
     @property
     def variant_ids(self) -> List[str]:
-        return [i.id for i in self.variants]
+        variant_ids = []
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
+            variant_ids.append(variant.id)
+        return variant_ids
 
     @staticmethod
     def convert_row_value(value, default_value, type):
@@ -88,7 +92,7 @@ class VariantsList:
                 return default_value
 
     @staticmethod
-    def load_dataframe(df) -> Type["VariantsList"]:
+    def load_dataframe(df: pd.DataFrame) -> Type["VariantsList"]:
         """
         Reads a DataFrame and returns a VariantsList object.
 
@@ -100,8 +104,8 @@ class VariantsList:
         -------
         variants_list   :   An instance of the VariantsList class.
         """
-        variants_list = VariantsList()
-        for index, row in df.iterrows():
+        variants_dict = {} # key = variant ID, value = Variant object
+        for row in df.to_dict('records'):
             variant_id = VariantsList.convert_row_value(value=row['variant_id'], default_value=None, type=str)
             variant_call_id = VariantsList.convert_row_value(value=row['variant_call_id'], default_value=None, type=str)
             source_id = VariantsList.convert_row_value(value=row['source_id'], default_value=None, type=str)
@@ -126,6 +130,7 @@ class VariantsList:
             alternate_allele_read_count = VariantsList.convert_row_value(value=row['alternate_allele_read_count'], default_value=None, type=int)
             alternate_allele_fraction = VariantsList.convert_row_value(value=row['alternate_allele_fraction'], default_value=None, type=float)
             variant_sequences_ = VariantsList.convert_row_value(value=row['variant_sequences'], default_value='', type=str)
+            tags_ = VariantsList.convert_row_value(value=row['tags'], default_value='', type=str)
             alternate_allele_read_ids = VariantsList.convert_row_value(value=row['alternate_allele_read_ids'], default_value='', type=str)
 
             # Variant sequences
@@ -164,6 +169,11 @@ class VariantsList:
             # annotation = VariantAnnotation()
             # self.__convert_tsv_file_element(value=row['pos_1_annotation_chrom'], nested=True, )
 
+            # Tags
+            tags = []
+            if tags_ != '':
+                tags = tags_.split(';')
+
             variant_call = VariantCall(
                 id=variant_call_id,
                 source_id=source_id,
@@ -189,12 +199,18 @@ class VariantsList:
                 alternate_allele_read_count=alternate_allele_read_count,
                 alternate_allele_fraction=alternate_allele_fraction,
                 alternate_allele_read_ids=alternate_allele_read_ids,
-                tool_attributes=tool_attributes
+                tool_attributes=tool_attributes,
+                tags=tags
             )
-            variants_list.add_variant_call_to_variant(
-                variant_call=variant_call,
-                variant_id=variant_id
-            )
+
+            if variant_id not in variants_dict.keys():
+                variants_dict[variant_id] = Variant(id=variant_id)
+            variants_dict[variant_id].add_variant_call(variant_call=variant_call)
+
+        variants_list = VariantsList()
+        for variant in variants_dict.values():
+            variants_list.add_variant(variant=variant)
+
         logger.info("Loaded %i variants and %i variant calls" % (variants_list.size, len(variants_list.variant_call_ids)))
         return variants_list
 
@@ -223,17 +239,44 @@ class VariantsList:
         -------
         variants_list                   :   VariantsList object.
         """
-        # Step 1. Create an empty VariantsList
-        variants_list_merged = VariantsList()
-
-        # Step 2. Iterate through each VariantsList object and append VariantCall objects.
+        # Step 1. Merge all VariantsList objects as DataFrame
+        df = pd.DataFrame()
         for variants_list in variants_lists:
-            for variant in variants_list.variants:
-                for variant_call in variant.variant_calls:
-                    variants_list_merged.add_variant_call(
-                        variant_call=variant_call,
-                        max_neighbor_distance=max_neighbor_distance
-                    )
+            df_temp = variants_list.to_dataframe()
+            df = pd.concat([df, df_temp])
+        df['variant_querytype'] = df.apply(lambda x: ','.join(VariantTypes.QueryTypeDictionary[x['variant_type']]), axis=1)
+
+        # Step 2. Iterate through DataFrame and merge variant calls
+        data = {
+            'variant_id_new': [],
+            'variant_call_id': []
+        }
+        variant_idx = 0
+        for name, df_group in df.groupby(by=['chromosome_1', 'chromosome_2', 'variant_querytype']):
+            df_group = df_group.sort_values(by=['position_1'], ascending=True)
+            variant_idx += 1
+            last_position_1 = -1
+            last_position_2 = -1
+            for row in df_group.to_dict('records'):
+                if last_position_1 == -1:
+                    last_position_1 = row['position_1']
+                if last_position_2 == -1:
+                    last_position_2 = row['position_2']
+
+                if (abs(row['position_1'] - last_position_1) > max_neighbor_distance) or \
+                        (abs(row['position_2'] - last_position_2) > max_neighbor_distance):
+                    variant_idx += 1
+                data['variant_id_new'].append(variant_idx)
+                data['variant_call_id'].append(row['variant_call_id'])
+                last_position_1 = row['position_1']
+                last_position_2 = row['position_2']
+
+        # Step 3. Create Variant objects and then add them to a merged VariantsList object
+        df_merged = pd.DataFrame(data)
+        df = pd.merge(df, df_merged, on=["variant_call_id"])
+        df['variant_id'] = df['variant_id_new']
+        df.drop(['variant_id_new'], axis=1, inplace=True)
+        variants_list_merged = VariantsList.load_dataframe(df=df)
         return variants_list_merged
 
     @staticmethod
@@ -249,7 +292,7 @@ class VariantsList:
         -------
         variants_list   :   An instance of the VariantsList class.
         """
-        df = pd.read_csv(tsv_file, sep='\t')
+        df = pd.read_csv(tsv_file, sep='\t', low_memory=False, memory_map=True)
         return VariantsList.load_dataframe(df=df)
 
     def add_variant(self, variant: Variant):
@@ -258,9 +301,11 @@ class VariantsList:
 
         Parameters
         ----------
-        variant                         :   Variant object.
+        variant     :   Variant object.
         """
-        insort(self.variants, variant)
+        variant_query_types = ','.join(VariantTypes.QueryTypeDictionary[variant.variant_type])
+        key = '%s-%s-%s' % (variant.chromosome_1, variant.chromosome_2, variant_query_types)
+        self.variants[key].append(variant)
 
     def add_variant_call(self, variant_call: VariantCall, max_neighbor_distance: int):
         """
@@ -282,189 +327,48 @@ class VariantsList:
                                             is not identified, then a new Variant is constructed
                                             and added to self.variants.
         """
-        # Step 1. Add variant_call if it can be appended to an existing Variant
-        if self.size > 0:
-            matched_indices = self.find_variant_indices(
+        # Add variant_call if it can be appended to an existing Variant
+        variant_query_types = ','.join(VariantTypes.QueryTypeDictionary[variant_call.variant_type])
+        key = '%s-%s-%s' % (variant_call.chromosome_1, variant_call.chromosome_2, variant_query_types)
+        for i in range(0, len(self.variants[key])):
+            matched_variant_calls = self.variants[key][i].find_variant_calls(
                 chromosome_1=variant_call.chromosome_1,
                 chromosome_2=variant_call.chromosome_2,
-                variant_types=VariantTypes.QueryTypeDictionary[variant_call.variant_type]
+                position_1_start=variant_call.position_1 - max_neighbor_distance,
+                position_1_end=variant_call.position_1 + max_neighbor_distance,
+                position_2_start=variant_call.position_2 - max_neighbor_distance,
+                position_2_end=variant_call.position_2 + max_neighbor_distance
             )
-            for idx in matched_indices:
-                matched_variant_calls = self.variants[idx].find_variant_calls(
-                    chromosome_1=variant_call.chromosome_1,
-                    chromosome_2=variant_call.chromosome_2,
-                    position_1_start=variant_call.position_1 - max_neighbor_distance,
-                    position_1_end=variant_call.position_1 + max_neighbor_distance,
-                    position_2_start=variant_call.position_2 - max_neighbor_distance,
-                    position_2_end=variant_call.position_2 + max_neighbor_distance
-                )
-                if len(matched_variant_calls) > 0:
-                    self.variants[idx].add_variant_call(variant_call=variant_call)
-                    return
+            if len(matched_variant_calls) > 0:
+                self.variants[key][i].add_variant_call(variant_call=variant_call)
+                return
 
         # Add a new Variant
-        variant = Variant(
-            id='variant_%i' % (self.size + 1),
-            chromosome_1=variant_call.chromosome_1,
-            chromosome_2=variant_call.chromosome_2
-        )
+        variant = Variant(id='variant_%i' % (self.size + 1))
         variant.add_variant_call(variant_call=variant_call)
-        insort(self.variants, variant)
+        self.add_variant(variant=variant)
         return
-
-    def add_variant_call_to_variant(self, variant_call: VariantCall, variant_id: str):
-        """
-        Adds a VariantCall object to an existing Variant object.
-
-        Parameters
-        ----------
-        variant_call                    :   VariantCall object.
-        variant_id                      :   Variant ID.
-        """
-        for i in range(0, len(self.variants)):
-            if self.variants[i].id == variant_id:
-                self.variants[i].add_variant_call(variant_call=variant_call)
-                return
-        variant = Variant(
-            id=variant_id,
-            chromosome_1=variant_call.chromosome_1,
-            chromosome_2=variant_call.chromosome_2
-        )
-        variant.add_variant_call(variant_call=variant_call)
-        insort(self.variants, variant)
-        return
-
-    def find_variants(
-            self,
-            chromosome_1: str,
-            chromosome_2: str,
-            variant_types: List[str]
-    ) -> List[Variant]:
-        """
-        Returns all variants that match chromosome_1 and chromosome_2.
-
-        Parameters
-        ----------
-        chromosome_1    :   Chromosome 1.
-        chromosome_2    :   Chromosome 2.
-        variant_types   :   List of variant types to match.
-
-        Returns
-        -------
-        variants        :   List of Variant objects.
-        """
-        # Find the leftmost index where chromosome_1 and chromosome_2 match
-        left_index = bisect_left(
-            self.variants,
-            Variant(id='',
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2)
-        )
-        # Find the rightmost index where chromosome_1 and chromosome_2 match
-        right_index = bisect_right(
-            self.variants,
-            Variant(
-                id='',
-                chromosome_1=chromosome_1,
-                chromosome_2=chromosome_2
-            )
-        )
-        variants = []
-        for variant in self.variants[left_index:right_index]:
-            if variant.chromosome_1 == chromosome_1 and \
-                    variant.chromosome_2 == chromosome_2  and \
-                    variant.variant_type in variant_types:
-                variants.append(variant)
-        return variants
-
-    def find_variant_by_id(self, id: str) -> int:
-        """
-        Returns index of variant with query ID.
-
-        Parameters
-        ----------
-        id          :   Variant ID.
-
-        Returns
-        -------
-        index       :   Index to variant ID. Returns None if a matching
-                        Variant object could not be found.
-        """
-        for i in range(0, self.variants):
-            if self.variants[i].id == id:
-                return i
-        return None
-
-    def find_variant_indices(
-            self,
-            chromosome_1: str,
-            chromosome_2: str,
-            variant_types: List[str]
-    ) -> List[int]:
-        """
-        Returns indices of all variants that match chromosome_1 and chromosome_2.
-
-        Parameters
-        ----------
-        chromosome_1    :   Chromosome 1.
-        chromosome_2    :   Chromosome 2.
-        variant_types   :   List of variant types.
-
-        Returns
-        -------
-        indices         :   List of index integers.
-        """
-        # Find the leftmost index where chromosome_1 and chromosome_2 match
-        left_index = bisect_left(
-            self.variants,
-            Variant(id='',
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2)
-        )
-
-        # Find the rightmost index where chromosome_1 and chromosome_2 match
-        right_index = bisect_right(
-            self.variants,
-            Variant(id='',
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2)
-        )
-
-        # Get index values of Variant objects that match the query variant types
-        indices = []
-        for i in range(left_index, right_index):
-            if self.variants[i].chromosome_1 == chromosome_1 and \
-                    self.variants[i].chromosome_2 == chromosome_2  and \
-                    self.variants[i].variant_type in variant_types:
-                indices.append(i)
-        return indices
 
     def filter_worker(
             self,
-            variants: List[Variant],
-            variant_filters: List[VariantFilter]
+            variant_filters: List[VariantFilter],
+            variant: Variant
     ) -> List[str]:
         """
         Multiprocessing worker function for identifying variant IDs to remove.
 
         Parameters
         ----------
-        variants                :   List of Variant objects.
         variant_filters         :   List of VariantFilter objects.
+        variant                 :   Variant object.
 
         Returns
         -------
-        variant_ids_to_keep     :   List of variant IDs to keep.
+        rejected_variant_ids    :   List of variant IDs to remove.
         """
-        variant_ids_to_keep = set()
-        for variant in variants:
-            remove = False
-            for variant_filter in variant_filters:
-                if not variant_filter.keep(variant=variant):
-                    remove = True
-            if not remove:
-                variant_ids_to_keep.add(variant.id)
-        return list(variant_ids_to_keep)
+        for variant_filter in variant_filters:
+            if not variant_filter.keep(variant=variant):
+                return variant.id
 
     def filter(
             self,
@@ -472,7 +376,7 @@ class VariantsList:
             num_processes: int
     ) -> List[Variant]:
         """
-        Filters variants based on VariantFilter objects.
+        Returns a list of Variant objects that do not meet all of the supplied filters.
 
         Parameters
         ----------
@@ -481,32 +385,21 @@ class VariantsList:
 
         Returns
         -------
-        variants            :   List of Variant objects that satisfy all
-                                supplied VariantFilter objects.
+        variants            :   List of Variant objects that do not satisfy
+                                the supplied VariantFilter objects.
         """
-        # Split the variants into multiple lists
-        variants_list = np.array_split(self.variants, num_processes)
-
-        # Multiprocess identification of which variant IDs to filter out
         pool = mp.Pool(processes=num_processes)
-        async_results = [pool.apply_async(self.filter_worker, args=(variants, variant_filters)) for variants in variants_list]
+        func = partial(self.filter_worker, variant_filters)
+        rejected_variant_ids = pool.map(func, list(itertools.chain.from_iterable(self.variants.values())))
         pool.close()
-        pool.join()
+        rejected_variant_ids = list(filter(lambda item: item is not None, rejected_variant_ids))
 
-        # Merge variant IDs to keep
-        variant_ids_to_keep_list = [ar.get() for ar in async_results]
-        variant_ids_to_keep = set()
-        for curr_list in variant_ids_to_keep_list:
-            for id in curr_list:
-                variant_ids_to_keep.add(id)
-
-        # Get variants that satisfy all supplied filters
-        variants = []
-        for variant in self.variants:
-            if variant.id in variant_ids_to_keep:
-                insort(variants, variant)
-
-        return variants
+        # Get variants that do not satisfy the supplied filters
+        rejected_variants = []
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
+            if variant.id in rejected_variant_ids:
+                rejected_variants.append(variant)
+        return rejected_variants
 
     def filter_regions_worker(
             self,
@@ -570,7 +463,10 @@ class VariantsList:
                                     the queried GenomicRangeList object.
         """
         # Split the variants into multiple lists
-        variants_list = np.array_split(self.variants, num_processes)
+        all_variants = []
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
+            all_variants.append(variant)
+        variants_list = np.array_split(all_variants, num_processes)
 
         # Multiprocess identification of which variant IDs are near
         # the queried GenomicRangeList object
@@ -588,10 +484,9 @@ class VariantsList:
 
         # Get variants that satisfy all supplied filters
         variants = []
-        for variant in self.variants:
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
             if variant.id in variant_ids:
-                insort(variants, variant)
-
+                variants.append(variant)
         return variants
 
     def find_nearby_variants_worker(
@@ -614,14 +509,10 @@ class VariantsList:
         """
         nearby_variant_ids = set()
         for variant in variants:
-            variant_types = VariantTypes.QueryTypeDictionary[variant.variant_type]
-            variants_ = self.find_variants(
-                chromosome_1=variant.chromosome_1,
-                chromosome_2=variant.chromosome_2,
-                variant_types=variant_types
-            )
-            for variant_ in variants_:
-                variant_calls = variant_.find_variant_calls(
+            variant_query_types = ','.join(VariantTypes.QueryTypeDictionary[variant.variant_type])
+            key = '%s-%s-%s' % (variant.chromosome_1, variant.chromosome_2, variant_query_types)
+            for target_variant in self.variants[key]:
+                variant_calls = target_variant.find_variant_calls(
                     chromosome_1=variant.chromosome_1,
                     chromosome_2=variant.chromosome_2,
                     position_1_start=min(variant.position_1) - padding,
@@ -630,7 +521,7 @@ class VariantsList:
                     position_2_end=max(variant.position_2) + padding
                 )
                 if len(variant_calls) > 0:
-                    nearby_variant_ids.add(variant_.id)
+                    nearby_variant_ids.add(target_variant.id)
         return list(nearby_variant_ids)
 
     def find_nearby_variants(
@@ -653,7 +544,10 @@ class VariantsList:
         nearby_variants :   List of Variant objects.
         """
         # Split the variants into multiple lists
-        variants_list = np.array_split(variants, num_processes)
+        all_variants = []
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
+            all_variants.append(variant)
+        variants_list = np.array_split(all_variants, num_processes)
 
         # Multiprocess identification of which variant IDs to filter out
         pool = mp.Pool(processes=num_processes)
@@ -669,34 +563,27 @@ class VariantsList:
                 nearby_variant_ids.add(id)
 
         # Get nearby variants
-        nearby_variants = []
-        for variant in self.variants:
+        variants = []
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
             if variant.id in nearby_variant_ids:
-                insort(nearby_variants, variant)
+                variants.append(variant)
+        return variants
 
-        return nearby_variants
-
-    def remove(self, index):
+    def remove(self, variant: Variant):
+        variant_query_types = ','.join(VariantTypes.QueryTypeDictionary[variant.variant_type])
+        key = '%s-%s-%s' % (variant.chromosome_1, variant.chromosome_2, variant_query_types)
         try:
-            del self.variants[index]
+            index = self.variants[key].index(variant)
+            del self.variants[key][index]
         except:
-            raise Exception('Invalid index: %i' % index)
-
-    def remove_by_id(self, id):
-        try:
-            for i in range(0, self.size):
-                if self.variants[i].id == id:
-                    del self.variants[i]
-                    return
-        except:
-            raise Exception('Invalid id: %s' % id)
+            raise Exception('Variant object does not exist: %s' % variant)
 
     def to_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(self.to_dict())
 
     def to_dict(self) -> Dict:
         data = defaultdict(list)
-        for variant in self.variants:
+        for variant in list(itertools.chain.from_iterable(self.variants.values())):
             for key, values in variant.to_dict().items():
                 for value in values:
                     data[key].append(value)

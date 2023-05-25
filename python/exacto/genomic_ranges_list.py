@@ -78,7 +78,7 @@ class GenomicRangesList:
         -------
         genomic_ranges_list :   GenomicRangesList object.
         """
-        df = pd.read_csv(tsv_file, sep='\t')
+        df = pd.read_csv(tsv_file, sep='\t', low_memory=False, memory_map=True)
         return GenomicRangesList.load_dataframe(df=df)
 
     def add_genomic_range(self, genomic_range: GenomicRange):

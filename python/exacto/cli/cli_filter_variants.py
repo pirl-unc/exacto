@@ -65,11 +65,18 @@ def add_cli_filter_variants_arg_parser(sub_parsers) -> argparse._SubParsersActio
              "(e.g. --case-sample-id case_01 --case-sample-id case_02)."
     )
     parser_required.add_argument(
-        "--output-tsv-file",
-        dest="output_tsv_file",
+        "--output-filtered-tsv-file",
+        dest="output_filtered_tsv_file",
         type=str,
         required=True,
         help="Output (filtered) TSV file."
+    )
+    parser_required.add_argument(
+        "--output-rejected-tsv-file",
+        dest="output_rejected_tsv_file",
+        type=str,
+        required=True,
+        help="Output (rejected) TSV file."
     )
 
     # Optional arguments
@@ -156,7 +163,8 @@ def run_cli_filter_variants_from_parsed_args(
     args    :   An instance of argparse.ArgumentParser with the following variables:
                 tsv_file
                 case_sample_id
-                output_tsv_file
+                output_filtered_tsv_file
+                output_rejected_tsv_file
                 control_sample_id
                 groupby_source_id
                 filter
@@ -207,7 +215,7 @@ def run_cli_filter_variants_from_parsed_args(
 
     # Step 4. Apply variant filters
     logger.info('Started applying variant filters.')
-    variants_list = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=excluded_variants_list,
@@ -218,7 +226,8 @@ def run_cli_filter_variants_from_parsed_args(
     )
     logger.info('Finished applying variant filters.')
 
-    # Step 5. Write to a TSV file
-    logger.info('Started writing filtered variants')
-    variants_list.to_dataframe().to_csv(args.output_tsv_file, sep='\t', index=False)
-    logger.info('Finished writing filtered variants')
+    # Step 5. Write to TSV files
+    logger.info('Started writing filtered and rejected variants')
+    variants_list_filtered.to_dataframe().to_csv(args.output_filtered_tsv_file, sep='\t', index=False)
+    variants_list_rejected.to_dataframe().to_csv(args.output_rejected_tsv_file, sep='\t', index=False)
+    logger.info('Finished writing filtered and rejected variants')

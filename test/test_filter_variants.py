@@ -22,12 +22,12 @@ def test_filter_cutesv_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['HG002']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=cutesv_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,
@@ -52,12 +52,12 @@ def test_filter_pbsv_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['HG002']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=pbsv_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,
@@ -82,12 +82,12 @@ def test_filter_sniffles2_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['HG002']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=sniffles2_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,
@@ -112,12 +112,12 @@ def test_filter_svim_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['HG002']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=svim_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,
@@ -144,12 +144,12 @@ def test_filter_deepvariant_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['HG002']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=deepvariant_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,
@@ -174,12 +174,12 @@ def test_filter_gatk4_mutect2_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['hg002']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=gatk4_mutect2_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,
@@ -204,12 +204,12 @@ def test_filter_strelka2_indels_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['TUMOR']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=strelka2_indels_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,
@@ -234,12 +234,12 @@ def test_filter_strelka2_snvs_variants_list(
         quantifier=VariantFilterQuantifiers.ALL,
         attribute='filter',
         operator=VariantFilterOperators.EQUALS,
-        value='PASS',
+        value="'PASS'",
         sample_ids=['TUMOR']
     )
     variant_filters.append(variant_filter_1)
     variant_filters.append(variant_filter_2)
-    variants_list_filtered = run_exacto_filter_variants(
+    variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=strelka2_snvs_variants_list,
         variant_filters=variant_filters,
         excluded_variants_list=germline_variants_list,

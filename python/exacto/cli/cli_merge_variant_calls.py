@@ -82,7 +82,7 @@ def add_cli_merge_variant_calls_arg_parser(sub_parsers) -> argparse._SubParsersA
         help="Maximum neighbor distance (default: %i)."
              % MERGE_MAX_NEIGHBOR_DISTANCE
     )
-    parser.set_defaults(which='merge')
+    parser.set_defaults(which='merge-variant-calls')
     return sub_parsers
 
 
@@ -116,14 +116,13 @@ def run_cli_merge_variant_calls_from_parsed_args(args):
     """
     # Step 1. Load variants lists
     logger.info("Started reading all TSV files")
-    if args.num_processes > len(args.tsv_file):
-        args.num_processes = len(args.tsv_file)
-    tsv_files = np.array_split(args.tsv_file, args.num_processes)
     pool = mp.Pool(processes=args.num_processes)
-    async_results = [pool.apply_async(load_tsv_file_worker, args=(tsv_file)) for tsv_file in tsv_files]
+    async_results = []
+    for tsv_file in args.tsv_file:
+        async_results.append(pool.apply_async(load_tsv_file_worker, args=(tsv_file,)))
     pool.close()
     pool.join()
-    variants_lists = [ar.get() for ar in async_results]
+    variants_lists = [async_result.get() for async_result in async_results]
     logger.info("Finished reading all TSV files")
 
     # Step 2. Merge variants lists

@@ -80,7 +80,7 @@ def add_cli_vcf_to_tsv_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=True,
         help="Output TSV file."
     )
-    parser.set_defaults(which='vcf2tsv')
+    parser.set_defaults(which='vcf-to-tsv')
     return sub_parsers
 
 

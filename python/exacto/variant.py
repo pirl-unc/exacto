@@ -23,17 +23,13 @@ from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from typing import List, Dict, Tuple, ClassVar
 from bisect import bisect_left, bisect_right, insort
-from functools import total_ordering
 from .variant_annotation import VariantAnnotation
 from .variant_call import VariantCall
 
 
-@total_ordering
 @dataclass(frozen=True)
 class Variant:
     id: str
-    chromosome_1: str
-    chromosome_2: str
     variant_calls: List[VariantCall] = field(default_factory=list)
 
     @property
@@ -63,6 +59,14 @@ class Variant:
     @property
     def sequencing_platform(self) -> List[str]:
         return [i.sequencing_platform for i in self.variant_calls]
+
+    @property
+    def chromosome_1(self):
+        return self.variant_calls[0].chromosome_1
+
+    @property
+    def chromosome_2(self):
+        return self.variant_calls[0].chromosome_2
 
     @property
     def position_1(self) -> List[int]:
@@ -156,20 +160,9 @@ class Variant:
     def position_2_annotations(self) -> List[List[VariantAnnotation]]:
         return [i.position_2_annotations for i in self.variant_calls]
 
-    def __lt__(self, other):
-        if isinstance(other, Variant):
-            return (self.chromosome_1,
-                    self.chromosome_2) < \
-                   (other.chromosome_1,
-                    other.chromosome_2)
-        return NotImplemented
-
     def __eq__(self, other):
         if isinstance(other, Variant):
-            return (self.chromosome_1,
-                    self.chromosome_2) == \
-                   (other.chromosome_1,
-                    other.chromosome_2)
+            return (self.id) == (other.id)
         return NotImplemented
 
     def to_dict(self) -> Dict:
@@ -191,20 +184,7 @@ class Variant:
         ----------
         variant_call    :   VariantCall object.
         """
-        # Check that variant_call chromsome_1 and chromosome_2 match
-        # self.chromosome_1 and self.chromosome_2
-        if self.chromosome_1 == variant_call.chromosome_1 and self.chromosome_2 == variant_call.chromosome_2:
-            insort(self.variant_calls, variant_call)
-        else:
-            logging.error('variant_call.chromosome_1 and variant_call.chromosome_2 '
-                          'must match self.chromosome_1 and self.chromosome_2')
-            logging.error("Variant:")
-            logging.error(self.id)
-            logging.error(self.chromosome_1)
-            logging.error(self.chromosome_2)
-            logging.error("VariantCall:")
-            logging.error(variant_call)
-            exit(1)
+        insort(self.variant_calls, variant_call)
 
     def find_variant_calls(
             self,
@@ -262,6 +242,5 @@ class Variant:
                     position_1_start <= variant_call.position_1 <= position_1_end and \
                     position_2_start <= variant_call.position_2 <= position_2_end:
                 variant_calls.append(variant_call)
-
         return variant_calls
 

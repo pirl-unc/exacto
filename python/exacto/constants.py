@@ -88,11 +88,11 @@ class VariantTypes:
     QueryTypeDictionary = {
         SINGLE_NUCLEOTIDE_VARIANT: [SINGLE_NUCLEOTIDE_VARIANT],
         MULTI_NUCLEOTIDE_VARIANT: [MULTI_NUCLEOTIDE_VARIANT],
-        INSERTION: [INSERTION, DUPLICATION],
+        INSERTION: [DUPLICATION, INSERTION],
         DELETION: [DELETION],
-        INVERSION: [INVERSION, BREAKPOINT],
+        INVERSION: [BREAKPOINT, INVERSION, TRANSLOCATION],
         DUPLICATION: [DUPLICATION, INSERTION],
-        TRANSLOCATION: [TRANSLOCATION, BREAKPOINT, INVERSION],
+        TRANSLOCATION: [BREAKPOINT, INVERSION, TRANSLOCATION],
         BREAKPOINT: [BREAKPOINT, INVERSION, TRANSLOCATION],
         SPLICE_VARIANT: [SPLICE_VARIANT],
         NOVEL_ISOFORM: [NOVEL_ISOFORM],
@@ -212,7 +212,8 @@ class VariantCallingMethods:
             'gt': str,
             'dp': int,
             'ad': str,
-            'sac': str
+            'sac': str,
+            'notfullyspanned': bool
         }
         SNIFFLES2 = {
             'id': str,
@@ -321,6 +322,13 @@ class VariantCallingMethods:
             'ad': str,
             'cn': int
         }
+
+
+class VariantCallTags:
+    PASSED = 'passed'
+    FAILED_FILTER = 'failed_filter'
+    NEARBY_EXCLUDED_VARIANT = 'nearby_excluded_variant'
+    NEARBY_EXCLUDED_REGION = 'nearby_excluded_region'
 
 
 class TranslocationOrientations:

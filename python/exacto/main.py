@@ -16,13 +16,15 @@ The purpose of this python3 script is to implement Exacto's main APIs.
 """
 
 
+import itertools
 import pandas as pd
 import pysam
+from collections import defaultdict
 from dataclasses import field
-from typing import List
+from typing import List, Tuple
 from .alignment_map import AlignmentMap
 from .annotation_db import AnnotationDb
-from .constants import VariantCallingMethods, NucleicAcidTypes
+from .constants import NucleicAcidTypes, VariantCallingMethods, VariantCallTags
 from .default_parameters import *
 from .fasta import Fasta
 from .gene_set import GeneSet
@@ -135,7 +137,7 @@ def run_exacto_filter_variants(
         excluded_variants_padding: int = FILTER_VARIANTS_EXCLUDED_VARIANT_PADDING,
         excluded_regions_padding: int = FILTER_VARIANTS_EXCLUDED_REGION_PADDING,
         num_processes: int = FILTER_VARIANTS_NUM_PROCESSES
-) -> VariantsList:
+) -> Tuple[VariantsList, VariantsList]:
     """
     Filters a VariantsList object.
 
@@ -151,49 +153,62 @@ def run_exacto_filter_variants(
 
     Returns
     -------
-    variants_list               :   VariantsList object.
+    variants_list_filtered      :   VariantsList object (of filtered variants).
+    variants_list_rejected      :   VariantsList object (of rejected variants).
     """
     logger.info('%i variants in the original list before any filtering.' % variants_list.size)
     logger.info('%i variant calls in the original list before any filtering.' % len(variants_list.variant_call_ids))
 
     # Step 1. Filter out variants based on VariantFilter
+    rejected_variant_ids_dict = defaultdict(list) # key = variant ID, value = reasons why the variant was rejected
     if len(variant_filters) > 0:
-        variants = variants_list.filter(
+        filtered_variants = variants_list.filter(
             variant_filters=variant_filters,
             num_processes=num_processes,
         )
-        variant_ids = [variant.id for variant in variants]
-        for variant in variants_list.variants:
-            if variant.id not in variant_ids:
-                variants_list.remove_by_id(id=variant.id)
+        for filtered_variant in filtered_variants:
+            rejected_variant_ids_dict[filtered_variant.id].append(VariantCallTags.FAILED_FILTER)
         logger.info('%i variants remain after applying variant filters.' % variants_list.size)
         logger.info('%i variant calls remain after applying variant filters.' % len(variants_list.variant_call_ids))
 
-    # Step 2. Filter out variants near the excluded variants
-    if excluded_variants_list is not None:
-        nearby_variants = variants_list.find_nearby_variants(
-            variants=excluded_variants_list.variants,
-            padding=excluded_variants_padding,
-            num_processes=num_processes
-        )
-        for nearby_variant in nearby_variants:
-            variants_list.remove_by_id(id=nearby_variant.id)
-        logger.info('%i variants remain after removing variants near excluded variants.' % variants_list.size)
-        logger.info('%i variant calls remain after removing variants near excluded variants.' % len(variants_list.variant_call_ids))
-
-    # Step 3. Filter out variants near the excluded regions
+    # Step 2. Filter out variants near the excluded regions
     if excluded_regions_list is not None:
-        nearby_variants = variants_list.filter_regions(
+        filtered_variants = variants_list.filter_regions(
             genomic_ranges_list=excluded_regions_list,
             padding=excluded_regions_padding,
             num_processes=num_processes
         )
-        for nearby_variant in nearby_variants:
-            variants_list.remove_by_id(id=nearby_variant.id)
+        for filtered_variant in filtered_variants:
+            rejected_variant_ids_dict[filtered_variant.id].append(VariantCallTags.NEARBY_EXCLUDED_REGION)
         logger.info('%i variants remain after removing variants near excluded regions.' % variants_list.size)
         logger.info('%i variant calls remain after removing variants near excluded regions.' % len(variants_list.variant_call_ids))
 
-    return variants_list
+    # Step 3. Filter out variants near the excluded variants
+    if excluded_variants_list is not None:
+        filtered_variants = variants_list.find_nearby_variants(
+            variants=excluded_variants_list.variants,
+            padding=excluded_variants_padding,
+            num_processes=num_processes
+        )
+        for filtered_variant in filtered_variants:
+            rejected_variant_ids_dict[filtered_variant.id].append(VariantCallTags.NEARBY_EXCLUDED_VARIANT)
+        logger.info('%i variants remain after removing variants near excluded variants.' % variants_list.size)
+        logger.info('%i variant calls remain after removing variants near excluded variants.' % len(variants_list.variant_call_ids))
+
+    # Step 4. Create a filtered VariantsList and a rejected VariantsList
+    variants_list_filtered = VariantsList()
+    variants_list_rejected = VariantsList()
+    for variant in list(itertools.chain.from_iterable(variants_list.variants.values())):
+        if variant.id in rejected_variant_ids_dict.keys():
+            for i in range(0, variant.size):
+                for reason in rejected_variant_ids_dict[variant.id]:
+                    variant.variant_calls[i].tags.append(reason)
+            variants_list_rejected.add_variant(variant=variant)
+        else:
+            for i in range(0, variant.size):
+                variant.variant_calls[i].tags.append(VariantCallTags.PASSED)
+            variants_list_filtered.add_variant(variant=variant)
+    return variants_list_filtered, variants_list_rejected
 
 
 def run_exacto_annotate_variants_list(

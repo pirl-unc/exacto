@@ -50,25 +50,30 @@ class VariantFilter:
         True or False.
         """
         if self.quantifier == VariantFilterQuantifiers.ALL:
-            query = '%s %s %s' % (self.attribute, self.operator, self.value)
-            for variant_call in variant.variant_calls:
-                if variant_call.sample_id in self.sample_ids:
-                    try:
-                        if len(variant_call.to_dataframe().query(query)) == 0:
-                            return False
-                    except:
-                        return False
-            return True
+            try:
+                query = '%s %s %s' % (self.attribute, self.operator, self.value)
+                print(query)
+                df_variant = variant.to_dataframe()
+                df_variant = df_variant[df_variant['sample_id'].isin(self.sample_ids)]
+                n_query = len(df_variant.query(query))
+                if n_query == len(df_variant):
+                    return True
+                else:
+                    return False
+            except:
+                return False
         elif self.quantifier == VariantFilterQuantifiers.ANY:
-            query = '%s %s %s' % (self.attribute, self.operator, self.value)
-            for variant_call in variant.variant_calls:
-                if variant_call.sample_id in self.sample_ids:
-                    try:
-                        if len(variant_call.to_dataframe().query(query)) > 0:
-                            return True
-                    except:
-                        pass
-            return False
+            try:
+                query = '%s %s %s' % (self.attribute, self.operator, self.value)
+                df_variant = variant.to_dataframe()
+                df_variant = df_variant[df_variant['sample_id'].isin(self.sample_ids)]
+                n_query = len(df_variant.query(query))
+                if n_query == 0:
+                    return False
+                else:
+                    return True
+            except:
+                return False
         else:
             attribute_values = []
             for variant_call in variant.variant_calls:

@@ -59,6 +59,7 @@ class VariantCall:
     tool_attributes: OrderedDict = field(default_factory=dict, repr=False, compare=False)
     position_1_annotations: List[VariantAnnotation] = field(default_factory=list, repr=False, compare=False)
     position_2_annotations: List[VariantAnnotation] = field(default_factory=list, repr=False, compare=False)
+    tags: List[str] = field(default_factory=list, repr=False, compare=False)
 
     def __lt__(self, other):
         if isinstance(other, VariantCall):
@@ -248,6 +249,8 @@ class VariantCall:
         data['position_2_annotation_gene_type'] = [';'.join(pos_2_annotation_gene_type)]
         data['position_2_annotation_gene_level'] = [';'.join(pos_2_annotation_gene_level)]
         data['position_2_annotation_gene_version'] = [';'.join(pos_2_annotation_gene_version)]
+
+        data['tags'] = [';'.join(self.tags)]
         return data
 
     def to_dataframe(self) -> pd.DataFrame:

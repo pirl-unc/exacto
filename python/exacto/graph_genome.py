@@ -16,16 +16,18 @@ The purpose of this python3 script is to implement the GraphGenome dataclasses.
 """
 
 
+import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pandas as pd
 import re
-from dataclasses import dataclass
-from typing import List
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Dict, List, Tuple, Set
 from .constants import TranslocationOrientations, VariantTypes
+from .graph_genome_minimizer_set import GraphGenomeBase, GraphGenomeSeqAddr, GraphGenomeSeqPos, GraphGenomeMinimizerSet
 from .nucleotide_sequence import NucleotideSequence
-
 
 
 @dataclass(frozen=True)
@@ -106,13 +108,18 @@ class GrapheGenome:
     graph: nx.MultiDiGraph
     df_reference_nodes: pd.DataFrame
 
-    def __init__(self, reference_nodes: List[ReferenceNode]):
+    def __init__(
+            self,
+            reference_nodes: List[ReferenceNode]
+    ):
         """
         Initializes GraphGenome object with a list of ReferenceNode objects.
 
         Parameters
         ----------
         reference_nodes     :   List of ReferenceNode objects.
+        minimizer_k         :   Minimizer k.
+        minimizer_w         :   Minimizer w (window size).
         """
         self.graph = nx.MultiDiGraph()
         self.__node_id_counter = 0
@@ -697,19 +704,90 @@ class GrapheGenome:
         else:
             raise Exception('No reference node could be found for %s:%i-%i.' % (chromosome, start, end))
 
-    def _minimizers(self, window, k):
+    def find_minimizers(
+            self,
+            node_ids: List[int],
+            k: int,
+            w: int
+    ) -> GraphGenomeMinimizerSet:
         """
-
+        Finds minimizers for a list of node IDs.
 
         Parameters
         ----------
-        window
-        k
+        node_ids        :   List of node IDs.
+        k               :   K value for k-mer.
+        w               :   Window size.
 
         Returns
         -------
-
+        minimizer_set   :   GraphGenomeMinimizerSet object.
         """
+        # Step 1. Build a list of GraphGenomeBase objects based on all sequences in the nodes
+        bases = []
+        for node_id in node_ids:
+            curr_node_type = self.graph.nodes[node_id]['type']
+            if curr_node_type == VariantTypes.REFERENCE:
+                curr_node = self.graph.nodes[node_id]['reference']
+            else:
+                curr_node = self.graph.nodes[node_id]['variant']
+            for i in range(0, curr_node.sequence.length):
+                base = GraphGenomeBase(
+                    nucleotide=curr_node.sequence.sequence[i],
+                    node_id=node_id,
+                    position=i
+                )
+                bases.append(base)
+
+        # Step 2. Generate minimizers
+        minimizer_set = GraphGenomeMinimizerSet(k=k, w=w)
+        minimizer_candidates = []       # each element is a tuple (k-mer, list of GraphGenomeBase objects)
+        for i in range(0, len(bases) - k + 1):
+            kmer_bases = bases[i:i + k]
+            kmer_seq = ''.join([base.nucleotide for base in kmer_bases])
+            minimizer_candidates.append((kmer_seq, kmer_bases))
+
+            # Choose a minimizer
+            if len(minimizer_candidates) == w:
+                minimizer_index = min(range(len(minimizer_candidates)), key=lambda i: minimizer_candidates[i][0])
+                minimizer_seq = minimizer_candidates[minimizer_index][0]
+                minimizer_bases = minimizer_candidates[minimizer_index][1]
+
+                # Convert a list of GraphGenomeBase objects to a GraphGenomeSeqAddr object
+                seq_addr = GraphGenomeSeqAddr()
+                node_start = minimizer_bases[0].position
+                node_id = minimizer_bases[0].node_id
+                prev_pos = -1
+                for base in minimizer_bases[1:]:
+                    if base.node_id != node_id:
+                        if prev_pos == -1:
+                            prev_pos = node_start
+                        seq_pos = GraphGenomeSeqPos(
+                            node_id=node_id,
+                            start=node_start,
+                            end=prev_pos
+                        )
+                        seq_addr.positions.append(seq_pos)
+                        node_start = base.position
+                        node_id = base.node_id
+                    prev_pos = base.position
+
+                # Save the last base
+                if prev_pos == -1:
+                    prev_pos = node_start
+                seq_pos = GraphGenomeSeqPos(
+                    node_id=node_id,
+                    start=node_start,
+                    end=prev_pos
+                )
+                seq_addr.positions.append(seq_pos)
+
+                # Add to minimizers
+                minimizer_set.add_minimizer(minimizer=minimizer_seq, seq_addr=seq_addr)
+
+                # Reset candidate minimizers
+                minimizer_candidates = []
+        return minimizer_set
 
     def plot(
             self,

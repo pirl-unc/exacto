@@ -434,13 +434,14 @@ class Gencode(AnnotationDb):
         if self.gene_set is None:
             raise Exception('Please read a GENCODE comprehensive gene annotation '
                             'GTF file before annotating a VariantsList object.')
-        for i in range(0, variants_list.size):
-            for j in range(0, variants_list.variants[i].size):
-                position_1_annotations, position_2_annotations = self.annotate_variant_call(
-                    variants_list.variants[i].variant_calls[j]
-                )
-                for annotation in position_1_annotations:
-                    variants_list.variants[i].variant_calls[j].position_1_annotations.append(annotation)
-                for annotation in position_2_annotations:
-                    variants_list.variants[i].variant_calls[j].position_2_annotations.append(annotation)
+        for key in variants_list.variants.keys():
+            for i in range(0, len(variants_list.variants[key])):
+                for j in range(0, len(variants_list.variants[key][i].variant_calls)):
+                    position_1_annotations, position_2_annotations = self.annotate_variant_call(
+                        variants_list.variants[key][i].variant_calls[j]
+                    )
+                    for annotation in position_1_annotations:
+                        variants_list.variants[key][i].variant_calls[j].position_1_annotations.append(annotation)
+                    for annotation in position_2_annotations:
+                        variants_list.variants[key][i].variant_calls[j].position_2_annotations.append(annotation)
         return variants_list

@@ -82,12 +82,16 @@ class Vcf:
                                  comment='#',
                                  delim_whitespace=True,
                                  header=None,
+                                 low_memory=False,
+                                 memory_map=True,
                                  names=vcf_names)
         else:
             df_vcf = pd.read_csv(vcf_file,
                                  comment='#',
                                  delim_whitespace=True,
                                  header=None,
+                                 low_memory=False,
+                                 memory_map=True,
                                  names=vcf_names)
         return df_vcf
 
@@ -232,11 +236,7 @@ class Vcf:
                 # Append variant call to variants list
                 variant_call_id = 'variant_call_%s_%i' % (VariantCallingMethods.CUTESV, curr_variant_call_idx)
                 variant_id = 'variant_%i' % (curr_variant_idx)
-                variant = Variant(
-                    id=variant_id,
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2
-                )
+                variant = Variant(id=variant_id)
                 variant_call = VariantCall(
                     id=variant_call_id,
                     source_id=source_id,
@@ -366,7 +366,7 @@ class Vcf:
                             tool_attributes['precise'] = True
                         elif curr_info == 'IMPRECISE':
                             tool_attributes['precise'] = False
-                        else:
+                        elif curr_info != '.':
                             tool_attributes[curr_info.lower()] = True
 
                 # Extract FORMAT
@@ -406,11 +406,7 @@ class Vcf:
                 # Append variant call to variants list
                 variant_call_id = 'variant_call_%s_%i' % (VariantCallingMethods.DEEPVARIANT, curr_variant_call_idx)
                 variant_id = 'variant_%i' % (curr_variant_idx)
-                variant = Variant(
-                    id=variant_id,
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2
-                )
+                variant = Variant(id=variant_id)
                 variant_call = VariantCall(
                     id=variant_call_id,
                     source_id=source_id,
@@ -577,11 +573,7 @@ class Vcf:
                 # Append variant call to variants list
                 variant_call_id = 'variant_call_%s_%i' % (VariantCallingMethods.GATK4_MUTECT2, curr_variant_call_idx)
                 variant_id = 'variant_%i' % (curr_variant_idx)
-                variant = Variant(
-                    id=variant_id,
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2
-                )
+                variant = Variant(id=variant_id)
                 variant_call = VariantCall(
                     id=variant_call_id,
                     source_id=source_id,
@@ -753,11 +745,7 @@ class Vcf:
                 # Append variant call to variants list
                 variant_call_id = 'variant_call_%s_%i' % (VariantCallingMethods.PBSV, curr_variant_call_idx)
                 variant_id = 'variant_%i' % (curr_variant_idx)
-                variant = Variant(
-                    id=variant_id,
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2
-                )
+                variant = Variant(id=variant_id)
                 variant_call = VariantCall(
                     id=variant_call_id,
                     source_id=source_id,
@@ -927,11 +915,7 @@ class Vcf:
                 # Append variant call to variants list
                 variant_call_id = 'variant_call_%s_%i' % (VariantCallingMethods.SNIFFLES2, curr_variant_call_idx)
                 variant_id = 'variant_%i' % (curr_variant_idx)
-                variant = Variant(
-                    id=variant_id,
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2
-                )
+                variant = Variant(id=variant_id)
                 variant_call = VariantCall(
                     id=variant_call_id,
                     source_id=source_id,
@@ -1093,11 +1077,7 @@ class Vcf:
                 # Append variant call to variants list
                 variant_call_id = 'variant_call_%s_%i' % (VariantCallingMethods.STRELKA2, curr_variant_call_idx)
                 variant_id = 'variant_%i' % (curr_variant_idx)
-                variant = Variant(
-                    id=variant_id,
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2
-                )
+                variant = Variant(id=variant_id)
                 variant_call = VariantCall(
                     id=variant_call_id,
                     source_id=source_id,
@@ -1222,8 +1202,8 @@ class Vcf:
                 if 'ad' in tool_attributes.keys():
                     reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
                     alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
-                if alternate_allele_read_count is None and 'support' in tool_attributes.keys():
-                    alternate_allele_read_count = tool_attributes['support']
+                if (alternate_allele_read_count is None or alternate_allele_read_count == '.') and 'support' in tool_attributes.keys():
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['support'], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
                 if 'svlen' in tool_attributes.keys():
                     variant_size = abs(tool_attributes['svlen'])
                 if 'seqs' in tool_attributes.keys():
@@ -1268,11 +1248,7 @@ class Vcf:
                 # Append variant call to variants list
                 variant_call_id = 'variant_call_%s_%i' % (VariantCallingMethods.SVIM, curr_variant_call_idx)
                 variant_id = 'variant_%i' % (curr_variant_idx)
-                variant = Variant(
-                    id=variant_id,
-                    chromosome_1=chromosome_1,
-                    chromosome_2=chromosome_2
-                )
+                variant = Variant(id=variant_id)
                 variant_call = VariantCall(
                     id=variant_call_id,
                     source_id=source_id,
