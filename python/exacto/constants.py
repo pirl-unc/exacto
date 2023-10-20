@@ -75,6 +75,18 @@ class VariantTypes:
         TRANSLOCATION: 'Translocation'
     }
 
+    class DeletionSubtypes:
+        EXONIC_DELETION = 'DEL_EXONIC'
+        PARTIAL_EXONIC_DELETION = 'DEL_PARTIALEXONIC'
+        FIVE_PRIME_SPLICE_SITE_DELETION = 'DEL_5PRIMESPLICESITE'
+        THREE_PRIME_SPLICE_SITE_DELETION = 'DEL_3PRIMESPLICESITE'
+        ALL = [
+            EXONIC_DELETION,
+            PARTIAL_EXONIC_DELETION,
+            FIVE_PRIME_SPLICE_SITE_DELETION,
+            THREE_PRIME_SPLICE_SITE_DELETION
+        ]
+
     class DuplicationSubtypes:
         TANDEM_DUPLICATION = 'DUP_TANDEM'
         SEGMENTAL_DUPLICATION = 'DUP_SEG'
@@ -83,6 +95,18 @@ class VariantTypes:
             TANDEM_DUPLICATION,
             SEGMENTAL_DUPLICATION,
             INTERSPERSED_DUPLICATION
+        ]
+
+    class InsertionSubtypes:
+        EXONIC_INSERTION = 'INS_EXONIC'
+        INTRONIC_INSERTION = 'INS_INTRONIC'
+        FIVE_PRIME_SPLICE_SITE_INSERTION = 'INS_5PRIMESPLICESITE'
+        THREE_PRIME_SPLICE_SITE_INSERTION = 'INS_3PRIMESPLICESITE'
+        ALL = [
+            EXONIC_INSERTION,
+            INTRONIC_INSERTION,
+            FIVE_PRIME_SPLICE_SITE_INSERTION,
+            THREE_PRIME_SPLICE_SITE_INSERTION
         ]
 
     QueryTypeDictionary = {
@@ -108,26 +132,31 @@ class VariantCallingMethods:
     GATK4_MUTECT2 = 'gatk4-mutect2'
     DEEPVARIANT = 'deepvariant'
     EXACTO = 'exacto'
-    STRELKA2 = 'strelka2'
+    STRELKA2_SOMATIC = 'strelka2-somatic'
     SNIFFLES2 = 'sniffles2'
     SVIM = 'svim'
     CUTESV = 'cutesv'
-    DELLY2 = 'delly2'
-    LUMPY = 'lumpy'
+    DELLY2_SOMATIC = 'delly2-somatic'
+    LUMPY_SOMATIC = 'lumpy-somatic'
     PBSV = 'pbsv'
+    DBSNP = 'dbsnp'
     ALL = [
         GATK4_MUTECT2,
         DEEPVARIANT,
-        STRELKA2,
+        STRELKA2_SOMATIC,
         SNIFFLES2,
         SVIM,
         CUTESV,
-        DELLY2,
-        LUMPY,
-        PBSV
+        DELLY2_SOMATIC,
+        LUMPY_SOMATIC,
+        PBSV,
+        DBSNP
     ]
 
     class AttributeTypes:
+        DBSNP = {
+            'id': str
+        }
         CUTESV = {
             'id': str,
             'svtype': str,
@@ -146,6 +175,43 @@ class VariantCallingMethods:
             'pl': str,
             'dr': int,
             'dv': int
+        }
+        DELLY2_SOMATIC = {
+            'id': str,
+            'svtype': str,
+            'svmethod': str,
+            'svlen': int,
+            'end': int,
+            'chr2': str,
+            'pos2': int,
+            'pe': int,
+            'mapq': int,
+            'ct': str,
+            'cipos': str,
+            'ciend': str,
+            'srmapq': int,
+            'inslen': int,
+            'homlen': int,
+            'sr': int,
+            'srq': int,
+            'consensus': str,
+            'ce': float,
+            'consbp': int,
+            'rdratio': float,
+            'gt': str,
+            'gl': str,
+            'gq': int,
+            'ft': str,
+            'rc': int,
+            'rcl': int,
+            'rcr': int,
+            'rdcn': int,
+            'dr': int,
+            'dv': int,
+            'rr': int,
+            'rv': int,
+            'precise': bool,
+            'somatic': bool
         }
         DEEPVARIANT = {
             'id': str,
@@ -199,6 +265,29 @@ class VariantCallingMethods:
             'ps': int,
             'sb': str
         }
+        LUMPY_SOMATIC = {
+            'id': str,
+            'svtype': str,
+            'strands': str,
+            'svlen': int,
+            'end': int,
+            'cipos': str,
+            'ciend': str,
+            'cipos95': str,
+            'ciend95': str,
+            'su': int,
+            'pe': int,
+            'sr': int,
+            'gt': str,
+            'bd': int,
+            'mateid': str,
+            'event': int,
+            'ev': str,
+            'prpos': str,
+            'prend': str,
+            'precise': bool,
+            'secondary': bool
+        }
         PBSV = {
             'id': str,
             'svtype': str,
@@ -241,7 +330,7 @@ class VariantCallingMethods:
             'dv': int,
             'precise': bool
         }
-        STRELKA2 = {
+        STRELKA2_SOMATIC = {
             'id': str,
             'qss': int,
             'tqss': int,
@@ -419,6 +508,7 @@ class VariantFilterOperators:
     GREATER_THAN = '>'
     GREATER_THAN_OR_EQUAL_TO = '>='
     EQUALS = '=='
+    NOT_EQUALS = '!='
     IN = 'in'
 
 

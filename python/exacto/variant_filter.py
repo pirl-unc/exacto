@@ -17,8 +17,9 @@ The purpose of this python3 script is to implement the VariantFilter dataclass.
 
 
 import numpy as np
+import pandas as pd
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Type, Dict
 from .constants import VariantFilterQuantifiers, VariantFilterOperators
 from .logging import get_logger
 from .variant import Variant
@@ -31,7 +32,7 @@ logger = get_logger(__name__)
 class VariantFilter:
     quantifier: str                                         # 'all', 'any', 'min', 'max', median', 'average'
     attribute: str                                          # 'alternate_allele_read_count'
-    operator: str                                           # '<', '<=', '>', '>=', '==', 'in'
+    operator: str                                           # '<', '<=', '>', '>=', '==', '!=', 'in'
     value: None                                             # 3, ["chr1","chr2","chr3"]
     sample_ids: List[str] = field(default_factory=list)     # sample IDs
 
@@ -52,7 +53,6 @@ class VariantFilter:
         if self.quantifier == VariantFilterQuantifiers.ALL:
             try:
                 query = '%s %s %s' % (self.attribute, self.operator, self.value)
-                print(query)
                 df_variant = variant.to_dataframe()
                 df_variant = df_variant[df_variant['sample_id'].isin(self.sample_ids)]
                 n_query = len(df_variant.query(query))
@@ -102,5 +102,30 @@ class VariantFilter:
                 return True if summarized_value >= self.value else False
             elif self.operator == VariantFilterOperators.EQUALS:
                 return True if summarized_value == self.value else False
+            elif self.operator == VariantFilterOperators.NOT_EQUALS:
+                return True if summarized_value != self.value else False
             else:
                 raise Exception('Unknown operator: %s' % self.operator)
+
+    def to_dict(self):
+        data = {
+            'quantifier': self.quantifier,
+            'attribute': self.attribute,
+            'operator': self.operator,
+            'value': self.value,
+            'sample_ids': self.sample_ids
+        }
+        return data
+
+    def to_dataframe_row(self) -> Dict:
+        data = {
+            'quantifier': [self.quantifier],
+            'attribute': [self.attribute],
+            'operator': [self.operator],
+            'value': [str(self.value)],
+            'sample_ids': [';'.join(self.sample_ids)]
+        }
+        return data
+
+    def to_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(self.to_dataframe_row())

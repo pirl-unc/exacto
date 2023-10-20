@@ -1,9 +1,9 @@
 import pytest
 from .data import get_data_path
 from exacto.constants import *
-from exacto.genomic_ranges_list import GenomicRangesList
+from exacto.common.genomic_ranges_list import GenomicRangesList
 from exacto.main import run_exacto_vcf_to_tsv
-from exacto.variants_list import VariantsList
+from exacto.vcf.variants_list import VariantsList
 
 
 """Structural Variants Lists"""

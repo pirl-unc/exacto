@@ -16,7 +16,6 @@ The purpose of this python3 script is to implement Variant dataclass.
 """
 
 
-import logging
 import statistics
 import pandas as pd
 from collections import defaultdict, OrderedDict
@@ -145,10 +144,6 @@ class Variant:
         return [i.alternate_allele_read_ids for i in self.variant_calls]
 
     @property
-    def alternate_allele_softclip_directions(self) -> List[str]:
-        return [i.alternate_allele_softclip_direction for i in self.variant_calls]
-
-    @property
     def tool_attributes(self) -> List[OrderedDict]:
         return [i.tool_attributes for i in self.variant_calls]
 
@@ -166,15 +161,22 @@ class Variant:
         return NotImplemented
 
     def to_dict(self) -> Dict:
+        data = {
+            'id': self.id,
+            'variant_calls': [variant_call.to_dict() for variant_call in self.variant_calls]
+        }
+        return data
+
+    def to_dataframe_row(self) -> Dict:
         data = defaultdict(list)
         for variant_call in self.variant_calls:
             data['variant_id'].append(self.id)
-            for key, value in variant_call.to_dict().items():
+            for key, value in variant_call.to_dataframe_row().items():
                 data[key].append(value[0])
         return data
 
     def to_dataframe(self) -> pd.DataFrame:
-        return pd.DataFrame(self.to_dict())
+        return pd.DataFrame(self.to_dataframe_row())
 
     def add_variant_call(self, variant_call: VariantCall):
         """
@@ -243,4 +245,3 @@ class Variant:
                     position_2_start <= variant_call.position_2 <= position_2_end:
                 variant_calls.append(variant_call)
         return variant_calls
-

@@ -16,22 +16,22 @@ The purpose of this python3 script is to implement the Gencode dataclass.
 """
 
 
+import pandas as pd
 import pysam
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Tuple
 from .annotation_db import AnnotationDb
-from .constants import *
 from .exon import Exon
-from .fasta import Fasta
 from .gene import Gene
 from .gene_set import GeneSet
-from .logging import get_logger
-from .nucleotide_sequence import NucleotideSequence
 from .transcript import Transcript
-from .variant import VariantAnnotation
-from .variant_call import VariantCall
-from .variants_list import VariantsList
+from ..common.nucleotide_sequence import NucleotideSequence
+from ..constants import *
+from ..logging import get_logger
+from ..vcf.variant import VariantAnnotation
+from ..vcf.variant_call import VariantCall
+from ..vcf.variants_list import VariantsList
 
 
 logger = get_logger(__name__)
@@ -46,10 +46,6 @@ class Gencode(AnnotationDb):
     gene_set: GeneSet = GeneSet()
     genome_fasta: pysam.FastaFile = None
 
-    @property
-    def source(self):
-        return AnnotationSources.GENCODE
-
     def __post_init__(self):
         # Step 1. Read FASTA file
         self.genome_fasta = pysam.FastaFile(self.genome_fasta_file)
@@ -61,6 +57,166 @@ class Gencode(AnnotationDb):
         self.__read_gtf_file_start_codons()  # update start codon start and end positions
         self.__read_gtf_file_stop_codons()  # update stop codon start and end positions
         self.__read_gtf_file_utr()  # update UTR start and end positions
+
+    @staticmethod
+    def read_gtf_file(gtf_file: str) -> pd.DataFrame:
+        """
+        Reads a GENCODE GTF file and returns a Pandas DataFrame.
+
+        Parameters
+        ----------
+        gtf_file    :   GTF file.
+
+        Returns
+        -------
+        df          :   pd.DataFrame with the following columns:
+                        'chromosome'
+                        'source'
+                        'feature'
+                        'start'
+                        'end'
+                        'score'
+                        'strand'
+                        'frame'
+                        'gene_id'
+                        'gene_type'
+                        'gene_name'
+                        'transcript_type'
+                        'transcript_name'
+                        'transcript_support_level'
+                        'exon_id'
+                        'exon_number'
+                        'protein_id'
+                        'level'
+                        'ccds_id'
+                        'hgnc_id'
+                        'havana_gene'
+                        'havana_transcript'
+                        'tag'
+                        'ont'
+        """
+        data = {
+            'chromosome': [],
+            'source': [],
+            'feature': [],
+            'start': [],
+            'end': [],
+            'score': [],
+            'strand': [],
+            'frame': [],
+            'gene_id': [],
+            'gene_type': [],
+            'gene_name': [],
+            'transcript_type': [],
+            'transcript_name': [],
+            'transcript_support_level': [],
+            'exon_id': [],
+            'exon_number': [],
+            'protein_id': [],
+            'level': [],
+            'ccds_id': [],
+            'hgnc_id': [],
+            'havana_gene': [],
+            'havana_transcript': [],
+            'tag': [],
+            'ont': []
+        }
+        with open(gtf_file, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                line = line.strip()
+                if line[0:2] == '##':
+                    continue
+                elements = line.split('\t')
+                curr_chromosome = str(elements[0])
+                curr_source = str(elements[1])
+                curr_feature = str(elements[2])
+                curr_start = int(elements[3])
+                curr_end = int(elements[4])
+                curr_score = str(elements[5])
+                curr_strand = str(elements[6])
+                curr_frame = int(elements[7])
+                curr_metadata = str(elements[8]).split(';')
+                curr_metadata_dict = {}
+                curr_tags = []
+                curr_onts = []
+                for curr_metadata_elements in curr_metadata:
+                    if curr_metadata_elements == '':
+                        continue
+                    if curr_metadata_elements[0] == ' ':
+                        curr_metadata_elements = curr_metadata_elements[1:]
+                    curr_metadata_elements_ = curr_metadata_elements.split(' ')
+                    curr_metadata_dict[curr_metadata_elements_[0]] = curr_metadata_elements_[1].replace('"', '')
+                    if curr_metadata_elements_[0] == 'tag':
+                        curr_tags.append(str(curr_metadata_elements_[1].replace('"', '')))
+                    if curr_metadata_elements_[0] == 'ont':
+                        curr_onts.append(str(curr_metadata_elements_[1].replace('"', '')))
+                curr_tag_str = ';'.join(curr_tags)
+                curr_ont_str = ';'.join(curr_onts)
+                curr_gene_id = str(curr_metadata_dict['gene_id']) if 'gene_id' in curr_metadata_dict.keys() else ''
+                curr_gene_type = str(curr_metadata_dict['gene_type']) if 'gene_type' in curr_metadata_dict.keys() else ''
+                curr_gene_name = str(curr_metadata_dict['gene_name']) if 'gene_name' in curr_metadata_dict.keys() else ''
+                curr_transcript_type = str(curr_metadata_dict['transcript_type']) if 'transcript_type' in curr_metadata_dict.keys() else ''
+                curr_transcript_name = str(curr_metadata_dict['transcript_name']) if 'transcript_name' in curr_metadata_dict.keys() else ''
+                curr_transcript_support_level = str(curr_metadata_dict['transcript_support_level']) if 'transcript_support_level' in curr_metadata_dict.keys() else ''
+                curr_exon_id = str(curr_metadata_dict['exon_id']) if 'exon_id' in curr_metadata_dict.keys() else ''
+                curr_exon_number = int(curr_metadata_dict['exon_number']) if 'exon_number' in curr_metadata_dict.keys() else -1
+                curr_protein_id = str(curr_metadata_dict['protein_id']) if 'protein_id' in curr_metadata_dict.keys() else ''
+
+                if 'level' in curr_metadata_dict.keys():
+                    curr_level = int(curr_metadata_dict['level'])
+                else:
+                    curr_level = -1
+
+                if 'ccdsid' in curr_metadata_dict.keys():
+                    curr_ccds_id = str(curr_metadata_dict['ccdsid'])
+                else:
+                    curr_ccds_id = ''
+
+                if 'hgnc_id' in curr_metadata_dict.keys():
+                    curr_hgnc_id = str(curr_metadata_dict['hgnc_id'])
+                else:
+                    curr_hgnc_id = ''
+
+                if 'havana_gene' in curr_metadata_dict.keys():
+                    curr_havana_gene = str(curr_metadata_dict['havana_gene'])
+                else:
+                    curr_havana_gene = ''
+
+                if 'havana_transcript' in curr_metadata_dict.keys():
+                    curr_havana_transcript = str(curr_metadata_dict)
+                else:
+                    curr_havana_transcript = ''
+
+                if curr_score == '.':
+                    curr_score = -1.0
+                else:
+                    curr_score = float(curr_score)
+
+                data['chromosome'].append(curr_chromosome)
+                data['source'].append(curr_source)
+                data['feature'].append(curr_feature)
+                data['start'].append(curr_start)
+                data['end'].append(curr_end)
+                data['score'].append(curr_score)
+                data['strand'].append(curr_strand)
+                data['frame'].append(curr_frame)
+                data['gene_id'].append(curr_gene_id)
+                data['gene_type'].append(curr_gene_type)
+                data['transcript_type'].append(curr_transcript_type)
+                data['transcript_name'].append(curr_transcript_name)
+                data['transcript_support_level'].append(curr_transcript_support_level)
+                data['exon_id'].append(curr_exon_id)
+                data['exon_number'].append(curr_exon_number)
+                data['protein_id'].append(curr_protein_id)
+                data['level'].append(curr_level)
+                data['ccds_id'].append(curr_ccds_id)
+                data['hgnc_id'].append(curr_hgnc_id)
+                data['havana_gene'].append(curr_havana_gene)
+                data['havana_transcript'].append(curr_havana_transcript)
+                data['tag'].append(curr_tag_str)
+                data['ont'].append(curr_ont_str)
+        return pd.DataFrame(data)
 
     @staticmethod
     def get_stable_ensembl_id(id: str):

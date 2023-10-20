@@ -1,6 +1,0 @@
----
-title: "Pipeline"
----
-
-### Simulating Long-read RNA-seq Reads
-

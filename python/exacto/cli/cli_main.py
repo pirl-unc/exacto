@@ -18,11 +18,10 @@ The purpose of this python3 script is to implement the primary Exacto command.
 
 import argparse
 import exacto
-from .cli_annotate_variant_calls import *
-from .cli_call_rna_variants import *
+from .cli_vcf2tsv import *
 from .cli_filter_variants import *
-from .cli_merge_variant_calls import *
-from .cli_vcf_to_tsv import *
+from .cli_merge_variants import *
+from .cli_annotate_variants import *
 from ..logging import get_logger
 
 
@@ -53,23 +52,20 @@ def init_arg_parser():
 def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
-    sub_parsers = add_cli_annotate_variant_calls_arg_parser(sub_parsers=sub_parsers)    # annotate-variant-calls
-    sub_parsers = add_cli_call_rna_variants_arg_parser(sub_parsers=sub_parsers)         # call-rna-variants
-    sub_parsers = add_cli_filter_variants_arg_parser(sub_parsers=sub_parsers)           # filter-variants
-    sub_parsers = add_cli_merge_variant_calls_arg_parser(sub_parsers=sub_parsers)       # merge-variant-calls
-    sub_parsers = add_cli_vcf_to_tsv_arg_parser(sub_parsers=sub_parsers)                # variant-to-tsv
+    sub_parsers = add_cli_vcf2tsv_arg_parser(sub_parsers=sub_parsers)           # vcf2tsv
+    sub_parsers = add_cli_filter_variants_arg_parser(sub_parsers=sub_parsers)   # filter-variants
+    sub_parsers = add_cli_merge_variants_arg_parser(sub_parsers=sub_parsers)    # merge-variants
+    sub_parsers = add_cli_annotate_variants_arg_parser(sub_parsers=sub_parsers) # annotate-variants
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
-    if args.which == 'annotate-variant-calls':
-        run_cli_annotate_variant_calls_from_parsed_args(args=args)
-    elif args.which == 'call-rna-variants':
-        run_cli_call_rna_variants_from_parsed_args(args=args)
+    if args.which == 'vcf2tsv':
+        run_cli_vcf2tsv_from_parsed_args(args=args)
     elif args.which == 'filter-variants':
         run_cli_filter_variants_from_parsed_args(args=args)
-    elif args.which == 'merge-variant-calls':
-        run_cli_merge_variant_calls_from_parsed_args(args=args)
-    elif args.which == 'vcf-to-tsv':
-        run_cli_vcf_to_tsv_from_parsed_args(args=args)
+    elif args.which == 'merge-variants':
+        run_cli_merge_variants_from_parsed_args(args=args)
+    elif args.which == 'annotate-variants':
+        run_cli_annotate_variants_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)

@@ -1,7 +1,4 @@
-from .conftest import *
-from .data import get_data_path
-from exacto.ensembl import Ensembl
-from exacto.gencode import Gencode
+from exacto.annotation.ensembl import Ensembl
 from exacto.main import run_exacto_annotate_variants_list
 
 

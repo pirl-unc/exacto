@@ -25,14 +25,14 @@ from .constants import GenomicRegionTypes, AnnotationSources, Strands
 class VariantAnnotation:
     region: str
     source: str
-    source_version: str = None
-    gene_id: str = None
-    gene_stable_id: str = None
-    gene_version: str = None
-    gene_name: str = None
-    gene_type: str = None
-    gene_strand: str = None
-    genome: str = None
+    source_version: str
+    gene_id: str
+    gene_stable_id: str
+    gene_version: str
+    gene_name: str
+    gene_type: str
+    gene_strand: str
+    species: str
 
     def __post_init__(self):
         if self.region not in GenomicRegionTypes.ALL:
@@ -54,19 +54,34 @@ class VariantAnnotation:
 
     def to_dict(self):
         data = {
+            'region': self.region,
+            'source': self.source,
+            'source_version': self.source_version,
+            'gene_id': self.gene_id,
+            'gene_stable_id': self.gene_stable_id,
+            'gene_version': self.gene_version,
+            'gene_name': self.gene_name,
+            'gene_type': self.gene_type,
+            'gene_strand': self.gene_strand,
+            'species': self.species
+        }
+        return data
+
+    def to_dataframe_row(self):
+        data = {
             'region': [self.region],
             'source': [self.source],
             'source_version': [self.source_version],
-            'gene_id': ['' if self.gene_id is None else self.gene_id],
-            'gene_stable_id': ['' if self.gene_stable_id is None else self.gene_stable_id],
-            'gene_version': ['' if self.gene_version is None else self.gene_version],
-            'gene_name': ['' if self.gene_name is None else self.gene_name],
-            'gene_type': ['' if self.gene_type is None else self.gene_type],
-            'gene_strand': ['' if self.gene_strand is None else self.gene_strand],
-            'gene_genome': ['' if self.genome is None else self.genome]
+            'gene_id': [self.gene_id],
+            'gene_stable_id': [self.gene_stable_id],
+            'gene_version': [self.gene_version],
+            'gene_name': [self.gene_name],
+            'gene_type': [self.gene_type],
+            'gene_strand': [self.gene_strand],
+            'species': [self.species]
         }
         return data
 
     def to_dataframe(self) -> pd.DataFrame:
-        return pd.DataFrame(self.to_dict())
+        return pd.DataFrame(self.to_dataframe_row())
 

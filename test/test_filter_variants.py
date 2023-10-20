@@ -1,7 +1,6 @@
-from .conftest import *
 from exacto.constants import VariantFilterQuantifiers, VariantFilterOperators
 from exacto.main import run_exacto_filter_variants
-from exacto.variant_filter import VariantFilter
+from exacto.vcf.variant_filter import VariantFilter
 
 
 """Structural Variants"""

@@ -1,3 +1,0 @@
----
-title: "merge-variant-calls"
----

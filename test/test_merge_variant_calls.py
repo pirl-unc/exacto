@@ -1,5 +1,5 @@
 from .conftest import *
-from exacto.default_parameters import MERGE_MAX_NEIGHBOR_DISTANCE
+from exacto.default import MERGE_MAX_NEIGHBOR_DISTANCE
 from exacto.main import run_exacto_merge_variant_calls
 
 

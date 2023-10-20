@@ -18,9 +18,9 @@ and run Exacto 'filter-variants' command.
 
 
 import argparse
-from ..constants import VariantFilterSampleTypes
-from ..default_parameters import *
 from ..genomic_ranges_list import GenomicRangesList
+from ..constants import VariantFilterSampleTypes
+from ..default import *
 from ..logging import get_logger
 from ..main import run_exacto_filter_variants
 from ..variant_filter import VariantFilter
@@ -97,7 +97,8 @@ def add_cli_filter_variants_arg_parser(sub_parsers) -> argparse._SubParsersActio
         type=str,
         action='append',
         required=False,
-        help='Variant filter conditions: "{case,control} {all,average,median,min,max,any} {attribute} {<,<=,>,>=,==,in} {value}". '
+        help='Variant filter conditions: '
+             '"{case,control} {all,average,median,min,max,any} {attribute} {<,<=,>,>=,==,in} {value}". '
              'Example 1: "case all alternate_allele_read_count >= 3". '
              'Example 2: "case all chr_1 in ["chr1","chr2","chr3"]". '
              'Please refer to the Exacto documentation on how the filter semantics work.'
@@ -108,8 +109,8 @@ def add_cli_filter_variants_arg_parser(sub_parsers) -> argparse._SubParsersActio
         type=str,
         required=False,
         help="TSV files of regions to exclude. "
-             "Variants with any variant calls where breakpoints are near the regions in this file will be removed. Expected headers: "
-             "'chromosome', 'start', 'end'."
+             "Variants with any variant calls where breakpoints are near the regions in this file will be removed. "
+             "Expected headers: 'chromosome', 'start', 'end'."
     )
     parser_optional.add_argument(
         "--excluded-regions-padding",
@@ -166,7 +167,6 @@ def run_cli_filter_variants_from_parsed_args(
                 output_filtered_tsv_file
                 output_rejected_tsv_file
                 control_sample_id
-                groupby_source_id
                 filter
                 excluded_regions_tsv_file
                 excluded_regions_padding
@@ -183,19 +183,19 @@ def run_cli_filter_variants_from_parsed_args(
     logger.info('Started loading variant filters.')
     variant_filters = []
     if args.filter is not None:
-        for filter in args.filter:
-            filter = filter.split(' ')
-            if filter[0] == VariantFilterSampleTypes.CASE:
+        for curr_filter in args.filter:
+            curr_filter = curr_filter.split(' ')
+            if curr_filter[0] == VariantFilterSampleTypes.CASE:
                 sample_ids = args.case_sample_id
-            elif filter[0] == VariantFilterSampleTypes.CONTROL:
+            elif curr_filter[0] == VariantFilterSampleTypes.CONTROL:
                 sample_ids = args.control_sample_id
             else:
-                raise Exception('Unknown sample type for variant filter: %s.' % filter[0])
+                raise Exception('Unknown sample type for variant filter: %s.' % curr_filter[0])
             variant_filter = VariantFilter(
-                quantifier=filter[1],
-                attribute=filter[2],
-                operator=filter[3],
-                value=filter[4],
+                quantifier=curr_filter[1],
+                attribute=curr_filter[2],
+                operator=curr_filter[3],
+                value=curr_filter[4],
                 sample_ids=sample_ids
             )
             variant_filters.append(variant_filter)
@@ -203,13 +203,17 @@ def run_cli_filter_variants_from_parsed_args(
 
     # Step 3. Load excluded variants list
     if args.excluded_variants_tsv_file is not None:
+        logger.info('Started loading excluded variants list.')
         excluded_variants_list = VariantsList.read_tsv_file(tsv_file=args.excluded_variants_tsv_file)
+        logger.info('Finished loading excluded variants list.')
     else:
         excluded_variants_list = None
 
     # Step 4. Load excluded regions list
     if args.excluded_regions_tsv_file is not None:
+        logger.info('Started loading excluded regions list.')
         excluded_regions_list = GenomicRangesList.read_tsv_file(tsv_file=args.excluded_regions_tsv_file)
+        logger.info('Finished loading excluded regions list.')
     else:
         excluded_regions_list = None
 

@@ -28,6 +28,9 @@ class NucleotideSequence:
     def __str__(self):
         return self.sequence
 
+    def __getitem__(self, index):
+        return self.sequence[index]
+
     @property
     def length(self) -> int:
         return len(self.sequence)

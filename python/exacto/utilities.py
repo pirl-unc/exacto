@@ -153,13 +153,17 @@ def get_variant_calling_method_attr_types(variant_calling_method: str) -> Dict:
         return VariantCallingMethods.AttributeTypes.CUTESV
     if variant_calling_method == VariantCallingMethods.DEEPVARIANT:
         return VariantCallingMethods.AttributeTypes.DEEPVARIANT
+    if variant_calling_method == VariantCallingMethods.DELLY2_SOMATIC:
+        return VariantCallingMethods.AttributeTypes.DELLY2_SOMATIC
     if variant_calling_method == VariantCallingMethods.GATK4_MUTECT2:
         return VariantCallingMethods.AttributeTypes.GATK4_MUTECT2
+    if variant_calling_method == VariantCallingMethods.LUMPY_SOMATIC:
+        return VariantCallingMethods.AttributeTypes.LUMPY_SOMATIC
     if variant_calling_method == VariantCallingMethods.PBSV:
         return VariantCallingMethods.AttributeTypes.PBSV
     if variant_calling_method == VariantCallingMethods.SNIFFLES2:
         return VariantCallingMethods.AttributeTypes.SNIFFLES2
-    if variant_calling_method == VariantCallingMethods.STRELKA2:
-        return VariantCallingMethods.AttributeTypes.STRELKA2
+    if variant_calling_method == VariantCallingMethods.STRELKA2_SOMATIC:
+        return VariantCallingMethods.AttributeTypes.STRELKA2_SOMATIC
     if variant_calling_method == VariantCallingMethods.SVIM:
         return VariantCallingMethods.AttributeTypes.SVIM

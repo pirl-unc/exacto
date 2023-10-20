@@ -21,7 +21,6 @@ from dataclasses import dataclass
 from typing import List, Tuple
 from .annotation_db import AnnotationDb
 from .constants import *
-from .gene import Gene
 from .logging import get_logger
 from .variant_annotation import VariantAnnotation
 from .variant_call import VariantCall
@@ -72,7 +71,8 @@ class Ensembl(AnnotationDb):
             variant_annotation = VariantAnnotation(
                 region=GenomicRegionTypes.INTERGENIC,
                 source=AnnotationSources.ENSEMBL,
-                source_version=self.release
+                source_version=str(self.release),
+                species=self.species
             )
             variant_annotations.append(variant_annotation)
         else:
@@ -86,14 +86,14 @@ class Ensembl(AnnotationDb):
                 variant_annotation = VariantAnnotation(
                     region=region,
                     source=AnnotationSources.ENSEMBL,
-                    source_version=self.release,
+                    source_version=str(self.release),
                     gene_id=gene.gene_id,
                     gene_stable_id=gene.gene_id,
                     gene_version='',
                     gene_name=gene.gene_name,
                     gene_type=gene.biotype,
                     gene_strand=gene.strand,
-                    genome=gene.genome
+                    species=self.species
                 )
                 variant_annotations.append(variant_annotation)
         return variant_annotations
