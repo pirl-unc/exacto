@@ -1,0 +1,8 @@
+##description: evidence-based annotation of the human genome (GRCh38), version 41 (Ensembl 107)
+##provider: GENCODE
+##contact: gencode-help@ebi.ac.uk
+##format: gtf
+##date: 2022-05-12
+chr8	HAVANA	gene	94641074	94707466	.	+	.	gene_id "ENSG00000104413.18"; gene_type "protein_coding"; gene_name "ESRP1"; level 1; hgnc_id "HGNC:25966"; tag "ncRNA_host"; tag "overlapping_locus"; havana_gene "OTTHUMG00000164587.4";
+chr8	HAVANA	transcript	94641174	94707466	.	+	.	gene_id "ENSG00000104413.18"; transcript_id "ENST00000358397.9"; gene_type "protein_coding"; gene_name "ESRP1"; transcript_type "protein_coding"; transcript_name "ESRP1-201"; level 2; protein_id "ENSP00000351168.5"; transcript_support_level "1"; hgnc_id "HGNC:25966"; tag "basic"; tag "appris_alternative_1"; tag "CCDS"; ccdsid "CCDS47898.1"; havana_gene "OTTHUMG00000164587.4"; havana_transcript "OTTHUMT00000379327.1";
+chr8	HAVANA	exon	94641174	94641450	.	+	.	gene_id "ENSG00000104413.18"; transcript_id "ENST00000358397.9"; gene_type "protein_coding"; gene_name "ESRP1"; transcript_type "protein_coding"; transcript_name "ESRP1-201"; exon_number 1; exon_id "ENSE00002117429.1"; level 2; protein_id "ENSP00000351168.5"; transcript_support_level "1"; hgnc_id "HGNC:25966"; tag "basic"; tag "appris_alternative_1"; tag "CCDS"; ccdsid "CCDS47898.1"; havana_gene "OTTHUMG00000164587.4"; havana_transcript "OTTHUMT00000379327.1";

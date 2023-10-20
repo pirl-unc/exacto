@@ -11,141 +11,192 @@
 // limitations under the License.
 
 
-extern crate bam;
-mod variant_calling;
-mod utils;
-
+extern crate exitcode;
+extern crate pyo3;
+extern crate serde_json;
 use pyo3::prelude::*;
-use std::str;
-use lazy_static::lazy_static;
-use regex::Regex;
-use polars::prelude::*;
-use polars::df;
-use rustc_hash::FxHashMap;
-use variant_calling::*;
-use utils::*;
+use pyo3::types::{PyDict, PyList};
+use std::collections::HashMap;
+mod constants;
+mod genomic_range;
+mod genomic_ranges_list;
+mod utilities;
+mod variant;
+mod variant_annotation;
+mod variant_call;
+mod variant_filter;
+mod variants_list;
+use genomic_range::GenomicRange;
+use genomic_ranges_list::GenomicRangesList;
+use variant::Variant;
+use variant_annotation::VariantAnnotation;
+use variant_call::VariantCall;
+use variant_filter::VariantFilter;
+use variants_list::VariantsList;
 
 
-#[pyclass]
-struct VariantCallset {
-    #[pyo3(get)]
-    read_ids: Vec<String>,
-    #[pyo3(get)]
-    chromosomes: Vec<String>,
-    #[pyo3(get)]
-    positions: Vec<i32>,
-    #[pyo3(get)]
-    variant_types: Vec<String>,
-    #[pyo3(get)]
-    reference_alleles: Vec<String>,
-    #[pyo3(get)]
-    alternate_alleles: Vec<String>,
-    #[pyo3(get)]
-    sequences: Vec<String>,
-    #[pyo3(get)]
-    variant_sizes: Vec<i32>
+/// This function deserializes a list of serialized VariantsList objects.
+///
+/// # Arguments
+/// * `py_list`         -   list of serialized VariantsList objects.
+///
+/// # Returns
+/// * `variants_list`   -   vector of VariantsList objects.
+fn deserialize_variants_lists(py_list: &PyList) -> Vec<VariantsList> {
+    let mut variants_lists: Vec<VariantsList> = Vec::new();
+    for py_str in py_list.iter() {
+        variants_lists.push(deserialize_variants_list(&py_str.to_string()));
+    }
+    return variants_lists;
 }
 
-#[pymethods]
-impl VariantCallset {
-    #[new]
-    pub fn new(
-        read_ids: Vec<String>,
-        chromosomes: Vec<String>,
-        positions: Vec<i32>,
-        variant_types: Vec<String>,
-        reference_alleles: Vec<String>,
-        alternate_alleles: Vec<String>,
-        sequences: Vec<String>,
-        variant_sizes: Vec<i32>) -> Self {
-        VariantCallset {
-            read_ids: read_ids.clone(),
-            chromosomes: chromosomes.clone(),
-            positions: positions.clone(),
-            variant_types: variant_types.clone(),
-            reference_alleles: reference_alleles.clone(),
-            alternate_alleles: alternate_alleles.clone(),
-            sequences: sequences.clone(),
-            variant_sizes: variant_sizes.clone()
+/// This function deserializes a VariantsList object.
+///
+/// # Arguments
+/// * `json_str`        -   serialized VariantsList object.
+///
+/// # Returns
+/// * `variants_list`   -   VariantsList object.
+fn deserialize_variants_list(json_str: &str) -> VariantsList {
+    let variants_list: Result<VariantsList, serde_json::Error> = serde_json::from_str(json_str);
+    match variants_list {
+        Ok(result) => {
+            return result;
+        }
+        Err(e) => {
+            eprintln!("Error deserializing JSON: {}", e);
+            std::process::exit(exitcode::DATAERR);
         }
     }
 }
 
-/// Identifies RNA variants in a BAM file.
+/// This function deserializes a list of VariantFilter objects.
+///
+/// # Arguments
+/// * `py_list`             -   a list of serialized VariantsFilter objects.
+///
+/// # Returns
+/// * `variant_filters`     -   a vector of VariantFilter objects.
+fn deserialize_variant_filters(py_list: &PyList) -> Vec<VariantFilter> {
+    let mut variant_filters: Vec<VariantFilter> = Vec::new();
+    for py_str in py_list.iter() {
+        variant_filters.push(deserialize_variant_filter(&py_str.to_string()));
+    }
+    return variant_filters;
+}
+
+fn deserialize_variant_filter(json_str: &str) -> VariantFilter {
+    let variant_filter: Result<VariantFilter, serde_json::Error> = serde_json::from_str(json_str);
+    match variant_filter {
+        Ok(result) => {
+            return result;
+        }
+        Err(e) => {
+            eprintln!("Error deserializing JSON: {}", e);
+            std::process::exit(exitcode::DATAERR);
+        }
+    }
+}
+
+/// This function merges a vector of serialized VariantsList objects into one.
+///
+/// # Arguments
+/// * `py_list`                 -   list of serialized VariantsList objects.
+/// * `num_threads`             -   number of threads.
+/// * `max_neighbor_distance`   -   maximum neighbor distance.
+///
+/// # Returns
+/// * A serialized VariantsList object.
 #[pyfunction]
-fn identify_rna_variants(bam_file: String, num_threads: u16) -> PyResult<VariantCallset> {
-    let mut df_cs_tags = DataFrame::default();
-    let chromosomes: Vec<String> = get_chromosome_names(&bam_file);
-    let reader = bam::BamReader::from_path(bam_file, num_threads).unwrap();
-    for record in reader {
-        let record = record.unwrap();
-        let record_id: &str = str::from_utf8(&record.name()).unwrap();
-        let ref_id: usize = record.ref_id().try_into().unwrap();
-        let chromosome: &str = &chromosomes[ref_id];
-        let flag = record.flag();
+fn merge_variants_lists(
+    py: Python, py_list: &PyList,
+    num_threads: usize,
+    max_neighbor_distance: isize) -> PyResult<String> {
+    // Step 1. Deserialize VariantsList objects
+    let mut variants_lists: Vec<VariantsList> = deserialize_variants_lists(py_list);
 
-        // Check if the read is mapped
-        if flag.is_mapped() == false {
-            println!("Unmapped read ID: {}", record_id);
-            continue;
-        }
+    // Step 2. Merge VariantsList objects
+    let merged_variants_list: VariantsList = VariantsList::merge(
+        variants_lists,
+        num_threads,
+        max_neighbor_distance,
+        &constants::VARIANT_TYPES_MAP
+    );
 
-        let start_pos: i32 = record.start(); // originally 0-based
-        let mapping_quality: u8 = record.mapq();
-        let sequence_string: String = record.sequence().to_vec_acgtn_only().iter().map(|i| (*i as char)).collect();
-        let sequence_vec: Vec<char> = record.sequence().to_vec_acgtn_only().iter().map(|i| (*i as char)).collect();
-        let cigar = record.cigar();
-        let mut cs_tag: &str = "";
-        match record.tags().get(b"cs") {
-            Some(bam::record::tags::TagValue::String(tag_value, bam::record::tags::StringType::String)) => {
-                cs_tag = str::from_utf8(tag_value).unwrap();
-            },
-            Some(bam::record::tags::TagValue::Char(value)) => println!("Char = {}", value),
-            _ => panic!("Unexpected type"),
-        }
+    // Step 3. Serialize merged VariantsList object
+    let serialized = serde_json::to_string(&merged_variants_list).expect("Serialization of the merged VariantsList object failed");
 
-        let df_curr_cs_tags: DataFrame = identify_rna_variants_in_cs_tag(record_id, chromosome, start_pos, cs_tag).unwrap();
-        df_cs_tags = df_cs_tags.vstack(&df_curr_cs_tags).unwrap();
-
-        // println!("Read ID: {}", record_id);
-        // println!("Mapping quality: {}", mapping_quality);
-        // println!("Sequence (string): {}", sequence_string);
-        // println!("Sequence (vector): {:?}", sequence_vec);
-        // println!("First character of sequence: {:?}", sequence_vec[0]);
-        // println!("First CIGAR: {:?}", cigar.at(0));
-        // println!("CIGAR length: {}", cigar.len());
-        // println!("CS tag: {}", cs_tag);
-    }
-
-    // Sort the DataFrame
-    df_cs_tags = df_cs_tags.sort(&["position"], vec![false, true, false, false, false, false, false, false]).unwrap();
-
-    // Convert the DataFrame to a wrapper
-    let read_ids: Vec<String> = copy_string_series_as_vector(&df_cs_tags["read_id"]);
-    let chromosomes: Vec<String> = copy_string_series_as_vector(&df_cs_tags["chromosome"]);
-    let positions: Vec<i32> = copy_i32_series_as_vector(&df_cs_tags["position"]);
-    let variant_types: Vec<String> = copy_string_series_as_vector(&df_cs_tags["variant_type"]);
-    let reference_alleles: Vec<String> = copy_string_series_as_vector(&df_cs_tags["reference_allele"]);
-    let alternate_alleles: Vec<String> = copy_string_series_as_vector(&df_cs_tags["alternate_allele"]);
-    let sequences: Vec<String> = copy_string_series_as_vector(&df_cs_tags["sequence"]);
-    let variant_sizes: Vec<i32> = copy_i32_series_as_vector(&df_cs_tags["variant_size"]);
-    let variant_callset = VariantCallset {
-        read_ids: read_ids,
-        chromosomes: chromosomes,
-        positions: positions,
-        variant_types: variant_types,
-        reference_alleles: reference_alleles,
-        alternate_alleles: alternate_alleles,
-        sequences: sequences,
-        variant_sizes: variant_sizes
-    };
-    Ok(variant_callset)
+    Ok(serialized)
 }
 
-/// A Python module implemented in Rust.
+/// This function filters a serialized VariantsList object and returns a filtered VariantsList.
+///
+/// # Arguments
+/// * `py_str`                  -   serialized VariantsList object.
+/// * `py_list`                 -   a list of serialized VariantFilter objects.
+/// * `num_threads`             -   number of threads.
+///
+/// # Returns
+/// * A serialized VariantsList string.
+#[pyfunction]
+fn filter_variants_list(
+    py: Python, py_str:
+    String, py_list: &PyList,
+    num_threads: usize) -> PyResult<String> {
+    // Step 1. Deserialize VariantsList object
+    let mut variants_list: VariantsList = deserialize_variants_list(&py_str);
+
+    // Step 2. Deserialize VariantFilter objects
+    let variant_filters: Vec<VariantFilter> = deserialize_variant_filters(py_list);
+
+    // Step 3. Filter VariantsList object
+    let filtered_variants_list: VariantsList = variants_list.filter(variant_filters, num_threads);
+
+    // Step 4. Serialize filtered VariantsList object
+    let serialized = serde_json::to_string(&filtered_variants_list).expect("Serialization of the filtered VariantsList object failed");
+
+    Ok(serialized)
+}
+
+/// This function identifies nearby Variant objects.
+///
+/// # Arguments
+/// * `target_variants_list_str`    -   serialized VariantsList object.
+/// * `query_variants_list_str`     -   serialized VariantsList object.
+/// * `num_threads`                 -   number of threads.
+/// * `max_neighbor_distance`       -   maximum neighbor distance.
+///
+/// # Returns
+/// * `nearby_variants_map`         -   HashMap where key is Variant.id and
+///                                     value is a vector of query Variant.id
+#[pyfunction]
+fn find_nearby_variants(
+    py: Python,
+    target_variants_list_str: String,
+    query_variants_list_str: String,
+    num_threads: usize,
+    max_neighbor_distance: isize) -> Py<PyAny> {
+    // Step 1. Deserialize VariantsList objects
+    let mut target_variants_list: VariantsList = deserialize_variants_list(&target_variants_list_str);
+    let mut query_variants_list: VariantsList = deserialize_variants_list(&query_variants_list_str);
+
+    // Step 2. Find nearby variants
+    let nearby_variants_map: HashMap<String, Vec<String>> = target_variants_list.find_nearby_variants(
+        query_variants_list,
+        max_neighbor_distance,
+        num_threads,
+        &constants::VARIANT_TYPES_MAP
+    );
+
+    return Python::with_gil(|py| {
+        nearby_variants_map.to_object(py)
+    });
+}
+
 #[pymodule]
 fn exactors(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<VariantCallset>()?;
-    m.add_function(wrap_pyfunction!(identify_rna_variants, m)?)?;
+    m.add_function(wrap_pyfunction!(merge_variants_lists, m)?);
+    m.add_function(wrap_pyfunction!(filter_variants_list, m)?);
+    m.add_function(wrap_pyfunction!(find_nearby_variants, m)?);
     Ok(())
 }

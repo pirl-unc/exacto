@@ -36,14 +36,17 @@ install:
   - pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   - mamba install pylint
   - mamba install coveralls
-  - mamba install nose
+  - mamba install pytest
+  - mamba install pytest-cov
   - mamba install pysam
+  - mamba install networkx
+  - mamba install matplotlib
   - export CARGO_TARGET_DIR=$HOME/cache/cargo/
   - export CARGO_BUILD_TARGET_DIR=$HOME/cache/cargo/
   - pip install . --verbose
 before_script:
   - ./lint.sh
 script:
-  - nosetests test --with-coverage --cover-package=exacto
+  - pytest --cov-report=term-missing --cov=exacto test/
 after_success:
   coveralls

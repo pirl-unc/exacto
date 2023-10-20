@@ -3,7 +3,7 @@
 __pycache__/
  *.pyc
 .idea/
-.coverage
+.coverage*
 build/
 dist/
 Exacto.egg-info/
@@ -11,4 +11,6 @@ docs/.ipynb_checkpoints/
 examples/
 target/
 playground/
+docs/_site
+docs/.quarto
 Cargo.lock
