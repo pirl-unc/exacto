@@ -11,7 +11,11 @@
 // limitations under the License.
 
 
-#[derive(Clone, Debug)]
+extern crate serde;
+use serde::{Serialize, Deserialize};
+
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct GenomicRange {
     pub chromosome: String,
     pub start: isize,
@@ -19,12 +23,33 @@ pub struct GenomicRange {
 }
 
 impl GenomicRange {
+    pub fn new(
+        chromosome: String,
+        start: isize,
+        end: isize) -> Self {
+        Self {
+            chromosome: chromosome,
+            start: start,
+            end: end
+        }
+    }
+
     pub fn overlaps(&mut self, chromosome: String, start: isize, end: isize) -> bool {
         // De Morgan's law on checking for non-overlapping regions
         if chromosome == self.chromosome && start <= self.end && end >= self.start {
             return true;
         } else {
             return false;
+        }
+    }
+}
+
+impl Clone for VariantCall {
+    fn clone(&self) -> Self {
+        GenomicRange {
+            chromosome: self.chromosome.clone(),
+            start: self.start,
+            end: self.end
         }
     }
 }

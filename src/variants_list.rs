@@ -196,7 +196,7 @@ impl VariantsList {
         return filtered_variants_list;
     }
 
-    pub fn filter(&self, variant_filters: Vec<VariantFilter>, num_threads: usize) -> VariantsList {
+    pub fn filter_regions(&self, variant_filters: Vec<VariantFilter>, num_threads: usize) -> VariantsList {
         // Step 1. Identify variant IDs to keep
         rayon::ThreadPoolBuilder::new()
             .num_threads(num_threads)

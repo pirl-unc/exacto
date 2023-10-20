@@ -8,7 +8,6 @@ build/
 dist/
 Exacto.egg-info/
 docs/.ipynb_checkpoints/
-examples/
 target/
 playground/
 docs/_site
