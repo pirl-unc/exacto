@@ -32,7 +32,7 @@ class Variant:
     variant_calls: List[VariantCall] = field(default_factory=list)
 
     @property
-    def size(self) -> int:
+    def num_variant_calls(self) -> int:
         return len(self.variant_calls)
 
     @property
@@ -160,6 +160,21 @@ class Variant:
             return (self.id) == (other.id)
         return NotImplemented
 
+    def add_variant_call(self, variant_call: VariantCall):
+        """
+        Adds a VariantCall object.
+
+        Parameters
+        ----------
+        variant_call    :   VariantCall object.
+        """
+        if len(self.variant_calls) > 0:
+            if variant_call.chromosome_1 != self.variant_calls[0].chromosome_1 or \
+                variant_call.chromosome_2 != self.variant_calls[0].chromosome_2:
+                raise Exception('VariantCall chromosome_1 and chromosome_2 must be the same as '
+                                'existing VariantCall objects in this Variant object.')
+        insort(self.variant_calls, variant_call)
+
     def to_dict(self) -> Dict:
         data = {
             'id': self.id,
@@ -177,71 +192,3 @@ class Variant:
 
     def to_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(self.to_dataframe_row())
-
-    def add_variant_call(self, variant_call: VariantCall):
-        """
-        Adds a VariantCall object.
-
-        Parameters
-        ----------
-        variant_call    :   VariantCall object.
-        """
-        insort(self.variant_calls, variant_call)
-
-    def find_variant_calls(
-            self,
-            chromosome_1,
-            chromosome_2,
-            position_1_start,
-            position_1_end,
-            position_2_start,
-            position_2_end
-    ) -> List[VariantCall]:
-        """
-        Finds VariantCall objects that match the query parameters.
-
-        Parameters
-        ----------
-        chromosome_1        :   Chromosome 1.
-        chromosome_2        :   Chromosome 2.
-        position_1_start    :   Position 1 start.
-        position_1_end      :   Position 1 end.
-        position_2_start    :   Position 2 start.
-        position_2_end      :   Position 2 end.
-
-        Returns
-        -------
-        variant_calls       :   List of VariantCall objects.
-        """
-        # Find the leftmost index where chromosome_1 and chromosome_2 match
-        left_index = bisect_left(
-            self.variant_calls,
-            VariantCall(
-                id='',
-                chromosome_1=chromosome_1,
-                position_1=position_1_start,
-                chromosome_2=chromosome_1,
-                position_2=position_2_start
-            )
-        )
-
-        # Find the rightmost index where chromosome_1 and chromosome_2 match
-        right_index = bisect_right(
-            self.variant_calls,
-            VariantCall(
-                id='',
-                chromosome_1=chromosome_1,
-                position_1=position_1_end,
-                chromosome_2=chromosome_2,
-                position_2=position_2_end
-            )
-        )
-
-        variant_calls = []
-        for variant_call in self.variant_calls[left_index:right_index]:
-            if chromosome_1 == variant_call.chromosome_1 and \
-                    chromosome_2 == variant_call.chromosome_2 and \
-                    position_1_start <= variant_call.position_1 <= position_1_end and \
-                    position_2_start <= variant_call.position_2 <= position_2_end:
-                variant_calls.append(variant_call)
-        return variant_calls

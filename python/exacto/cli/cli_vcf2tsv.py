@@ -86,20 +86,18 @@ def add_cli_vcf2tsv_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     parser_optional.add_argument(
         "--case-id",
         dest="case_id",
-        type=int,
+        type=str,
         required=False,
-        default=MERGE_VARIANTS_MAX_NEIGHBOR_DISTANCE,
         help="Case ID. This parameter must be specified if --variant-calling-method is strelka2-somatic. "
              "This is the tumor (case) ID that corresponds to 'TUMOR'."
     )
     parser_optional.add_argument(
         "--control-id",
         dest="control_id",
-        type=int,
+        type=str,
         required=False,
-        default=MERGE_VARIANTS_MAX_NEIGHBOR_DISTANCE,
-        help="Case ID. This parameter must be specified if --variant-calling-method is strelka2-somatic. "
-             "This is the tumor (case) ID that corresponds to 'TUMOR'."
+        help="Control ID. This parameter must be specified if --variant-calling-method is strelka2-somatic. "
+             "This is the normal (control) ID that corresponds to 'NORMAL'."
     )
 
     parser.set_defaults(which='vcf2tsv')
@@ -119,6 +117,11 @@ def run_cli_vcf2tsv_from_parsed_args(args) -> None:
                 source_id
                 output_tsv_file
     """
+    if args.variant_calling_method == VariantCallingMethods.STRELKA2_SOMATIC:
+        if args.case_id is None or args.control_id is None:
+            raise Exception("The parameters --case-id and --control-id must be "
+                            "specified when --variant-calling-method strelka2-somatic")
+
     variants_list = run_exacto_vcf2tsv(
         vcf_file=args.vcf_file,
         variant_calling_method=args.variant_calling_method,

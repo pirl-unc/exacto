@@ -16,8 +16,10 @@ The purpose of this python3 script is to implement the GenomicRange dataclass.
 """
 
 
+import pandas as pd
 from dataclasses import dataclass, field
 from functools import total_ordering
+from typing import Dict
 from .logging import get_logger
 
 
@@ -31,6 +33,10 @@ class GenomicRange:
     start: int
     end: int
 
+    @property
+    def id(self):
+        return '%s:%i-%i' % (self.chromosome, self.start, self.end)
+
     def __lt__(self, other):
         if isinstance(other, GenomicRange):
             return (self.chromosome, self.start, self.end) < \
@@ -43,7 +49,7 @@ class GenomicRange:
                    (other.chromosome, other.start, self.end)
         return NotImplemented
 
-    def overlaps(self, chromosome, start, end) -> bool:
+    def overlaps(self, chromosome: str, start: int, end: int) -> bool:
         """
         Returns True if query position overlaps the GenomicRange.
 
@@ -57,7 +63,7 @@ class GenomicRange:
         -------
         True or False.
         """
-        # De Morgan's law on checking for non-overlapping regions
+        # By De Morgan's law on checking for non-overlapping regions
         if chromosome == self.chromosome and \
             start <= self.end and \
             end >= self.start:
@@ -65,3 +71,21 @@ class GenomicRange:
         else:
             return False
 
+    def to_dict(self) -> Dict:
+        data = {
+            'chromosome': self.chromosome,
+            'start': self.start,
+            'end': self.end
+        }
+        return data
+
+    def to_dataframe_row(self) -> Dict:
+        data = {
+            'chromosome': [self.chromosome],
+            'start': [self.start],
+            'end': [self.end]
+        }
+        return data
+
+    def to_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(self.to_dataframe_row())

@@ -121,14 +121,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
                 precise = False
                 total_read_count = -1
                 reference_allele_read_count = -1
@@ -140,7 +140,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -149,7 +149,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.CUTESV[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         if curr_info == 'PRECISE':
                             tool_attributes['precise'] = True
@@ -164,7 +164,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.CUTESV[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # variant_type
@@ -234,7 +234,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.CUTESV, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.CUTESV,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -303,14 +315,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
-                precise = False
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
+                precise = True
                 total_read_count = -1
                 reference_allele_read_count = -1
                 alternate_allele_read_count = -1
@@ -319,7 +331,7 @@ class Vcf:
                 variant_sequences = []
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Update the following variables:
                 # variant_type
@@ -361,7 +373,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.DEEPVARIANT[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         if curr_info == 'PRECISE':
                             tool_attributes['precise'] = True
@@ -376,7 +388,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.DEEPVARIANT[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # total_read_count
@@ -386,10 +398,13 @@ class Vcf:
                 if 'dp' in tool_attributes.keys():
                     total_read_count = tool_attributes['dp']
                 if 'ad' in tool_attributes.keys():
-                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=-1, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=-1, type=int)
                 if 'vaf' in tool_attributes.keys():
-                    alternate_allele_fraction = tool_attributes['vaf']
+                    if tool_attributes['vaf'] == '':
+                        alternate_allele_fraction = -1.0
+                    else:
+                        alternate_allele_fraction = float(tool_attributes['vaf'])
 
                 # Update total_read_count if it is currently unknown but can be inferred
                 if type(alternate_allele_read_count) == int and \
@@ -405,7 +420,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.DEEPVARIANT, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.DEEPVARIANT,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -474,15 +501,15 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
-                precise = False
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
+                precise = True
                 total_read_count = -1
                 reference_allele_read_count = -1
                 alternate_allele_read_count = -1
@@ -493,7 +520,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -502,7 +529,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.GATK4_MUTECT2[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         tool_attributes[curr_info.lower()] = True
 
@@ -512,7 +539,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.GATK4_MUTECT2[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # variant_type
@@ -557,10 +584,10 @@ class Vcf:
                 # alternate_allele_read_count
                 # total_read_count
                 if 'ad' in tool_attributes.keys():
-                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=-1, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=-1, type=int)
                 if 'dp' in tool_attributes.keys():
-                    total_read_count = get_typed_value(value=tool_attributes['dp'], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    total_read_count = get_typed_value(value=tool_attributes['dp'], default_value=-1, type=int)
 
                 # Update the following variables if they are currently unknown but can be inferred:
                 # total_read_count
@@ -576,7 +603,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.GATK4_MUTECT2, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.GATK4_MUTECT2,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -646,14 +685,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
                 precise = False
                 total_read_count = -1
                 reference_allele_read_count = -1
@@ -665,7 +704,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -674,7 +713,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.PBSV[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         if curr_info == 'PRECISE':
                             tool_attributes['precise'] = True
@@ -689,7 +728,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.PBSV[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # variant_type
@@ -708,8 +747,8 @@ class Vcf:
                 if 'dp' in tool_attributes.keys():
                     total_read_count = tool_attributes['dp']
                 if 'ad' in tool_attributes.keys():
-                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=-1, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=-1, type=int)
                 if 'svlen' in tool_attributes.keys():
                     variant_size = abs(tool_attributes['svlen'])
 
@@ -752,7 +791,19 @@ class Vcf:
                     included_mate_ids.add(tool_attributes['id'])
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.PBSV, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.PBSV,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -821,14 +872,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
                 precise = False
                 total_read_count = -1
                 reference_allele_read_count = -1
@@ -840,7 +891,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -849,7 +900,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.SNIFFLES2[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         if curr_info == 'PRECISE':
                             tool_attributes['precise'] = True
@@ -864,7 +915,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.SNIFFLES2[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # precise
@@ -926,7 +977,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.SNIFFLES2, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.SNIFFLES2,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -999,15 +1062,15 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
-                precise = False
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
+                precise = True
                 total_read_count = -1
                 reference_allele_read_count = -1
                 alternate_allele_read_count = -1
@@ -1018,7 +1081,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -1027,7 +1090,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.STRELKA2_SOMATIC[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         tool_attributes[curr_info.lower()] = True
 
@@ -1037,7 +1100,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.STRELKA2_SOMATIC[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # variant_type
@@ -1079,8 +1142,8 @@ class Vcf:
                 if 'dp' in tool_attributes.keys():
                     total_read_count = tool_attributes['dp']
                 if 'ad' in tool_attributes.keys():
-                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=-1, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=-1, type=int)
 
                 # Update the following variable if they are currently unknown but can be inferred
                 # total_read_count
@@ -1096,7 +1159,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.STRELKA2_SOMATIC, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.STRELKA2_SOMATIC,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
 
@@ -1172,14 +1247,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
                 precise = False
                 total_read_count = -1
                 reference_allele_read_count = -1
@@ -1191,7 +1266,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -1200,7 +1275,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.SVIM[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         tool_attributes[curr_info.lower()] = True
 
@@ -1210,7 +1285,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.SVIM[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # variant_type
@@ -1232,10 +1307,10 @@ class Vcf:
                 if 'end' in tool_attributes.keys():
                     position_2 = tool_attributes['end']
                 if 'ad' in tool_attributes.keys():
-                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=-1, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=-1, type=int)
                 if (alternate_allele_read_count is None or alternate_allele_read_count == '.') and 'support' in tool_attributes.keys():
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['support'], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['support'], default_value=-1, type=int)
                 if 'svlen' in tool_attributes.keys():
                     variant_size = abs(tool_attributes['svlen'])
                 if 'seqs' in tool_attributes.keys():
@@ -1278,7 +1353,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.SVIM, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.SVIM,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -1347,14 +1434,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
                 precise = False
                 total_read_count = -1
                 reference_allele_read_count = -1
@@ -1366,7 +1453,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -1375,7 +1462,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.DELLY2_SOMATIC[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         if curr_info == 'PRECISE':
                             tool_attributes['precise'] = True
@@ -1390,7 +1477,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.DELLY2_SOMATIC[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # variant_type
@@ -1410,11 +1497,11 @@ class Vcf:
                 if 'end' in tool_attributes.keys():
                     position_2 = tool_attributes['end']
                 if 'dr' in tool_attributes.keys():
-                    reference_allele_read_count = get_typed_value(value=tool_attributes['dr'], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    reference_allele_read_count = get_typed_value(value=tool_attributes['dr'], default_value=-1, type=int)
                 if 'dv' in tool_attributes.keys():
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['dv'], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['dv'], default_value=-1, type=int)
                 if alternate_allele_read_count is None and 'pe' in tool_attributes.keys():
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['pe'], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['pe'], default_value=-1, type=int)
                 if 'svlen' in tool_attributes.keys():
                     variant_size = abs(tool_attributes['svlen'])
                 if 'consensus' in tool_attributes.keys():
@@ -1447,7 +1534,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.DELLY2_SOMATIC, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.DELLY2_SOMATIC,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -1516,14 +1615,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
                 precise = False
                 total_read_count = -1
                 reference_allele_read_count = -1
@@ -1535,7 +1634,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -1544,7 +1643,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.LUMPY_SOMATIC[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         if curr_info == 'PRECISE':
                             tool_attributes['precise'] = True
@@ -1559,7 +1658,7 @@ class Vcf:
                 for curr_format in format:
                     curr_key = curr_format.lower()
                     curr_type = VariantCallingMethods.AttributeTypes.LUMPY_SOMATIC[curr_key]
-                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                    tool_attributes[curr_key] = retrieve_with_default(dict=curr_sample, key=format.index(curr_format), default_value='', type=curr_type)
 
                 # Update the following variables:
                 # variant_type
@@ -1579,7 +1678,7 @@ class Vcf:
                 if 'end' in tool_attributes.keys():
                     position_2 = tool_attributes['end']
                 if 'su' in tool_attributes.keys():
-                    alternate_allele_read_count = get_typed_value(value=tool_attributes['su'], default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                    alternate_allele_read_count = get_typed_value(value=tool_attributes['su'], default_value=-1, type=int)
                 if 'svlen' in tool_attributes.keys():
                     variant_size = abs(tool_attributes['svlen'])
 
@@ -1618,7 +1717,19 @@ class Vcf:
                         alternate_allele_fraction = float(alternate_allele_read_count) / float(total_read_count)
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.LUMPY_SOMATIC, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.LUMPY_SOMATIC,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(
@@ -1659,7 +1770,6 @@ class Vcf:
                     (len(variants_list.variant_ids), len(variants_list.variant_call_ids)))
         return variants_list
 
-
     @staticmethod
     def parse_dbsnp_callset(
             df_vcf: pd.DataFrame,
@@ -1688,14 +1798,14 @@ class Vcf:
                 # Initialize values
                 phase_block_id = ''
                 clone_id = ''
-                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                position_1 = retrieve_with_default(dict=row, key='POS', default_value=DEFAULT_ATTRIBUTE_VALUE, type=int)
+                chromosome_1 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                chromosome_2 = retrieve_with_default(dict=row, key='CHROM', default_value='', type=str)
+                position_1 = retrieve_with_default(dict=row, key='POS', default_value=-1, type=int)
                 position_2 = -1
-                reference_allele = retrieve_with_default(dict=row, key='REF', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                filter = retrieve_with_default(dict=row, key='FILTER', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
-                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=DEFAULT_ATTRIBUTE_VALUE, type=float)
+                reference_allele = retrieve_with_default(dict=row, key='REF', default_value='', type=str)
+                alternate_allele = retrieve_with_default(dict=row, key='ALT', default_value='', type=str)
+                filter = retrieve_with_default(dict=row, key='FILTER', default_value='', type=str)
+                quality_score = retrieve_with_default(dict=row, key='QUAL', default_value=-1.0, type=float)
                 precise = False
                 total_read_count = -1
                 reference_allele_read_count = -1
@@ -1707,7 +1817,7 @@ class Vcf:
                 variant_size = -1
                 alternate_allele_read_ids = []
                 tool_attributes = OrderedDict()
-                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value=DEFAULT_ATTRIBUTE_VALUE, type=str)
+                tool_attributes['id'] = retrieve_with_default(dict=row, key='ID', default_value='', type=str)
 
                 # Extract INFO
                 info = str(row['INFO']).split(';')
@@ -1716,7 +1826,7 @@ class Vcf:
                         curr_info_elements = curr_info.split('=')
                         curr_key = curr_info_elements[0].lower()
                         curr_type = VariantCallingMethods.AttributeTypes.CUTESV[curr_key]
-                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value=DEFAULT_ATTRIBUTE_VALUE, type=curr_type)
+                        tool_attributes[curr_key] = get_typed_value(value=curr_info_elements[1], default_value='', type=curr_type)
                     else:
                         tool_attributes[curr_info.lower()] = True
 
@@ -1754,7 +1864,19 @@ class Vcf:
                     )
 
                 # Append variant call to variants list
-                variant_call_id = '%s_%i' % (VariantCallingMethods.DBSNP, curr_variant_call_idx)
+                variant_call_id = '%s_%s_%s_%s_%s_%s_%i_%s:%i_%s:%i' % (
+                    source_id,
+                    sample_id,
+                    NucleicAcidTypes.DNA,
+                    sequencing_platform,
+                    VariantCallingMethods.DBSNP,
+                    variant_type,
+                    curr_variant_call_idx,
+                    chromosome_1,
+                    position_1,
+                    chromosome_2,
+                    position_2
+                )
                 variant_id = str(curr_variant_idx)
                 variant = Variant(id=variant_id)
                 variant_call = VariantCall(

@@ -1,11 +1,8 @@
-from exacto.annotation.ensembl import Ensembl
-from exacto.main import run_exacto_annotate_variants_list
+from exacto import Ensembl
+from exacto import run_exacto_annotate_variants_list
 
 
-"""Structural Variants"""
-def test_annotate_sniffles2_variants_list_by_ensembl(
-        sniffles2_variants_list,
-):
+def test_annotate_sniffles2_variants_list_by_ensembl(sniffles2_variants_list):
     ensembl = Ensembl(release=95, species='human')
     variants_list_annotated = run_exacto_annotate_variants_list(
         variants_list=sniffles2_variants_list,

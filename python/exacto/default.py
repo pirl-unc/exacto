@@ -16,23 +16,15 @@ The purpose of this python3 script is to define Exacto default parameters.
 """
 
 
-"""convert-variant-to-tsv"""
+"""vcf2tsv"""
 
 
 """merge-variants"""
 # Maximum neighbor distance (bases).
-MERGE_VARIANTS_MAX_NEIGHBOR_DISTANCE = 1
+MERGE_VARIANTS_MAX_NEIGHBOR_DISTANCE = 10
 
-# Number of processes
-MERGE_VARIANTS_NUM_PROCESSES = 4
-
-
-"""sim-rna-variants"""
-# Fraction of transcripts to mutate
-SIM_RNA_VARIANTS_FRACTION_TO_MUTATE = 0.1
-SIM_RNA_VARIANTS_MAX_VARIANTS_PER_TRANSCRIPT = 1
-SIM_RNA_VARIANTS_INSERTION_SUBTYPES = ['INS_EXONIC', 'INS_INTRONIC']
-SIM_RNA_VARIANTS_DELETION_SUBTYPES = ['DEL_EXONIC', 'DEL_PARTIALEXONIC', 'DEL_5PRIMESPLICESITE', 'DEL_3PRIMESPLICESITE']
+# Number of threads
+MERGE_VARIANTS_NUM_THREADS = 4
 
 
 """filter-variants"""
@@ -45,8 +37,19 @@ FILTER_VARIANTS_EXCLUDED_REGION_PADDING = 100000
 # of a variant to be excluded.
 FILTER_VARIANTS_EXCLUDED_VARIANT_PADDING = 1000
 
-# Number of processes
-FILTER_VARIANTS_NUM_PROCESSES = 4
+# Number of threads
+FILTER_VARIANTS_NUM_THREADS = 4
+
+
+"""sim-rna-variants"""
+# Fraction of transcripts to mutate
+SIM_RNA_VARIANTS_FRACTION_TO_MUTATE = 0.1
+SIM_RNA_VARIANTS_MAX_VARIANTS_PER_TRANSCRIPT = 1
+SIM_RNA_VARIANTS_INSERTION_SUBTYPES = ['INS_EXONIC', 'INS_INTRONIC']
+SIM_RNA_VARIANTS_DELETION_SUBTYPES = ['DEL_EXONIC', 'DEL_PARTIALEXONIC', 'DEL_5PRIMESPLICESITE', 'DEL_3PRIMESPLICESITE']
+
+
+
 
 
 """annotate"""

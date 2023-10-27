@@ -72,6 +72,12 @@ class Ensembl(AnnotationDb):
                 region=GenomicRegionTypes.INTERGENIC,
                 source=AnnotationSources.ENSEMBL,
                 source_version=str(self.release),
+                gene_id='',
+                gene_stable_id='',
+                gene_version='',
+                gene_name='',
+                gene_type='',
+                gene_strand='',
                 species=self.species
             )
             variant_annotations.append(variant_annotation)
@@ -136,19 +142,14 @@ class Ensembl(AnnotationDb):
         -------
         variants_list   :   VariantsList object.
         """
-        # Check if member variables for pyensembl have been set
-        if self.release is None or self.species is None:
-            raise Exception("'release' and 'species' must be set to query pyensembl.")
-
-        for key in variants_list.variants.keys():
-            for i in range(0, len(variants_list.variants[key])):
-                for j in range(0, len(variants_list.variants[key][i].variant_calls)):
-                    position_1_annotations, position_2_annotations = self.annotate_variant_call_using_pyensembl(
-                        variants_list.variants[key][i].variant_calls[j]
-                    )
-                    for annotation in position_1_annotations:
-                        variants_list.variants[key][i].variant_calls[j].position_1_annotations.append(annotation)
-                    for annotation in position_2_annotations:
-                        variants_list.variants[key][i].variant_calls[j].position_2_annotations.append(annotation)
+        for i in range(0, len(variants_list.variants)):
+            for j in range(0, len(variants_list.variants[i].variant_calls)):
+                position_1_annotations, position_2_annotations = self.annotate_variant_call_using_pyensembl(
+                    variants_list.variants[i].variant_calls[j]
+                )
+                for annotation in position_1_annotations:
+                    variants_list.variants[i].variant_calls[j].position_1_annotations.append(annotation)
+                for annotation in position_2_annotations:
+                    variants_list.variants[i].variant_calls[j].position_2_annotations.append(annotation)
         return variants_list
 

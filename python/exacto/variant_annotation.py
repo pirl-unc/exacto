@@ -46,29 +46,17 @@ class VariantAnnotation:
                 (', '.join(AnnotationSources.ALL))
             )
         if self.gene_strand is not None and \
-            self.gene_strand not in [Strands.POSITIVE, Strands.NEGATIVE]:
+            self.gene_strand not in [Strands.POSITIVE, Strands.NEGATIVE, '']:
             raise Exception(
                 'gene_strand must be one of the following: %s' %
-                (', '.join([Strands.POSITIVE, Strands.NEGATIVE]))
+                (', '.join([Strands.POSITIVE, Strands.NEGATIVE, '']))
             )
 
-    def to_dict(self):
-        data = {
-            'region': self.region,
-            'source': self.source,
-            'source_version': self.source_version,
-            'gene_id': self.gene_id,
-            'gene_stable_id': self.gene_stable_id,
-            'gene_version': self.gene_version,
-            'gene_name': self.gene_name,
-            'gene_type': self.gene_type,
-            'gene_strand': self.gene_strand,
-            'species': self.species
-        }
-        return data
+    def to_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(self.to_dataframe_row())
 
     def to_dataframe_row(self):
-        data = {
+        return {
             'region': [self.region],
             'source': [self.source],
             'source_version': [self.source_version],
@@ -80,8 +68,17 @@ class VariantAnnotation:
             'gene_strand': [self.gene_strand],
             'species': [self.species]
         }
-        return data
 
-    def to_dataframe(self) -> pd.DataFrame:
-        return pd.DataFrame(self.to_dataframe_row())
-
+    def to_dict(self):
+        return {
+            'region': self.region,
+            'source': self.source,
+            'source_version': self.source_version,
+            'gene_id': self.gene_id,
+            'gene_stable_id': self.gene_stable_id,
+            'gene_version': self.gene_version,
+            'gene_name': self.gene_name,
+            'gene_type': self.gene_type,
+            'gene_strand': self.gene_strand,
+            'species': self.species
+        }

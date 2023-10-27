@@ -35,6 +35,26 @@ use variant_filter::VariantFilter;
 use variants_list::VariantsList;
 
 
+/// This function deserializes a serialized GenomicRangesList object.
+///
+/// # Arguments
+/// * `json_str`                        -   serialized GenomicRangesList object.
+///
+/// # Returns
+/// * `deserialize_genomic_ranges_list` -   GenomicRangesList object.
+fn deserialize_genomic_ranges_list(json_str: &str) -> GenomicRangesList {
+    let genomic_ranges_list: Result<GenomicRangesList, serde_json::Error> = serde_json::from_str(json_str);
+    match genomic_ranges_list {
+        Ok(result) => {
+            return result;
+        }
+        Err(e) => {
+            eprintln!("Error deserializing JSON: {}", e);
+            std::process::exit(exitcode::DATAERR);
+        }
+    }
+}
+
 /// This function deserializes a list of serialized VariantsList objects.
 ///
 /// # Arguments
@@ -140,8 +160,9 @@ fn merge_variants_lists(
 /// * A serialized VariantsList string.
 #[pyfunction]
 fn filter_variants_list(
-    py: Python, py_str:
-    String, py_list: &PyList,
+    py: Python,
+    py_str: String,
+    py_list: &PyList,
     num_threads: usize) -> PyResult<String> {
     // Step 1. Deserialize VariantsList object
     let mut variants_list: VariantsList = deserialize_variants_list(&py_str);
@@ -170,7 +191,7 @@ fn filter_variants_list(
 /// * `nearby_variants_map`         -   HashMap where key is Variant.id and
 ///                                     value is a vector of query Variant.id
 #[pyfunction]
-fn find_nearby_variants(
+fn find_variants_near_query_variants(
     py: Python,
     target_variants_list_str: String,
     query_variants_list_str: String,
@@ -193,10 +214,47 @@ fn find_nearby_variants(
     });
 }
 
+/// This function identifies overlapping Variant objects.
+///
+/// # Arguments
+/// * `variants_list_str`           -   serialized VariantsList object.
+/// * `genomic_ranges_list_str`     -   serialized GenomicRangesList object.
+/// * `num_threads`                 -   number of threads.
+/// * `padding`                     -   padding to apply to GenomicRange start and end.
+///
+/// # Returns
+/// * `nearby_variants_map`         -   HashMap where key is Variant.id and
+///                                     value is a vector of GenomicRange.id
+#[pyfunction]
+fn find_variants_overlapping_regions(
+    py: Python,
+    variants_list_str: String,
+    genomic_ranges_list_str: String,
+    num_threads: usize,
+    padding: isize) -> Py<PyAny> {
+    // Step 1. Deserialize VariantsList object
+    let mut variants_list: VariantsList = deserialize_variants_list(&variants_list_str);
+
+    // Step 2. Deserialize GenomicRangesList objects
+    let genomic_ranges_list: GenomicRangesList = deserialize_genomic_ranges_list(&genomic_ranges_list_str);
+
+    // Step 3. Find nearby Variant objects
+    let nearby_variants_map: HashMap<String, Vec<String>> = variants_list.overlap_regions(
+        genomic_ranges_list,
+        num_threads,
+        padding
+    );
+
+    return Python::with_gil(|py| {
+        nearby_variants_map.to_object(py)
+    });
+}
+
 #[pymodule]
 fn exactors(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(merge_variants_lists, m)?);
     m.add_function(wrap_pyfunction!(filter_variants_list, m)?);
-    m.add_function(wrap_pyfunction!(find_nearby_variants, m)?);
+    m.add_function(wrap_pyfunction!(find_variants_near_query_variants, m)?);
+    m.add_function(wrap_pyfunction!(find_variants_overlapping_regions, m)?);
     Ok(())
 }

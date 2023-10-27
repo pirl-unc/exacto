@@ -16,9 +16,6 @@ The purpose of this python3 script is to define Exacto constants.
 """
 
 
-DEFAULT_ATTRIBUTE_VALUE = ''
-
-
 class NucleicAcidTypes:
     DNA = 'dna'
     RNA = 'rna'

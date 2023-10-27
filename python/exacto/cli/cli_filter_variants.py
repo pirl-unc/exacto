@@ -142,12 +142,12 @@ def add_cli_filter_variants_arg_parser(sub_parsers) -> argparse._SubParsersActio
              % FILTER_VARIANTS_EXCLUDED_VARIANT_PADDING
     )
     parser_optional.add_argument(
-        "--num-processes",
-        dest="num_processes",
+        "--num-threads",
+        dest="num_threads",
         type=int,
-        default=FILTER_VARIANTS_NUM_PROCESSES,
+        default=FILTER_VARIANTS_NUM_THREADS,
         required=False,
-        help="Number of processes (default: %i)." % FILTER_VARIANTS_NUM_PROCESSES
+        help="Number of threads (default: %i)." % FILTER_VARIANTS_NUM_THREADS
     )
     parser.set_defaults(which='filter-variants')
     return sub_parsers
@@ -172,15 +172,13 @@ def run_cli_filter_variants_from_parsed_args(
                 excluded_regions_padding
                 excluded_variants_tsv_file
                 excluded_variants_padding
-                num_processes
+                num_threads
     """
     # Step 1. Load variants list
-    logger.info('Started loading variants.')
+    logger.info('Loading target VariantsList...')
     variants_list = VariantsList.read_tsv_file(tsv_file=args.tsv_file)
-    logger.info('Finished loading variants.')
 
     # Step 2. Load variant filters
-    logger.info('Started loading variant filters.')
     variant_filters = []
     if args.filter is not None:
         for curr_filter in args.filter:
@@ -199,26 +197,23 @@ def run_cli_filter_variants_from_parsed_args(
                 sample_ids=sample_ids
             )
             variant_filters.append(variant_filter)
-    logger.info('Finished loading variant filters.')
+    logger.info('Loaded %i variant filters.' % len(variant_filters))
 
     # Step 3. Load excluded variants list
     if args.excluded_variants_tsv_file is not None:
-        logger.info('Started loading excluded variants list.')
+        logger.info('Loading excluded VariantsList...')
         excluded_variants_list = VariantsList.read_tsv_file(tsv_file=args.excluded_variants_tsv_file)
-        logger.info('Finished loading excluded variants list.')
     else:
         excluded_variants_list = None
 
     # Step 4. Load excluded regions list
     if args.excluded_regions_tsv_file is not None:
-        logger.info('Started loading excluded regions list.')
         excluded_regions_list = GenomicRangesList.read_tsv_file(tsv_file=args.excluded_regions_tsv_file)
-        logger.info('Finished loading excluded regions list.')
+        logger.info('Loaded %i excluded regions.' % excluded_regions_list.num_genomic_regions)
     else:
         excluded_regions_list = None
 
     # Step 4. Apply variant filters
-    logger.info('Started applying variant filters.')
     variants_list_filtered, variants_list_rejected = run_exacto_filter_variants(
         variants_list=variants_list,
         variant_filters=variant_filters,
@@ -226,9 +221,8 @@ def run_cli_filter_variants_from_parsed_args(
         excluded_regions_list=excluded_regions_list,
         excluded_regions_padding=args.excluded_regions_padding,
         excluded_variants_padding=args.excluded_variants_padding,
-        num_processes=args.num_processes
+        num_threads=args.num_threads
     )
-    logger.info('Finished applying variant filters.')
 
     # Step 5. Write to TSV files
     logger.info('Started writing filtered and rejected variants')

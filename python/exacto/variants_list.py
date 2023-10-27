@@ -24,8 +24,9 @@ import numpy as np
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from functools import partial
-from typing import List, Type, Dict
+from typing import Dict, List, Tuple, Type
 from .constants import *
+from .genomic_range import GenomicRange
 from .genomic_ranges_list import GenomicRangesList
 from .logging import get_logger
 from .utilities import get_typed_value, get_variant_calling_method_attr_types
@@ -42,6 +43,11 @@ logger = get_logger(__name__)
 @dataclass(frozen=True)
 class VariantsList:
     variants: List[Variant] = field(default_factory=list)
+    _variants_dict: Dict[str, int] = field(default_factory=dict) # bookkeeping purposes
+
+    def __post_init__(self):
+        for i in range(0, len(self.variants)):
+            self._variants_dict[self.variants[i].id] = i
 
     @property
     def size(self) -> int:
@@ -70,7 +76,12 @@ class VariantsList:
         ----------
         variant     :   Variant object.
         """
+        curr_len = len(self.variants)
+        self._variants_dict[variant.id] = curr_len
         self.variants.append(variant)
+
+    def get_variant(self, variant_id: str) -> Variant:
+        return self.variants[self._variants_dict[variant_id]]
 
     @staticmethod
     def convert_row_value(value, default_value, type):
@@ -103,10 +114,15 @@ class VariantsList:
             except:
                 return default_value
 
-    def filter(self, variant_filters: List[VariantFilter], num_threads: int) -> Type["VariantsList"]:
+    def filter(
+            self,
+            variant_filters: List[VariantFilter],
+            num_threads: int
+    ) -> List[Variant]:
         """
-        Filters variants by a list of VariantFilter objects
-        and returns a filtered VariantsList object.
+        Filter variants by a list of VariantFilter objects
+        and returns a list of Variant objects that pass
+        all VariantFilter objects.
 
         Parameters
         ----------
@@ -118,34 +134,32 @@ class VariantsList:
         filtered_variants_list  :   VariantsList object.
         """
         # Step 1. Serialize VariantsList object
-        logger.info("Started serializing VariantsList object.")
         variants_list_serialized = json.dumps(self.to_dict())
-        logger.info("Finished serializing VariantsList object.")
 
         # Step 2. Serialize VariantFilter objects
-        logger.info("Started serializing list of VariantFilter objects.")
         variant_filters_serialized = []
         for variant_filter in variant_filters:
             variant_filters_serialized.append(json.dumps(variant_filter.to_dict()))
-        logger.info("Finished serializing list of VariantFilter objects.")
 
         # Step 3. Filter VariantsList object
-        logger.info("Started filtering variants.")
-        json_str = exactors.filter_variants_list(variants_list_serialized, variant_filters_serialized, num_threads)
-        logger.info("Finished filtering variants.")
+        json_str = exactors.filter_variants_list(
+            variants_list_serialized,
+            variant_filters_serialized,
+            num_threads
+        )
 
         # Step 4. Deserialize filtered VariantsList object
-        logger.info("Started deserializing filtered VariantsList object.")
+        print("Started loading serialized json in python")
         filtered_variants_list = VariantsList.load_serialized_json(json_str=json_str)
-        logger.info("Finished deserializing filtered VariantsList object.")
+        print("Finished loading serialized json in python")
 
-        return filtered_variants_list
+        return filtered_variants_list.variants
 
     def find_nearby_variants(
             self,
             query_variants_list: Type["VariantsList"],
             num_threads: int,
-            max_neighbor_distance: int) -> Dict[str, List[str]]:
+            max_neighbor_distance: int) -> List[Tuple[Variant, List[Variant]]]:
         """
         Find nearby variants.
 
@@ -157,29 +171,76 @@ class VariantsList:
 
         Returns
         -------
-        nearby_variants_dict    :   Dictionary where key is Variant ID and
-                                    value is a list of query Variant IDs.
+        nearby_variants         :   List where each tuple is
+                                    (target Variant, list of nearby query Variants).
         """
         # Step 1. Serialize VariantsList object
-        logger.info("Started serializing target VariantsList object.")
         target_variants_list_serialized = json.dumps(self.to_dict())
-        logger.info("Finished serializing target VariantsList object.")
 
         # Step 2. Serialize VariantsList object
-        logger.info("Started serializing query VariantsList object.")
         query_variants_list_serialized = json.dumps(query_variants_list.to_dict())
-        logger.info("Finished serializing query VariantsList object.")
 
         # Step 3. Find nearby variants
-        logger.info("Started finding nearby variants.")
-        nearby_variants = exactors.find_nearby_variants(
+        nearby_variants_dict = exactors.find_variants_near_query_variants(
             target_variants_list_serialized,
             query_variants_list_serialized,
             num_threads,
             max_neighbor_distance
         )
-        logger.info("Finished finding nearby variants.")
 
+        # Step 4. Prepare returning data structure
+        nearby_variants = []
+        for key, value in nearby_variants_dict.items():
+            target_variant = self.get_variant(variant_id=key)
+            query_variants = []
+            for query_variant_id in value:
+                query_variants.append(query_variants_list.get_variant(query_variant_id))
+            nearby_variants.append((target_variant, query_variants))
+        return nearby_variants
+
+    def overlap_regions(
+            self,
+            genomic_ranges_list: GenomicRangesList,
+            padding: int,
+            num_threads: int
+    ) -> List[Tuple[Variant, List[GenomicRange]]]:
+        """
+        Filters variants based on GenomicRange objects.
+
+        Parameters
+        ----------
+        genomic_ranges_list         :   GenomicRangesList object.
+        padding                     :   Padding to apply to GenomicRange start and end.
+        num_threads                 :   Number of threads.
+
+        Returns
+        -------
+        variants                    :   List of Variant objects that are near
+                                        the queried GenomicRangeList object.
+        """
+        # Step 1. Serialize VariantsList object
+        variants_list_serialized = json.dumps(self.to_dict())
+
+        # Step 2. Serialize GenomicRangesList object
+        genomic_ranges_list_serialized = json.dumps(genomic_ranges_list.to_dict())
+
+        # Step 3. Identify Variant objects that overlap GenomicRange objects
+        nearby_variant_ids = exactors.find_variants_overlapping_regions(
+            variants_list_serialized,
+            genomic_ranges_list_serialized,
+            num_threads,
+            padding
+        )
+
+        # Step 4. Get Variant and GenomicRange objects
+        nearby_variants = []
+        for variant_id, genomic_range_ids in nearby_variant_ids.items():
+            variant = self.get_variant(variant_id=variant_id)
+            genomic_ranges = []
+            for genomic_range_id in genomic_range_ids:
+                genomic_range = genomic_ranges_list.get_genomic_range(genomic_range_id)
+                genomic_ranges.append(genomic_range)
+            nearby_variants.append((variant, genomic_ranges))
         return nearby_variants
 
     @staticmethod
@@ -348,7 +409,7 @@ class VariantsList:
 
     @staticmethod
     def merge(variants_lists: List[Type["VariantsList"]],
-              num_processes: int,
+              num_threads: int,
               max_neighbor_distance: int) -> Type["VariantsList"]:
         """
         Merges a list of VariantsList objects and returns one VariantsList object.
@@ -356,7 +417,7 @@ class VariantsList:
         Parameters
         ----------
         variants_lists                  :   List of VariantsList objects.
-        num_processes                   :   Number of processes.
+        num_threads                     :   Number of threads.
         max_neighbor_distance           :   Maximum neighbor distance.
                                             This value is used to decide if
                                             a VariantCall should be appended to an existing Variant.
@@ -379,7 +440,11 @@ class VariantsList:
             variants_lists_serialized.append(json.dumps(variants_list.to_dict()))
 
         # Step 2. Merge VariantsList objects
-        json_str = exactors.merge_variants_lists(variants_lists_serialized, num_processes, max_neighbor_distance)
+        json_str = exactors.merge_variants_lists(
+            variants_lists_serialized,
+            num_threads,
+            max_neighbor_distance
+        )
         merged_variants_list = VariantsList.load_serialized_json(json_str=json_str)
         return merged_variants_list
 
@@ -398,90 +463,6 @@ class VariantsList:
         """
         df = pd.read_csv(tsv_file, sep='\t', low_memory=False, memory_map=True)
         return VariantsList.load_dataframe(df=df)
-
-    # def filter_regions(
-    #         self,
-    #         genomic_ranges_list: GenomicRangesList,
-    #         padding: int,
-    #         num_processes: int
-    # ) -> List[Variant]:
-    #     """
-    #     Filters variants based on GenomicRange objects.
-    #
-    #     Parameters
-    #     ----------
-    #     genomic_ranges_list     :   GenomicRangesList object.
-    #     padding                 :   Padding to apply to start and end
-    #                                 positions of each GenomicRange object.
-    #     num_processes           :   Number of processes.
-    #
-    #     Returns
-    #     -------
-    #     variants                :   List of Variant objects that are near
-    #                                 the queried GenomicRangeList object.
-    #     """
-    #     # Step 1. Split the Variant objects
-    #     pool = mp.Pool(processes=num_processes)
-    #     variants = np.array(list(itertools.chain.from_iterable(self.variants.values())))
-    #     variants_array = list(np.array_split(variants, num_processes))
-    #     func = partial(self.filter_regions_worker, genomic_ranges_list, padding)
-    #     results = pool.map(func, variants_array)
-    #     pool.close()
-    #     variant_ids = set()
-    #     for result in results:
-    #         for variant_id in result:
-    #             variant_ids.add(variant_id)
-    #
-    #     # Step 2. Get variants that are near the queried GenomicRangeList object
-    #     variants = []
-    #     for variant in list(itertools.chain.from_iterable(self.variants.values())):
-    #         if variant.id in variant_ids:
-    #             variants.append(variant)
-    #     return variants
-    #
-    # def find_nearby_variants_worker(
-    #         self,
-    #         df_query_variants: pd.DataFrame,
-    #         padding: int,
-    #         df_variants: pd.DataFrame,
-    # ) -> List[str]:
-    #     """
-    #     Multiprocessing worker function for identifying variant IDs that
-    #     are near query variants.
-    #
-    #     Parameters
-    #     ----------
-    #     df_query_variants   :   DataFrame of query variants.
-    #     padding             :   Padding.
-    #     df_variants         :   DataFrame of variants.
-    #
-    #     Returns
-    #     -------
-    #     variant_ids         :   List of variant IDs that are near query variants.
-    #     """
-    #     nearby_variant_ids = set()
-    #     df_query_variants = df_query_variants[
-    #         (df_query_variants['chromosome_1'].isin(df_variants['chromosome_1'].unique())) |
-    #         (df_query_variants['chromosome_2'].isin(df_variants['chromosome_2'].unique()))
-    #     ]
-    #     for name, group in df_variants.groupby('variant_id'):
-    #         for row in group.itertuples():
-    #             variant_query_types = ','.join(VariantTypes.QueryTypeDictionary[row.variant_type])
-    #             df_query_variants_ = df_query_variants[
-    #                 (df_query_variants['chromosome_1'] == row.chromosome_1) &
-    #                 (df_query_variants['chromosome_2'] == row.chromosome_2) &
-    #                 (df_query_variants['position_1'] <= row.position_1 + padding) &
-    #                 (df_query_variants['position_1'] >= row.position_1 - padding) &
-    #                 (df_query_variants['position_2'] <= row.position_2 + padding) &
-    #                 (df_query_variants['position_2'] >= row.position_2 - padding) &
-    #                 (df_query_variants['variant_type'].isin(variant_query_types))
-    #             ]
-    #             if len(df_query_variants_) > 0:
-    #                 nearby_variant_ids.add(name)
-    #                 break
-    #     return list(nearby_variant_ids)
-    #
-
 
     # def remove(self, variant: Variant):
     #     variant_query_types = ','.join(VariantTypes.QueryTypeDictionary[variant.variant_type])

@@ -34,7 +34,12 @@ impl GenomicRange {
         }
     }
 
-    pub fn overlaps(&mut self, chromosome: String, start: isize, end: isize) -> bool {
+    pub fn id(&self) -> String {
+        let id = format!("{}:{}-{}", self.chromosome, self.start, self.end);
+        return id;
+    }
+
+    pub fn overlaps(&self, chromosome: String, start: isize, end: isize) -> bool {
         // De Morgan's law on checking for non-overlapping regions
         if chromosome == self.chromosome && start <= self.end && end >= self.start {
             return true;
@@ -44,7 +49,7 @@ impl GenomicRange {
     }
 }
 
-impl Clone for VariantCall {
+impl Clone for GenomicRange {
     fn clone(&self) -> Self {
         GenomicRange {
             chromosome: self.chromosome.clone(),

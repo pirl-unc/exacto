@@ -55,7 +55,7 @@ def run():
     sub_parsers = add_cli_vcf2tsv_arg_parser(sub_parsers=sub_parsers)           # vcf2tsv
     sub_parsers = add_cli_filter_variants_arg_parser(sub_parsers=sub_parsers)   # filter-variants
     sub_parsers = add_cli_merge_variants_arg_parser(sub_parsers=sub_parsers)    # merge-variants
-    sub_parsers = add_cli_annotate_variants_arg_parser(sub_parsers=sub_parsers) # annotate-variants
+    # sub_parsers = add_cli_annotate_variants_arg_parser(sub_parsers=sub_parsers) # annotate-variants
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
@@ -65,7 +65,5 @@ def run():
         run_cli_filter_variants_from_parsed_args(args=args)
     elif args.which == 'merge-variants':
         run_cli_merge_variants_from_parsed_args(args=args)
-    elif args.which == 'annotate-variants':
-        run_cli_annotate_variants_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)

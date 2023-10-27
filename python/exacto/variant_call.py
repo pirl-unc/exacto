@@ -27,7 +27,7 @@ from .variant_annotation import VariantAnnotation
 
 
 @total_ordering
-@dataclass(frozen=True)
+@dataclass
 class VariantCall:
     id: str
     source_id: str
@@ -59,6 +59,32 @@ class VariantCall:
     position_1_annotations: List[VariantAnnotation] = field(default_factory=list)
     position_2_annotations: List[VariantAnnotation] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.id = str(self.id)
+        self.source_id = str(self.source_id)
+        self.sample_id = str(self.sample_id)
+        self.phase_block_id = str(self.phase_block_id)
+        self.clone_id = str(self.clone_id)
+        self.nucleic_acid = str(self.nucleic_acid)
+        self.variant_calling_method = str(self.variant_calling_method)
+        self.sequencing_platform = str(self.sequencing_platform)
+        self.chromosome_1 = str(self.chromosome_1)
+        self.position_1 = int(self.position_1)
+        self.chromosome_2 = str(self.chromosome_2)
+        self.position_2 = int(self.position_2)
+        self.reference_allele = str(self.reference_allele)
+        self.alternate_allele = str(self.alternate_allele)
+        self.filter = str(self.filter)
+        self.quality_score = float(self.quality_score) if self.quality_score not in ['', '.'] else -1.0
+        self.precise = bool(self.precise)
+        self.variant_type = str(self.variant_type)
+        self.variant_subtype = str(self.variant_subtype)
+        self.variant_size = int(self.variant_size) if self.variant_size != '' else -1
+        self.total_read_count = int(self.total_read_count) if self.total_read_count != '' else -1
+        self.reference_allele_read_count = int(self.reference_allele_read_count) if self.reference_allele_read_count != '' else -1
+        self.alternate_allele_read_count = int(self.alternate_allele_read_count) if self.alternate_allele_read_count != '' else -1
+        self.alternate_allele_fraction = float(self.alternate_allele_fraction) if self.alternate_allele_fraction != '' else -1.0
 
     def __lt__(self, other):
         if isinstance(other, VariantCall):
@@ -142,7 +168,7 @@ class VariantCall:
     def to_dict(self) -> Dict:
         data = {
             'id': self.id,
-            'source_id': self.id,
+            'source_id': self.source_id,
             'sample_id': self.sample_id,
             'phase_block_id': self.phase_block_id,
             'clone_id': self.clone_id,

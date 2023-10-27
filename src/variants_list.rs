@@ -17,6 +17,8 @@ use rayon::prelude::*;
 use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet};
 use crate::constants;
+use crate::genomic_range::GenomicRange;
+use crate::genomic_ranges_list::GenomicRangesList;
 use crate::variant::Variant;
 use crate::variant_call::VariantCall;
 use crate::variant_filter::VariantFilter;
@@ -38,187 +40,29 @@ impl VariantsList {
         self.variants.push(variant);
     }
 
-    /// This function merges a vector of VariantsList objects into one.
-    /// Please note that VariantCalls with the same super set of
-    /// variant types will be merged into one.
-    ///
-    /// # Arguments
-    /// * `variants_lists`          -   vector of VariantsList objects.
-    /// * `num_threads`             -   number of threads.
-    /// * `max_neighbor_distance`   -   maximum neighbor distance.
-    /// * `query_variant_types_map` -   HashMap where key is variant type and
-    ///                                 value is a super set of the variant type.
-    ///
-    /// # Returns
-    /// * `merged_variants_list`    -   merged VariantsList object.
-    pub fn merge(
-        variants_lists: Vec<VariantsList>,
-        num_threads: usize,
-        max_neighbor_distance: isize,
-        query_variant_types_map: &HashMap<&str, String>) -> VariantsList {
-        // Step 1. Split variants by (chromosome_1, chromosome_2, variant_type)
-        let mut variant_calls_map: HashMap<(String, String, String), Vec<VariantCall>> = HashMap::new();
-        for variants_list in variants_lists.iter() {
-            for variant in variants_list.variants.iter() {
-                for variant_call in variant.variant_calls.iter() {
-                    // Get the query variant type
-                    let query_variant_type: String = query_variant_types_map.get(variant_call.variant_type.as_str()).unwrap().to_string();
-                    let key = (
-                        variant_call.chromosome_1.clone(),
-                        variant_call.chromosome_2.clone(),
-                        query_variant_type.clone(),
-                    );
-                    variant_calls_map
-                        .entry(key)
-                        .or_insert(Vec::new())
-                        .push(variant_call.clone());
-                }
-            }
-        }
-
-        // Step 2. Assign variant IDs
+    pub fn filter(&self, variant_filters: Vec<VariantFilter>, num_threads: usize) -> VariantsList {
+        // Step 1. Identify variant IDs to keep
         let thread_pool = rayon::ThreadPoolBuilder::new()
             .num_threads(num_threads)
             .build()
             .unwrap();
-        let results: Vec<HashMap<String, String>> = thread_pool.install(|| {
-            variant_calls_map.par_iter().map(|(key, values)| {
-                // Clone values
-                let mut variant_calls_temp: Vec<VariantCall> = values.to_vec();
-
-                // Sort variant calls
-                variant_calls_temp.sort_by(|a, b| a.position_1.cmp(&b.position_1));
-
-                let mut max_neighbor_distance_: isize = max_neighbor_distance;
-                if variant_calls_temp[0].variant_type == constants::SINGLE_NUCLEOTIDE_VARIANT ||
-                    variant_calls_temp[0].variant_type == constants::MULTI_NUCLEOTIDE_VARIANT {
-                    max_neighbor_distance_ = 0;
-                }
-
-                // Assign variant IDs
-                let mut variant_idx = 1;
-                let mut variant_ids_map: HashMap<String, String> = HashMap::new(); // key = VariantCall.id, value = Variant.id
-                for i in 0..variant_calls_temp.len() {
-                    if !variant_ids_map.contains_key(&variant_calls_temp[i].id) {
-                        let variant_id = format!("{}-{}-{}_{}", key.0, key.1, key.2, variant_idx.to_string());
-                        variant_ids_map.insert(variant_calls_temp[i].id.clone(), variant_id.clone());
-                        for j in (i + 1)..variant_calls_temp.len() {
-                            let distance_1: isize = (variant_calls_temp[i].position_1 - variant_calls_temp[j].position_1).abs();
-                            let distance_2: isize = (variant_calls_temp[i].position_2 - variant_calls_temp[j].position_2).abs();
-                            if (distance_1 <= max_neighbor_distance_) && (distance_2 <= max_neighbor_distance_) {
-                                variant_ids_map.insert(variant_calls_temp[j].id.clone(), variant_id.clone());
-                            } else {
-                                if distance_1 > max_neighbor_distance_ {
-                                    break;
-                                }
-                            }
-                        }
-                        variant_idx += 1;
+        let variant_ids_to_keep: Vec<String> = thread_pool.install(|| {
+            self.variants.par_iter().map(|variant| {
+                let mut keep: bool = true;
+                for variant_filter in &variant_filters {
+                    if variant_filter.keep(&variant) == false {
+                        keep = false;
+                        break;
                     }
                 }
-                variant_ids_map
+                if keep {
+                    return variant.id.to_string();
+                } else {
+                    return "".to_string();
+                }
             })
             .collect()
         });
-
-        // Step 3. Collect all VariantCall and Variant IDs into one HashMap
-        let mut variant_ids_map: HashMap<String, String> = HashMap::new(); // key = VariantCall.id, value = Variant.id
-        for result in &results {
-            for (key, value) in result.iter() {
-                variant_ids_map.insert(key.to_string(), value.to_string());
-            }
-        }
-
-        // Step 4. Merge VariantCall objects into common Variant objects
-        let mut variants_map: HashMap<String, Variant> = HashMap::new();
-        for variants_list in variants_lists.iter() {
-            for variant in variants_list.variants.iter() {
-                for variant_call in variant.variant_calls.iter() {
-                    let variant_id = variant_ids_map
-                        .get(&variant_call.id)
-                        .map(|s| s.to_string())
-                        .unwrap_or_else(|| String::new());
-                    if let Some(matched_variant) = variants_map.get_mut(&variant_id) {
-                        matched_variant.add_variant_call(variant_call.clone());
-                    } else {
-                        let mut new_variant = Variant::new(variant_id.clone());
-                        new_variant.add_variant_call(variant_call.clone());
-                        variants_map.insert(variant_id.clone(), new_variant);
-                    }
-                }
-            }
-        }
-
-        // Step 5. Create a merged VariantsList object
-        let mut variants_list_merged = VariantsList::new();
-        for (_variant_id, variant) in variants_map.iter() {
-            variants_list_merged.add_variant(variant.clone());
-        }
-
-        return variants_list_merged;
-    }
-
-    pub fn filter(&self, variant_filters: Vec<VariantFilter>, num_threads: usize) -> VariantsList {
-        // Step 1. Identify variant IDs to keep
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(num_threads)
-            .build_global()
-            .unwrap();
-        let variant_ids_to_keep: Vec<String> = self.variants
-            .par_iter()
-            .map(|variant| {
-                let mut keep: bool = true;
-                for variant_filter in &variant_filters {
-                    if variant_filter.keep(&variant) == false {
-                        keep = false;
-                        break;
-                    }
-                }
-                if keep {
-                    return variant.id.to_string();
-                } else {
-                    return "".to_string();
-                }
-            })
-            .collect();
-
-        // Step 2. Create a HashSet of variant IDs to keep
-        let variant_ids_to_keep_set: HashSet<String> = variant_ids_to_keep.into_iter().collect();
-
-        // Step 3. Create a filtered VariantsList
-        let mut filtered_variants_list: VariantsList = VariantsList::new();
-        for variant in &self.variants {
-            if variant_ids_to_keep_set.contains(&variant.id) {
-                filtered_variants_list.add_variant(variant.clone());
-            }
-        }
-
-        return filtered_variants_list;
-    }
-
-    pub fn filter_regions(&self, variant_filters: Vec<VariantFilter>, num_threads: usize) -> VariantsList {
-        // Step 1. Identify variant IDs to keep
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(num_threads)
-            .build_global()
-            .unwrap();
-        let variant_ids_to_keep: Vec<String> = self.variants
-            .par_iter()
-            .map(|variant| {
-                let mut keep: bool = true;
-                for variant_filter in &variant_filters {
-                    if variant_filter.keep(&variant) == false {
-                        keep = false;
-                        break;
-                    }
-                }
-                if keep {
-                    return variant.id.to_string();
-                } else {
-                    return "".to_string();
-                }
-            })
-            .collect();
 
         // Step 2. Create a HashSet of variant IDs to keep
         let variant_ids_to_keep_set: HashSet<String> = variant_ids_to_keep.into_iter().collect();
@@ -331,7 +175,6 @@ impl VariantsList {
                         }
                     }
                 }
-
                 nearby_variants_map_
             })
             .collect()
@@ -351,6 +194,207 @@ impl VariantsList {
         }
 
         return nearby_variants_map;
+    }
+
+    /// Finds variants overlapping query regions.
+    ///
+    /// # Arguments
+    /// * `genomic_regions_list`    -   VariantsList object.
+    /// * `padding`                 -   padding to apply to GenomicRange start and end.
+    /// * `num_threads`             -   number of threads.
+    ///
+    /// # Returns
+    /// * `nearby_variants_map`     -   HashMap where key is variant ID and
+    ///                                 value is a vector of GenomicRange IDs.
+    pub fn overlap_regions(
+        &self,
+        genomic_regions_list: GenomicRangesList,
+        num_threads: usize,
+        padding: isize) -> HashMap<String, Vec<String>> {
+         // Step 1. Split Variant objects by chromosome
+        let mut variants_map: HashMap<String, Vec<Variant>> = HashMap::new();
+        for variant in self.variants.iter() {
+            let key1 = variant.variant_calls[0].chromosome_1.clone();
+            variants_map
+                .entry(key1)
+                .or_insert(Vec::new())
+                .push(variant.clone());
+            if variant.variant_calls[0].chromosome_1 != variant.variant_calls[0].chromosome_2 {
+                let key2 = variant.variant_calls[0].chromosome_2.clone();
+                variants_map
+                    .entry(key2)
+                    .or_insert(Vec::new())
+                    .push(variant.clone());
+            }
+        }
+
+        // Step 2. Filter regions
+        let thread_pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .build()
+            .unwrap();
+        let results: Vec<HashMap<String, Vec<String>>> = thread_pool.install(|| {
+            variants_map.par_iter().map(|(key, variants)| {
+                let mut result: HashMap<String, Vec<String>> = HashMap::new();
+                if genomic_regions_list.genomic_ranges_map.contains_key(key) {
+                    let genomic_ranges: Vec<GenomicRange> = genomic_regions_list.genomic_ranges_map.get(key).unwrap().clone();
+                    for variant in variants {
+                        for variant_call in &variant.variant_calls {
+                            for genomic_range in &genomic_ranges {
+                                let start_1 = variant_call.position_1 - padding;
+                                let end_1 = variant_call.position_1 + padding;
+                                let start_2 = variant_call.position_2- padding;
+                                let end_2 = variant_call.position_2 + padding;
+                                if genomic_range.overlaps(variant_call.chromosome_1.to_string(), start_1, end_1) {
+                                    result
+                                        .entry(variant.id.clone())
+                                        .or_insert(Vec::new())
+                                        .push(genomic_range.id().clone());
+                                }
+                            }
+                        }
+                    }
+                }
+                result
+            })
+            .collect()
+        });
+
+        // Step 3. Collect all results into one HashMap
+        let mut overlap_regions_map: HashMap<String, Vec<String>> = HashMap::new();
+        for result in &results {
+            for (key, values) in result.iter() {
+                for value in values {
+                    overlap_regions_map
+                        .entry(key.clone())
+                        .or_insert(Vec::new())
+                        .push(value.clone());
+                }
+            }
+        }
+
+        return overlap_regions_map;
+    }
+
+    /// This function merges a vector of VariantsList objects into one.
+    /// Please note that VariantCalls with the same super set of
+    /// variant types will be merged into one.
+    ///
+    /// # Arguments
+    /// * `variants_lists`          -   vector of VariantsList objects.
+    /// * `num_threads`             -   number of threads.
+    /// * `max_neighbor_distance`   -   maximum neighbor distance.
+    /// * `query_variant_types_map` -   HashMap where key is variant type and
+    ///                                 value is a super set of the variant type.
+    ///
+    /// # Returns
+    /// * `merged_variants_list`    -   merged VariantsList object.
+    pub fn merge(
+        variants_lists: Vec<VariantsList>,
+        num_threads: usize,
+        max_neighbor_distance: isize,
+        query_variant_types_map: &HashMap<&str, String>) -> VariantsList {
+        // Step 1. Split variants by (chromosome_1, chromosome_2, variant_type)
+        let mut variant_calls_map: HashMap<(String, String, String), Vec<VariantCall>> = HashMap::new();
+        let mut variants_list_idx: isize = 1;
+        for variants_list in variants_lists.iter() {
+            for variant in variants_list.variants.iter() {
+                for variant_call in variant.variant_calls.iter() {
+                    // Get the query variant type
+                    let query_variant_type: String = query_variant_types_map.get(variant_call.variant_type.as_str()).unwrap().to_string();
+                    let key = (
+                        variant_call.chromosome_1.clone(),
+                        variant_call.chromosome_2.clone(),
+                        query_variant_type.clone(),
+                    );
+                    variant_calls_map
+                        .entry(key)
+                        .or_insert(Vec::new())
+                        .push(variant_call.clone());
+                }
+            }
+        }
+
+        // Step 2. Assign variant IDs
+        let thread_pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .build()
+            .unwrap();
+        let results: Vec<HashMap<String, String>> = thread_pool.install(|| {
+            variant_calls_map.par_iter().map(|(key, values)| {
+                // Clone values
+                let mut variant_calls_temp: Vec<VariantCall> = values.to_vec();
+
+                // Sort variant calls
+                variant_calls_temp.sort_by(|a, b| a.position_1.cmp(&b.position_1));
+
+                let mut max_neighbor_distance_: isize = max_neighbor_distance;
+                if variant_calls_temp[0].variant_type == constants::SINGLE_NUCLEOTIDE_VARIANT ||
+                    variant_calls_temp[0].variant_type == constants::MULTI_NUCLEOTIDE_VARIANT {
+                    max_neighbor_distance_ = 0;
+                }
+
+                // Assign variant IDs
+                let mut variant_idx = 1;
+                let mut variant_ids_map: HashMap<String, String> = HashMap::new(); // key = VariantCall.id, value = Variant.id
+                for i in 0..variant_calls_temp.len() {
+                    if !variant_ids_map.contains_key(&variant_calls_temp[i].id) {
+                        let variant_id = format!("{}-{}-{}_{}", key.0, key.1, key.2, variant_idx.to_string());
+                        variant_ids_map.insert(variant_calls_temp[i].id.clone(), variant_id.clone());
+                        for j in (i + 1)..variant_calls_temp.len() {
+                            let distance_1: isize = (variant_calls_temp[i].position_1 - variant_calls_temp[j].position_1).abs();
+                            let distance_2: isize = (variant_calls_temp[i].position_2 - variant_calls_temp[j].position_2).abs();
+                            if (distance_1 <= max_neighbor_distance_) && (distance_2 <= max_neighbor_distance_) {
+                                variant_ids_map.insert(variant_calls_temp[j].id.clone(), variant_id.clone());
+                            } else {
+                                if distance_1 > max_neighbor_distance_ {
+                                    break;
+                                }
+                            }
+                        }
+                        variant_idx += 1;
+                    }
+                }
+                variant_ids_map
+            })
+            .collect()
+        });
+
+        // Step 3. Collect all VariantCall and Variant IDs into one HashMap
+        let mut variant_ids_map: HashMap<String, String> = HashMap::new(); // key = VariantCall.id, value = Variant.id
+        for result in &results {
+            for (key, value) in result.iter() {
+                variant_ids_map.insert(key.to_string(), value.to_string());
+            }
+        }
+
+        // Step 4. Merge VariantCall objects into common Variant objects
+        let mut variants_map: HashMap<String, Variant> = HashMap::new();
+        for variants_list in variants_lists.iter() {
+            for variant in variants_list.variants.iter() {
+                for variant_call in variant.variant_calls.iter() {
+                    let variant_id = variant_ids_map
+                        .get(&variant_call.id)
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| String::new());
+                    if let Some(matched_variant) = variants_map.get_mut(&variant_id) {
+                        matched_variant.add_variant_call(variant_call.clone());
+                    } else {
+                        let mut new_variant = Variant::new(variant_id.clone());
+                        new_variant.add_variant_call(variant_call.clone());
+                        variants_map.insert(variant_id.clone(), new_variant);
+                    }
+                }
+            }
+        }
+
+        // Step 5. Create a merged VariantsList object
+        let mut variants_list_merged = VariantsList::new();
+        for (_variant_id, variant) in variants_map.iter() {
+            variants_list_merged.add_variant(variant.clone());
+        }
+
+        return variants_list_merged;
     }
 }
 

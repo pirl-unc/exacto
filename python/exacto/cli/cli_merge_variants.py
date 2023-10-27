@@ -21,6 +21,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import multiprocessing as mp
+import logging
 from ..constants import *
 from ..default import *
 from ..logging import get_logger
@@ -62,17 +63,17 @@ def add_cli_merge_variants_arg_parser(sub_parsers) -> argparse._SubParsersAction
         required=True,
         help="Output TSV file."
     )
-    parser_required.add_argument(
-        "--num-processes",
-        dest="num_processes",
-        type=int,
-        default=MERGE_VARIANTS_NUM_PROCESSES,
-        required=True,
-        help="Number of processes (default: %i)." % MERGE_VARIANTS_NUM_PROCESSES
-    )
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
+    parser_optional.add_argument(
+        "--num-threads",
+        dest="num_threads",
+        type=int,
+        default=MERGE_VARIANTS_NUM_THREADS,
+        required=False,
+        help="Number of threads (default: %i)." % MERGE_VARIANTS_NUM_THREADS
+    )
     parser_optional.add_argument(
         "--max-neighbor-distance",
         dest="max_neighbor_distance",
@@ -109,14 +110,14 @@ def run_cli_merge_variants_from_parsed_args(args):
     Parameters
     ----------
     args    :   An instance of argparse.ArgumentParser with the following variables:
-                'tsv_file'
-                'output_tsv_file'
-                'num_processes'
-                'max_neighbor_distance'
+                tsv_file
+                output_tsv_file
+                num_threads
+                max_neighbor_distance
     """
     # Step 1. Load variants lists
     logger.info("Started reading all TSV files")
-    pool = mp.Pool(processes=args.num_processes)
+    pool = mp.Pool(processes=args.num_threads)
     async_results = []
     for tsv_file in args.tsv_file:
         async_results.append(pool.apply_async(load_tsv_file_worker, args=(tsv_file,)))
@@ -129,6 +130,7 @@ def run_cli_merge_variants_from_parsed_args(args):
     logger.info("Started merging all variants into one list")
     variants_list = run_exacto_merge_variants(
         variants_lists=variants_lists,
+        num_threads=args.num_threads,
         max_neighbor_distance=args.max_neighbor_distance
     )
     logger.info("Finished merging all variants into one list")

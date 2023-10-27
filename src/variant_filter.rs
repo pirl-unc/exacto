@@ -20,7 +20,7 @@ use crate::variant_call::VariantCall;
 use crate::variant::Variant;
 
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct VariantFilter {
     pub quantifier: String,
     pub attribute: String,
@@ -164,8 +164,54 @@ impl VariantFilter {
             };
             match &self.value {
                 Value::String(filter_value) => {
-                    eprintln!("Filter value cannot be a string for a numeric attribute.");
-                    std::process::exit(exitcode::DATAERR);
+                    let filter_value_: Result<f64, std::num::ParseFloatError> = filter_value.as_str().parse();
+                    let filter_value_f64: f64 = match filter_value_ {
+                        Ok(value) => value,
+                        Err(_) => {
+                            eprintln!("{}", format!("Cannot parse value to a f64 value: {}", self.value));
+                            std::process::exit(exitcode::DATAERR);
+                        },
+                    };
+                    if self.operator == constants::OPERATOR_EQUAL_TO {
+                        if attribute_value == filter_value_f64 {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else if self.operator == constants::OPERATOR_LESS_THAN {
+                        if attribute_value < filter_value_f64 {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else if self.operator == constants::OPERATOR_LESS_THAN_EQUAL_TO {
+                        if attribute_value <= filter_value_f64 {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else if self.operator == constants::OPERATOR_GREATER_THAN {
+                        if attribute_value > filter_value_f64 {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else if self.operator == constants::OPERATOR_GREATER_THAN_EQUAL_TO {
+                        if attribute_value >= filter_value_f64 {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else if self.operator == constants::OPERATOR_NOT_EQUAL_TO {
+                        if attribute_value != filter_value_f64 {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        eprintln!("{}", format!("Unsupported operator for string: {}", self.operator));
+                        std::process::exit(exitcode::DATAERR);
+                    }
                 }
                 Value::Array(filter_value) => {
                     eprintln!("Filter value cannot be a string array for a numeric attribute.");
@@ -234,8 +280,30 @@ impl VariantFilter {
             };
             match &self.value {
                 Value::String(filter_value) => {
-                    eprintln!("Filter value cannot be a string for a boolean attribute.");
-                    std::process::exit(exitcode::DATAERR);
+                    let filter_value_: Result<bool, std::str::ParseBoolError> = filter_value.as_str().parse();
+                    let filter_value_bool: bool = match filter_value_ {
+                        Ok(value) => value,
+                        Err(_) => {
+                            eprintln!("{}", format!("Cannot parse value to a boolean value: {}", self.value));
+                            std::process::exit(exitcode::DATAERR);
+                        },
+                    };
+                    if self.operator == constants::OPERATOR_EQUAL_TO {
+                        if attribute_value == filter_value_bool {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else if self.operator == constants::OPERATOR_NOT_EQUAL_TO {
+                        if attribute_value != filter_value_bool {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        eprintln!("{}", format!("Unsupported operator for string: {}", self.operator));
+                        std::process::exit(exitcode::DATAERR);
+                    }
                 }
                 Value::Array(filter_value) => {
                     eprintln!("Filter value cannot be a string array for a boolean attribute.");
@@ -377,3 +445,18 @@ impl VariantFilter {
     }
 }
 
+impl Clone for VariantFilter {
+    fn clone(&self) -> Self {
+        let mut sample_ids: Vec<String> = Vec::new();
+        for sample_id in &self.sample_ids {
+            sample_ids.push(sample_id.clone());
+        }
+        VariantFilter {
+            quantifier: self.quantifier.to_string(),
+            attribute: self.attribute.to_string(),
+            operator: self.operator.to_string(),
+            value: self.value.clone(),
+            sample_ids: sample_ids
+        }
+    }
+}
