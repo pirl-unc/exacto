@@ -37,9 +37,9 @@ jobs:
         conda config --set channel_priority strict
         conda install rust
         conda install pandas
-        conda install polars==0.16.18
-        conda install pyensembl==2.2.9
-        conda install gtfparse==2.0.1
+        conda install polars==0.19.3
+        conda install pyensembl==2.1.0
+        conda install gtfparse==1.3.0
         conda install pysam
         conda install networkx
         conda install matplotlib
@@ -49,7 +49,7 @@ jobs:
         conda install pytest-cov
 
         # Install pyensembl data
-        pyensembl install --release 95 --species human
+        pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   
         # Install exacto
         pip install . --verbose
