@@ -37,6 +37,7 @@ jobs:
         conda config --set channel_priority strict
         conda install rust
         conda install pandas
+        conda install polars
         conda install pyensembl==2.1.0
         conda install pysam
         conda install networkx
