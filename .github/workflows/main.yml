@@ -47,15 +47,16 @@ jobs:
         mamba install pytest
         mamba install pytest-cov
 
-        export PYENSEMBL_CACHE_DIR=$HOME/cache/
+        # Install pyensembl data
         pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   
         # Install exacto
         pip install . --verbose
       env:
+        PYENSEMBL_CACHE_DIR: $HOME/cache/
         CARGO_TARGET_DIR: $HOME/cache/cargo/
         CARGO_BUILD_TARGET_DIR: $HOME/cache/cargo/
-      
+
     - name: Run linter
       shell: bash -l {0}
       run: |
