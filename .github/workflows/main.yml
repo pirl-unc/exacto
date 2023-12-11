@@ -37,8 +37,9 @@ jobs:
         conda config --set channel_priority strict
         conda install rust
         conda install pandas
-        conda install polars==0.19.19
+        conda install polars==0.16.18
         conda install pyensembl==2.2.9
+        conda install gtfparse==2.0.1
         conda install pysam
         conda install networkx
         conda install matplotlib
