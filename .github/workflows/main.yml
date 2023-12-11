@@ -52,10 +52,6 @@ jobs:
   
         # Install exacto
         pip install . --verbose
-      env:
-        PYENSEMBL_CACHE_DIR: /home/runner/work/exacto/exacto/cache/
-        CARGO_TARGET_DIR: /home/runner/work/exacto/exacto/cache/cargo/
-        CARGO_BUILD_TARGET_DIR: /home/runner/work/exacto/exacto/cache/cargo/
 
     - name: Run linter
       shell: bash -l {0}
@@ -68,5 +64,3 @@ jobs:
       run: |
         chmod +x unittest.sh
         bash unittest.sh
-      env:
-        PYENSEMBL_CACHE_DIR: /home/runner/work/exacto/exacto/cache/
