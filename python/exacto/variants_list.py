@@ -149,9 +149,7 @@ class VariantsList:
         )
 
         # Step 4. Deserialize filtered VariantsList object
-        print("Started loading serialized json in python")
         filtered_variants_list = VariantsList.load_serialized_json(json_str=json_str)
-        print("Finished loading serialized json in python")
 
         return filtered_variants_list.variants
 

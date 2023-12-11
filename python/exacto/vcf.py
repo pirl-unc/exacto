@@ -1309,7 +1309,7 @@ class Vcf:
                 if 'ad' in tool_attributes.keys():
                     reference_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[0], default_value=-1, type=int)
                     alternate_allele_read_count = get_typed_value(value=tool_attributes['ad'].split(',')[1], default_value=-1, type=int)
-                if (alternate_allele_read_count is None or alternate_allele_read_count == '.') and 'support' in tool_attributes.keys():
+                if (alternate_allele_read_count is None or alternate_allele_read_count == '.' or alternate_allele_read_count == -1) and 'support' in tool_attributes.keys():
                     alternate_allele_read_count = get_typed_value(value=tool_attributes['support'], default_value=-1, type=int)
                 if 'svlen' in tool_attributes.keys():
                     variant_size = abs(tool_attributes['svlen'])

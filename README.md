@@ -3,7 +3,7 @@
 Exacto (EXtracting And Counting Transcripts in Oncology) identifies and quantifies augmented transcripts in tumor samples.
 
 ## 01. Dependencies
-- python3 (3.9 tested)
+- python3 (3.10 tested)
 - pandas
 - pysam
 - pyvcf
