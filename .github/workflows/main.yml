@@ -35,17 +35,27 @@ jobs:
         conda config --add channels bioconda
         conda config --add channels conda-forge
         conda config --set channel_priority strict
-        conda install pandas
+        conda install -c conda-forge mamba
         conda install rust
-        pip install pyensembl
-        conda install pylint
-        conda install coveralls
-        conda install pytest
-        conda install pytest-cov
+        mamba install pandas
+        mamba install pyensembl=2.1.0
+        mamba install pysam
+        mamba install networkx
+        mamba install matplotlib
+        mamba install pylint
+        mamba install coveralls
+        mamba install pytest
+        mamba install pytest-cov
+
+        export PYENSEMBL_CACHE_DIR=$HOME/cache/
+        pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
   
         # Install exacto
         pip install . --verbose
-
+      env:
+        CARGO_TARGET_DIR: $HOME/cache/cargo/
+        CARGO_BUILD_TARGET_DIR: $HOME/cache/cargo/
+      
     - name: Run linter
       shell: bash -l {0}
       run: |
@@ -57,3 +67,5 @@ jobs:
       run: |
         chmod +x unittest.sh
         bash unittest.sh
+      env:
+        PYENSEMBL_CACHE_DIR: $HOME/cache/
