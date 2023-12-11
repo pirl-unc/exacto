@@ -37,6 +37,7 @@ jobs:
         conda config --set channel_priority strict
         conda install pandas
         conda install rust
+        pip install pyensembl
         conda install pylint
         conda install coveralls
         conda install pytest
