@@ -35,17 +35,16 @@ jobs:
         conda config --add channels bioconda
         conda config --add channels conda-forge
         conda config --set channel_priority strict
-        conda install -c conda-forge mamba
         conda install rust
-        mamba install pandas
-        mamba install pyensembl=2.1.0
-        mamba install pysam
-        mamba install networkx
-        mamba install matplotlib
-        mamba install pylint
-        mamba install coveralls
-        mamba install pytest
-        mamba install pytest-cov
+        conda install pandas
+        conda install pyensembl==2.1.0
+        conda install pysam
+        conda install networkx
+        conda install matplotlib
+        conda install pylint
+        conda install coveralls
+        conda install pytest
+        conda install pytest-cov
 
         # Install pyensembl data
         pyensembl install --release 95 --species human --custom-mirror https://github.com/openvax/ensembl-data/releases/download/GRCh38.95/
