@@ -11,38 +11,23 @@
 // limitations under the License.
 
 
-pub fn calculate_mean(values: Vec<f64>) -> f64 {
-    let sum: f64 = values.iter().sum();
-    let average = sum as f64 / values.len() as f64;
-    return average;
-}
+extern crate noodles;
+extern crate noodles_core;
+use noodles::bam as bam;
+use noodles_core::{Region, Position};
+use std::collections::HashMap;
 
-pub fn calculate_median(values: Vec<f64>) -> f64 {
-    let mut values_: Vec<f64> = values.clone();
-    values_.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let mut median: f64 = 0.0;
-    let len = values_.len();
-    if len % 2 == 0 {
-        // If the number of elements is even,
-        // take the average of the two middle values
-        let middle1 = len / 2 - 1;
-        let middle2 = len / 2;
-        median = (values_[middle1] + values_[middle2]) / 2.0;
-    } else {
-        // If the number of elements is odd,
-        // take the middle value
-        let middle = len / 2;
-        median = values_[middle];
+
+pub fn get_chromosomes(bam_file: &str) -> HashMap<usize, (String, usize)> {
+    let mut reader = bam::io::reader::Builder::default().build_from_path(bam_file).unwrap();
+    let header = reader.read_header();
+    let mut chromosomes: HashMap<usize, (String, usize)> = HashMap::new();
+    let mut i: usize = 0;
+    for chromosome in header.unwrap().reference_sequences().iter() {
+        let chromosome_name: &str = &chromosome.0.to_string();
+        let chromosome_length: usize = chromosome.1.length().into();
+        chromosomes.insert(i, (chromosome_name.to_string(), chromosome_length));
+        i += 1;
     }
-    return median;
-}
-
-pub fn calculate_max(values: Vec<f64>) -> f64 {
-    let max = values.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    return max;
-}
-
-pub fn calculate_min(values: Vec<f64>) -> f64 {
-    let min = values.iter().cloned().fold(f64::INFINITY, f64::min);
-    return min;
+    return chromosomes;
 }

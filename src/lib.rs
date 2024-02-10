@@ -11,250 +11,83 @@
 // limitations under the License.
 
 
+extern crate chrono;
+extern crate env_logger;
 extern crate exitcode;
+extern crate log;
 extern crate pyo3;
 extern crate serde_json;
+use chrono::Local;
+use env_logger::{Builder, Env};
+use log::{info, LevelFilter};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use std::collections::HashMap;
+use std::io::Write;
 mod constants;
-mod genomic_range;
-mod genomic_ranges_list;
+mod defaults;
+mod identification;
 mod utilities;
-mod variant;
-mod variant_annotation;
 mod variant_call;
-mod variant_filter;
-mod variants_list;
-use genomic_range::GenomicRange;
-use genomic_ranges_list::GenomicRangesList;
-use variant::Variant;
-use variant_annotation::VariantAnnotation;
+mod variant_record;
+use identification::call_rna_variants;
 use variant_call::VariantCall;
-use variant_filter::VariantFilter;
-use variants_list::VariantsList;
+use variant_record::VariantRecord;
 
 
-/// This function deserializes a serialized GenomicRangesList object.
+/// This function identifies RNA variants in a long-read RNA-seq BAM file.
 ///
 /// # Arguments
-/// * `json_str`                        -   serialized GenomicRangesList object.
-///
-/// # Returns
-/// * `deserialize_genomic_ranges_list` -   GenomicRangesList object.
-fn deserialize_genomic_ranges_list(json_str: &str) -> GenomicRangesList {
-    let genomic_ranges_list: Result<GenomicRangesList, serde_json::Error> = serde_json::from_str(json_str);
-    match genomic_ranges_list {
-        Ok(result) => {
-            return result;
-        }
-        Err(e) => {
-            eprintln!("Error deserializing JSON: {}", e);
-            std::process::exit(exitcode::DATAERR);
-        }
-    }
-}
-
-/// This function deserializes a list of serialized VariantsList objects.
-///
-/// # Arguments
-/// * `py_list`         -   list of serialized VariantsList objects.
-///
-/// # Returns
-/// * `variants_list`   -   vector of VariantsList objects.
-fn deserialize_variants_lists(py_list: &PyList) -> Vec<VariantsList> {
-    let mut variants_lists: Vec<VariantsList> = Vec::new();
-    for py_str in py_list.iter() {
-        variants_lists.push(deserialize_variants_list(&py_str.to_string()));
-    }
-    return variants_lists;
-}
-
-/// This function deserializes a VariantsList object.
-///
-/// # Arguments
-/// * `json_str`        -   serialized VariantsList object.
-///
-/// # Returns
-/// * `variants_list`   -   VariantsList object.
-fn deserialize_variants_list(json_str: &str) -> VariantsList {
-    let variants_list: Result<VariantsList, serde_json::Error> = serde_json::from_str(json_str);
-    match variants_list {
-        Ok(result) => {
-            return result;
-        }
-        Err(e) => {
-            eprintln!("Error deserializing JSON: {}", e);
-            std::process::exit(exitcode::DATAERR);
-        }
-    }
-}
-
-/// This function deserializes a list of VariantFilter objects.
-///
-/// # Arguments
-/// * `py_list`             -   a list of serialized VariantsFilter objects.
-///
-/// # Returns
-/// * `variant_filters`     -   a vector of VariantFilter objects.
-fn deserialize_variant_filters(py_list: &PyList) -> Vec<VariantFilter> {
-    let mut variant_filters: Vec<VariantFilter> = Vec::new();
-    for py_str in py_list.iter() {
-        variant_filters.push(deserialize_variant_filter(&py_str.to_string()));
-    }
-    return variant_filters;
-}
-
-fn deserialize_variant_filter(json_str: &str) -> VariantFilter {
-    let variant_filter: Result<VariantFilter, serde_json::Error> = serde_json::from_str(json_str);
-    match variant_filter {
-        Ok(result) => {
-            return result;
-        }
-        Err(e) => {
-            eprintln!("Error deserializing JSON: {}", e);
-            std::process::exit(exitcode::DATAERR);
-        }
-    }
-}
-
-/// This function merges a vector of serialized VariantsList objects into one.
-///
-/// # Arguments
-/// * `py_list`                 -   list of serialized VariantsList objects.
-/// * `num_threads`             -   number of threads.
-/// * `max_neighbor_distance`   -   maximum neighbor distance.
-///
-/// # Returns
-/// * A serialized VariantsList object.
-#[pyfunction]
-fn merge_variants_lists(
-    py: Python, py_list: &PyList,
-    num_threads: usize,
-    max_neighbor_distance: isize) -> PyResult<String> {
-    // Step 1. Deserialize VariantsList objects
-    let mut variants_lists: Vec<VariantsList> = deserialize_variants_lists(py_list);
-
-    // Step 2. Merge VariantsList objects
-    let merged_variants_list: VariantsList = VariantsList::merge(
-        variants_lists,
-        num_threads,
-        max_neighbor_distance,
-        &constants::VARIANT_TYPES_MAP
-    );
-
-    // Step 3. Serialize merged VariantsList object
-    let serialized = serde_json::to_string(&merged_variants_list).expect("Serialization of the merged VariantsList object failed");
-
-    Ok(serialized)
-}
-
-/// This function filters a serialized VariantsList object and returns a filtered VariantsList.
-///
-/// # Arguments
-/// * `py_str`                  -   serialized VariantsList object.
-/// * `py_list`                 -   a list of serialized VariantFilter objects.
-/// * `num_threads`             -   number of threads.
-///
-/// # Returns
-/// * A serialized VariantsList string.
-#[pyfunction]
-fn filter_variants_list(
-    py: Python,
-    py_str: String,
-    py_list: &PyList,
-    num_threads: usize) -> PyResult<String> {
-    // Step 1. Deserialize VariantsList object
-    let mut variants_list: VariantsList = deserialize_variants_list(&py_str);
-
-    // Step 2. Deserialize VariantFilter objects
-    let variant_filters: Vec<VariantFilter> = deserialize_variant_filters(py_list);
-
-    // Step 3. Filter VariantsList object
-    let filtered_variants_list: VariantsList = variants_list.filter(variant_filters, num_threads);
-
-    // Step 4. Serialize filtered VariantsList object
-    let serialized = serde_json::to_string(&filtered_variants_list).expect("Serialization of the filtered VariantsList object failed");
-
-    Ok(serialized)
-}
-
-/// This function identifies nearby Variant objects.
-///
-/// # Arguments
-/// * `target_variants_list_str`    -   serialized VariantsList object.
-/// * `query_variants_list_str`     -   serialized VariantsList object.
+/// * `bam_file`                    -   BAM file.
+/// * `min_reads`                   -   Minimum number of reads.
+/// * `min_mapping_quality`         -   Minimum mapping quality.
 /// * `num_threads`                 -   number of threads.
-/// * `max_neighbor_distance`       -   maximum neighbor distance.
-///
-/// # Returns
-/// * `nearby_variants_map`         -   HashMap where key is Variant.id and
-///                                     value is a vector of query Variant.id
-#[pyfunction]
-fn find_variants_near_query_variants(
-    py: Python,
-    target_variants_list_str: String,
-    query_variants_list_str: String,
-    num_threads: usize,
-    max_neighbor_distance: isize) -> Py<PyAny> {
-    // Step 1. Deserialize VariantsList objects
-    let mut target_variants_list: VariantsList = deserialize_variants_list(&target_variants_list_str);
-    let mut query_variants_list: VariantsList = deserialize_variants_list(&query_variants_list_str);
-
-    // Step 2. Find nearby variants
-    let nearby_variants_map: HashMap<String, Vec<String>> = target_variants_list.find_nearby_variants(
-        query_variants_list,
-        max_neighbor_distance,
-        num_threads,
-        &constants::VARIANT_TYPES_MAP
-    );
-
-    return Python::with_gil(|py| {
-        nearby_variants_map.to_object(py)
-    });
-}
-
-/// This function identifies overlapping Variant objects.
-///
-/// # Arguments
-/// * `variants_list_str`           -   serialized VariantsList object.
-/// * `genomic_ranges_list_str`     -   serialized GenomicRangesList object.
-/// * `num_threads`                 -   number of threads.
-/// * `padding`                     -   padding to apply to GenomicRange start and end.
+/// * `chromosomes`                 -   Chromosomes to call.
 ///
 /// # Returns
 /// * `nearby_variants_map`         -   HashMap where key is Variant.id and
 ///                                     value is a vector of GenomicRange.id
 #[pyfunction]
-fn find_variants_overlapping_regions(
+fn identify_rna_variants(
     py: Python,
-    variants_list_str: String,
-    genomic_ranges_list_str: String,
+    bam_file: String,
+    min_reads: usize,
+    min_mapping_quality: usize,
     num_threads: usize,
-    padding: isize) -> Py<PyAny> {
-    // Step 1. Deserialize VariantsList object
-    let mut variants_list: VariantsList = deserialize_variants_list(&variants_list_str);
-
-    // Step 2. Deserialize GenomicRangesList objects
-    let genomic_ranges_list: GenomicRangesList = deserialize_genomic_ranges_list(&genomic_ranges_list_str);
-
-    // Step 3. Find nearby Variant objects
-    let nearby_variants_map: HashMap<String, Vec<String>> = variants_list.overlap_regions(
-        genomic_ranges_list,
+    min_ins_size_proportion: f64,
+    max_ins_norm_edit_distance: f64,
+    min_del_size_proportion: f64,
+    chromosomes: Vec<String>) -> PyResult<String> {
+    let variant_calls: Vec<VariantCall> = call_rna_variants(
+        &bam_file,
+        min_reads,
+        min_mapping_quality,
         num_threads,
-        padding
+        min_ins_size_proportion,
+        max_ins_norm_edit_distance,
+        min_del_size_proportion,
+        chromosomes.iter().map(|s| s.as_str()).collect()
     );
 
-    return Python::with_gil(|py| {
-        nearby_variants_map.to_object(py)
-    });
+    let serialized = serde_json::to_string(&variant_calls).expect("Serialization of vector of VariantCall object failed");
+    Ok(serialized)
 }
 
 #[pymodule]
-fn exactors(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(merge_variants_lists, m)?);
-    m.add_function(wrap_pyfunction!(filter_variants_list, m)?);
-    m.add_function(wrap_pyfunction!(find_variants_near_query_variants, m)?);
-    m.add_function(wrap_pyfunction!(find_variants_overlapping_regions, m)?);
+fn exactolibrs(_py: Python, m: &PyModule) -> PyResult<()> {
+    // Initialize the logger
+    Builder::from_env(Env::default().default_filter_or("info")).format(|buf, record| {
+        let now = Local::now();
+        writeln!(
+            buf,
+            "{} {} [{:>50}] {}",
+            now.format("%Y-%m-%d %H:%M:%S"),
+            record.level(),
+            record.target(),
+            record.args()
+        )
+    }).init();
+
+    m.add_function(wrap_pyfunction!(identify_rna_variants, m)?);
     Ok(())
 }

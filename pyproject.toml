@@ -15,24 +15,25 @@
 requires = [
     "maturin>=0.14,<0.15",
     "pandas>=2.0.3",
-    "numpy>=1.22.3"
+    "numpy>=1.22.3",
+    "pysam>=0.22.0"
 ]
 build-backend = "maturin"
 
 [project]
 name = "exacto"
-version = "0.2.0"
+version = "0.3.0"
 requires-python = ">=3.10"
 keywords = [
     "long-read",
+    "rna",
     "cancer",
+    "rna variant calling",
     "somatic variants",
     "structural variants",
     "variant transcripts",
-    "dna",
-    "rna",
-    "quantification",
-    "identification",
+    "variant rna",
+    "chimeric transcripts",
     "neoantigens"
 ]
 classifiers = [
@@ -45,4 +46,4 @@ classifiers = [
 python-source = "python"
 
 [project.scripts]
-exacto = "exacto.cli.cli_main:run"
+exacto = "exactolib.cli.cli_main:run"

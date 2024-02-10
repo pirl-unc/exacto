@@ -1,1 +1,1 @@
-pytest --cov-report=term-missing --cov=exacto test/
+pytest --cov-report=term-missing --cov=exactolib test/

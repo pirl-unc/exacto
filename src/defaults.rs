@@ -11,13 +11,14 @@
 // limitations under the License.
 
 
-pub const BREAKPOINT: &str = "BND";
-pub const DELETION: &str = "DEL";
-pub const DUPLICATION: &str = "DUP";
-pub const INSERTION: &str = "INS";
-pub const INVERSION: &str = "INV";
-pub const MULTI_NUCLEOTIDE_VARIANT: &str = "MNV";
-pub const REFERENCE: &str = "REF";
-pub const SINGLE_NUCLEOTIDE_VARIANT: &str = "SNV";
-pub const SPLICING: &str = "SPL";
-pub const TRANSLOCATION: &str = "TRA";
+// Minimum insertion size proportion between two insertions
+// size proportion = smaller insertion size / longer insertion size
+pub const MIN_INS_SIZE_PROPORTION: f64 = 0.5;
+
+// Maximum insertion normalized edit (levenshtein) distance
+// normalized edit distance = edit distance / longer insertion size
+pub const MAX_INS_NORM_EDIT_DISTANCE: f64 = 0.5;
+
+// Minimum deletion size proportion between two deletions
+// size proportion = smaller deletion / longer deletion
+pub const MIN_DEL_SIZE_PROPORTION: f64 = 0.5;

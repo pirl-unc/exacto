@@ -16,8 +16,9 @@ use serde::{Serialize, Deserialize};
 
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct VariantCall {
+pub struct VariantRecord {
     pub id: String,
+    pub read_id: String,
     pub chromosome_1: String,
     pub position_1: isize,
     pub chromosome_2: String,
@@ -25,13 +26,13 @@ pub struct VariantCall {
     pub variant_type: String,
     pub reference_allele: String,
     pub alternate_allele: String,
-    pub variant_size: isize,
-    pub alternate_allele_read_ids: Vec<String>
+    pub variant_size: isize
 }
 
-impl VariantCall {
+impl VariantRecord {
     pub fn new(
         id: String,
+        read_id: String,
         chromosome_1: String,
         position_1: isize,
         chromosome_2: String,
@@ -43,6 +44,7 @@ impl VariantCall {
     ) -> Self {
         Self {
             id: id,
+            read_id: read_id,
             chromosome_1: chromosome_1,
             position_1: position_1,
             chromosome_2: chromosome_2,
@@ -50,20 +52,16 @@ impl VariantCall {
             variant_type: variant_type,
             reference_allele: reference_allele,
             alternate_allele: alternate_allele,
-            variant_size: variant_size,
-            alternate_allele_read_ids: Vec::new()
+            variant_size: variant_size
         }
-    }
-
-    pub fn add_alternate_allele_read_id(&mut self, alternate_allele_read_id: String) {
-        self.alternate_allele_read_ids.push(alternate_allele_read_id);
     }
 }
 
-impl Clone for VariantCall {
+impl Clone for VariantRecord {
     fn clone(&self) -> Self {
-        VariantCall {
+        VariantRecord {
             id: self.id.clone(),
+            read_id: self.read_id.clone(),
             chromosome_1: self.chromosome_1.clone(),
             position_1: self.position_1,
             chromosome_2: self.chromosome_2.clone(),
@@ -71,8 +69,7 @@ impl Clone for VariantCall {
             variant_type: self.variant_type.clone(),
             reference_allele: self.reference_allele.clone(),
             alternate_allele: self.alternate_allele.clone(),
-            variant_size: self.variant_size,
-            alternate_allele_read_ids: self.alternate_allele_read_ids.clone()
+            variant_size: self.variant_size
         }
     }
 }
