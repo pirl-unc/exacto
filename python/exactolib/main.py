@@ -17,11 +17,16 @@ The purpose of this python3 script is to implement Exacto's main APIs.
 
 
 import json
+import multiprocessing as mp
+import numpy as np
 import pysam
+from functools import partial
 from typing import List, Tuple
 from .default import *
 from .logging import get_logger
+from .mutant_peptide_call import MutantPeptideCall
 from .utilities import get_chromosomes
+from .translation import translate_rna_variant
 from .variant_call import VariantCall
 from exactolib import exactolibrs
 
@@ -29,21 +34,25 @@ from exactolib import exactolibrs
 logger = get_logger(__name__)
 
 
-def identify_rna_variants(
+def call_dna_variants(
         bam_file: str,
+        sample_id: str,
         min_reads: int,
         min_mapping_quality: int,
         num_threads: int,
-        min_ins_size_proportion: float = IDENTIFY_MIN_INS_SIZE_PROPORTION,
-        max_ins_norm_edit_distance: float = IDENTIFY_MAX_INS_NORM_EDIT_DISTANCE,
-        min_del_size_proportion: float = IDENTIFY_MIN_DEL_SIZE_PROPORTION,
+        min_ins_size_proportion: float = CALL_RNA_VARS_MIN_INS_SIZE_PROPORTION,
+        max_ins_norm_edit_distance: float = CALL_RNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
+        min_del_size_proportion: float = CALL_RNA_VARS_MIN_DEL_SIZE_PROPORTION,
+        max_bnd_distance: int = CALL_DNA_VARS_MAX_BND_DISTANCE,
+        clustering_grid_size: int = CALL_DNA_VARS_CLUSTERING_GRID_SIZE,
         chromosomes: List[str] = None
 ) -> List[VariantCall]:
     """
-    Call RNA variants in a long-read RNA-seq BAM file.
+    Call DNA variants in a long-read WGS BAM file.
 
     Parameters:
         bam_file                    :   BAM file.
+        sample_id                   :   Sample ID.
         min_reads                   :   Minimum number of reads.
         min_mapping_quality         :   Minimum mapping quality.
         num_threads                 :   Number of threads.
@@ -56,6 +65,10 @@ def identify_rna_variants(
         min_del_size_proportion     :   Minimum deletion size proportion between
                                         two deletions. Size proportion = smaller
                                         deletion size / longer deletion size.
+        max_bnd_distance            :   Maximum BND distance. Softclipped breakpoints
+                                        within this distance will be merged into a common
+                                        variant call.
+        clustering_grid_size        :   Clustering grid size.
         chromosomes                 :   Chromosomes to call variants
                                         (if unspecified, variants are called in all
                                         chromosomes).
@@ -65,14 +78,17 @@ def identify_rna_variants(
     """
     if chromosomes is None:
         chromosomes = get_chromosomes(bam_file=bam_file)
-    json_str = exactolibrs.identify_rna_variants(
+    json_str = exactolibrs.call_dna_variants(
         bam_file,
+        sample_id,
         min_reads,
         min_mapping_quality,
-        num_threads,
         min_ins_size_proportion,
         max_ins_norm_edit_distance,
         min_del_size_proportion,
+        max_bnd_distance,
+        clustering_grid_size,
+        num_threads,
         chromosomes
     )
     variant_calls = []
@@ -80,3 +96,98 @@ def identify_rna_variants(
         variant_call = VariantCall(**data)
         variant_calls.append(variant_call)
     return variant_calls
+
+
+def call_rna_variants(
+        bam_file: str,
+        sample_id: str,
+        min_reads: int,
+        min_mapping_quality: int,
+        num_threads: int,
+        min_ins_size_proportion: float = CALL_RNA_VARS_MIN_INS_SIZE_PROPORTION,
+        max_ins_norm_edit_distance: float = CALL_RNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
+        min_del_size_proportion: float = CALL_RNA_VARS_MIN_DEL_SIZE_PROPORTION,
+        max_bnd_distance: int = CALL_RNA_VARS_MAX_BND_DISTANCE,
+        clustering_grid_size: int = CALL_RNA_VARS_CLUSTERING_GRID_SIZE,
+        chromosomes: List[str] = None
+) -> List[VariantCall]:
+    """
+    Call RNA variants in a long-read RNA-seq BAM file.
+
+    Parameters:
+        bam_file                    :   BAM file.
+        sample_id                   :   Sample ID.
+        min_reads                   :   Minimum number of reads.
+        min_mapping_quality         :   Minimum mapping quality.
+        num_threads                 :   Number of threads.
+        min_ins_size_proportion     :   Minimum insertion size proportion between
+                                        two insertions. Size proportion = smaller
+                                        insertion size / longer insertion size.
+        max_ins_norm_edit_distance  :   Maximum insertion normalized edit
+                                        (Levenshtein) distance. Normalized edit
+                                        distance = edit distance / longer insertion size.
+        min_del_size_proportion     :   Minimum deletion size proportion between
+                                        two deletions. Size proportion = smaller
+                                        deletion size / longer deletion size.
+        max_bnd_distance            :   Maximum BND distance. Softclipped breakpoints
+                                        within this distance will be merged into a common
+                                        variant call.
+        clustering_grid_size        :   Clustering grid size.
+        chromosomes                 :   Chromosomes to call variants
+                                        (if unspecified, variants are called in all
+                                        chromosomes).
+
+    Returns:
+        List[VariantCall]
+    """
+    if chromosomes is None:
+        chromosomes = get_chromosomes(bam_file=bam_file)
+    json_str = exactolibrs.call_rna_variants(
+        bam_file,
+        sample_id,
+        min_reads,
+        min_mapping_quality,
+        min_ins_size_proportion,
+        max_ins_norm_edit_distance,
+        min_del_size_proportion,
+        max_bnd_distance,
+        clustering_grid_size,
+        num_threads,
+        chromosomes
+    )
+    variant_calls = []
+    for data in json.loads(json_str):
+        variant_call = VariantCall(**data)
+        variant_calls.append(variant_call)
+    return variant_calls
+
+
+def call_pep_variants(
+        rna_variants: List[VariantCall],
+        reference_genome_fasta_file: str,
+        min_k: int,
+        max_k: int,
+        num_processes: int
+) -> List[MutantPeptideCall]:
+    """
+    Call mutant peptide sequences from RNA variants.
+
+    Parameters:
+        rna_variants                    :   List of VariantCall objects.
+        reference_genome_fasta_file     :   Reference genome FASTA file.
+        min_k                           :   Minimum k.
+        max_k                           :   Maximum k.
+        num_processes                   :   Number of processes.
+
+    Returns:
+        List of MutantPeptideCall objects.
+    """
+    mutant_peptide_calls = []
+    with mp.Pool(processes=num_processes) as pool:
+        for k in range(min_k, max_k + 1):
+            func = partial(translate_rna_variant, k, reference_genome_fasta_file)
+            mutant_peptide_calls_ = pool.map(func, rna_variants)
+            for mutant_peptide_call in mutant_peptide_calls_:
+                mutant_peptide_calls.append(mutant_peptide_call)
+    return mutant_peptide_calls
+

@@ -15,7 +15,7 @@ extern crate noodles;
 extern crate noodles_core;
 use noodles::bam as bam;
 use noodles_core::{Region, Position};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 
 pub fn get_chromosomes(bam_file: &str) -> HashMap<usize, (String, usize)> {

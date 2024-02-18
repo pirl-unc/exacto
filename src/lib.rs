@@ -24,15 +24,62 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use std::collections::HashMap;
 use std::io::Write;
+mod clustering;
 mod constants;
 mod defaults;
-mod identification;
+mod variant_identification_dna;
+mod variant_identification_rna;
 mod utilities;
 mod variant_call;
 mod variant_record;
-use identification::call_rna_variants;
+use variant_identification_dna::identify_dna_variants;
+use variant_identification_rna::identify_rna_variants;
 use variant_call::VariantCall;
 use variant_record::VariantRecord;
+
+
+/// This function identifies DNA variants in a long-read WGS BAM file.
+///
+/// # Arguments
+/// * `bam_file`                    -   BAM file.
+/// * `min_reads`                   -   Minimum number of reads.
+/// * `min_mapping_quality`         -   Minimum mapping quality.
+/// * `num_threads`                 -   number of threads.
+/// * `chromosomes`                 -   Chromosomes to call.
+///
+/// # Returns
+/// * `nearby_variants_map`         -   HashMap where key is Variant.id and
+///                                     value is a vector of GenomicRange.id
+#[pyfunction]
+fn call_dna_variants(
+    py: Python,
+    bam_file: String,
+    sample_id: String,
+    min_reads: usize,
+    min_mapping_quality: usize,
+    min_ins_size_proportion: f32,
+    max_ins_norm_edit_distance: f32,
+    min_del_size_proportion: f32,
+    max_bnd_distance: isize,
+    clustering_grid_size: isize,
+    num_threads: usize,
+    chromosomes: Vec<String>) -> PyResult<String> {
+    let variant_calls: Vec<VariantCall> = identify_dna_variants(
+        &bam_file,
+        &sample_id,
+        min_reads,
+        min_mapping_quality,
+        num_threads,
+        min_ins_size_proportion,
+        max_ins_norm_edit_distance,
+        min_del_size_proportion,
+        max_bnd_distance,
+        clustering_grid_size,
+        chromosomes.iter().map(|s| s.as_str()).collect()
+    );
+    let serialized = serde_json::to_string(&variant_calls).expect("Serialization of vector of VariantCall object failed");
+    Ok(serialized)
+}
 
 
 /// This function identifies RNA variants in a long-read RNA-seq BAM file.
@@ -48,30 +95,36 @@ use variant_record::VariantRecord;
 /// * `nearby_variants_map`         -   HashMap where key is Variant.id and
 ///                                     value is a vector of GenomicRange.id
 #[pyfunction]
-fn identify_rna_variants(
+fn call_rna_variants(
     py: Python,
     bam_file: String,
+    sample_id: String,
     min_reads: usize,
     min_mapping_quality: usize,
+    min_ins_size_proportion: f32,
+    max_ins_norm_edit_distance: f32,
+    min_del_size_proportion: f32,
+    max_bnd_distance: isize,
+    clustering_grid_size: isize,
     num_threads: usize,
-    min_ins_size_proportion: f64,
-    max_ins_norm_edit_distance: f64,
-    min_del_size_proportion: f64,
     chromosomes: Vec<String>) -> PyResult<String> {
-    let variant_calls: Vec<VariantCall> = call_rna_variants(
+    let variant_calls: Vec<VariantCall> = identify_rna_variants(
         &bam_file,
+        &sample_id,
         min_reads,
         min_mapping_quality,
         num_threads,
         min_ins_size_proportion,
         max_ins_norm_edit_distance,
         min_del_size_proportion,
+        max_bnd_distance,
+        clustering_grid_size,
         chromosomes.iter().map(|s| s.as_str()).collect()
     );
-
     let serialized = serde_json::to_string(&variant_calls).expect("Serialization of vector of VariantCall object failed");
     Ok(serialized)
 }
+
 
 #[pymodule]
 fn exactolibrs(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -88,6 +141,7 @@ fn exactolibrs(_py: Python, m: &PyModule) -> PyResult<()> {
         )
     }).init();
 
-    m.add_function(wrap_pyfunction!(identify_rna_variants, m)?);
+    m.add_function(wrap_pyfunction!(call_dna_variants, m)?);
+    m.add_function(wrap_pyfunction!(call_rna_variants, m)?);
     Ok(())
 }

@@ -23,6 +23,8 @@ from typing import Dict, List
 @dataclass
 class VariantCall:
     id: str
+    sample_id: str
+    nucleic_acid: str
     chromosome_1: str
     position_1: int
     chromosome_2: str
@@ -35,14 +37,16 @@ class VariantCall:
 
     def to_dict(self) -> Dict:
         data = {
-            'id': self.id,
+            'variant_call_id': self.id,
+            'sample_id': self.sample_id,
+            'nucleic_acid': self.nucleic_acid,
             'chromosome_1': self.chromosome_1,
             'position_1': self.position_1,
             'chromosome_2': self.chromosome_2,
             'position_2': self.position_2,
             'variant_type': self.variant_type,
             'reference_allele': self.reference_allele,
-            'alterante_allele': self.alternate_allele,
+            'alternate_allele': self.alternate_allele,
             'variant_size': self.variant_size,
             'alternate_allele_read_count': len(self.alternate_allele_read_ids),
             'alternate_allele_read_ids': ';'.join(self.alternate_allele_read_ids)

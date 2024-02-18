@@ -21,3 +21,6 @@ pub const REFERENCE: &str = "REF";
 pub const SINGLE_NUCLEOTIDE_VARIANT: &str = "SNV";
 pub const SPLICING: &str = "SPL";
 pub const TRANSLOCATION: &str = "TRA";
+
+pub const DNA: &str = "DNA";
+pub const RNA: &str = "RNA";

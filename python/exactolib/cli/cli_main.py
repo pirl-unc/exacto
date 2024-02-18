@@ -18,7 +18,8 @@ The purpose of this python3 script is to implement the primary Exacto command.
 
 import argparse
 import exactolib
-from .cli_identify import *
+from .cli_call_rna_vars import *
+from .cli_call_dna_vars import *
 from ..logging import get_logger
 
 
@@ -49,11 +50,14 @@ def init_arg_parser():
 def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
-    sub_parsers = add_cli_identify_arg_parser(sub_parsers=sub_parsers)         # identify
+    sub_parsers = add_cli_call_dna_vars_arg_parser(sub_parsers=sub_parsers)     # call-dna-vars
+    sub_parsers = add_cli_call_rna_vars_arg_parser(sub_parsers=sub_parsers)     # call-rna-vars
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
-    if args.which == 'identify':
-        run_cli_identify_from_parsed_args(args=args)
+    if args.which == 'call-dna-vars':
+        run_cli_call_dna_vars_from_parsed_args(args=args)
+    elif args.which == 'call-rna-vars':
+        run_cli_call_rna_vars_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)

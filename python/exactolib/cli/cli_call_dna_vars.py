@@ -13,7 +13,7 @@
 
 """
 The purpose of this python3 script is to create parser
-and run Paradgm 'identify' command.
+and run Exacto 'call-dna-vars' command.
 """
 
 
@@ -29,9 +29,9 @@ from ..main import *
 logger = get_logger(__name__)
 
 
-def add_cli_identify_arg_parser(sub_parsers) -> argparse._SubParsersAction:
+def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     """
-    Add 'identify' parser.
+    Add 'call-dna-vars' parser.
 
     Parameters
     ----------
@@ -41,7 +41,7 @@ def add_cli_identify_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     -------
     sub_parsers     :   argparse.ArgumentParser subparsers
     """
-    parser = sub_parsers.add_parser('identify', help='Identify RNA variants in a BAM file.')
+    parser = sub_parsers.add_parser('call-dna-vars', help='Call DNA variants in a long-read WGS BAM file.')
     parser._action_groups.pop()
 
     # Required arguments
@@ -52,6 +52,13 @@ def add_cli_identify_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         type=str,
         required=True,
         help="Input BAM file."
+    )
+    parser_required.add_argument(
+        "--sample-id",
+        dest="sample_id",
+        type=str,
+        required=True,
+        help="Sample ID."
     )
     parser_required.add_argument(
         "--output-tsv-file",
@@ -67,10 +74,10 @@ def add_cli_identify_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         "--num-threads",
         dest="num_threads",
         type=int,
-        default=IDENTIFY_NUM_THREADS,
+        default=NUM_THREADS,
         required=False,
         help="Number of threads (default: %i)."
-             % IDENTIFY_NUM_THREADS
+             % NUM_THREADS
     )
     parser_optional.add_argument(
         '--chromosomes',
@@ -84,63 +91,83 @@ def add_cli_identify_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         "--min-reads",
         dest="min_reads",
         type=int,
-        default=IDENTIFY_MIN_READS,
+        default=CALL_DNA_VARS_MIN_READS,
         required=False,
         help="Minimum number of supporting reads (default: %i)."
-             % IDENTIFY_MIN_READS
+             % CALL_DNA_VARS_MIN_READS
     )
     parser_optional.add_argument(
         "--min-mapping-quality",
         dest="min_mapping_quality",
         type=int,
-        default=IDENTIFY_MIN_MAPPING_QUALITY,
+        default=CALL_DNA_VARS_MIN_MAPPING_QUALITY,
         required=False,
         help="Minimum mapping quality (default: %i)."
-             % IDENTIFY_MIN_MAPPING_QUALITY
+             % CALL_DNA_VARS_MIN_MAPPING_QUALITY
     )
     parser_optional.add_argument(
         "--min-ins-size-proportion",
         dest="min_ins_size_proportion",
         type=float,
-        default=IDENTIFY_MIN_INS_SIZE_PROPORTION,
+        default=CALL_DNA_VARS_MIN_INS_SIZE_PROPORTION,
         required=False,
         help="Minimum insertion size proportion between two insertions (default: %f). "
              "Size proportion = smaller insertion size / longer insertion size."
-             % IDENTIFY_MIN_INS_SIZE_PROPORTION
+             % CALL_DNA_VARS_MIN_INS_SIZE_PROPORTION
     )
     parser_optional.add_argument(
         "--max-ins-norm-edit-distance",
         dest="max_ins_norm_edit_distance",
         type=float,
-        default=IDENTIFY_MAX_INS_NORM_EDIT_DISTANCE,
+        default=CALL_DNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
         required=False,
         help="Maximum insertion normalized edit (Levenshtein) distance (default: %f). "
              "Normalized edit distance = edit distance / longer insertion size."
-             % IDENTIFY_MAX_INS_NORM_EDIT_DISTANCE
+             % CALL_DNA_VARS_MAX_INS_NORM_EDIT_DISTANCE
     )
     parser_optional.add_argument(
         "--min-del-size-proportion",
         dest="min_del_size_proportion",
         type=float,
-        default=IDENTIFY_MIN_DEL_SIZE_PROPORTION,
+        default=CALL_DNA_VARS_MIN_DEL_SIZE_PROPORTION,
         required=False,
         help="Minimum deletion size proportion between two deletions (default: %f). "
              "Size proportion = smaller deletion size / longer deletion size."
-             % IDENTIFY_MIN_DEL_SIZE_PROPORTION
+             % CALL_DNA_VARS_MIN_DEL_SIZE_PROPORTION
+    )
+    parser_optional.add_argument(
+        "--max-bnd-distance",
+        dest="max_bnd_distance",
+        type=int,
+        default=CALL_DNA_VARS_MAX_BND_DISTANCE,
+        required=False,
+        help="Maximum BND distance (default: %i). Softclipped breakpoints within this distance will be "
+             "merged into a common variant call."
+             % CALL_DNA_VARS_MAX_BND_DISTANCE
+    )
+    parser_optional.add_argument(
+        "--clustering-grid-size",
+        dest="clustering_grid_size",
+        type=int,
+        default=CALL_DNA_VARS_CLUSTERING_GRID_SIZE,
+        required=False,
+        help="Clustering grid size (default: %i)."
+             % CALL_DNA_VARS_CLUSTERING_GRID_SIZE
     )
 
-    parser.set_defaults(which='identify')
+    parser.set_defaults(which='call-dna-vars')
     return sub_parsers
 
 
-def run_cli_identify_from_parsed_args(args) -> None:
+def run_cli_call_dna_vars_from_parsed_args(args) -> None:
     """
-    Run Exacto 'identify' command using parameters from parsed arguments.
+    Run Exacto 'call-dna-vars' command using parameters from parsed arguments.
 
     Parameters
     ----------
     args    :   An instance of argparse.ArgumentParser with the following variables:
                 bam_file
+                sample_id
                 output_tsv_file
                 num_threads
                 chromosome
@@ -149,19 +176,26 @@ def run_cli_identify_from_parsed_args(args) -> None:
                 min_ins_size_proportion
                 max_ins_norm_edit_distance
                 min_del_size_proportion
+                max_bnd_distance
+                clustering_grid_size
     """
-    variant_calls = identify_rna_variants(
+    variant_calls = call_dna_variants(
         bam_file=args.bam_file,
+        sample_id=args.sample_id,
         min_reads=args.min_reads,
         min_mapping_quality=args.min_mapping_quality,
         num_threads=args.num_threads,
         min_ins_size_proportion=args.min_ins_size_proportion,
         max_ins_norm_edit_distance=args.max_ins_norm_edit_distance,
         min_del_size_proportion=args.min_del_size_proportion,
+        clustering_grid_size=args.clustering_grid_size,
         chromosomes=args.chromosomes
     )
     data = defaultdict(list)
+    variant_idx = 1
     for variant_call in variant_calls:
+        data['variant_id'].append(variant_idx)
+        variant_idx += 1
         for key, value in variant_call.to_dict().items():
             data[key].append(value)
     df_variant_calls = pd.DataFrame(data)
