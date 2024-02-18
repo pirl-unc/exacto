@@ -24,9 +24,7 @@ from functools import partial
 from typing import List, Tuple
 from .default import *
 from .logging import get_logger
-from .mutant_peptide_call import MutantPeptideCall
 from .utilities import get_chromosomes
-from .translation import translate_rna_variant
 from .variant_call import VariantCall
 from exactolib import exactolibrs
 
@@ -160,34 +158,4 @@ def call_rna_variants(
         variant_call = VariantCall(**data)
         variant_calls.append(variant_call)
     return variant_calls
-
-
-def call_pep_variants(
-        rna_variants: List[VariantCall],
-        reference_genome_fasta_file: str,
-        min_k: int,
-        max_k: int,
-        num_processes: int
-) -> List[MutantPeptideCall]:
-    """
-    Call mutant peptide sequences from RNA variants.
-
-    Parameters:
-        rna_variants                    :   List of VariantCall objects.
-        reference_genome_fasta_file     :   Reference genome FASTA file.
-        min_k                           :   Minimum k.
-        max_k                           :   Maximum k.
-        num_processes                   :   Number of processes.
-
-    Returns:
-        List of MutantPeptideCall objects.
-    """
-    mutant_peptide_calls = []
-    with mp.Pool(processes=num_processes) as pool:
-        for k in range(min_k, max_k + 1):
-            func = partial(translate_rna_variant, k, reference_genome_fasta_file)
-            mutant_peptide_calls_ = pool.map(func, rna_variants)
-            for mutant_peptide_call in mutant_peptide_calls_:
-                mutant_peptide_calls.append(mutant_peptide_call)
-    return mutant_peptide_calls
 

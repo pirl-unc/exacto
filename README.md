@@ -1,7 +1,10 @@
 # Exacto
 
-Exacto (**EX**tracting **A**ltered and **C**himeric **T**ranscripts **O**perations) identifies variant 
+Exacto (**E**xacto **A**lterations and **C**himeric **T**ranscripts **O**perations) identifies variant 
 transcripts in aligned long-read RNA reads.
+
+**E**Xacto **A**ccurate **C**alling of **T**ransformations in **O**ncology
+**E**Xacto **A**ccurate **C**aller for  ****ransformations in genomes and transcriptomes
 
 [![build](https://github.com/pirl-unc/exacto/actions/workflows/main.yml/badge.svg)](https://github.com/pirl-unc/exacto/actions/workflows/main.yml)
 
