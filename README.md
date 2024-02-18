@@ -1,6 +1,6 @@
 # Exacto
 
-Exacto (**E**Xacto **A**utomated **C**aller for **T**ransformations in gen**O**mes / transcript**O**mes) 
+Exacto (**EX**acto **A**utomated **C**aller for **T**ransformations in gen**O**mes / transcript**O**mes) 
 identifies variants in aligned long-read DNA and RNA reads.
 
 [![build](https://github.com/pirl-unc/exacto/actions/workflows/main.yml/badge.svg)](https://github.com/pirl-unc/exacto/actions/workflows/main.yml)
