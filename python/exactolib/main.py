@@ -19,9 +19,11 @@ The purpose of this python3 script is to implement Exacto's main APIs.
 import json
 import multiprocessing as mp
 import numpy as np
+import pandas as pd
 import pysam
 from functools import partial
 from typing import List, Tuple
+from vstolib.annotator import Annotator
 from .default import *
 from .logging import get_logger
 from .utilities import get_chromosomes

@@ -318,7 +318,7 @@ pub fn identify_rna_variants(
         chromosomes_.push(chromosome);
 
         // Step 1. Call variant records
-        info!("Started calling variant records in {} reads", chromosome);
+        info!("Started calling variant records in {}", chromosome);
         let mut variant_records: Vec<VariantRecord> = match identify_rna_variant_records(
             &bam_file, min_mapping_quality, num_threads, chromosomes_) {
             Ok(results) => results,
@@ -327,7 +327,7 @@ pub fn identify_rna_variants(
                 std::process::exit(exitcode::DATAERR);
             }
         };
-        info!("Finished calling variant records in {} reads", chromosome);
+        info!("Finished calling {} variant records in {}", variant_records.len(), chromosome);
 
         // Step 2. Cluster variant records into variant calls
         info!("Started clustering variant records in {}", chromosome);

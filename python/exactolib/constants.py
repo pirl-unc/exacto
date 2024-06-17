@@ -16,17 +16,6 @@ The purpose of this python3 script is to define Exacto constants.
 """
 
 
-class NucleicAcidTypes:
-    DNA = 'dna'
-    RNA = 'rna'
-    DNA_RNA = 'dna_rna'
-    ALL = [
-        DNA,
-        RNA,
-        DNA_RNA
-    ]
-
-
 class VariantTypes:
     SINGLE_NUCLEOTIDE_VARIANT = 'SNV'   # DNA
     MULTI_NUCLEOTIDE_VARIANT = 'MNV'    # DNA

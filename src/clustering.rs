@@ -32,7 +32,7 @@ use regex::Regex;
 use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet};
 use std::process;
-use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
+// use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
 use crate::constants::*;
 use crate::defaults::*;
 use crate::utilities::get_chromosomes;
@@ -116,7 +116,7 @@ impl UnionFind {
     }
 }
 
-pub fn can_cluster(
+pub fn can_cluster_variant_records(
     variant_record_1: &VariantRecord,
     variant_record_2: &VariantRecord,
     max_distance: isize,
@@ -200,9 +200,9 @@ pub fn cluster_variant_records(
         .unwrap();
 
     // Step 1. Create grids
-    // key      =   (column,row,variant_type)
+    // key      =   (position_1,position_2,variant_type)
     // value    =   Vec<&VariantRecord>
-    info!("Started creating grid map");
+    info!("Started creating a grid map");
     let mut grid_map: HashMap<(isize,isize,String), Vec<&VariantRecord>> = HashMap::new();
     for variant_record in variant_records.iter() {
         let cell_key: (isize,isize,String) = (variant_record.position_1 as isize / grid_size,
@@ -212,9 +212,8 @@ pub fn cluster_variant_records(
                 .or_insert(Vec::new())
                 .push(variant_record);
     }
-    info!("Finished creating grid map");
     let num_cells: usize = grid_map.len();
-    info!("{} cells (keys) in the grid map", num_cells);
+    info!("Finished creating a grid map of {} cells (keys)", num_cells);
 
     // Step 2. Sort Vec<VariantRecord> by VariantRecord.position_1
     thread_pool.install(|| {
@@ -225,36 +224,43 @@ pub fn cluster_variant_records(
 
     // Step 3. Create VariantCall objects
     info!("Started creating VariantCall objects");
-    let counter = Arc::new(AtomicUsize::new(0)); // Shared counter
+//     let counter = Arc::new(AtomicUsize::new(0)); // Shared counter
     let variant_calls_list: Vec<Vec<VariantCall>> = thread_pool.install(|| {
         grid_map.par_iter().map(|(cell_key, variant_records_)| {
+            let variant_type = &cell_key.2;
             // Create a HashMap of variant records
             // key      =   VariantRecord.id
             // value    =   VariantRecord
             let mut map: HashMap<&str, &VariantRecord> = HashMap::new();
             let mut uf = UnionFind::new();
-
             // Cluster within the cell
             for i in 0..variant_records_.len() {
                 map.insert(variant_records_[i].id.as_str(), variant_records_[i]);
-                uf.union(&variant_records_[i].id,&variant_records_[i].id);
+                uf.union(&variant_records_[i].id, &variant_records_[i].id);
                 // Maximum clustering distance is a function of the variant size
                 // if the variant type is SNV, INS or DEL. If the variant type
                 // is BND, then use max_bnd_distance.
                 let mut max_distance: isize = 0;
-                if &variant_records_[i].variant_type == BREAKPOINT {
-                    max_distance = max_bnd_distance as isize;
+                if variant_type == BREAKPOINT {
+                    max_distance = max_bnd_distance;
+                } else if variant_type == SINGLE_NUCLEOTIDE_VARIANT || variant_type == SPLICING {
+                    max_distance = 0;
                 } else {
                     max_distance = (variant_records_[i].variant_size as f32).log2().floor() as isize;
                 }
                 for j in (i + 1)..variant_records_.len() {
+                    if max_distance == 0 {
+                        if variant_records_[i].position_1 != variant_records_[j].position_1 {
+                            break;
+                        }
+                    }
                     // Break loop if distance_1 is greater than the
                     // maximum distance allowed
                     let distance_1: isize = (variant_records_[i].position_1 as isize - variant_records_[j].position_1 as isize).abs();
                     if distance_1 > max_distance {
                         break;
                     }
-                    if can_cluster(
+                    if can_cluster_variant_records(
                         variant_records_[i],
                         variant_records_[j],
                         max_distance,
@@ -265,15 +271,18 @@ pub fn cluster_variant_records(
                     }
                 }
             }
-
             // Cluster with directly adjacent cells
             // VariantRecord objects in boundaries of cells could be merged
+            // [0,-1], [0,1], [1,-1], [1,0], [1,1]
             let grid_row: isize = cell_key.0;
             let grid_col: isize = cell_key.1;
             let variant_type: &str = cell_key.2.as_str();
-            if variant_type != SINGLE_NUCLEOTIDE_VARIANT {
-                for i in -1..=1 {
+            if variant_type != SINGLE_NUCLEOTIDE_VARIANT && variant_type != SPLICING {
+                for i in 0..=1 {
                     for j in -1..=1 {
+                        if i == 0 && j == 0 {
+                            continue;
+                        }
                         let adj_cell_key: (isize,isize,String) = (grid_row + i, grid_col + j, variant_type.to_string());
                         if grid_map.contains_key(&adj_cell_key) == false {
                             continue;
@@ -284,8 +293,8 @@ pub fn cluster_variant_records(
                                 // if the variant type is SNV, INS or DEL. If the variant type
                                 // is BND, then use max_bnd_distance.
                                 let mut max_distance: isize = 0;
-                                if variant_record_1.variant_type == BREAKPOINT {
-                                    max_distance = max_bnd_distance as isize;
+                                if variant_type == BREAKPOINT {
+                                    max_distance = max_bnd_distance;
                                 } else {
                                     max_distance = (variant_record_1.variant_size as f32).log2().floor() as isize;
                                 }
@@ -296,7 +305,7 @@ pub fn cluster_variant_records(
                                     if distance_1 > max_distance {
                                         break;
                                     }
-                                    if can_cluster(
+                                    if can_cluster_variant_records(
                                         variant_record_1,
                                         variant_record_2,
                                         max_distance,
@@ -312,7 +321,6 @@ pub fn cluster_variant_records(
                     }
                 }
             }
-
             // Create common VariantCall objects
             let mut variant_calls: Vec<VariantCall> = Vec::new();
             for variant_record_ids in uf.clusters().iter() {
@@ -388,24 +396,33 @@ pub fn cluster_variant_records(
                 }
                 variant_calls.push(variant_call);
             }
-            let current_count = counter.fetch_add(1, Ordering::SeqCst) + 1; // fetch_add returns the previous value
-            if current_count % 10000 == 0 {
-                info!("Processed {}/{} cells", current_count, num_cells);
-            }
+//             let current_count = counter.fetch_add(1, Ordering::SeqCst) + 1; // fetch_add returns the previous value
+//             if current_count % 10000 == 0 {
+//                 info!("Processed {}/{} cells", current_count, num_cells);
+//             }
             variant_calls
         })
         .collect()
     });
     info!("Finished creating VariantCall objects");
 
-    // Step 4. Consolidate VariantCall objects
+    // Consolidate VariantCall objects
     info!("Started consolidating VariantCall objects");
-    let mut unique_ids = HashSet::new();
-    let unique_variant_calls: Vec<VariantCall> = variant_calls_list
-        .into_iter()
-        .flat_map(|vec| vec.into_iter())                                    // Flatten the Vec<Vec<VariantCall>> to Vec<VariantCall>
-        .filter(|variant_call| unique_ids.insert(variant_call.id.clone()))  // Filter unique VariantCalls by id
-        .collect();                                                         // Collect the unique VariantCalls into a Vec
-    info!("Finished consolidating VariantCall objects");
+    let mut unique_variant_call_ids: HashSet<&str> = HashSet::new();
+    let mut unique_variant_calls: Vec<VariantCall> = Vec::new();
+    for variant_calls in variant_calls_list.iter() {
+        for variant_call in variant_calls.iter() {
+            if unique_variant_call_ids.contains(variant_call.id.as_str()) == false {
+                unique_variant_calls.push(variant_call.clone());
+                unique_variant_call_ids.insert(variant_call.id.as_str());
+            }
+        }
+    }
+//     let unique_variant_calls: Vec<VariantCall> = variant_calls_list
+//         .into_iter()
+//         .flat_map(|vec| vec.into_iter())                                    // Flatten the Vec<Vec<VariantCall>> to Vec<VariantCall>
+//         .filter(|variant_call| unique_ids.insert(variant_call.id.clone()))  // Filter unique VariantCalls by id
+//         .collect();                                                         // Collect the unique VariantCalls into a Vec
+
     return unique_variant_calls;
 }

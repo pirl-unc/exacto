@@ -30,13 +30,12 @@ def init_arg_parser():
     """
     Initialize the input argument parser.
 
-    Returns
-    -------
-    argparse.ArgumentParser object
-    argparse.ArgumentParser subparsers object
+    Returns:
+        argparse.ArgumentParser object
+        argparse.ArgumentParser subparsers object
     """
     arg_parser = argparse.ArgumentParser(
-        description="Exacto: EXtracting Altered and Chimeric Transcripts Operations."
+        description="Exacto: EXacto Automated Caller for Transformations in genOmes / transcriptOmes."
     )
     arg_parser.add_argument(
         '--version', '-v',

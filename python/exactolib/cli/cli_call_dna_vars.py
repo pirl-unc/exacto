@@ -33,13 +33,11 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     """
     Add 'call-dna-vars' parser.
 
-    Parameters
-    ----------
-    sub_parsers     :  argparse.ArgumentParser subparsers.
+    Parameters:
+        sub_parsers     :  argparse.ArgumentParser subparsers.
 
-    Returns
-    -------
-    sub_parsers     :   argparse.ArgumentParser subparsers
+    Returns:
+        sub_parsers     :   argparse.ArgumentParser subparsers
     """
     parser = sub_parsers.add_parser('call-dna-vars', help='Call DNA variants in a long-read WGS BAM file.')
     parser._action_groups.pop()
@@ -74,10 +72,10 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         "--num-threads",
         dest="num_threads",
         type=int,
-        default=NUM_THREADS,
+        default=CALL_DNA_VARS_NUM_THREADS,
         required=False,
         help="Number of threads (default: %i)."
-             % NUM_THREADS
+             % CALL_DNA_VARS_NUM_THREADS
     )
     parser_optional.add_argument(
         '--chromosomes',
@@ -163,21 +161,20 @@ def run_cli_call_dna_vars_from_parsed_args(args) -> None:
     """
     Run Exacto 'call-dna-vars' command using parameters from parsed arguments.
 
-    Parameters
-    ----------
-    args    :   An instance of argparse.ArgumentParser with the following variables:
-                bam_file
-                sample_id
-                output_tsv_file
-                num_threads
-                chromosome
-                min_reads
-                min_mapping_quality
-                min_ins_size_proportion
-                max_ins_norm_edit_distance
-                min_del_size_proportion
-                max_bnd_distance
-                clustering_grid_size
+    Parameters:
+        args    :   An instance of argparse.ArgumentParser with the following variables:
+                    bam_file
+                    sample_id
+                    output_tsv_file
+                    num_threads
+                    chromosome
+                    min_reads
+                    min_mapping_quality
+                    min_ins_size_proportion
+                    max_ins_norm_edit_distance
+                    min_del_size_proportion
+                    max_bnd_distance
+                    clustering_grid_size
     """
     variant_calls = call_dna_variants(
         bam_file=args.bam_file,
