@@ -1,3 +1,4 @@
+import os
 import pysam
 import random
 
@@ -22,41 +23,40 @@ def reverse_complement(sequence):
 if __name__ == "__main__":
     fasta = pysam.FastaFile(HG38_FASTA_FILE)
 
-    # TMPRSS2 - ERG
+    # Step 1. Get TMPRSS2-ERG translocation sequence
     tmprss2_sequence = reverse_complement(sequence=fasta.fetch("chr21", 41494453, 41508065))
     erg_sequence = reverse_complement(sequence=fasta.fetch("chr21", 38380027, 38391687))
-    sequence = tmprss2_sequence + erg_sequence
+    sequence_1 = tmprss2_sequence + erg_sequence
 
-    with open('outputs/hg38_tmprss2-erg_egfr_tumor_long_read_dna.fastq', 'w') as f:
-        for i in range(0, 60):
-            read_id = '@m64012_%i_%i/%i/ccs' % (random.randint(100000,999999),
-                                                random.randint(100000,999999),
-                                                i+1)
-            base_quality_scores = [chr(96) for _ in range(0,len(sequence))]
-            base_quality_scores = ''.join(base_quality_scores)
-            f.write(read_id + '\n')
-            f.write(sequence + '\n')
-            f.write('+\n')
-            f.write(base_quality_scores + '\n')
-
-    # EGFR
+    # Step 2. Get EGFR sequence
     egfr_sequence_1 = fasta.fetch("chr7", 55019000, 55020000)
     egfr_sequence_2 = fasta.fetch("chr7", 55050000, 55055000)
     egfr_sequence_3 = fasta.fetch("chr7", 55105000, 55110000)
-    sequence = egfr_sequence_1 + egfr_sequence_2 + egfr_sequence_3
+    sequence_2 = egfr_sequence_1 + egfr_sequence_2 + egfr_sequence_3
 
-    with open('outputs/hg38_tmprss2-erg_egfr_tumor_long_read_dna.fastq', 'a') as f:
+    # Step 3. Write to FASTQ file
+    output_file = '../../../test/data/fastq/hg38_tumor_long_read_dna_1.fastq'
+    with open(output_file, 'w') as f:
         for i in range(0, 60):
             read_id = '@m64012_%i_%i/%i/ccs' % (random.randint(100000,999999),
                                                 random.randint(100000,999999),
                                                 i+1)
-            base_quality_scores = [chr(96) for _ in range(0,len(sequence))]
+            base_quality_scores = [chr(96) for _ in range(0,len(sequence_1))]
             base_quality_scores = ''.join(base_quality_scores)
             f.write(read_id + '\n')
-            f.write(sequence + '\n')
+            f.write(sequence_1 + '\n')
             f.write('+\n')
             f.write(base_quality_scores + '\n')
-
-
+        for i in range(0, 60):
+            read_id = '@m64012_%i_%i/%i/ccs' % (random.randint(100000,999999),
+                                                random.randint(100000,999999),
+                                                i+1)
+            base_quality_scores = [chr(96) for _ in range(0,len(sequence_2))]
+            base_quality_scores = ''.join(base_quality_scores)
+            f.write(read_id + '\n')
+            f.write(sequence_2 + '\n')
+            f.write('+\n')
+            f.write(base_quality_scores + '\n')
+    os.system('gzip %s' % output_file)
 
 

@@ -1,10 +1,11 @@
+import os
 import pysam
 import random
 
 
 if __name__ == "__main__":
-    fasta = pysam.FastaFile("data/hg38_tp53_ ENST00000269305_rna.fasta")
-    ref_sequence = fasta.fetch("NM_000546.6", 0, fasta.lengths[0])
+    fasta = pysam.FastaFile("../../../test/data/fasta/hg38_tp53_rna.fa")
+    ref_sequence = fasta.fetch("ENST00000269305.9", 0, fasta.lengths[0])
     var_sequence = list(str(ref_sequence))
 
     # Point mutations
@@ -27,7 +28,8 @@ if __name__ == "__main__":
     var_sequence = ''.join(var_sequence)
     ref_sequence = ''.join(ref_sequence)
 
-    with open('hg38_tp53_variants_rna.fastq', 'w') as f:
+    output_file = '../../../test/data/fastq/hg38_tumor_long_read_rna_1.fastq'
+    with open(output_file, 'w') as f:
         for i in range(0, 100):
             read_id = '@m64013_%i_%i/%i/ccs' % (random.randint(100000,999999),
                                                 random.randint(100000,999999),
@@ -49,3 +51,4 @@ if __name__ == "__main__":
             f.write(ref_sequence + '\n')
             f.write('+\n')
             f.write(base_quality_scores + '\n')
+    os.system('gzip %s' % output_file)
