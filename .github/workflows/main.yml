@@ -29,19 +29,13 @@ jobs:
         sudo rm -rf /tmp/*
 
         # Install conda packages
-        conda env list
-        conda info
-        conda config --add channels defaults
-        conda config --add channels bioconda
-        conda config --add channels conda-forge
-        conda config --set channel_priority strict
-        conda install rust
-        conda install pandas
-        conda install pysam
-        conda install pylint
-        conda install coveralls
-        conda install pytest
-        conda install pytest-cov
+        pip install pysam==0.23.0
+        conda install -c conda-forge rust==1.86.0
+        conda install -c anaconda pandas==2.2.3
+        conda install -c anaconda pylint==3.3.5
+        conda install -c conda-forge coveralls==4.0.1
+        conda install -c conda-forge pytest==8.3.5
+        conda install -c conda-forge pytest-cov==6.1.1
   
         # Install exacto
         pip install . --verbose
