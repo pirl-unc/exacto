@@ -1,34 +1,35 @@
 [package]
 name = "exactolib"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 
 [package.metadata.maturin]
 name = "exactolib.exactolibrs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "exactolib"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.17.3", features = ["extension-module"] }
 bstr = "1.9.0"
 chrono = "0.4"
-edit-distance = "2.1.0"
 env_logger = "0.9"
+exacto = { path = "exacto/exacto", version = "0.4.0" }
 exitcode = "1.1.2"
+flate2 = "1.0.35"
 log = "0.4"
-noodles = { version = "0.62.1", features = ["bam"] }
-noodles-core = "0.14.0"
-noodles-sam = "0.51.0"
-rayon = "1.8.0"
-regex = "1.7.0"
+noodles-bgzf = "0.34.0"
+noodles-fasta = "0.46.0"
+noodles-fastq = "0.16.0"
+polars = { version = "0.45.0", features = ["csv", "ipc", "lazy", "parquet"] }
+pyo3 = { version = "0.22.0", features = ["extension-module"] }
+pyo3-polars = "0.19.0"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+sysinfo = "0.32.0"
+tempfile = "3.6"
 
 [profile.dev]
-opt-level = 1
+opt-level = 0
 debug = true
 overflow-checks = true
 panic = 'unwind'
@@ -38,8 +39,8 @@ codegen-units = 256
 [profile.release]
 opt-level = 3
 debug = false
-lto = false
+lto = true
 overflow-checks = false
 panic = 'unwind'
-incremental = false
-codegen-units = 16
+incremental = true
+codegen-units = 1

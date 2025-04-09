@@ -1,0 +1,183 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+use bimap::BiMap;
+use serde::{Serialize, Deserialize};
+use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
+
+use crate::prelude::*;
+
+
+#[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
+pub struct VariantCall {
+    pub variant_records: HashSet<VariantRecord>
+}
+
+impl Hash for VariantCall {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let variant_record: &VariantRecord = self.get_consensus_record().0;
+        variant_record.sequence_operation.chromosome_1.hash(state);
+        variant_record.sequence_operation.position_1.hash(state);
+        variant_record.sequence_operation.operation_1.hash(state);
+        variant_record.sequence_operation.chromosome_2.hash(state);
+        variant_record.sequence_operation.position_2.hash(state);
+        variant_record.sequence_operation.operation_2.hash(state);
+        variant_record.sequence_operation.variant_type.hash(state);
+        let mut read_ids: Vec<usize> = Vec::new();
+        for variant_record in self.variant_records.iter() {
+            read_ids.push(variant_record.read_id);
+        }
+        read_ids.sort();
+        for read_id in read_ids.iter() {
+            read_id.hash(state);
+        }
+    }
+}
+
+impl VariantCall {
+    pub fn new() -> Self {
+        Self {
+            variant_records: HashSet::new()
+        }
+    }
+
+    pub fn add_variant_record(&mut self, variant_record: VariantRecord) {
+        self.variant_records.insert(variant_record);
+    }
+
+    pub fn get_read_ids(&self) -> Vec<usize> {
+        self.variant_records
+            .iter()
+            .map(|record| record.read_id.clone())
+            .collect()
+    }
+
+    pub fn get_read_names(&self, read_names_map: &HashMap<usize,Box<str>>) -> Vec<Box<str>> {
+        self.variant_records
+            .iter()
+            .map(|record| read_names_map.get(&record.read_id).unwrap().clone())
+            .collect()
+    }
+
+    /// Get the consensus VariantRecord object for this VariantCall object.
+    ///
+    /// # Returns
+    ///
+    /// (VariantRecord,read IDs).
+    pub fn get_consensus_record(&self) -> (&VariantRecord,Vec<usize>) {
+        let mut map: HashMap<(u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes),Vec<&VariantRecord>> = HashMap::new();
+        for variant_record in self.variant_records.iter() {
+            let key: (u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes) = (
+                variant_record.sequence_operation.chromosome_1,
+                variant_record.sequence_operation.position_1,
+                variant_record.sequence_operation.operation_1.clone(),
+                variant_record.sequence_operation.chromosome_2,
+                variant_record.sequence_operation.position_2,
+                variant_record.sequence_operation.operation_2.clone(),
+                variant_record.sequence_operation.sequence.clone(),
+                variant_record.sequence_operation.variant_type.clone()
+            );
+            map
+                .entry(key)
+                .or_insert(Vec::new())
+                .push(variant_record);
+        }
+        let max_vec = map
+            .iter()
+            .max_by_key(|(_, v)| v.len())
+            .expect("self.variant_records is empty.")
+            .1;
+        (max_vec[0], max_vec.iter().map(|v| v.read_id).collect())
+    }
+
+    pub fn get_named_consensus_record(&self, read_names_map: &BiMap<Box<str>,usize>) -> (&VariantRecord,Vec<Box<str>>) {
+        let mut map: HashMap<(u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes),Vec<&VariantRecord>> = HashMap::new();
+        for variant_record in self.variant_records.iter() {
+            let key: (u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes) = (
+                variant_record.sequence_operation.chromosome_1,
+                variant_record.sequence_operation.position_1,
+                variant_record.sequence_operation.operation_1.clone(),
+                variant_record.sequence_operation.chromosome_2,
+                variant_record.sequence_operation.position_2,
+                variant_record.sequence_operation.operation_2.clone(),
+                variant_record.sequence_operation.sequence.clone(),
+                variant_record.sequence_operation.variant_type.clone()
+            );
+            map
+                .entry(key)
+                .or_insert(Vec::new())
+                .push(variant_record);
+        }
+        let max_vec = map
+            .iter()
+            .max_by_key(|(_, v)| v.len())
+            .expect("self.variant_records is empty.")
+            .1;
+        (max_vec[0], max_vec.iter().map(|v| read_names_map.get_by_right(&v.read_id).unwrap().clone()).collect())
+    }
+
+    pub fn get_sequence_operation_boxed_str(&self) -> Vec<Box<str>> {
+        self.variant_records
+            .iter()
+            .map(|record| record.get_sequence_operation_boxed_str())
+            .collect()
+    }
+
+    pub fn get_sequence_operation_named_boxed_str(&self, chromosome_names_map: &BiMap<Box<str>,u16>) -> Vec<Box<str>> {
+        self.variant_records
+            .iter()
+            .map(|record| record.get_sequence_operation_named_boxed_str(chromosome_names_map))
+            .collect()
+    }
+
+    pub fn to_tsv_string(
+        &self,
+        chromosome_names_map: &BiMap<Box<str>,u16>,
+        read_names_map: &BiMap<Box<str>,usize>
+    ) -> String {
+        let (consensus_record, consensus_read_names) = self.get_named_consensus_record(read_names_map);
+        let chromosome_1: &str = &*chromosome_names_map.get_by_right(&consensus_record.get_chromosome_1()).unwrap();
+        let chromosome_2: &str = &*chromosome_names_map.get_by_right(&consensus_record.get_chromosome_2()).unwrap();
+        let read_names: Vec<&str> = self.get_read_ids()
+            .iter()
+            .map(|read_id| &**read_names_map.get_by_right(read_id).unwrap())
+            .collect();
+        format!(
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            chromosome_1,
+            consensus_record.sequence_operation.position_1,
+            consensus_record.sequence_operation.strand_1.as_str(),
+            consensus_record.sequence_operation.operation_1.as_str(),
+            chromosome_2,
+            consensus_record.sequence_operation.position_2,
+            consensus_record.sequence_operation.strand_2.as_str(),
+            consensus_record.sequence_operation.operation_2.as_str(),
+            consensus_record.get_variant_size() as i64,
+            consensus_record.get_variant_type().as_str().to_string(),
+            &*consensus_record.sequence_operation.sequence,
+            consensus_read_names.join(","),
+            consensus_read_names.len() as u64,
+            read_names.join(","),
+            read_names.len() as u64
+        )
+    }
+}
+
+impl Clone for VariantCall {
+    fn clone(&self) -> Self {
+        VariantCall {
+            variant_records: self.variant_records.clone()
+        }
+    }
+}

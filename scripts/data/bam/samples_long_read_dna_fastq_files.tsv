@@ -1,0 +1,15 @@
+sample_id	fastq_file
+dna-001-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-001-tumor_long-read.fastq.gz
+dna-001-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-001-normal_long-read.fastq.gz
+dna-002-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-002-tumor_long-read.fastq.gz
+dna-002-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-002-normal_long-read.fastq.gz
+dna-003-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-003-tumor_long-read.fastq.gz
+dna-003-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-003-normal_long-read.fastq.gz
+dna-004-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-004-tumor_long-read.fastq.gz
+dna-004-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-004-normal_long-read.fastq.gz
+dna-005-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-005-tumor_long-read.fastq.gz
+dna-005-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-005-normal_long-read.fastq.gz
+dna-006-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-006-tumor_long-read.fastq.gz
+dna-006-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-006-normal_long-read.fastq.gz
+dna-007-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-007-tumor_long-read.fastq.gz
+dna-007-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-007-normal_long-read.fastq.gz

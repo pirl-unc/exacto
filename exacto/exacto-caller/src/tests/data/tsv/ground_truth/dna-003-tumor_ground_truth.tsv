@@ -1,0 +1,2 @@
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence
+3	chr17	7674200	*	D	chr17	7674231	*	U	30	DEL	

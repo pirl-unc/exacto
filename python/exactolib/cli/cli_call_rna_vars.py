@@ -18,12 +18,10 @@ and run Exacto 'call-rna-vars' command.
 
 
 import argparse
-import pandas as pd
-from collections import defaultdict
-from ..constants import *
-from ..default import *
-from ..logging import get_logger
+
+from ..constants import GeneAnnotationSources
 from ..main import *
+from ..utilities import *
 
 
 logger = get_logger(__name__)
@@ -52,18 +50,54 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         help="Input BAM file."
     )
     parser_required.add_argument(
-        "--sample-id",
-        dest="sample_id",
+        "--bam-bai-file",
+        dest="bam_bai_file",
         type=str,
         required=True,
-        help="Sample ID."
+        help="Input BAM.BAI file."
     )
     parser_required.add_argument(
-        "--output-tsv-file",
-        dest="output_tsv_file",
+        "--reference-genome-fasta-file",
+        dest="reference_genome_fasta_file",
         type=str,
         required=True,
-        help="Output TSV file."
+        help="Reference genome FASTA file."
+    )
+    parser_required.add_argument(
+        "--gene-annotation-file",
+        dest="gene_annotation_file",
+        type=str,
+        required=True,
+        help="Reference gene annotation file."
+    )
+    parser_required.add_argument(
+        "--gene-annotation-source",
+        dest="gene_annotation_source",
+        type=str,
+        required=True,
+        help="Reference gene annotation source (choices: %s)." %
+             ','.join(GeneAnnotationSources.ALL)
+    )
+    parser_required.add_argument(
+        "--output-exons-tsv-file",
+        dest="output_exons_tsv_file",
+        type=str,
+        required=True,
+        help="Output exons TSV file."
+    )
+    parser_required.add_argument(
+        "--output-sj-tsv-file",
+        dest="output_sj_tsv_file",
+        type=str,
+        required=True,
+        help="Output splice junctions TSV file."
+    )
+    parser_required.add_argument(
+        "--output-variants-tsv-file",
+        dest="output_variants_tsv_file",
+        type=str,
+        required=True,
+        help="Output variant calls TSV file."
     )
 
     # Optional arguments
@@ -78,21 +112,13 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_RNA_VARS_NUM_THREADS
     )
     parser_optional.add_argument(
-        '--chromosomes',
-        dest='chromosomes',
-        type=str,
-        nargs='+',
+        "--gzip",
+        dest="gzip",
+        type=str2bool,
+        default=CALL_RNA_VARS_GZIP,
         required=False,
-        help='Chromosomes. If unspecified, Exacto identifies variants in all chromosomes.'
-    )
-    parser_optional.add_argument(
-        "--min-reads",
-        dest="min_reads",
-        type=int,
-        default=CALL_RNA_VARS_MIN_READS,
-        required=False,
-        help="Minimum number of supporting reads (default: %i)."
-             % CALL_RNA_VARS_MIN_READS
+        help="If 'yes', gzip the output TSV file (default: %s)."
+             % CALL_RNA_VARS_GZIP
     )
     parser_optional.add_argument(
         "--min-mapping-quality",
@@ -104,55 +130,22 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_RNA_VARS_MIN_MAPPING_QUALITY
     )
     parser_optional.add_argument(
-        "--min-ins-size-proportion",
-        dest="min_ins_size_proportion",
+        "--min-average-base-quality",
+        dest="min_average_base_quality",
         type=float,
-        default=CALL_RNA_VARS_MIN_INS_SIZE_PROPORTION,
+        default=CALL_RNA_VARS_MIN_AVERAGE_BASE_QUALITY,
         required=False,
-        help="Minimum insertion size proportion between two insertions (default: %f). "
-             "Size proportion = smaller insertion size / longer insertion size."
-             % CALL_RNA_VARS_MIN_INS_SIZE_PROPORTION
+        help="Minimum average base quality (default: %f)."
+             % CALL_RNA_VARS_MIN_AVERAGE_BASE_QUALITY
     )
     parser_optional.add_argument(
-        "--max-ins-norm-edit-distance",
-        dest="max_ins_norm_edit_distance",
-        type=float,
-        default=CALL_RNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
+        "--temp-dir",
+        dest="temp_dir",
+        type=str,
+        default="",
         required=False,
-        help="Maximum insertion normalized edit (Levenshtein) distance (default: %f). "
-             "Normalized edit distance = edit distance / longer insertion size."
-             % CALL_RNA_VARS_MAX_INS_NORM_EDIT_DISTANCE
+        help="Temp directory (default: TMPDIR)."
     )
-    parser_optional.add_argument(
-        "--min-del-size-proportion",
-        dest="min_del_size_proportion",
-        type=float,
-        default=CALL_RNA_VARS_MIN_DEL_SIZE_PROPORTION,
-        required=False,
-        help="Minimum deletion size proportion between two deletions (default: %f). "
-             "Size proportion = smaller deletion size / longer deletion size."
-             % CALL_RNA_VARS_MIN_DEL_SIZE_PROPORTION
-    )
-    parser_optional.add_argument(
-        "--max-bnd-distance",
-        dest="max_bnd_distance",
-        type=int,
-        default=CALL_RNA_VARS_MAX_BND_DISTANCE,
-        required=False,
-        help="Maximum BND distance (default: %i). Softclipped breakpoints within this distance will be "
-             "merged into a common variant call."
-             % CALL_RNA_VARS_MAX_BND_DISTANCE
-    )
-    parser_optional.add_argument(
-        "--clustering-grid-size",
-        dest="clustering_grid_size",
-        type=int,
-        default=CALL_RNA_VARS_CLUSTERING_GRID_SIZE,
-        required=False,
-        help="Clustering grid size (default: %i)."
-             % CALL_RNA_VARS_CLUSTERING_GRID_SIZE
-    )
-
     parser.set_defaults(which='call-rna-vars')
     return sub_parsers
 
@@ -164,36 +157,49 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
     Parameters:
         args    :   An instance of argparse.ArgumentParser with the following variables:
                     bam_file
-                    sample_id
-                    output_tsv_file
+                    bam_bai_file
+                    reference_genome_fasta_file
+                    gene_annotation_file
+                    gene_annotation_source
+                    output_exons_tsv_file
+                    output_sj_tsv_file
+                    output_variants_tsv_file
                     num_threads
-                    chromosome
-                    min_reads
+                    gzip
                     min_mapping_quality
-                    min_ins_size_proportion
-                    max_ins_norm_edit_distance
-                    min_del_size_proportion
-                    max_bnd_distance
-                    clustering_grid_size
+                    min_average_base_quality
+                    temp_dir
     """
-    variant_calls = call_rna_variants(
+    if args.gzip:
+        if args.output_exons_tsv_file.endswith('.gz'):
+            output_exons_tsv_file = args.output_exons_tsv_file
+        else:
+            output_exons_tsv_file = args.output_exons_tsv_file + '.gz'
+        if args.output_sj_tsv_file.endswith('.gz'):
+            output_sj_tsv_file = args.output_sj_tsv_file
+        else:
+            output_sj_tsv_file = args.output_sj_tsv_file + '.gz'
+        if args.output_variants_tsv_file.endswith('.gz'):
+            output_variants_tsv_file = args.output_variants_tsv_file
+        else:
+            output_variants_tsv_file = args.output_variants_tsv_file + '.gz'
+    else:
+        output_exons_tsv_file = args.output_exons_tsv_file
+        output_sj_tsv_file = args.output_sj_tsv_file
+        output_variants_tsv_file = args.output_variants_tsv_file
+
+    identify_rna_variants(
         bam_file=args.bam_file,
-        sample_id=args.sample_id,
-        min_reads=args.min_reads,
+        bam_bai_file=args.bam_bai_file,
+        reference_genome_fasta_file=args.reference_genome_fasta_file,
+        gene_annotation_file=args.gene_annotation_file,
+        gene_annotation_source=args.gene_annotation_source,
+        output_exons_tsv_file=output_exons_tsv_file,
+        output_sj_tsv_file=output_sj_tsv_file,
+        output_variants_tsv_file=output_variants_tsv_file,
+        gzip=args.gzip,
         min_mapping_quality=args.min_mapping_quality,
+        min_average_base_quality=args.min_average_base_quality,
         num_threads=args.num_threads,
-        min_ins_size_proportion=args.min_ins_size_proportion,
-        max_ins_norm_edit_distance=args.max_ins_norm_edit_distance,
-        min_del_size_proportion=args.min_del_size_proportion,
-        clustering_grid_size=args.clustering_grid_size,
-        chromosomes=args.chromosomes
+        temp_dir=args.temp_dir
     )
-    data = defaultdict(list)
-    variant_idx = 1
-    for variant_call in variant_calls:
-        data['variant_id'].append(variant_idx)
-        variant_idx += 1
-        for key, value in variant_call.to_dict().items():
-            data[key].append(value)
-    df_variant_calls = pd.DataFrame(data)
-    df_variant_calls.to_csv(args.output_tsv_file, sep='\t', index=False)

@@ -1,0 +1,17 @@
+[package]
+name = "exacto"
+version = "0.4.0"
+edition = "2021"
+authors = ["Jin Seok Lee <ajslee@unc.edu>"]
+rust-version.workspace = true
+description = "Exacto"
+homepage = "https://github.com/pirl-unc/exacto/tree/main/rust"
+repository = "https://github.com/pirl-unc/exacto/tree/main/rust"
+documentation = "https://docs.rs/exacto"
+license = "MIT"
+
+[dependencies]
+exacto-caller = { path = "../exacto-caller", version = "0.4.0" }
+exacto-graph = { path = "../exacto-graph", version = "0.4.0" }
+exacto-translator = { path = "../exacto-translator", version = "0.4.0" }
+exacto-util = { path = "../exacto-util", version = "0.4.0" }

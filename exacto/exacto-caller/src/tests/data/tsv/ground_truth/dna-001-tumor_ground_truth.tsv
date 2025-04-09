@@ -1,0 +1,2 @@
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence
+1	chr17	7674224	*	D	chr17	7674226	*	U	1	SNV	A

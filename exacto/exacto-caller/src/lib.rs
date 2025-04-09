@@ -1,0 +1,31 @@
+extern crate bimap;
+extern crate bstr;
+extern crate chrono;
+extern crate edit_distance;
+extern crate env_logger;
+extern crate exacto_util;
+extern crate flate2;
+extern crate interavl;
+extern crate log;
+extern crate noodles_bam;
+extern crate noodles_bgzf;
+extern crate noodles_core;
+extern crate noodles_fasta;
+extern crate noodles_sam;
+extern crate once_cell;
+extern crate polars;
+extern crate rayon;
+extern crate regex;
+extern crate serde;
+extern crate sysinfo;
+extern crate tempfile;
+
+
+#[cfg(test)]
+mod tests;
+pub mod algorithms;
+pub mod common;
+pub mod macros;
+pub mod structs;
+pub mod prelude;
+

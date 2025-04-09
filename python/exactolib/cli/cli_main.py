@@ -16,10 +16,11 @@ The purpose of this python3 script is to implement the primary Exacto command.
 """
 
 
-import argparse
 import exactolib
-from .cli_call_rna_vars import *
 from .cli_call_dna_vars import *
+from .cli_call_rna_vars import *
+from .cli_call_peptide_vars import *
+from .cli_translate import *
 from ..logging import get_logger
 
 
@@ -35,7 +36,7 @@ def init_arg_parser():
         argparse.ArgumentParser subparsers object
     """
     arg_parser = argparse.ArgumentParser(
-        description="Exacto: EXacto Automated Caller for Transformations in genOmes / transcriptOmes."
+        description="Exacto"
     )
     arg_parser.add_argument(
         '--version', '-v',
@@ -51,6 +52,8 @@ def run():
     arg_parser, sub_parsers = init_arg_parser()
     sub_parsers = add_cli_call_dna_vars_arg_parser(sub_parsers=sub_parsers)     # call-dna-vars
     sub_parsers = add_cli_call_rna_vars_arg_parser(sub_parsers=sub_parsers)     # call-rna-vars
+    sub_parsers = add_cli_call_peptide_vars_arg_parser(sub_parsers=sub_parsers) # call-peptide-vars
+    sub_parsers = add_cli_translate_vars_arg_parser(sub_parsers=sub_parsers)    # translate
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
@@ -58,5 +61,9 @@ def run():
         run_cli_call_dna_vars_from_parsed_args(args=args)
     elif args.which == 'call-rna-vars':
         run_cli_call_rna_vars_from_parsed_args(args=args)
+    elif args.which == 'call-peptide-vars':
+        run_cli_call_peptide_vars_from_parsed_args(args=args)
+    elif args.which == 'translate':
+        run_cli_translate_vars_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)

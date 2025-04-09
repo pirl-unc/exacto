@@ -1,0 +1,10 @@
+sample_id	fastq_file
+rna-100-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-100-tumor_long-read.fastq.gz
+rna-101-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-101-tumor_long-read.fastq.gz
+rna-102-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-102-tumor_long-read.fastq.gz
+rna-103-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-103-tumor_long-read.fastq.gz
+rna-104-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-104-tumor_long-read.fastq.gz
+rna-105-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-105-tumor_long-read.fastq.gz
+rna-106-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-106-tumor_long-read.fastq.gz
+rna-107-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-107-tumor_long-read.fastq.gz
+rna-108-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-108-tumor_long-read.fastq.gz

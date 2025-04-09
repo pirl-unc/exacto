@@ -1,0 +1,20 @@
+[package]
+name = "exacto-translator"
+version = "0.4.0"
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+exacto-util = { path = "../exacto-util", version = "0.4.0" }
+flate2 = "1.0"
+noodles-fastq = "0.16.0"
+polars = { version = "0.45.0", features = ["csv","json","lazy","parquet","serde"] }
+rayon = "1.10.0"
+serde = { version = "1.0.210", features = ["derive"] }
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+incremental = true

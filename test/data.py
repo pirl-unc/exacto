@@ -7,10 +7,10 @@ def get_data_path(name: str) -> str:
 
     Parameters
     ----------
-    name    :   Name of file.
+        name    :   Name of file.
 
     Returns
     -------
-    Absolute path to a file in the test/data directory.
+        Absolute path to a file in the test/data directory.
     """
     return os.path.join(os.path.dirname(__file__), "data", name)

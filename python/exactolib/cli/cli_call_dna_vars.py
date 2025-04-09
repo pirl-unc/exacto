@@ -18,12 +18,9 @@ and run Exacto 'call-dna-vars' command.
 
 
 import argparse
-import pandas as pd
-from collections import defaultdict
 from ..constants import *
-from ..default import *
-from ..logging import get_logger
 from ..main import *
+from ..utilities import *
 
 
 logger = get_logger(__name__)
@@ -52,11 +49,20 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         help="Input BAM file."
     )
     parser_required.add_argument(
-        "--sample-id",
-        dest="sample_id",
+        "--bam-bai-file",
+        dest="bam_bai_file",
         type=str,
         required=True,
-        help="Sample ID."
+        help="Input BAM.BAI file."
+    )
+    parser_required.add_argument(
+        "--mode",
+        dest="mode",
+        type=str,
+        choices=[DnaVariantCallingModes.ALL, DnaVariantCallingModes.CASE_SPECIFIC],
+        required=True,
+        help="DNA variant calling mode (either 'case-specific' or 'all'). "
+             "If --mode case-specific, then at least one control BAM file needs to be supplied."
     )
     parser_required.add_argument(
         "--output-tsv-file",
@@ -69,6 +75,24 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
     parser_optional.add_argument(
+        "--control-bam-files",
+        dest="control_bam_files",
+        type=str,
+        nargs='+',
+        default=[],
+        required=False,
+        help="Input control BAM file(s) (e.g. --control-bam-files BAM_FILE_1 BAM_FILE_2)."
+    )
+    parser_optional.add_argument(
+        "--control-bam-bai-files",
+        dest="control_bam_bai_files",
+        type=str,
+        nargs='+',
+        default=[],
+        required=False,
+        help="Input control BAM.BAI file(s) (e.g. --control-bam-bai-files BAM_BAI_FILE_1 BAM_BAI_FILE_2)."
+    )
+    parser_optional.add_argument(
         "--num-threads",
         dest="num_threads",
         type=int,
@@ -78,12 +102,24 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_DNA_VARS_NUM_THREADS
     )
     parser_optional.add_argument(
+        "--gzip",
+        dest="gzip",
+        type=str2bool,
+        default=CALL_DNA_VARS_GZIP,
+        required=False,
+        help="If 'yes', gzip the output TSV file (default: %s)."
+             % CALL_DNA_VARS_GZIP
+    )
+    parser_optional.add_argument(
         '--chromosomes',
         dest='chromosomes',
         type=str,
         nargs='+',
+        default=[],
         required=False,
-        help='Chromosomes. If unspecified, Exacto identifies variants in all chromosomes.'
+        help='Chromosomes in which to identify variants (e.g. --chromosomes chr1 chr2). '
+             'If unspecified, Exacto identifies variants in all chromosomes '
+             'found in the BAM file (--bam-file BAM_FILE).'
     )
     parser_optional.add_argument(
         "--min-reads",
@@ -104,14 +140,23 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_DNA_VARS_MIN_MAPPING_QUALITY
     )
     parser_optional.add_argument(
-        "--min-ins-size-proportion",
-        dest="min_ins_size_proportion",
+        "--min-average-base-quality",
+        dest="min_average_base_quality",
         type=float,
-        default=CALL_DNA_VARS_MIN_INS_SIZE_PROPORTION,
+        default=CALL_DNA_VARS_MIN_AVERAGE_BASE_QUALITY,
         required=False,
-        help="Minimum insertion size proportion between two insertions (default: %f). "
-             "Size proportion = smaller insertion size / longer insertion size."
-             % CALL_DNA_VARS_MIN_INS_SIZE_PROPORTION
+        help="Minimum average base quality (default: %f)."
+             % CALL_DNA_VARS_MIN_AVERAGE_BASE_QUALITY
+    )
+    parser_optional.add_argument(
+        "--min-size-proportion",
+        dest="min_size_proportion",
+        type=float,
+        default=CALL_DNA_VARS_MIN_SIZE_PROPORTION,
+        required=False,
+        help="Minimum size proportion between two variants (default: %f). "
+             "Size proportion = smaller variant size / longer variant size."
+             % CALL_DNA_VARS_MIN_SIZE_PROPORTION
     )
     parser_optional.add_argument(
         "--max-ins-norm-edit-distance",
@@ -124,76 +169,132 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_DNA_VARS_MAX_INS_NORM_EDIT_DISTANCE
     )
     parser_optional.add_argument(
-        "--min-del-size-proportion",
-        dest="min_del_size_proportion",
-        type=float,
-        default=CALL_DNA_VARS_MIN_DEL_SIZE_PROPORTION,
+        "--max-intrachromosomal-distance",
+        dest="max_intrachromosomal_distance",
+        type=int,
+        default=CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE,
         required=False,
-        help="Minimum deletion size proportion between two deletions (default: %f). "
-             "Size proportion = smaller deletion size / longer deletion size."
-             % CALL_DNA_VARS_MIN_DEL_SIZE_PROPORTION
+        help="Maximum distance for clustering intrachromomsomal variants (default: %i)."
+             % CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE
     )
     parser_optional.add_argument(
-        "--max-bnd-distance",
-        dest="max_bnd_distance",
+        "--max-intrachromosomal-distance-tau",
+        dest="max_intrachromosomal_distance_tau",
         type=int,
-        default=CALL_DNA_VARS_MAX_BND_DISTANCE,
+        default=CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
         required=False,
-        help="Maximum BND distance (default: %i). Softclipped breakpoints within this distance will be "
-             "merged into a common variant call."
-             % CALL_DNA_VARS_MAX_BND_DISTANCE
+        help="Maximum distance tau for clustering intrachromomsomal variants (default: %i)."
+             % CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU
     )
     parser_optional.add_argument(
-        "--clustering-grid-size",
-        dest="clustering_grid_size",
+        "--max-interchromosomal-distance",
+        dest="max_interchromosomal_distance",
         type=int,
-        default=CALL_DNA_VARS_CLUSTERING_GRID_SIZE,
+        default=CALL_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE,
         required=False,
-        help="Clustering grid size (default: %i)."
-             % CALL_DNA_VARS_CLUSTERING_GRID_SIZE
+        help="Maximum distance for clustering intrachromomsomal variants (default: %i)."
+             % CALL_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE
     )
-
+    parser_optional.add_argument(
+        "--apply-infinite-sites-assumption",
+        dest="apply_infinite_sites_assumption",
+        type=str2bool,
+        default=CALL_DNA_VARS_INFINITE_SITES_ASSUMPTION,
+        required=False,
+        help="If 'yes', apply infinite sites assumption to the variant calling. That is, "
+             "if a variant in the case BAM file shares breakpoint with any of the variant in"
+             "any of the control BAM files, filter it out (default: %s)."
+             % CALL_DNA_VARS_INFINITE_SITES_ASSUMPTION
+    )
+    parser_optional.add_argument(
+        "--temp-dir",
+        dest="temp_dir",
+        type=str,
+        default="",
+        required=False,
+        help="Temp directory (default: TMPDIR)."
+    )
     parser.set_defaults(which='call-dna-vars')
     return sub_parsers
 
 
-def run_cli_call_dna_vars_from_parsed_args(args) -> None:
+def run_cli_call_dna_vars_from_parsed_args(args):
     """
     Run Exacto 'call-dna-vars' command using parameters from parsed arguments.
 
     Parameters:
         args    :   An instance of argparse.ArgumentParser with the following variables:
                     bam_file
-                    sample_id
+                    bam_bai_file
+                    mode
                     output_tsv_file
+                    control_bam_file
+                    control_bam_bai_file
                     num_threads
-                    chromosome
+                    gzip
+                    chromosomes
                     min_reads
                     min_mapping_quality
-                    min_ins_size_proportion
+                    min_average_base_quality
+                    min_size_proportion
                     max_ins_norm_edit_distance
-                    min_del_size_proportion
-                    max_bnd_distance
-                    clustering_grid_size
+                    max_intrachromosomal_distance
+                    max_intrachromosomal_distance_tau
+                    max_interchromosomal_distance
+                    temp_dir
     """
-    variant_calls = call_dna_variants(
-        bam_file=args.bam_file,
-        sample_id=args.sample_id,
-        min_reads=args.min_reads,
-        min_mapping_quality=args.min_mapping_quality,
-        num_threads=args.num_threads,
-        min_ins_size_proportion=args.min_ins_size_proportion,
-        max_ins_norm_edit_distance=args.max_ins_norm_edit_distance,
-        min_del_size_proportion=args.min_del_size_proportion,
-        clustering_grid_size=args.clustering_grid_size,
-        chromosomes=args.chromosomes
-    )
-    data = defaultdict(list)
-    variant_idx = 1
-    for variant_call in variant_calls:
-        data['variant_id'].append(variant_idx)
-        variant_idx += 1
-        for key, value in variant_call.to_dict().items():
-            data[key].append(value)
-    df_variant_calls = pd.DataFrame(data)
-    df_variant_calls.to_csv(args.output_tsv_file, sep='\t', index=False)
+    if len(args.chromosomes) == 0 :
+        args.chromosomes = get_chromosomes(bam_file=args.bam_file)
+
+    if args.gzip:
+        if args.output_tsv_file.endswith('.gz'):
+            output_tsv_file = args.output_tsv_file
+        else:
+            output_tsv_file = args.output_tsv_file + '.gz'
+    else:
+        output_tsv_file = args.output_tsv_file
+
+    if args.mode == DnaVariantCallingModes.ALL:
+        identify_dna_variants(
+            bam_file=args.bam_file,
+            bam_bai_file=args.bam_bai_file,
+            output_tsv_file=output_tsv_file,
+            gzip=args.gzip,
+            min_reads=args.min_reads,
+            min_mapping_quality=args.min_mapping_quality,
+            min_average_base_quality=args.min_average_base_quality,
+            min_size_proportion=args.min_size_proportion,
+            max_ins_norm_edit_distance=args.max_ins_norm_edit_distance,
+            max_intrachromosomal_distance=args.max_intrachromosomal_distance,
+            max_intrachromosomal_distance_tau=args.max_intrachromosomal_distance_tau,
+            max_interchromosomal_distance=args.max_interchromosomal_distance,
+            num_threads=args.num_threads,
+            chromosomes=args.chromosomes,
+            temp_dir=args.temp_dir
+        )
+    elif args.mode == DnaVariantCallingModes.CASE_SPECIFIC:
+        assert(len(args.control_bam_files) > 0)
+        assert (len(args.control_bam_files) == len(args.control_bam_bai_files))
+        identify_case_specific_dna_variants(
+            case_bam_file=args.bam_file,
+            case_bam_bai_file=args.bam_bai_file,
+            control_bam_files=args.control_bam_files,
+            control_bam_bai_files=args.control_bam_bai_files,
+            output_tsv_file=output_tsv_file,
+            gzip=args.gzip,
+            chromosomes=args.chromosomes,
+            min_reads=args.min_reads,
+            min_mapping_quality=args.min_mapping_quality,
+            min_average_base_quality=args.min_average_base_quality,
+            min_size_proportion=args.min_size_proportion,
+            max_ins_norm_edit_distance=args.max_ins_norm_edit_distance,
+            max_intrachromosomal_distance=args.max_intrachromosomal_distance,
+            max_intrachromosomal_distance_tau=args.max_intrachromosomal_distance_tau,
+            max_interchromosomal_distance=args.max_interchromosomal_distance,
+            apply_infinite_sites_assumption=args.apply_infinite_sites_assumption,
+            num_threads=args.num_threads,
+            temp_dir=args.temp_dir
+        )
+    else:
+        raise Exception('Unsupported mode: %s' % args.mode)
+

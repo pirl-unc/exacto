@@ -16,13 +16,20 @@ The purpose of this python3 script is to implement general-purpose utility funct
 """
 
 
-import pandas as pd
 import pysam
-from typing import Dict, List
+from typing import List
 from .logging import get_logger
 
 
 logger = get_logger(__name__)
+
+
+def count_reads_in_fastx_file(fastx_file: str) -> int:
+    count = 0
+    with pysam.FastxFile(fastx_file) as fq:
+        for _ in fq:
+            count += 1
+    return count
 
 
 def get_chromosomes(bam_file: str) -> List[str]:
@@ -37,4 +44,13 @@ def get_chromosomes(bam_file: str) -> List[str]:
     """
     bam = pysam.AlignmentFile(bam_file, "rb")
     return list(bam.references)
+
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise Exception('Boolean value expected.')
 
