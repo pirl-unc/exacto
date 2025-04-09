@@ -61,7 +61,7 @@ impl TranscriptModelSet {
         self.read_names_map = read_names_map;
     }
 
-    pub fn to_dataframes(self, num_threads: usize) -> (DataFrame,DataFrame,DataFrame) {
+    pub fn to_dataframes(self, num_threads: usize) -> (DataFrame,DataFrame,DataFrame,DataFrame) {
         assert!(
             !self.chromosome_names_map.is_empty(),
             "self.chromosome_names_map is empty."
@@ -75,6 +75,20 @@ impl TranscriptModelSet {
             .num_threads(num_threads)
             .build()
             .unwrap();
+
+        // DataFrame of matched reference transcript IDs
+        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut reference_transcript_id_values: Vec<String> = Vec::new();
+        for transcript_model in self.transcript_models.iter() {
+            for reference_transcript_id in transcript_model.reference_transcript_ids.iter() {
+                transcript_id_values.push(transcript_model.transcript_id.to_string());
+                reference_transcript_id_values.push(reference_transcript_id.to_string());
+            }
+        }
+        let df_reference_transcript_matches: DataFrame = DataFrame::new(vec![
+            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("reference_transcript_id".into(), reference_transcript_id_values))
+        ]).unwrap();
 
         // DataFrame of exons
         let mut transcript_id_values: Vec<String> = Vec::new();
@@ -224,17 +238,56 @@ impl TranscriptModelSet {
             Column::from(Series::new("read_names_count".into(), rows.iter().map(|r| r.14).collect::<Vec<_>>()))
         ]).unwrap();
 
-        (df_exons, df_splice_junctions, df_variant_calls)
+        (df_reference_transcript_matches,df_exons, df_splice_junctions, df_variant_calls)
     }
 
     pub fn to_tsv_files(
         &self,
+        reference_transcript_matches_tsv_file: &str,
         exon_tsv_file: &str,
         splice_junction_tsv_file: &str,
         variant_calls_tsv_file: &str,
         gzip: bool
     ) {
-        // Step 1. Exon TSV file
+        // Step 1. Reference transcript match TSV file
+        let ref_matches_file = File::create(reference_transcript_matches_tsv_file).unwrap();
+        let header: String = format!(
+            "{}\t{}\n",
+            "transcript_id",
+            "reference_transcript_id"
+        );
+        if gzip {
+            let buf_writer = BufWriter::new(ref_matches_file);
+            let mut writer = GzEncoder::new(buf_writer, Compression::default());
+            writer.write_all(header.as_bytes()).unwrap();
+            for transcript_model in self.transcript_models.iter() {
+                for reference_transcript_id in transcript_model.reference_transcript_ids.iter() {
+                    let row = format!(
+                        "{}\t{}\n",
+                        transcript_model.transcript_id,
+                        reference_transcript_id
+                    );
+                    writer.write_all((&row).as_bytes()).unwrap();
+                }
+            }
+            writer.flush().unwrap();
+        } else {
+            let mut writer = BufWriter::new(ref_matches_file);
+            writer.write_all(header.as_bytes()).unwrap();
+            for transcript_model in self.transcript_models.iter() {
+                for reference_transcript_id in transcript_model.reference_transcript_ids.iter() {
+                    let row = format!(
+                        "{}\t{}\n",
+                        transcript_model.transcript_id,
+                        reference_transcript_id
+                    );
+                    writer.write_all((&row).as_bytes()).unwrap();
+                }
+            }
+            writer.flush().unwrap();
+        }
+
+        // Step 2. Exon TSV file
         let exon_file = File::create(exon_tsv_file).unwrap();
         let header: String = format!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
@@ -302,7 +355,7 @@ impl TranscriptModelSet {
             writer.flush().unwrap();
         }
 
-        // Step 2. Splice junction TSV file
+        // Step 3. Splice junction TSV file
         let sj_file = File::create(splice_junction_tsv_file).unwrap();
         let header: String = format!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
@@ -370,7 +423,7 @@ impl TranscriptModelSet {
             writer.flush().unwrap();
         }
 
-        // Step 3. Variant calls TSV file
+        // Step 4. Variant calls TSV file
         let variants_file = File::create(variant_calls_tsv_file).unwrap();
         let header: String = format!(
             "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",

@@ -79,6 +79,13 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              ','.join(GeneAnnotationSources.ALL)
     )
     parser_required.add_argument(
+        "--output-ref-transcript-matches-tsv-file",
+        dest="output_ref_transcript_matches_tsv_file",
+        type=str,
+        required=True,
+        help="Output reference transcript matches TSV file."
+    )
+    parser_required.add_argument(
         "--output-exons-tsv-file",
         dest="output_exons_tsv_file",
         type=str,
@@ -161,6 +168,7 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
                     reference_genome_fasta_file
                     gene_annotation_file
                     gene_annotation_source
+                    output_ref_transcript_matches_tsv_file
                     output_exons_tsv_file
                     output_sj_tsv_file
                     output_variants_tsv_file
@@ -171,6 +179,10 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
                     temp_dir
     """
     if args.gzip:
+        if args.output_ref_transcript_matches_tsv_file.endswith('.gz'):
+            output_ref_transcript_matches_tsv_file = args.output_ref_transcript_matches_tsv_file
+        else:
+            output_ref_transcript_matches_tsv_file = args.output_ref_transcript_matches_tsv_file + '.gz'
         if args.output_exons_tsv_file.endswith('.gz'):
             output_exons_tsv_file = args.output_exons_tsv_file
         else:
@@ -184,6 +196,7 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
         else:
             output_variants_tsv_file = args.output_variants_tsv_file + '.gz'
     else:
+        output_ref_transcript_matches_tsv_file = args.output_ref_transcript_matches_tsv_file
         output_exons_tsv_file = args.output_exons_tsv_file
         output_sj_tsv_file = args.output_sj_tsv_file
         output_variants_tsv_file = args.output_variants_tsv_file
@@ -194,6 +207,7 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
         reference_genome_fasta_file=args.reference_genome_fasta_file,
         gene_annotation_file=args.gene_annotation_file,
         gene_annotation_source=args.gene_annotation_source,
+        output_ref_transcript_matches_tsv_file=output_ref_transcript_matches_tsv_file,
         output_exons_tsv_file=output_exons_tsv_file,
         output_sj_tsv_file=output_sj_tsv_file,
         output_variants_tsv_file=output_variants_tsv_file,

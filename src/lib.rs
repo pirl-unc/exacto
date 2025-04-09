@@ -197,6 +197,7 @@ fn identify_rna_variants(
     reference_genome_fasta_file: String,
     gene_annotation_file: String,
     gene_annotation_source: String,
+    output_ref_transcript_matches_tsv_file: String,
     output_exons_tsv_file: String,
     output_splice_junctions_tsv_file: String,
     output_variants_tsv_file: String,
@@ -206,7 +207,7 @@ fn identify_rna_variants(
     num_threads: usize,
     temp_dir: String,
     output_type: String
-) -> PyResult<(PyDataFrame,PyDataFrame,PyDataFrame)> {
+) -> PyResult<(PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame)> {
     let gene_annotator = if gene_annotation_source.as_str() == "gencode" {
         util::Gencode::new(gene_annotation_file.as_str(), "hg38")
     } else {
@@ -225,17 +226,24 @@ fn identify_rna_variants(
 
     match output_type.as_str() {
         "dataframe" => {
-            let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
-            Ok((PyDataFrame(df_exons),PyDataFrame(df_splice_junctions),PyDataFrame(df_variant_calls)))
+            let (df_reference_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+            Ok((PyDataFrame(df_reference_matches),
+                PyDataFrame(df_exons),
+                PyDataFrame(df_splice_junctions),
+                PyDataFrame(df_variant_calls)))
         }
         "file" => {
             transcript_model_set.to_tsv_files(
+                output_ref_transcript_matches_tsv_file.as_str(),
                 output_exons_tsv_file.as_str(),
                 output_splice_junctions_tsv_file.as_str(),
                 output_variants_tsv_file.as_str(),
                 gzip
             );
-            Ok((PyDataFrame(DataFrame::new(vec![]).unwrap()),PyDataFrame(DataFrame::new(vec![]).unwrap()),PyDataFrame(DataFrame::new(vec![]).unwrap())))
+            Ok((PyDataFrame(DataFrame::new(vec![]).unwrap()),
+                PyDataFrame(DataFrame::new(vec![]).unwrap()),
+                PyDataFrame(DataFrame::new(vec![]).unwrap()),
+                PyDataFrame(DataFrame::new(vec![]).unwrap())))
         }
         other => {
             let error_message = format!("Unsupported value for output_type: {}", other);

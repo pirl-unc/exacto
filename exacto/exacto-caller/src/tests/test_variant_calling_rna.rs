@@ -127,7 +127,7 @@ fn test_identify_rna_variants_1() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-100-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -204,7 +204,7 @@ fn test_identify_rna_variants_2() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-101-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -282,7 +282,7 @@ fn test_identify_rna_variants_3() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-102-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -359,7 +359,7 @@ fn test_identify_rna_variants_4() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-103-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -436,7 +436,7 @@ fn test_identify_rna_variants_5() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-104-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -513,7 +513,7 @@ fn test_identify_rna_variants_6() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-105-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -590,7 +590,7 @@ fn test_identify_rna_variants_7() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-106-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -667,7 +667,7 @@ fn test_identify_rna_variants_8() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-107-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -744,7 +744,7 @@ fn test_identify_rna_variants_9() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-108-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);

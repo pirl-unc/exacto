@@ -191,6 +191,7 @@ def identify_rna_variants(
         reference_genome_fasta_file: str,
         gene_annotation_file: str,
         gene_annotation_source: str,
+        output_ref_transcript_matches_tsv_file: str,
         output_exons_tsv_file: str,
         output_sj_tsv_file: str,
         output_variants_tsv_file: str,
@@ -200,7 +201,7 @@ def identify_rna_variants(
         num_threads: int = CALL_RNA_VARS_NUM_THREADS,
         temp_dir: str = "",
         output_type: str = "file"
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Identify RNA variants.
 
@@ -228,15 +229,19 @@ def identify_rna_variants(
         output_type                         :   Output type ('file' or 'dataframe').
 
     Returns:
-        If output_type is 'dataframe',
-        then exons Pandas DataFrame, splice junction Pandas DataFrame, variants Pandas DataFrame.
+        If output_type is 'dataframe', then
+        Pandas DataFrame of reference transcript matches,
+        Pandas DataFrame of exons,
+        Pandas DataFrame of splice junction,
+        Pandas DataFrame of variants
     """
-    df_exons,df_splice_junctions,df_variants = exactolibrs.identify_rna_variants(
+    df_reference_matches,df_exons,df_splice_junctions,df_variants = exactolibrs.identify_rna_variants(
         bam_file=bam_file,
         bam_bai_file=bam_bai_file,
         reference_genome_fasta_file=reference_genome_fasta_file,
         gene_annotation_file=gene_annotation_file,
         gene_annotation_source=gene_annotation_source,
+        output_ref_transcript_matches_tsv_file=output_ref_transcript_matches_tsv_file,
         output_exons_tsv_file=output_exons_tsv_file,
         output_splice_junctions_tsv_file=output_sj_tsv_file,
         output_variants_tsv_file=output_variants_tsv_file,
@@ -247,7 +252,10 @@ def identify_rna_variants(
         temp_dir=temp_dir,
         output_type=output_type
     )
-    return df_exons.to_pandas(), df_splice_junctions.to_pandas(), df_variants.to_pandas()
+    return (df_reference_matches.to_pandas(),
+            df_exons.to_pandas(),
+            df_splice_junctions.to_pandas(),
+            df_variants.to_pandas())
 
 
 def identify_peptide_variants(
