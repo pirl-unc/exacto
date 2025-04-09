@@ -32,11 +32,13 @@ jobs:
         pip install pysam==0.23.0
         conda install -c conda-forge rust==1.86.0
         conda install -c anaconda pandas==2.2.3
+        conda install -c conda-forge polars==1.26.0
         conda install -c anaconda pylint==3.3.5
         conda install -c conda-forge coveralls==4.0.1
         conda install -c conda-forge pytest==8.3.5
         conda install -c conda-forge pytest-cov==6.1.1
-  
+        
+        
         # Install exacto
         pip install . --verbose
 
