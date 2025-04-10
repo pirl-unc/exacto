@@ -62,7 +62,7 @@ pub fn is_valid_nucleotide_sequence(sequence: &str) -> bool {
         sequence.chars().all(|c| matches!(c, 'A' | 'T' | 'C' | 'G' | 'a' | 't' | 'c' | 'g'))
     } else {
         // Check if all characters are 'A', 'C', 'G' only.
-        sequence.chars().all(|c| matches!(c, 'A' | 'C' | 'G' | 'a' | 'c' | 'g'))
+        sequence.chars().all(|c| matches!(c, 'A' | 'C' | 'G' | 'N' | 'a' | 'c' | 'g' | 'n'))
     }
 }
 
@@ -76,7 +76,7 @@ pub fn is_valid_nucleotide_sequence(sequence: &str) -> bool {
 ///
 /// * Reverse complement sequence.
 pub fn reverse_complement(sequence: &str) -> Box<str> {
-    assert!(is_valid_nucleotide_sequence(sequence), "The nucleotide sequence is not valid.");
+    assert!(is_valid_nucleotide_sequence(sequence), "The nucleotide sequence is not valid: {}.", sequence);
     sequence.chars()
         .rev()
         .map(|nucleotide| match nucleotide {
@@ -85,11 +85,13 @@ pub fn reverse_complement(sequence: &str) -> Box<str> {
             'U' => 'A',
             'C' => 'G',
             'G' => 'C',
+            'N' => 'N',
             'a' => 't',
             't' => 'a',
             'u' => 'a',
             'c' => 'g',
             'g' => 'c',
+            'n' => 'n',
             _ => {
                 panic!("Invalid nucleotide: {}", nucleotide);
             }
