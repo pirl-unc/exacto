@@ -12,7 +12,6 @@ def test_call_rna_variants_1():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -40,7 +39,6 @@ def test_call_rna_variants_2():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -68,7 +66,6 @@ def test_call_rna_variants_3():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -96,7 +93,6 @@ def test_call_rna_variants_4():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -126,7 +122,6 @@ def test_call_rna_variants_5():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -156,7 +151,6 @@ def test_call_rna_variants_6():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -186,7 +180,6 @@ def test_call_rna_variants_7():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -216,7 +209,6 @@ def test_call_rna_variants_8():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
@@ -246,7 +238,6 @@ def test_call_rna_variants_9():
         gene_annotation_source='gencode',
         output_dir='',
         output_prefix='',
-        gzip=False,
         output_type='dataframe'
     )
 
