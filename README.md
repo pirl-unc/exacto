@@ -49,18 +49,17 @@ exacto call-dna-vars [-h]
 
 Calling RNA variants in a long-read BAM (transcriptome assembly):
 ```
-exacto call-rna-vars [-h]
+exacto call-rna-vars [-h] 
     --bam-file BAM_FILE 
     --bam-bai-file BAM_BAI_FILE 
     --reference-genome-fasta-file REFERENCE_GENOME_FASTA_FILE 
     --gene-annotation-file GENE_ANNOTATION_FILE 
-    --gene-annotation-source GENE_ANNOTATION_SOURCE
-    --output-exons-tsv-file OUTPUT_EXONS_TSV_FILE 
-    --output-sj-tsv-file OUTPUT_SJ_TSV_FILE 
-    --output-variants-tsv-file OUTPUT_VARIANTS_TSV_FILE 
+    --gene-annotation-source GENE_ANNOTATION_SOURCE 
+    --output-dir OUTPUT_DIR
+    --output-prefix OUTPUT_PREFIX 
     [--num-threads NUM_THREADS]
-    [--gzip GZIP]
     [--min-mapping-quality MIN_MAPPING_QUALITY]
+    [--reference-transcript-scoring-method REFERENCE_TRANSCRIPT_SCORING_METHOD]
     [--min-average-base-quality MIN_AVERAGE_BASE_QUALITY]
     [--temp-dir TEMP_DIR]
 ```
