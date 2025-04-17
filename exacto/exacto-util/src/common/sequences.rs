@@ -76,7 +76,7 @@ pub fn is_valid_nucleotide_sequence(sequence: &str) -> bool {
 ///
 /// * Reverse complement sequence.
 pub fn reverse_complement(sequence: &str) -> Box<str> {
-    assert!(is_valid_nucleotide_sequence(sequence), "The nucleotide sequence is not valid: {}.", sequence);
+    assert!(is_valid_nucleotide_sequence(sequence), "The nucleotide sequence is not valid: {}", sequence);
     sequence.chars()
         .rev()
         .map(|nucleotide| match nucleotide {

@@ -4,16 +4,14 @@ from exactolib.main import identify_rna_variants
 
 
 def test_call_rna_variants_1():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-100-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-100-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -34,16 +32,14 @@ def test_call_rna_variants_1():
 
 
 def test_call_rna_variants_2():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-101-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-101-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -64,16 +60,14 @@ def test_call_rna_variants_2():
 
 
 def test_call_rna_variants_3():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-102-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-102-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -94,16 +88,14 @@ def test_call_rna_variants_3():
 
 
 def test_call_rna_variants_4():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-103-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-103-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -126,16 +118,14 @@ def test_call_rna_variants_4():
 
 
 def test_call_rna_variants_5():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-104-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-104-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -158,16 +148,14 @@ def test_call_rna_variants_5():
 
 
 def test_call_rna_variants_6():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-105-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-105-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -190,16 +178,14 @@ def test_call_rna_variants_6():
 
 
 def test_call_rna_variants_7():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-106-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-106-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -222,16 +208,14 @@ def test_call_rna_variants_7():
 
 
 def test_call_rna_variants_8():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-107-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-107-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )
@@ -254,16 +238,14 @@ def test_call_rna_variants_8():
 
 
 def test_call_rna_variants_9():
-    df_ref_matches,df_exons,df_splice_junctions,df_variants = identify_rna_variants(
+    df_exons,df_nascent_transcripts,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_variants = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-108-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-108-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
         gene_annotation_source='gencode',
-        output_ref_transcript_matches_tsv_file='',
-        output_exons_tsv_file='',
-        output_sj_tsv_file='',
-        output_variants_tsv_file='',
+        output_dir='',
+        output_prefix='',
         gzip=False,
         output_type='dataframe'
     )

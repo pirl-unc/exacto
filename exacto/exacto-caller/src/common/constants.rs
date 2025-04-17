@@ -13,7 +13,48 @@
 
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum ReferenceTranscriptScoringMethods {
+    NetOverlap,            // score = num_overlaps - num_nonoverlaps
+    WeightedNetOverlap,    // score = num_overlaps - 0.5 * num_nonoverlaps
+    Jaccard,               // score = num_overlaps / (num_overlaps + num_nonoverlaps)
+    Overlap,               // score = num_overlaps
+    Nonoverlap,            // score = num_nonoverlaps
+    CosineSimilarity       // score = cosine_similarity(transcript,reference_transcript)
+}
+
+impl ReferenceTranscriptScoringMethods {
+    pub fn as_str(&self) -> &str {
+        match self {
+            ReferenceTranscriptScoringMethods::NetOverlap => "net_overlap",
+            ReferenceTranscriptScoringMethods::WeightedNetOverlap => "weighted_net_overlap",
+            ReferenceTranscriptScoringMethods::Jaccard => "jaccard",
+            ReferenceTranscriptScoringMethods::Overlap => "overlap",
+            ReferenceTranscriptScoringMethods::Nonoverlap => "nonoverlap",
+            ReferenceTranscriptScoringMethods::CosineSimilarity => "cosine_similarity"
+        }
+    }
+}
+
+impl FromStr for ReferenceTranscriptScoringMethods {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "net_overlap" => Ok(ReferenceTranscriptScoringMethods::NetOverlap),
+            "weighted_net_overlap" => Ok(ReferenceTranscriptScoringMethods::WeightedNetOverlap),
+            "jaccard" => Ok(ReferenceTranscriptScoringMethods::Jaccard),
+            "overlap" => Ok(ReferenceTranscriptScoringMethods::Overlap),
+            "nonoverlap" => Ok(ReferenceTranscriptScoringMethods::Nonoverlap),
+            "cosine_similarity" => Ok(ReferenceTranscriptScoringMethods::CosineSimilarity),
+            _ => Err(()),
+        }
+    }
+}
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]

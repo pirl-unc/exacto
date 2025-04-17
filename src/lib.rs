@@ -197,28 +197,29 @@ fn identify_rna_variants(
     reference_genome_fasta_file: String,
     gene_annotation_file: String,
     gene_annotation_source: String,
-    output_ref_transcript_matches_tsv_file: String,
-    output_exons_tsv_file: String,
-    output_splice_junctions_tsv_file: String,
-    output_variants_tsv_file: String,
-    gzip: bool,
+    output_dir: String,
+    output_prefix: String,
+    reference_transcript_scoring_method: String,
     min_mapping_quality: usize,
     min_average_base_quality: f32,
     num_threads: usize,
     temp_dir: String,
     output_type: String
-) -> PyResult<(PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame)> {
+) -> PyResult<(PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame)> {
     let gene_annotator = if gene_annotation_source.as_str() == "gencode" {
         util::Gencode::new(gene_annotation_file.as_str(), "hg38")
     } else {
         panic!("Unsupported annotation source: {}", gene_annotation_source);
     };
 
+    let scoring_method: caller::ReferenceTranscriptScoringMethods = reference_transcript_scoring_method.as_str().parse().unwrap();
+
     let transcript_model_set: caller::TranscriptModelSet = caller::identify_variant_transcripts(
         bam_file.as_str(),
         bam_bai_file.as_str(),
         reference_genome_fasta_file.as_str(),
         &gene_annotator,
+        scoring_method,
         min_mapping_quality,
         min_average_base_quality,
         num_threads
@@ -226,21 +227,30 @@ fn identify_rna_variants(
 
     match output_type.as_str() {
         "dataframe" => {
-            let (df_reference_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
-            Ok((PyDataFrame(df_reference_matches),
-                PyDataFrame(df_exons),
+            let df_exons: DataFrame = transcript_model_set.get_exons_dataframe();
+            let df_read_filter_status: DataFrame = transcript_model_set.get_read_filter_status_dataframe();
+            let df_read_names: DataFrame = transcript_model_set.get_read_names_dataframe();
+            let df_reference_matches: DataFrame = transcript_model_set.get_matched_reference_transcripts_dataframe();
+            let df_splice_junctions: DataFrame = transcript_model_set.get_splice_junctions_dataframe();
+            let df_transcripts: DataFrame = transcript_model_set.get_transcripts_dataframe();
+            let df_variant_calls: DataFrame = transcript_model_set.get_variant_calls_dataframe(num_threads);
+            Ok((PyDataFrame(df_exons),
+                PyDataFrame(df_read_filter_status),
+                PyDataFrame(df_read_names),
+                PyDataFrame(df_reference_matches),
                 PyDataFrame(df_splice_junctions),
+                PyDataFrame(df_transcripts),
                 PyDataFrame(df_variant_calls)))
         }
         "file" => {
             transcript_model_set.to_tsv_files(
-                output_ref_transcript_matches_tsv_file.as_str(),
-                output_exons_tsv_file.as_str(),
-                output_splice_junctions_tsv_file.as_str(),
-                output_variants_tsv_file.as_str(),
-                gzip
+                output_dir.as_str(),
+                output_prefix.as_str()
             );
             Ok((PyDataFrame(DataFrame::new(vec![]).unwrap()),
+                PyDataFrame(DataFrame::new(vec![]).unwrap()),
+                PyDataFrame(DataFrame::new(vec![]).unwrap()),
+                PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap())))

@@ -70,22 +70,23 @@ fn test_identify_closest_reference_transcript_id_1() {
     );
 
     // Identify overlapping gene IDs
-    let mut reference_gene_ids: HashSet<Box<str>> = Alignment::identify_overlapping_gene_ids(
+    let mut reference_gene_ids: HashSet<Box<str>> = identify_overlapping_gene_ids(
         &exons,
         &gene_annotator,
         &chromosome_names_map
     );
 
     // Identify closest reference transcript IDs
-    let reference_transcript_ids: Vec<Box<str>> = Alignment::identify_closest_reference_transcript_ids(
+    let matched_reference_transcripts: Vec<ReferenceTranscriptMatch> = identify_closest_reference_transcript_ids(
         &exons,
         &gene_annotator,
         &chromosome_names_map,
-        &reference_gene_ids
+        &reference_gene_ids,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap
     );
 
-    assert!(reference_transcript_ids.len() == 1);
-    assert!(reference_transcript_ids[0] == "ENST00000269305.9".into());
+    assert!(matched_reference_transcripts.len() == 1);
+    assert!(matched_reference_transcripts[0].reference_transcript.transcript_id == "ENST00000269305.9".into());
 }
 
 #[test]
@@ -113,13 +114,13 @@ fn test_identify_rna_variants_1() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 1);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -127,7 +128,7 @@ fn test_identify_rna_variants_1() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-100-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -190,13 +191,13 @@ fn test_identify_rna_variants_2() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 1);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -204,7 +205,7 @@ fn test_identify_rna_variants_2() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-101-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -268,13 +269,13 @@ fn test_identify_rna_variants_3() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 1);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -282,7 +283,7 @@ fn test_identify_rna_variants_3() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-102-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -345,13 +346,13 @@ fn test_identify_rna_variants_4() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 2);
+    assert!(transcript_model_set.transcript_models.iter().len() == 3);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -359,7 +360,7 @@ fn test_identify_rna_variants_4() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-103-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -422,13 +423,13 @@ fn test_identify_rna_variants_5() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 1);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -436,7 +437,7 @@ fn test_identify_rna_variants_5() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-104-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -499,13 +500,13 @@ fn test_identify_rna_variants_6() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 1);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -513,7 +514,7 @@ fn test_identify_rna_variants_6() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-105-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -576,13 +577,13 @@ fn test_identify_rna_variants_7() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 1);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -590,7 +591,7 @@ fn test_identify_rna_variants_7() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-106-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -653,13 +654,13 @@ fn test_identify_rna_variants_8() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 2);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -667,7 +668,7 @@ fn test_identify_rna_variants_8() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-107-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -730,13 +731,13 @@ fn test_identify_rna_variants_9() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
+        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
         25,
         25f32,
         1
     );
 
-    assert!(transcript_model_set.transcript_models.iter().len() == 1);
-    assert!(transcript_model_set.transcript_models.iter().next().unwrap().variant_calls.len() == 1);
+    assert!(transcript_model_set.transcript_models.iter().len() == 2);
 
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
@@ -744,7 +745,7 @@ fn test_identify_rna_variants_9() {
     transcript_model_set.load_read_names(read_names_map);
 
     // Compare against the ground truth
-    let (df_ref_matches,df_exons,df_splice_junctions,df_variant_calls) = transcript_model_set.to_dataframes(1);
+    let df_variant_calls = transcript_model_set.get_variant_calls_dataframe(1);
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-108-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);

@@ -191,17 +191,15 @@ def identify_rna_variants(
         reference_genome_fasta_file: str,
         gene_annotation_file: str,
         gene_annotation_source: str,
-        output_ref_transcript_matches_tsv_file: str,
-        output_exons_tsv_file: str,
-        output_sj_tsv_file: str,
-        output_variants_tsv_file: str,
-        gzip: bool = True,
+        output_dir: str,
+        output_prefix: str,
+        reference_transcript_scoring_method: str = CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SCORING_METHOD,
         min_mapping_quality: int = CALL_RNA_VARS_MIN_MAPPING_QUALITY,
         min_average_base_quality: float = CALL_RNA_VARS_MIN_AVERAGE_BASE_QUALITY,
         num_threads: int = CALL_RNA_VARS_NUM_THREADS,
         temp_dir: str = "",
         output_type: str = "file"
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> Tuple[pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame]:
     """
     Identify RNA variants.
 
@@ -230,31 +228,35 @@ def identify_rna_variants(
 
     Returns:
         If output_type is 'dataframe', then
-        Pandas DataFrame of reference transcript matches,
         Pandas DataFrame of exons,
+        Pandas DataFrame of read filter status,
+        Pandas DataFrame of read names and transcript IDs,
+        Pandas DataFrame of reference transcript matches,
         Pandas DataFrame of splice junction,
+        Pandas DataFrame of transcripts,
         Pandas DataFrame of variants
     """
-    df_reference_matches,df_exons,df_splice_junctions,df_variants = exactolibrs.identify_rna_variants(
+    df_exons,df_read_filter_status,df_read_names,df_reference_matches,df_splice_junctions,df_transcripts,df_variants = exactolibrs.identify_rna_variants(
         bam_file=bam_file,
         bam_bai_file=bam_bai_file,
         reference_genome_fasta_file=reference_genome_fasta_file,
         gene_annotation_file=gene_annotation_file,
         gene_annotation_source=gene_annotation_source,
-        output_ref_transcript_matches_tsv_file=output_ref_transcript_matches_tsv_file,
-        output_exons_tsv_file=output_exons_tsv_file,
-        output_splice_junctions_tsv_file=output_sj_tsv_file,
-        output_variants_tsv_file=output_variants_tsv_file,
-        gzip=gzip,
+        output_dir=output_dir,
+        output_prefix=output_prefix,
+        reference_transcript_scoring_method=reference_transcript_scoring_method,
         min_mapping_quality=min_mapping_quality,
         min_average_base_quality=min_average_base_quality,
         num_threads=num_threads,
         temp_dir=temp_dir,
         output_type=output_type
     )
-    return (df_reference_matches.to_pandas(),
-            df_exons.to_pandas(),
+    return (df_exons.to_pandas(),
+            df_read_filter_status.to_pandas(),
+            df_read_names.to_pandas(),
+            df_reference_matches.to_pandas(),
             df_splice_junctions.to_pandas(),
+            df_transcripts.to_pandas(),
             df_variants.to_pandas())
 
 

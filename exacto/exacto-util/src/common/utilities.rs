@@ -12,7 +12,25 @@
 
 
 use std::any::Any;
+use std::collections::{HashMap, HashSet};
 
+
+pub fn calculate_cosine_similarity(vec1: &Vec<i8>, vec2: &Vec<i8>) -> f64 {
+    assert_eq!(vec1.len(), vec2.len(), "Vectors must be the same length");
+    let (mut dot_product, mut norm_a_sq, mut norm_b_sq) = (0.0, 0.0, 0.0);
+    for (&a, &b) in vec1.iter().zip(vec2.iter()) {
+        let a_f64 = a as f64;
+        let b_f64 = b as f64;
+        dot_product += a_f64 * b_f64;
+        norm_a_sq += a_f64 * a_f64;
+        norm_b_sq += b_f64 * b_f64;
+    }
+    if norm_a_sq == 0.0 || norm_b_sq == 0.0 {
+        0.0
+    } else {
+        dot_product / (norm_a_sq.sqrt() * norm_b_sq.sqrt())
+    }
+}
 
 /// Clone a Box<dyn Any>
 pub fn clone_boxed_any(value: &Box<dyn Any>) -> Box<dyn Any> {
@@ -188,4 +206,67 @@ pub fn count_union_bases(
     }
 
     unioned_len
+}
+
+
+pub fn count_non_overlapping_bases(
+    a: &Vec<(Box<str>, u32, u32)>,
+    b: &Vec<(Box<str>, u32, u32)>
+) -> (u32,u32) {
+    let mut a_bases: HashMap<Box<str>,HashSet<u32>> = HashMap::new();
+    let mut b_bases: HashMap<Box<str>,HashSet<u32>> = HashMap::new();
+
+    for (chromosome, start, end) in a.iter() {
+        for i in *start..=*end {
+            a_bases
+                .entry(chromosome.clone())
+                .or_insert_with(HashSet::new)
+                .insert(i);
+        }
+    }
+
+    for (chromosome, start, end) in b.iter() {
+        for i in *start..=*end {
+            b_bases
+                .entry(chromosome.clone())
+                .or_insert_with(HashSet::new)
+                .insert(i);
+        }
+    }
+
+    let mut a_only_bases: u32 = 0;
+    for (chromosome, a_positions) in &a_bases {
+        if b_bases.contains_key(chromosome) {
+            let b_positions = b_bases.get(chromosome).unwrap();
+            for i in a_positions {
+                if b_positions.contains(i) == false {
+                    a_only_bases += 1;
+                }
+
+            }
+        } else {
+            for _ in a_positions {
+                a_only_bases += 1;
+            }
+        }
+    }
+
+    let mut b_only_bases: u32 = 0;
+    for (chromosome, b_positions) in &b_bases {
+        if a_bases.contains_key(chromosome) {
+            let a_positions = a_bases.get(chromosome).unwrap();
+            for i in b_positions {
+                if a_positions.contains(i) == false {
+                    b_only_bases += 1;
+                }
+
+            }
+        } else {
+            for _ in b_positions {
+                b_only_bases += 1;
+            }
+        }
+    }
+
+    (a_only_bases, b_only_bases)
 }

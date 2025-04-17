@@ -1,15 +1,13 @@
 [package]
 name = "exacto-graph"
-version = "0.4.1"
+version = "0.4.2"
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-exacto-caller = { path = "../exacto-caller", version = "0.4.0" }
-exacto-util = { path = "../exacto-util", version = "0.4.0" }
-rayon = "1.10.0"
-seal = "0.1.5"
+exacto-caller = { path = "../exacto-caller", version = "0.4.2" }
+exacto-util = { path = "../exacto-util", version = "0.4.2" }
 serde = { version = "1.0.210", features = ["derive"] }
 
 [profile.dev]

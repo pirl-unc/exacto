@@ -18,6 +18,7 @@ and run Exacto 'call-rna-vars' command.
 
 
 import argparse
+import os
 
 from ..constants import GeneAnnotationSources
 from ..main import *
@@ -79,32 +80,18 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              ','.join(GeneAnnotationSources.ALL)
     )
     parser_required.add_argument(
-        "--output-ref-transcript-matches-tsv-file",
-        dest="output_ref_transcript_matches_tsv_file",
+        "--output-dir",
+        dest="output_dir",
         type=str,
         required=True,
-        help="Output reference transcript matches TSV file."
+        help="Output directory."
     )
     parser_required.add_argument(
-        "--output-exons-tsv-file",
-        dest="output_exons_tsv_file",
+        "--output-prefix",
+        dest="output_prefix",
         type=str,
         required=True,
-        help="Output exons TSV file."
-    )
-    parser_required.add_argument(
-        "--output-sj-tsv-file",
-        dest="output_sj_tsv_file",
-        type=str,
-        required=True,
-        help="Output splice junctions TSV file."
-    )
-    parser_required.add_argument(
-        "--output-variants-tsv-file",
-        dest="output_variants_tsv_file",
-        type=str,
-        required=True,
-        help="Output variant calls TSV file."
+        help="Output prefix."
     )
 
     # Optional arguments
@@ -119,15 +106,6 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_RNA_VARS_NUM_THREADS
     )
     parser_optional.add_argument(
-        "--gzip",
-        dest="gzip",
-        type=str2bool,
-        default=CALL_RNA_VARS_GZIP,
-        required=False,
-        help="If 'yes', gzip the output TSV file (default: %s)."
-             % CALL_RNA_VARS_GZIP
-    )
-    parser_optional.add_argument(
         "--min-mapping-quality",
         dest="min_mapping_quality",
         type=int,
@@ -135,6 +113,15 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=False,
         help="Minimum mapping quality (default: %i)."
              % CALL_RNA_VARS_MIN_MAPPING_QUALITY
+    )
+    parser_optional.add_argument(
+        "--reference-transcript-scoring-method",
+        dest="reference_transcript_scoring_method",
+        type=str,
+        default=CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SCORING_METHOD,
+        required=False,
+        help="Reference transcript scoring method (default: %s)."
+             % CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SCORING_METHOD
     )
     parser_optional.add_argument(
         "--min-average-base-quality",
@@ -168,50 +155,23 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
                     reference_genome_fasta_file
                     gene_annotation_file
                     gene_annotation_source
-                    output_ref_transcript_matches_tsv_file
-                    output_exons_tsv_file
-                    output_sj_tsv_file
-                    output_variants_tsv_file
+                    output_dir
+                    output_prefix
                     num_threads
-                    gzip
                     min_mapping_quality
                     min_average_base_quality
                     temp_dir
     """
-    if args.gzip:
-        if args.output_ref_transcript_matches_tsv_file.endswith('.gz'):
-            output_ref_transcript_matches_tsv_file = args.output_ref_transcript_matches_tsv_file
-        else:
-            output_ref_transcript_matches_tsv_file = args.output_ref_transcript_matches_tsv_file + '.gz'
-        if args.output_exons_tsv_file.endswith('.gz'):
-            output_exons_tsv_file = args.output_exons_tsv_file
-        else:
-            output_exons_tsv_file = args.output_exons_tsv_file + '.gz'
-        if args.output_sj_tsv_file.endswith('.gz'):
-            output_sj_tsv_file = args.output_sj_tsv_file
-        else:
-            output_sj_tsv_file = args.output_sj_tsv_file + '.gz'
-        if args.output_variants_tsv_file.endswith('.gz'):
-            output_variants_tsv_file = args.output_variants_tsv_file
-        else:
-            output_variants_tsv_file = args.output_variants_tsv_file + '.gz'
-    else:
-        output_ref_transcript_matches_tsv_file = args.output_ref_transcript_matches_tsv_file
-        output_exons_tsv_file = args.output_exons_tsv_file
-        output_sj_tsv_file = args.output_sj_tsv_file
-        output_variants_tsv_file = args.output_variants_tsv_file
-
+    os.makedirs(args.output_dir, exist_ok=True)
     identify_rna_variants(
         bam_file=args.bam_file,
         bam_bai_file=args.bam_bai_file,
         reference_genome_fasta_file=args.reference_genome_fasta_file,
         gene_annotation_file=args.gene_annotation_file,
         gene_annotation_source=args.gene_annotation_source,
-        output_ref_transcript_matches_tsv_file=output_ref_transcript_matches_tsv_file,
-        output_exons_tsv_file=output_exons_tsv_file,
-        output_sj_tsv_file=output_sj_tsv_file,
-        output_variants_tsv_file=output_variants_tsv_file,
-        gzip=args.gzip,
+        output_dir=args.output_dir,
+        output_prefix=args.output_prefix,
+        reference_transcript_scoring_method=args.reference_transcript_scoring_method,
         min_mapping_quality=args.min_mapping_quality,
         min_average_base_quality=args.min_average_base_quality,
         num_threads=args.num_threads,

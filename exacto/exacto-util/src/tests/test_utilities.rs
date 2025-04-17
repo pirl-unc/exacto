@@ -1,7 +1,22 @@
 use std::any::Any;
+use crate::prelude::*;
 
-use crate::common::utilities::*;
 
+#[test]
+fn test_calculate_cosine_similarity_1() {
+    let v1: Vec<i8> = vec![1, 0, 1, 0];
+    let v2: Vec<i8> = vec![1, 0, 1, 0];
+    let cosine_similarity_score: f64 = calculate_cosine_similarity(&v1, &v2);
+    assert!(cosine_similarity_score > 0.999f64);
+}
+
+#[test]
+fn test_calculate_cosine_similarity_2() {
+    let v1: Vec<i8> = vec![1, 0, 1, 0];
+    let v2: Vec<i8> = vec![0, 1, 0, 1];
+    let cosine_similarity_score: f64 = calculate_cosine_similarity(&v1, &v2);
+    assert!(cosine_similarity_score < 0.001f64);
+}
 
 #[test]
 fn test_clone_boxed_any_1() {
@@ -115,3 +130,18 @@ fn test_count_union_bases_2() {
     assert_eq!(num_unioned_bases, 400);
 }
 
+#[test]
+fn test_count_non_overlapping_bases() {
+    let a = vec![
+        (Box::from("chr1"), 10, 20),
+        (Box::from("chr1"), 30, 40),
+    ];
+
+    let b = vec![
+        (Box::from("chr1"), 15, 35),
+    ];
+
+    let (num_a_only_bases, num_b_only_bases) = count_non_overlapping_bases(&a, &b);
+    let num_non_overlapping_bases: u32 = num_a_only_bases + num_b_only_bases;
+    assert_eq!(num_non_overlapping_bases, 19);
+}

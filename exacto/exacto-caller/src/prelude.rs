@@ -9,6 +9,7 @@ pub use crate::structs::alignment_record::AlignmentRecord;
 pub use crate::structs::sequence_operation::SequenceOperation;
 pub use crate::structs::mutant_peptide::MutantPeptide;
 pub use crate::structs::mutant_peptides_set::MutantPeptidesSet;
+pub use crate::structs::reference_transcript_match::ReferenceTranscriptMatch;
 pub use crate::structs::transcript_model::TranscriptModel;
 pub use crate::structs::transcript_model_exon::TranscriptModelExon;
 pub use crate::structs::transcript_model_set::TranscriptModelSet;

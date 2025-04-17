@@ -20,10 +20,12 @@ use noodles_fasta::io::indexed_reader::Builder;
 use noodles_sam::alignment::Record;
 use noodles_sam::alignment::record::Flags;
 use regex::Regex;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 
+use crate::algorithms::variant_calling_rna::*;
 use crate::common::bam::*;
 use crate::common::constants::*;
+use crate::prelude::ReferenceTranscriptMatch;
 use crate::structs::alignment_record::AlignmentRecord;
 use crate::structs::transcript_model_exon::TranscriptModelExon;
 use crate::structs::sequence_operation::SequenceOperation;
@@ -287,121 +289,24 @@ impl Alignment {
         exons
     }
 
-    pub fn identify_closest_reference_transcript_ids_helper(
-        exons: &Vec<TranscriptModelExon>,
-        gene_annotator: &impl GeneAnnotator,
-        chromosome_names_map: &BiMap<Box<str>,u16>,
-        gene_id: &str
-    ) -> (Box<str>, f32) {
-        // Step 1. Get the transcript model's exonic regions
-        let mut model_exon_regions: Vec<(Box<str>,u32,u32)> = Vec::new();
-        for exon in exons.iter() {
-            let chromosome_name: Box<str> = chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap().to_string().into_boxed_str();
-            let region: (Box<str>,u32,u32) = (chromosome_name, exon.start, exon.end);
-            model_exon_regions.push(region);
-        }
-
-        // Step 2. Identify the closest reference transcript ID
-        let mut closest_reference_transcript_id: Box<str> = "".to_string().into_boxed_str();
-        let mut best_score: f32 = -1.0f32;
-        let reference_gene: &Gene = gene_annotator.get_gene(gene_id).unwrap();
-        for reference_transcript_id in reference_gene.get_transcript_ids().iter() {
-            let reference_transcript: &Transcript = gene_annotator.get_transcript(&**reference_transcript_id).unwrap();
-            let mut reference_exon_regions: Vec<(Box<str>,u32,u32)> = Vec::new();
-            for reference_exon in reference_transcript.get_sorted_exons() {
-                let ref_exon_region: (Box<str>,u32,u32) = (reference_exon.chromosome.clone(), reference_exon.start, reference_exon.end);
-                reference_exon_regions.push(ref_exon_region);
-            }
-            let num_unioned_bases: u32 = count_union_bases(&model_exon_regions, &reference_exon_regions);
-            let num_common_bases: u32 = count_common_bases(&model_exon_regions, &reference_exon_regions);
-            let score: f32 = num_common_bases as f32 / num_unioned_bases as f32;
-            if score > best_score {
-                best_score = score;
-                closest_reference_transcript_id = reference_transcript_id.clone();
-            }
-        }
-
-        (closest_reference_transcript_id, best_score)
-    }
-
-    pub fn identify_closest_reference_transcript_ids(
-        exons: &Vec<TranscriptModelExon>,
-        gene_annotator: &impl GeneAnnotator,
-        chromosome_names_map: &BiMap<Box<str>,u16>,
-        gene_ids: &HashSet<Box<str>>
-    ) -> Vec<Box<str>> {
-        // Identify the closest reference transcript IDs
-        let mut reference_transcript_scores: HashMap<Box<str>,(Box<str>,f32)> = HashMap::new();
-        for reference_gene_id in gene_ids.iter() {
-            let (matched_transcript_id,score) = Alignment::identify_closest_reference_transcript_ids_helper(
-                &exons,
-                gene_annotator,
-                chromosome_names_map,
-                &*reference_gene_id
-            );
-            let reference_transcript = gene_annotator.get_transcript(&*matched_transcript_id).unwrap();
-            reference_transcript_scores.insert(reference_gene_id.clone(),(reference_transcript.transcript_id.clone(),score));
-        }
-
-        // Choose the closest reference transcript ID if genes overlap
-        let mut reference_gene_ids: HashSet<Box<str>> = HashSet::new();
-        for reference_gene_id_1 in reference_transcript_scores.keys() {
-            let reference_gene_1 = gene_annotator.get_gene(reference_gene_id_1).unwrap();
-            let (start_1, end_1) = (reference_gene_1.start as isize, reference_gene_1.end as isize);
-
-            // Collect all overlapping gene IDs, including itself
-            let overlapping_gene_ids: HashSet<_> = reference_transcript_scores
-                .keys()
-                .filter(|reference_gene_id_2| {
-                    if *reference_gene_id_1 == **reference_gene_id_2 {
-                        true
-                    } else {
-                        let reference_gene_2 = gene_annotator.get_gene(reference_gene_id_2).unwrap();
-                        overlaps(start_1, end_1, reference_gene_2.start as isize, reference_gene_2.end as isize)
-                    }
-                })
-                .cloned()
-                .collect();
-
-            // Pick the best-scoring gene from the overlapping set
-            if let Some(best_gene_id) = overlapping_gene_ids
-                .iter()
-                .max_by(|a, b| {
-                    let (_, score_a) = reference_transcript_scores.get(*a).unwrap();
-                    let (_, score_b) = reference_transcript_scores.get(*b).unwrap();
-                    score_a.partial_cmp(score_b).unwrap()
-                }) {
-                reference_gene_ids.insert(best_gene_id.clone());
-            }
-        }
-
-        // Retain the best scoring gene transcripts
-        let reference_transcript_ids: Vec<Box<str>> = reference_gene_ids
-            .iter()
-            .filter_map(|gene_id| reference_transcript_scores.get(gene_id).map(|(transcript_id, _)| transcript_id.clone()))
-            .collect();
-
-        reference_transcript_ids
-    }
-
-    pub fn identify_overlapping_gene_ids(
-        exons: &Vec<TranscriptModelExon>,
-        gene_annotator: &impl GeneAnnotator,
-        chromosome_names_map: &BiMap<Box<str>,u16>
-    ) -> HashSet<Box<str>> {
-        let mut gene_ids: HashSet<Box<str>> = HashSet::new();
-        for exon in exons.iter() {
-            let chromosome: Box<str> = chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap().to_string().into_boxed_str();
-            let gene_ids_: Vec<Box<str>> = gene_annotator.get_gene_ids_overlapping_region(&*chromosome, exon.start, exon.end);
-            for gene_id in gene_ids_ {
-                let gene: &Gene = gene_annotator.get_gene(&*gene_id).unwrap();
-                if gene.strand.as_str() == exon.strand.as_str() {
-                    gene_ids.insert(gene_id);
-                }
-            }
-        }
-        gene_ids
-    }
+    // pub fn identify_overlapping_gene_ids(
+    //     exons: &Vec<TranscriptModelExon>,
+    //     gene_annotator: &impl GeneAnnotator,
+    //     chromosome_names_map: &BiMap<Box<str>,u16>
+    // ) -> HashSet<Box<str>> {
+    //     let mut gene_ids: HashSet<Box<str>> = HashSet::new();
+    //     for exon in exons.iter() {
+    //         let chromosome: Box<str> = chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap().to_string().into_boxed_str();
+    //         let gene_ids_: Vec<Box<str>> = gene_annotator.get_gene_ids_overlapping_region(&*chromosome, exon.start, exon.end);
+    //         for gene_id in gene_ids_ {
+    //             let gene: &Gene = gene_annotator.get_gene(&*gene_id).unwrap();
+    //             if gene.strand.as_str() == exon.strand.as_str() {
+    //                 gene_ids.insert(gene_id);
+    //             }
+    //         }
+    //     }
+    //     gene_ids
+    // }
 
     pub fn identify_splice_junctions(
         &self,
@@ -593,24 +498,17 @@ impl Alignment {
     }
 
     pub fn identify_splice_variant_records(
-        &self,
-        gene_annotator: &impl GeneAnnotator,
+        &self, 
+        matched_reference_transcripts: &Vec<ReferenceTranscriptMatch>,
         chromosome_names_map: &BiMap<Box<str>,u16>,
         min_mapping_quality: usize
     ) -> Vec<VariantRecord> {
         // Step 1. Identify exons
         let exons: Vec<TranscriptModelExon> = self.identify_exons(min_mapping_quality);
-
-        // Step 2. Identify reference genes overlapping any of the exons
-        let mut reference_gene_ids_: HashSet<Box<str>> = Alignment::identify_overlapping_gene_ids(
-            &exons,
-            gene_annotator,
-            chromosome_names_map
-        );
-
-        // Step 3. Identify splice variant records
+        
+        // Step 2. Identify splice variant records
         let mut splice_variant_records: Vec<VariantRecord> = Vec::new();
-        if reference_gene_ids_.is_empty() {
+        if matched_reference_transcripts.is_empty() {
             // All the exons will be identified as cryptic exons
             for exon in exons.iter() {
                 let sequence_operation: SequenceOperation = SequenceOperation::new(
@@ -629,17 +527,9 @@ impl Alignment {
                 splice_variant_records.push(variant_record);
             }
         } else {
-            // Identify the closest reference transcript IDs
-            let reference_transcript_ids: Vec<Box<str>> = Alignment::identify_closest_reference_transcript_ids(
-                &exons,
-                gene_annotator,
-                chromosome_names_map,
-                &reference_gene_ids_
-            );
-            let mut reference_transcripts: Vec<&Transcript> = Vec::new();
-            for reference_transcript_id in reference_transcript_ids.iter() {
-                let reference_transcript = gene_annotator.get_transcript(&**reference_transcript_id).unwrap();
-                reference_transcripts.push(reference_transcript);
+            let mut reference_transcripts: Vec<Transcript> = Vec::new();
+            for matched_reference_transcript in matched_reference_transcripts.iter() {
+                reference_transcripts.push(matched_reference_transcript.reference_transcript.clone());
             }
 
             // Identify fusion
@@ -649,7 +539,7 @@ impl Alignment {
                 // Found the overlapping gene ID
                 let exon_start: isize = exon.start as isize;
                 let exon_end: isize = exon.end as isize;
-                let mut overlapping_gene_id: Box<str> = "".to_string().into_boxed_str();
+                let mut overlapping_gene_id: Box<str> = "".into();
                 for reference_transcript in reference_transcripts.iter() {
                     let reference_transcript_start: isize = reference_transcript.start as isize;
                     let reference_transcript_end: isize = reference_transcript.end as isize;
@@ -667,7 +557,7 @@ impl Alignment {
                         curr_gene_id = overlapping_gene_id;
                     }
                 } else {
-                    if overlapping_gene_id != curr_gene_id {
+                    if overlapping_gene_id != curr_gene_id && overlapping_gene_id != "".into() {
                         if prev_exon.strand.as_str() == Strands::Forward.as_str() {
                             let sequence_operation: SequenceOperation= SequenceOperation::new(
                                 prev_exon.chromosome_id,

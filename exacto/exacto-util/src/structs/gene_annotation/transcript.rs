@@ -12,9 +12,11 @@
 
 
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use serde::{Serialize, Deserialize};
 
 use crate::common::constants::Strands;
+use crate::prelude::find_overlap;
 use crate::structs::gene_annotation::cds::CDS;
 use crate::structs::gene_annotation::exon::Exon;
 use crate::structs::gene_annotation::intron::Intron;
@@ -41,6 +43,40 @@ pub struct Transcript {
     pub start_codons: Vec<StartCodon>,
     pub stop_codons: Vec<StopCodon>,
     pub coding_sequences: Vec<CDS>
+}
+
+impl PartialEq for Transcript {
+    fn eq(&self, other: &Self) -> bool {
+        self.gene_id == other.gene_id &&
+            self.transcript_id == other.transcript_id &&
+            self.source == other.source &&
+            self.chromosome == other.chromosome &&
+            self.start == other.start &&
+            self.end == other.end &&
+            self.strand == other.strand &&
+            self.level == other.level &&
+            self.transcript_name == other.transcript_name &&
+            self.transcript_type == other.transcript_type &&
+            self.transcript_support_level == other.transcript_support_level
+    }
+}
+
+impl Eq for Transcript {}
+
+impl Hash for Transcript {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.gene_id.hash(state);
+        self.transcript_id.hash(state);
+        self.source.hash(state);
+        self.chromosome.hash(state);
+        self.start.hash(state);
+        self.end.hash(state);
+        self.strand.hash(state);
+        self.level.hash(state);
+        self.transcript_name.hash(state);
+        self.transcript_type.hash(state);
+        self.transcript_support_level.hash(state);
+    }
 }
 
 impl Transcript {
@@ -183,6 +219,32 @@ impl Transcript {
             }
         }
         panic!("Could not find 3prime UTR for {}", self.transcript_id);
+    }
+
+    pub fn vectorize_exons(
+        &self,
+        chromosome: Box<str>,
+        start: u32,
+        end: u32,
+        aligned_value: i8,
+        unaligned_value: i8
+    ) -> Vec<i8> {
+        let v_size: usize = (end - start + 1) as usize;
+        let mut v: Vec<i8> = vec![unaligned_value; v_size];
+        for exon in self.exons.values() {
+            if chromosome == exon.chromosome {
+                match find_overlap((exon.start as isize, exon.end as isize), (start as isize, end as isize)) {
+                    Some((x,y)) => {
+                        for pos in x..=y {
+                            let i = (pos as usize) - (start as usize);
+                            v[i] = aligned_value;
+                        }
+                    }
+                    None => {}
+                }
+            }
+        }
+        v
     }
 }
 

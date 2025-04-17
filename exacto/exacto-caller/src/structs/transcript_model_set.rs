@@ -13,16 +13,13 @@
 
 use serde::{Deserialize, Serialize};
 use bimap::BiMap;
-use flate2::Compression;
-use flate2::write::GzEncoder;
 use polars::prelude::*;
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{BufWriter, Write};
-use std::sync::Mutex;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::ParallelSlice;
 use rayon::ThreadPoolBuilder;
+
 use crate::prelude::VariantCall;
 use crate::structs::transcript_model::TranscriptModel;
 
@@ -53,15 +50,7 @@ impl TranscriptModelSet {
         self.transcript_models.insert(transcript_model);
     }
 
-    pub fn load_chromosome_names(&mut self, chromosome_names_map: BiMap<Box<str>,u16>) {
-        self.chromosome_names_map = chromosome_names_map;
-    }
-
-    pub fn load_read_names(&mut self, read_names_map: BiMap<Box<str>,usize>) {
-        self.read_names_map = read_names_map;
-    }
-
-    pub fn to_dataframes(self, num_threads: usize) -> (DataFrame,DataFrame,DataFrame,DataFrame) {
+    pub fn get_exons_dataframe(&self) -> DataFrame {
         assert!(
             !self.chromosome_names_map.is_empty(),
             "self.chromosome_names_map is empty."
@@ -71,26 +60,6 @@ impl TranscriptModelSet {
             "self.read_names_map is empty."
         );
 
-        let thread_pool = ThreadPoolBuilder::new()
-            .num_threads(num_threads)
-            .build()
-            .unwrap();
-
-        // DataFrame of matched reference transcript IDs
-        let mut transcript_id_values: Vec<String> = Vec::new();
-        let mut reference_transcript_id_values: Vec<String> = Vec::new();
-        for transcript_model in self.transcript_models.iter() {
-            for reference_transcript_id in transcript_model.reference_transcript_ids.iter() {
-                transcript_id_values.push(transcript_model.transcript_id.to_string());
-                reference_transcript_id_values.push(reference_transcript_id.to_string());
-            }
-        }
-        let df_reference_transcript_matches: DataFrame = DataFrame::new(vec![
-            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
-            Column::from(Series::new("reference_transcript_id".into(), reference_transcript_id_values))
-        ]).unwrap();
-
-        // DataFrame of exons
         let mut transcript_id_values: Vec<String> = Vec::new();
         let mut chromosome_values: Vec<String> = Vec::new();
         let mut start_values: Vec<u32> = Vec::new();
@@ -117,6 +86,7 @@ impl TranscriptModelSet {
                 read_names_count_values.push(read_names.len() as u32);
             }
         }
+
         let df_exons: DataFrame = DataFrame::new(vec![
             Column::from(Series::new("transcript_id".into(), transcript_id_values)),
             Column::from(Series::new("chromosome".into(), chromosome_values)),
@@ -128,7 +98,150 @@ impl TranscriptModelSet {
             Column::from(Series::new("read_names_count_values".into(), read_names_count_values))
         ]).unwrap();
 
-        // DataFrame of splice junctions
+        df_exons
+    }
+
+    fn get_excluded_read_ids(&self) -> HashSet<usize> {
+        let read_ids: Vec<usize> = self.read_names_map.right_values().cloned().collect();
+        let included_read_ids: HashSet<usize> = self.get_included_read_ids();
+        let mut excluded_read_ids: HashSet<usize> = HashSet::new();
+        for read_id in read_ids.iter() {
+            if included_read_ids.contains(read_id) == false {
+                excluded_read_ids.insert(*read_id);
+            }
+        }
+        excluded_read_ids
+    }
+
+    fn get_included_read_ids(&self) -> HashSet<usize> {
+        let mut included_read_ids: HashSet<usize> = HashSet::new();
+        for transcript_model in self.transcript_models.iter() {
+            for read_id in transcript_model.read_ids.iter() {
+                included_read_ids.insert(*read_id);
+            }
+        }
+        included_read_ids
+    }
+
+    pub fn get_matched_reference_transcripts_dataframe(&self) -> DataFrame {
+        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut reference_transcript_id_values: Vec<String> = Vec::new();
+        let mut reference_transcript_chromosome_values: Vec<String> = Vec::new();
+        let mut reference_transcript_start_values: Vec<u32> = Vec::new();
+        let mut reference_transcript_end_values: Vec<u32> = Vec::new();
+        let mut reference_transcript_strand_values: Vec<String> = Vec::new();
+        let mut reference_transcript_num_exons_values: Vec<u32> = Vec::new();
+        let mut num_overlap_bases_values: Vec<u32> = Vec::new();
+        let mut num_transcript_only_bases_values: Vec<u32> = Vec::new();
+        let mut num_reference_transcript_only_bases_values: Vec<u32> = Vec::new();
+        let mut score_values: Vec<f32> = Vec::new();
+        for transcript_model in self.transcript_models.iter() {
+            if transcript_model.matched_reference_transcripts.is_empty() {
+                transcript_id_values.push(transcript_model.transcript_id.to_string());
+                reference_transcript_id_values.push("".to_string());
+                reference_transcript_chromosome_values.push("".to_string());
+                reference_transcript_start_values.push(0);
+                reference_transcript_end_values.push(0);
+                reference_transcript_strand_values.push("".to_string());
+                reference_transcript_num_exons_values.push(0);
+                num_overlap_bases_values.push(0);
+                num_transcript_only_bases_values.push(0);
+                num_reference_transcript_only_bases_values.push(0);
+                score_values.push(0.0);
+            } else {
+                for reference_transcript_match in transcript_model.matched_reference_transcripts.iter() {
+                    transcript_id_values.push(transcript_model.transcript_id.to_string());
+                    reference_transcript_id_values.push(reference_transcript_match.reference_transcript.transcript_id.to_string());
+                    reference_transcript_chromosome_values.push(reference_transcript_match.reference_transcript.chromosome.to_string());
+                    reference_transcript_start_values.push(reference_transcript_match.reference_transcript.start);
+                    reference_transcript_end_values.push(reference_transcript_match.reference_transcript.end);
+                    reference_transcript_strand_values.push(reference_transcript_match.reference_transcript.strand.as_str().to_string());
+                    reference_transcript_num_exons_values.push(reference_transcript_match.reference_transcript.exons.values().len() as u32);
+                    num_overlap_bases_values.push(reference_transcript_match.num_overlap_bases);
+                    num_transcript_only_bases_values.push(reference_transcript_match.num_transcript_only_bases);
+                    num_reference_transcript_only_bases_values.push(reference_transcript_match.num_reference_only_bases);
+                    score_values.push(reference_transcript_match.score);
+                }
+            }
+        }
+
+        let df_reference_transcript_matches: DataFrame = DataFrame::new(vec![
+            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("reference_transcript_id".into(), reference_transcript_id_values)),
+            Column::from(Series::new("reference_transcript_chromosome".into(), reference_transcript_chromosome_values)),
+            Column::from(Series::new("reference_transcript_start".into(), reference_transcript_start_values)),
+            Column::from(Series::new("reference_transcript_end".into(), reference_transcript_end_values)),
+            Column::from(Series::new("reference_transcript_strand".into(), reference_transcript_strand_values)),
+            Column::from(Series::new("reference_transcript_num_exons".into(), reference_transcript_num_exons_values)),
+            Column::from(Series::new("num_overlap_bases".into(), num_overlap_bases_values)),
+            Column::from(Series::new("num_transcript_only_bases".into(), num_transcript_only_bases_values)),
+            Column::from(Series::new("num_reference_transcript_only_bases".into(), num_reference_transcript_only_bases_values)),
+            Column::from(Series::new("score".into(), score_values))
+        ]).unwrap();
+
+        df_reference_transcript_matches
+    }
+
+    pub fn get_read_filter_status_dataframe(&self) -> DataFrame {
+        let included_read_ids: HashSet<usize> = self.get_included_read_ids();
+        let excluded_read_ids: HashSet<usize> = self.get_excluded_read_ids();
+
+        let mut read_name_values: Vec<String> = Vec::new();
+        let mut excluded_values: Vec<bool> = Vec::new();
+        for read_id in included_read_ids.iter() {
+            let read_name: Box<str> = self.read_names_map.get_by_right(read_id).unwrap().clone();
+            read_name_values.push(read_name.to_string());
+            excluded_values.push(false);
+        }
+        for read_id in excluded_read_ids.iter() {
+            let read_name: Box<str> = self.read_names_map.get_by_right(read_id).unwrap().clone();
+            read_name_values.push(read_name.to_string());
+            excluded_values.push(true);
+        }
+
+        let df_read_filter_status: DataFrame = DataFrame::new(vec![
+            Column::from(Series::new("read_name".into(), read_name_values)),
+            Column::from(Series::new("excluded".into(), excluded_values))
+        ]).unwrap();
+
+        df_read_filter_status
+    }
+
+    pub fn get_read_names_dataframe(&self) -> DataFrame {
+        assert!(
+            !self.read_names_map.is_empty(),
+            "self.read_names_map is empty."
+        );
+
+        // DataFrame of read names
+        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut read_name_values: Vec<String> = Vec::new();
+        for transcript_model in self.transcript_models.iter() {
+            for read_id in transcript_model.read_ids.iter() {
+                let read_name: Box<str> = self.read_names_map.get_by_right(read_id).unwrap().clone();
+                transcript_id_values.push(transcript_model.transcript_id.to_string());
+                read_name_values.push(read_name.to_string());
+            }
+        }
+
+        let df_read_names: DataFrame = DataFrame::new(vec![
+            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("read_name".into(), read_name_values))
+        ]).unwrap();
+
+        df_read_names
+    }
+
+    pub fn get_splice_junctions_dataframe(&self) -> DataFrame {
+        assert!(
+            !self.chromosome_names_map.is_empty(),
+            "self.chromosome_names_map is empty."
+        );
+        assert!(
+            !self.read_names_map.is_empty(),
+            "self.read_names_map is empty."
+        );
+
         let mut transcript_id_values: Vec<String> = Vec::new();
         let mut chromosome_values: Vec<String> = Vec::new();
         let mut start_values: Vec<u32> = Vec::new();
@@ -155,6 +268,7 @@ impl TranscriptModelSet {
                 read_names_count_values.push(read_names.len() as u32);
             }
         }
+
         let df_splice_junctions: DataFrame = DataFrame::new(vec![
             Column::from(Series::new("transcript_id".into(), transcript_id_values)),
             Column::from(Series::new("chromosome".into(), chromosome_values)),
@@ -166,7 +280,71 @@ impl TranscriptModelSet {
             Column::from(Series::new("read_names_count_values".into(), read_names_count_values))
         ]).unwrap();
 
-        // DataFrame of variant calls
+        df_splice_junctions
+    }
+
+    pub fn get_transcripts_dataframe(&self) -> DataFrame {
+        assert!(
+            !self.chromosome_names_map.is_empty(),
+            "self.chromosome_names_map is empty."
+        );
+        assert!(
+            !self.read_names_map.is_empty(),
+            "self.read_names_map is empty."
+        );
+
+        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut start_chromosome_values: Vec<String> = Vec::new();
+        let mut start_values: Vec<u32> = Vec::new();
+        let mut end_chromosome_values: Vec<String> = Vec::new();
+        let mut end_values: Vec<u32> = Vec::new();
+        let mut num_exons_values: Vec<String> = Vec::new();
+        let mut num_splice_junction_values: Vec<String> = Vec::new();
+
+        for transcript_model in self.transcript_models.iter() {
+            let (start_chromosome_id,start) = transcript_model.get_start_position();
+            let (end_chromosome_id,end) = transcript_model.get_end_position();
+            let start_chromosome_name = self.chromosome_names_map.get_by_right(&start_chromosome_id).unwrap().clone();
+            let end_chromosome_name = self.chromosome_names_map.get_by_right(&end_chromosome_id).unwrap().clone();
+            let num_exons: usize = transcript_model.exons.len();
+            let num_splice_junctions: usize = transcript_model.splice_junctions.len();
+            transcript_id_values.push(transcript_model.transcript_id.to_string());
+            start_chromosome_values.push(start_chromosome_name.to_string());
+            start_values.push(start);
+            end_chromosome_values.push(end_chromosome_name.to_string());
+            end_values.push(end);
+            num_exons_values.push(num_exons.to_string());
+            num_splice_junction_values.push(num_splice_junctions.to_string());
+        }
+
+        let df_transcripts: DataFrame = DataFrame::new(vec![
+            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("start_chromosome".into(), start_chromosome_values)),
+            Column::from(Series::new("start".into(), start_values)),
+            Column::from(Series::new("end_chromosome".into(), end_chromosome_values)),
+            Column::from(Series::new("end".into(), end_values)),
+            Column::from(Series::new("num_exons".into(), num_exons_values)),
+            Column::from(Series::new("num_splice_junctions".into(), num_splice_junction_values))
+        ]).unwrap();
+
+        df_transcripts
+    }
+
+    pub fn get_variant_calls_dataframe(&self, num_threads: usize) -> DataFrame {
+        assert!(
+            !self.chromosome_names_map.is_empty(),
+            "self.chromosome_names_map is empty."
+        );
+        assert!(
+            !self.read_names_map.is_empty(),
+            "self.read_names_map is empty."
+        );
+
+        let thread_pool = ThreadPoolBuilder::new()
+            .num_threads(num_threads)
+            .build()
+            .unwrap();
+
         let mut variant_calls: Vec<&VariantCall> = Vec::new();
         for transcript_model in self.transcript_models.iter() {
             for variant_call in transcript_model.variant_calls.iter() {
@@ -238,241 +416,69 @@ impl TranscriptModelSet {
             Column::from(Series::new("read_names_count".into(), rows.iter().map(|r| r.14).collect::<Vec<_>>()))
         ]).unwrap();
 
-        (df_reference_transcript_matches,df_exons, df_splice_junctions, df_variant_calls)
+        df_variant_calls
+    }
+
+    pub fn load_chromosome_names(&mut self, chromosome_names_map: BiMap<Box<str>,u16>) {
+        self.chromosome_names_map = chromosome_names_map;
+    }
+
+    pub fn load_read_names(&mut self, read_names_map: BiMap<Box<str>,usize>) {
+        self.read_names_map = read_names_map;
     }
 
     pub fn to_tsv_files(
         &self,
-        reference_transcript_matches_tsv_file: &str,
-        exon_tsv_file: &str,
-        splice_junction_tsv_file: &str,
-        variant_calls_tsv_file: &str,
-        gzip: bool
+        output_dir: &str,
+        prefix: &str
     ) {
-        // Step 1. Reference transcript match TSV file
-        let ref_matches_file = File::create(reference_transcript_matches_tsv_file).unwrap();
-        let header: String = format!(
-            "{}\t{}\n",
-            "transcript_id",
-            "reference_transcript_id"
-        );
-        if gzip {
-            let buf_writer = BufWriter::new(ref_matches_file);
-            let mut writer = GzEncoder::new(buf_writer, Compression::default());
-            writer.write_all(header.as_bytes()).unwrap();
-            for transcript_model in self.transcript_models.iter() {
-                for reference_transcript_id in transcript_model.reference_transcript_ids.iter() {
-                    let row = format!(
-                        "{}\t{}\n",
-                        transcript_model.transcript_id,
-                        reference_transcript_id
-                    );
-                    writer.write_all((&row).as_bytes()).unwrap();
-                }
-            }
-            writer.flush().unwrap();
+        // Step 1. Define output TSV file paths
+        let output_dir = if output_dir.ends_with('/') {
+            output_dir.to_string()
         } else {
-            let mut writer = BufWriter::new(ref_matches_file);
-            writer.write_all(header.as_bytes()).unwrap();
-            for transcript_model in self.transcript_models.iter() {
-                for reference_transcript_id in transcript_model.reference_transcript_ids.iter() {
-                    let row = format!(
-                        "{}\t{}\n",
-                        transcript_model.transcript_id,
-                        reference_transcript_id
-                    );
-                    writer.write_all((&row).as_bytes()).unwrap();
-                }
-            }
-            writer.flush().unwrap();
-        }
+            format!("{}/", output_dir)
+        };
 
-        // Step 2. Exon TSV file
-        let exon_file = File::create(exon_tsv_file).unwrap();
-        let header: String = format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-            "transcript_id",
-            "chromosome",
-            "start",
-            "end",
-            "exon_number",
-            "strand_values",
-            "read_names_values",
-            "read_names_count_values"
-        );
-        if gzip {
-            let buf_writer = BufWriter::new(exon_file);
-            let mut writer = GzEncoder::new(buf_writer, Compression::default());
-            writer.write_all(header.as_bytes()).unwrap();
-            for transcript_model in self.transcript_models.iter() {
-                for exon in transcript_model.exons.iter() {
-                    let chromosome: &str = self.chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap();
-                    let read_names: Vec<String> = transcript_model
-                        .read_ids
-                        .iter()
-                        .map(|read_id| self.read_names_map.get_by_right(read_id).unwrap().to_string())
-                        .collect();
-                    let row = format!(
-                        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-                        transcript_model.transcript_id,
-                        chromosome,
-                        exon.start,
-                        exon.end,
-                        exon.number,
-                        exon.strand.as_str(),
-                        read_names.join(","),
-                        read_names.len() as u32
-                    );
-                    writer.write_all((&row).as_bytes()).unwrap();
-                }
-            }
-            writer.flush().unwrap();
+        let prefix = if prefix.is_empty() {
+            "sample".to_string()
         } else {
-            let mut writer = BufWriter::new(exon_file);
-            writer.write_all(header.as_bytes()).unwrap();
-            for transcript_model in self.transcript_models.iter() {
-                for exon in transcript_model.exons.iter() {
-                    let chromosome: &str = self.chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap();
-                    let read_names: Vec<String> = transcript_model
-                        .read_ids
-                        .iter()
-                        .map(|read_id| self.read_names_map.get_by_right(read_id).unwrap().to_string())
-                        .collect();
-                    let row = format!(
-                        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-                        transcript_model.transcript_id,
-                        chromosome,
-                        exon.start,
-                        exon.end,
-                        exon.number,
-                        exon.strand.as_str(),
-                        read_names.join(","),
-                        read_names.len() as u32
-                    );
-                    writer.write_all((&row).as_bytes()).unwrap();
-                }
-            }
-            writer.flush().unwrap();
-        }
+            prefix.to_string()
+        };
 
-        // Step 3. Splice junction TSV file
-        let sj_file = File::create(splice_junction_tsv_file).unwrap();
-        let header: String = format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-            "transcript_id",
-            "chromosome",
-            "start",
-            "end",
-            "splice_junction_number",
-            "strand_values",
-            "read_names_values",
-            "read_names_count_values"
-        );
-        if gzip {
-            let buf_writer = BufWriter::new(sj_file);
-            let mut writer = GzEncoder::new(buf_writer, Compression::default());
-            writer.write_all(header.as_bytes()).unwrap();
-            for transcript_model in self.transcript_models.iter() {
-                for splice_junction in transcript_model.splice_junctions.iter() {
-                    let chromosome: &str = self.chromosome_names_map.get_by_right(&splice_junction.chromosome_id).unwrap();
-                    let read_names: Vec<String> = transcript_model
-                        .read_ids
-                        .iter()
-                        .map(|read_id| self.read_names_map.get_by_right(read_id).unwrap().to_string())
-                        .collect();
-                    let row = format!(
-                        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-                        transcript_model.transcript_id,
-                        chromosome,
-                        splice_junction.start,
-                        splice_junction.end,
-                        splice_junction.number,
-                        splice_junction.strand.as_str(),
-                        read_names.join(","),
-                        read_names.len() as u32
-                    );
-                    writer.write_all((&row).as_bytes()).unwrap();
-                }
-            }
-            writer.flush().unwrap();
-        } else {
-            let mut writer = BufWriter::new(sj_file);
-            writer.write_all(header.as_bytes()).unwrap();
-            for transcript_model in self.transcript_models.iter() {
-                for splice_junction in transcript_model.splice_junctions.iter() {
-                    let chromosome: &str = self.chromosome_names_map.get_by_right(&splice_junction.chromosome_id).unwrap();
-                    let read_names: Vec<String> = transcript_model
-                        .read_ids
-                        .iter()
-                        .map(|read_id| self.read_names_map.get_by_right(read_id).unwrap().to_string())
-                        .collect();
-                    let row = format!(
-                        "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-                        transcript_model.transcript_id,
-                        chromosome,
-                        splice_junction.start,
-                        splice_junction.end,
-                        splice_junction.number,
-                        splice_junction.strand.as_str(),
-                        read_names.join(","),
-                        read_names.len() as u32
-                    );
-                    writer.write_all((&row).as_bytes()).unwrap();
-                }
-            }
-            writer.flush().unwrap();
-        }
+        let make_path = |name: &str| format!("{}{}_exacto_{}.tsv", output_dir, prefix, name);
 
-        // Step 4. Variant calls TSV file
-        let variants_file = File::create(variant_calls_tsv_file).unwrap();
-        let header: String = format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
-            "variant_id",
-            "chromosome_1",
-            "position_1",
-            "strand_1",
-            "orientation_1",
-            "chromosome_2",
-            "position_2",
-            "strand_2",
-            "orientation_2",
-            "variant_size",
-            "variant_type",
-            "variant_sequence",
-            "consensus_read_names",
-            "consensus_read_names_count",
-            "read_names",
-            "read_names_count"
-        );
-        let mut variant_calls: Vec<&VariantCall> = Vec::new();
-        for transcript_model in self.transcript_models.iter() {
-            variant_calls.extend(transcript_model.variant_calls.iter());
+        let exons_tsv_file: String = make_path("exons");
+        let matched_reference_transcripts_tsv_file: String = make_path("reference_transcript_matches");
+        let read_filter_status_tsv_file: String = make_path("read_filter_status");
+        let read_names_tsv_file: String = make_path("transcripts_read_support");
+        let splice_junctions_tsv_file: String = make_path("splice_junctions");
+        let transcripts_tsv_file: String = make_path("transcripts");
+        let variant_calls_tsv_file: String = make_path("variant_calls");
+
+        // Step 2. Get all DataFrames to output
+        let mut df_exons = self.get_exons_dataframe();
+        let mut df_read_filter_status: DataFrame = self.get_read_filter_status_dataframe();
+        let mut df_read_names: DataFrame = self.get_read_names_dataframe();
+        let mut df_matched_reference_transcripts: DataFrame = self.get_matched_reference_transcripts_dataframe();
+        let mut df_splice_junctions: DataFrame = self.get_splice_junctions_dataframe();
+        let mut df_transcripts: DataFrame = self.get_transcripts_dataframe();
+        let mut df_variant_calls: DataFrame = self.get_variant_calls_dataframe(1);
+
+        // Step 3. Write to TSV files
+        fn write_df_to_tsv(df: &mut DataFrame, path: &str) {
+            let mut file = File::create(path).unwrap();
+            CsvWriter::new(&mut file)
+                .include_header(true)
+                .with_separator(b'\t')
+                .finish(df)
+                .unwrap();
         }
-        if gzip {
-            let buf_writer = BufWriter::new(variants_file);
-            let mut writer = GzEncoder::new(buf_writer, Compression::default());
-            writer.write_all(header.as_bytes()).unwrap();
-            for (i,variant_call) in variant_calls.iter().enumerate() {
-                let variant_call_id = format!("{}\t", i + 1);
-                let row = variant_call.to_tsv_string(
-                    &self.chromosome_names_map,
-                    &self.read_names_map
-                );
-                writer.write_all((variant_call_id + &row).as_bytes()).unwrap();
-            }
-            writer.flush().unwrap();
-        } else {
-            let mut writer = BufWriter::new(variants_file);
-            writer.write_all(header.as_bytes()).unwrap();
-            for (i,variant_call) in variant_calls.iter().enumerate() {
-                let variant_call_id = format!("{}\t", i + 1);
-                let row = variant_call.to_tsv_string(
-                    &self.chromosome_names_map,
-                    &self.read_names_map
-                );
-                writer.write_all((variant_call_id + &row).as_bytes()).unwrap();
-            }
-            writer.flush().unwrap();
-        }
+        write_df_to_tsv(&mut df_exons, exons_tsv_file.as_str());
+        write_df_to_tsv(&mut df_read_filter_status, read_filter_status_tsv_file.as_str());
+        write_df_to_tsv(&mut df_read_names, read_names_tsv_file.as_str());
+        write_df_to_tsv(&mut df_matched_reference_transcripts, matched_reference_transcripts_tsv_file.as_str());
+        write_df_to_tsv(&mut df_splice_junctions, splice_junctions_tsv_file.as_str());
+        write_df_to_tsv(&mut df_transcripts, transcripts_tsv_file.as_str());
+        write_df_to_tsv(&mut df_variant_calls, variant_calls_tsv_file.as_str());
     }
 }

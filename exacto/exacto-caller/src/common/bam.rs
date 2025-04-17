@@ -190,7 +190,10 @@ pub fn fetch_all_bam_records(
     // Step 4. Group into HashMap
     let mut records_map: HashMap<usize, Vec<bam::Record>> = HashMap::new();
     for (read_id, record) in pairs {
-        records_map.entry(read_id).or_insert_with(Vec::new).push(record);
+        records_map
+            .entry(read_id)
+            .or_insert_with(Vec::new)
+            .push(record);
     }
 
     records_map
