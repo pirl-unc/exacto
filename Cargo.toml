@@ -38,7 +38,7 @@ codegen-units = 256
 
 [profile.release]
 opt-level = 0
-debug = true
+debug = false
 lto = true
 overflow-checks = false
 panic = 'unwind'
