@@ -51,19 +51,11 @@ impl VariantRecord {
         self.sequence_operation.chromosome_2
     }
 
-    pub fn get_sequence_operation_boxed_str(&self) -> Box<str> {
-        self.sequence_operation.as_boxed_str()
-    }
-
-    pub fn get_sequence_operation_named_boxed_str(&self, chromosome_names_map: &BiMap<Box<str>,u16>) -> Box<str> {
-        self.sequence_operation.as_named_boxed_str(chromosome_names_map)
-    }
-
-    pub fn get_operation_1(&self) -> SequenceOperationTypes {
+    pub fn get_operation_1(&self) -> SequenceOperationType {
         self.sequence_operation.operation_1.clone()
     }
 
-    pub fn get_operation_2(&self) -> SequenceOperationTypes {
+    pub fn get_operation_2(&self) -> SequenceOperationType {
         self.sequence_operation.operation_2.clone()
     }
 
@@ -75,6 +67,22 @@ impl VariantRecord {
         self.sequence_operation.position_2
     }
 
+    pub fn get_read_id(&self) -> usize {
+        self.read_id
+    }
+
+    pub fn get_sequence_operation(&self) -> &SequenceOperation {
+        &self.sequence_operation
+    }
+
+    pub fn get_sequence_operation_boxed_str(&self) -> Box<str> {
+        self.sequence_operation.as_boxed_str()
+    }
+
+    pub fn get_sequence_operation_named_boxed_str(&self, chromosome_names_map: &BiMap<Box<str>,u16>) -> Box<str> {
+        self.sequence_operation.as_named_boxed_str(chromosome_names_map)
+    }
+
     pub fn get_sequence(&self) -> &str {
         &*self.sequence_operation.sequence
     }
@@ -83,11 +91,11 @@ impl VariantRecord {
         self.sequence_operation.get_sequence_length()
     }
 
-    pub fn get_strand_1(&self) -> Strands {
+    pub fn get_strand_1(&self) -> Strand {
         self.sequence_operation.strand_1.clone()
     }
 
-    pub fn get_strand_2(&self) -> Strands {
+    pub fn get_strand_2(&self) -> Strand {
         self.sequence_operation.strand_2.clone()
     }
 
@@ -95,7 +103,7 @@ impl VariantRecord {
         self.sequence_operation.get_variant_size()
     }
 
-    pub fn get_variant_type(&self) -> SequenceOperationVariantTypes {
+    pub fn get_variant_type(&self) -> SequenceOperationVariantType {
         self.sequence_operation.variant_type.clone()
     }
 }

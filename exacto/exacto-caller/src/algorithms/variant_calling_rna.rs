@@ -14,22 +14,26 @@
 use bimap::BiMap;
 use exacto_util::prelude::*;
 use exacto_util as util;
+use indicatif::{ProgressBar, ProgressStyle};
 use noodles_bam as bam;
 use rayon::prelude::*;
 use rayon::iter::IntoParallelRefIterator;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
+use crate::log_info;
+use crate::macros::*;
 use crate::prelude::*;
 use crate::structs::reference_transcript_match::ReferenceTranscriptMatch;
 use crate::structs::transcript_model_set::TranscriptModelSet;
 
 
-pub fn identify_closest_reference_transcript_ids_helper(
+pub fn score_reference_transcript(
     exons: &Vec<TranscriptModelExon>,
-    gene_annotator: &impl GeneAnnotator,
+    reference_transcript: &Transcript,
+    reference_gene: &Gene,
     chromosome_names_map: &BiMap<Box<str>,u16>,
-    gene_id: &str,
-    scoring_method: ReferenceTranscriptScoringMethods
+    scoring_method: ReferenceTranscriptScoringMethod
 ) -> ReferenceTranscriptMatch {
     // Step 1. Get the transcript model's exonic regions
     let model_exon_regions: Vec<(Box<str>, u32, u32)> = exons
@@ -44,187 +48,233 @@ pub fn identify_closest_reference_transcript_ids_helper(
         })
         .collect();
 
-    // Step 2. Score each reference transcript
-    let reference_gene = gene_annotator.get_gene(gene_id).unwrap();
-    let mut matched_reference_transcripts: Vec<ReferenceTranscriptMatch> = reference_gene
-        .get_transcript_ids()
+    // Step 2. Get the reference transcript's exonic regions
+    let reference_exons: Vec<(Box<str>, u32, u32)> = reference_transcript
+        .get_sorted_exons()
         .iter()
-        .map(|reference_transcript_id| {
-            let reference_transcript = gene_annotator.get_transcript(&**reference_transcript_id).unwrap();
-            let reference_exons: Vec<(Box<str>, u32, u32)> = reference_transcript
-                .get_sorted_exons()
-                .iter()
-                .map(|exon| (exon.chromosome.clone(), exon.start, exon.end))
-                .collect();
-
-            let score: f32 = match scoring_method {
-                ReferenceTranscriptScoringMethods::NetOverlap => {
-                    let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
-                    let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
-                    let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
-                    num_overlap_bases - num_nonoverlap_bases
-                },
-                ReferenceTranscriptScoringMethods::WeightedNetOverlap => {
-                    let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
-                    let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
-                    let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
-                    num_overlap_bases - (0.5 * num_nonoverlap_bases)
-                },
-                ReferenceTranscriptScoringMethods::Jaccard => {
-                    let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
-                    let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
-                    let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
-                    num_overlap_bases / (num_overlap_bases + num_nonoverlap_bases)
-                },
-                ReferenceTranscriptScoringMethods::Overlap => {
-                    let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
-                    num_overlap_bases
-                },
-                ReferenceTranscriptScoringMethods::Nonoverlap => {
-                    let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
-                    let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
-                    num_nonoverlap_bases
-                },
-                ReferenceTranscriptScoringMethods::CosineSimilarity => {
-                    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-                        0,
-                        Vec::new(),
-                        Vec::new()
-                    );
-                    for exon in exons.iter() {
-                        transcript_model.add_exon(exon.clone());
-                    }
-                    let chromosome_id: u16 = *chromosome_names_map.get_by_left(&reference_transcript.chromosome).unwrap();
-                    let vectorized_transcript: Vec<i8> = transcript_model.vectorize_exons(
-                        chromosome_id,
-                        reference_transcript.start,
-                        reference_transcript.end,
-                        1 as i8,
-                        0 as i8
-                    );
-                    let vectorized_reference_transcript: Vec<i8> = reference_transcript.vectorize_exons(
-                        reference_transcript.chromosome.clone(),
-                        reference_transcript.start,
-                        reference_transcript.end,
-                        1 as i8,
-                        0 as i8
-                    );
-                    calculate_cosine_similarity(&vectorized_transcript, &vectorized_reference_transcript) as f32
-                }
-                _ => {
-                    panic!("Unexpected scoring method: {}", scoring_method.as_str());
-                }
-            };
-
+        .map(|exon| (exon.chromosome.clone(), exon.start, exon.end))
+        .collect();
+    
+    // Step 3. Score
+    let score: f32 = match scoring_method {
+        ReferenceTranscriptScoringMethod::NetOverlap => {
             let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
             let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
-
-            let reference_transcript_match: ReferenceTranscriptMatch = ReferenceTranscriptMatch::new(
-                reference_transcript.clone(),
-                num_overlap_bases as u32,
-                num_model_only_bases,
-                num_reference_only_bases,
-                score
+            let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
+            num_overlap_bases - num_nonoverlap_bases
+        },
+        ReferenceTranscriptScoringMethod::WeightedNetOverlap => {
+            let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
+            let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
+            let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
+            num_overlap_bases - (0.5 * num_nonoverlap_bases)
+        },
+        ReferenceTranscriptScoringMethod::Jaccard => {
+            let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
+            let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
+            let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
+            num_overlap_bases / (num_overlap_bases + num_nonoverlap_bases)
+        },
+        ReferenceTranscriptScoringMethod::Overlap => {
+            let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
+            num_overlap_bases
+        },
+        ReferenceTranscriptScoringMethod::Nonoverlap => {
+            let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
+            let num_nonoverlap_bases: f32 = num_model_only_bases as f32 + num_reference_only_bases as f32;
+            num_nonoverlap_bases
+        },
+        ReferenceTranscriptScoringMethod::CosineSimilarity => {
+            let mut transcript_model: TranscriptModel = TranscriptModel::new(
+                0,
+                Vec::new(),
+                Vec::new()
             );
+            for exon in exons.iter() {
+                transcript_model.add_exon(exon.clone());
+            }
 
+            // Identify the portion of the reference gene covered by the transcript model exons
+            let chromosome_id: u16 = *chromosome_names_map.get_by_left(&reference_transcript.chromosome).unwrap();
+            let mut start_positions: Vec<u32> = Vec::new();
+            let mut end_positions: Vec<u32> = Vec::new();
+            let reference_gene_start: isize = reference_gene.start as isize;
+            let reference_gene_end: isize = reference_gene.end as isize;
+            for exon in transcript_model.exons.iter() {
+                if exon.chromosome_id == chromosome_id {
+                    if overlaps(exon.start as isize, exon.end as isize, reference_gene_start, reference_gene_end) {
+                        start_positions.push(exon.start);
+                        end_positions.push(exon.end);
+                    }
+                }
+            }
+            if start_positions.is_empty() || end_positions.is_empty() {
+                // Transcript model exons do not overlap the reference gene region
+                0.0f32
+            } else {
+                // Transcript model exons overlap the reference gene region
+                let min_start_position = *start_positions.iter().min().expect("Exon start positions vector is empty.");
+                let max_end_position = *end_positions.iter().max().expect("Exon end positions vector is empty.");
+                let start: u32 = reference_transcript.start.min(min_start_position);
+                let end: u32 = reference_transcript.end.max(max_end_position);
+
+                assert!(start <= end, "start ({}) is expected to be smaller or equal to end ({})", start, end);
+
+                let vectorized_transcript: Vec<i8> = transcript_model.vectorize_exons(
+                    chromosome_id,
+                    start,
+                    end,
+                    1 as i8,
+                    0 as i8
+                );
+                let vectorized_reference_transcript: Vec<i8> = reference_transcript.vectorize_exons(
+                    reference_transcript.chromosome.clone(),
+                    start,
+                    end,
+                    1 as i8,
+                    0 as i8
+                );
+                calculate_cosine_similarity(&vectorized_transcript, &vectorized_reference_transcript) as f32
+            }
+        },
+        ReferenceTranscriptScoringMethod::L2Distance => {
+            let mut transcript_model: TranscriptModel = TranscriptModel::new(
+                0,
+                Vec::new(),
+                Vec::new()
+            );
+            for exon in exons.iter() {
+                transcript_model.add_exon(exon.clone());
+            }
+            let chromosome_id: u16 = *chromosome_names_map.get_by_left(&reference_transcript.chromosome).unwrap();
+            let vectorized_transcript: Vec<i8> = transcript_model.vectorize_exons(
+                chromosome_id,
+                reference_transcript.start,
+                reference_transcript.end,
+                1 as i8,
+                0 as i8
+            );
+            let vectorized_reference_transcript: Vec<i8> = reference_transcript.vectorize_exons(
+                reference_transcript.chromosome.clone(),
+                reference_transcript.start,
+                reference_transcript.end,
+                1 as i8,
+                0 as i8
+            );
+            calculate_l2_distance(&vectorized_transcript, &vectorized_reference_transcript) as f32
+        },
+        _ => {
+            panic!("Unexpected scoring method: {}", scoring_method.as_str());
+        }
+    };
+
+    let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
+    let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
+
+    let reference_transcript_match: ReferenceTranscriptMatch = ReferenceTranscriptMatch::new(
+        reference_transcript.clone(),
+        num_overlap_bases as u32,
+        num_model_only_bases,
+        num_reference_only_bases,
+        scoring_method.clone(),
+        score
+    );
+
+    reference_transcript_match
+}
+
+pub fn score_reference_transcripts(
+    exons: &Vec<TranscriptModelExon>,
+    reference_transcripts: Vec<&Transcript>,
+    reference_gene: &Gene,
+    chromosome_names_map: &BiMap<Box<str>,u16>,
+    scoring_method: ReferenceTranscriptScoringMethod
+) -> Vec<ReferenceTranscriptMatch> {
+    let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = reference_transcripts
+        .iter()
+        .map(|reference_transcript| {
+            let reference_transcript_match: ReferenceTranscriptMatch = score_reference_transcript(
+                exons,
+                reference_transcript,
+                reference_gene,
+                chromosome_names_map,
+                scoring_method.clone()
+            );
             reference_transcript_match
         })
         .collect::<Vec<_>>();
-
-    // Step 3. Identify closest transcript
-    if matched_reference_transcripts.is_empty() {
-        let transcript_: Transcript = Transcript::new(
-            "",
-            "",
-            "",
-            "",
-            0,
-            0,
-            util::common::constants::Strands::Forward,
-            0,
-            "",
-            "",
-            ""
-        );
-        let reference_transcript_match: ReferenceTranscriptMatch = ReferenceTranscriptMatch::new(
-            transcript_,
-            0u32,
-            0u32,
-            0u32,
-            0.0f32
-        );
-        return reference_transcript_match;
-    }
-
-    // Get the max score
-    let best_match = matched_reference_transcripts
-        .into_iter()
-        .max_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
-
-    best_match.unwrap()
+    reference_transcript_matches
 }
 
-pub fn identify_closest_reference_transcript_ids(
+pub fn identify_reference_transcript_matches(
     exons: &Vec<TranscriptModelExon>,
-    gene_annotator: &impl GeneAnnotator,
+    reference_genes: Vec<&Gene>,
     chromosome_names_map: &BiMap<Box<str>,u16>,
-    gene_ids: &HashSet<Box<str>>,
-    scoring_method: ReferenceTranscriptScoringMethods
+    scoring_method: ReferenceTranscriptScoringMethod,
+    selection_strategy: ReferenceTranscriptSelectionStrategy,
+    top_k: usize,
+    threshold: f32
 ) -> Vec<ReferenceTranscriptMatch> {
-    // Identify the closest reference transcript ID for each gene
-    let mut reference_transcript_scores: HashMap<Box<str>,ReferenceTranscriptMatch> = HashMap::new();
-    for reference_gene_id in gene_ids.iter() {
-        let matched_reference_transcript: ReferenceTranscriptMatch = identify_closest_reference_transcript_ids_helper(
+    // Step 1. Score each transcript in each gene
+    let mut reference_transcript_scores: HashMap<Box<str>,Vec<ReferenceTranscriptMatch>> = HashMap::new();
+    for reference_gene in reference_genes.iter() {
+        let mut reference_transcripts: Vec<&Transcript> = Vec::new();
+        for reference_transcript in reference_gene.transcripts.values() {
+            reference_transcripts.push(reference_transcript);
+        }
+        let reference_transcript_matches_: Vec<ReferenceTranscriptMatch> = score_reference_transcripts(
             exons,
-            gene_annotator,
+            reference_transcripts,
+            reference_gene,
             chromosome_names_map,
-            &*reference_gene_id,
             scoring_method.clone()
         );
-        reference_transcript_scores.insert(reference_gene_id.clone(),matched_reference_transcript);
+        reference_transcript_scores.insert(reference_gene.gene_id.clone(), reference_transcript_matches_);
     }
-
-    // Choose the closest reference transcript ID if genes overlap
-    let mut reference_gene_ids: HashSet<Box<str>> = HashSet::new();
-    for reference_gene_id_1 in reference_transcript_scores.keys() {
-        let reference_gene_1 = gene_annotator.get_gene(reference_gene_id_1).unwrap();
-        let (start_1, end_1) = (reference_gene_1.start as isize, reference_gene_1.end as isize);
-
-        // Collect all overlapping gene IDs, including itself
-        let overlapping_gene_ids: HashSet<_> = reference_transcript_scores
-            .keys()
-            .filter(|reference_gene_id_2| {
-                if *reference_gene_id_1 == **reference_gene_id_2 {
-                    true
-                } else {
-                    let reference_gene_2 = gene_annotator.get_gene(reference_gene_id_2).unwrap();
-                    overlaps(start_1, end_1, reference_gene_2.start as isize, reference_gene_2.end as isize)
+    
+    // Step 2. Select reference transcript matches
+    let mut reference_transcript_matches: Vec<ReferenceTranscriptMatch> = Vec::new();
+    for reference_gene in reference_genes.iter() {
+        if let Some(matches) = reference_transcript_scores.get(&reference_gene.gene_id) {
+            // Sort by score descending
+            let mut sorted_matches = matches.clone();
+            sorted_matches.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+            
+            if selection_strategy == ReferenceTranscriptSelectionStrategy::TopK {
+                // Find the top K score values
+                let mut prev_score: f32 = f32::NEG_INFINITY;
+                let mut top_k_scores: Vec<f32> = Vec::new();
+                for reference_transcript_match in sorted_matches.iter() {
+                    let score = reference_transcript_match.score;
+                    if (score == prev_score) || (top_k_scores.len() >= top_k) {
+                        continue;
+                    }
+                    top_k_scores.push(score);
+                    prev_score = score;
                 }
-            })
-            .cloned()
-            .collect();
-
-        // Pick the best-scoring gene from the overlapping set
-        if let Some(best_gene_id) = overlapping_gene_ids
-            .iter()
-            .max_by(|a, b| {
-                let matched_reference_transcript_a: &ReferenceTranscriptMatch = reference_transcript_scores.get(*a).unwrap();
-                let matched_reference_transcript_b: &ReferenceTranscriptMatch = reference_transcript_scores.get(*b).unwrap();
-                let score_a = matched_reference_transcript_a.score;
-                let score_b = matched_reference_transcript_b.score;
-                score_a.partial_cmp(&score_b).unwrap()
-            }) {
-            reference_gene_ids.insert(best_gene_id.clone());
+                
+                // Find reference transcript matches that have the top K score values
+                let min_score = top_k_scores
+                    .iter()
+                    .copied()
+                    .reduce(|a, b| a.partial_cmp(&b).map(|o| if o == std::cmp::Ordering::Less { a } else { b }).unwrap())
+                    .expect("top_k_scores is empty");
+                for reference_transcript_match in sorted_matches.iter() {
+                    if reference_transcript_match.score >= min_score {
+                        reference_transcript_matches.push(reference_transcript_match.clone());
+                    }
+                }
+            } else if selection_strategy == ReferenceTranscriptSelectionStrategy::Threshold {
+                reference_transcript_matches.extend(
+                    sorted_matches.into_iter().filter(|m| m.score >= threshold)
+                );
+            } else {
+                panic!("Unsupported selection strategy: {}", selection_strategy.as_str());
+            }
         }
     }
 
-    // Retain the best scoring gene transcripts
-    let reference_transcript_ids: Vec<ReferenceTranscriptMatch> = reference_gene_ids
-        .iter()
-        .filter_map(|gene_id| reference_transcript_scores.get(gene_id).map(|reference_transcript_match| reference_transcript_match.clone()))
-        .collect();
-
-    reference_transcript_ids
+    reference_transcript_matches
 }
 
 pub fn identify_overlapping_gene_ids(
@@ -251,7 +301,10 @@ pub fn identify_variant_transcripts(
     bam_bai_file: &str,
     reference_genome_fasta_file: &str,
     gene_annotator: &(impl GeneAnnotator + Sync),
-    reference_transcript_scoring_method: ReferenceTranscriptScoringMethods,
+    reference_transcript_scoring_method: ReferenceTranscriptScoringMethod,
+    reference_transcript_selection_strategy: ReferenceTranscriptSelectionStrategy,
+    top_k: usize,
+    threshold: f32,
     min_mapping_quality: usize,
     min_average_base_quality: f32,
     num_threads: usize
@@ -267,6 +320,7 @@ pub fn identify_variant_transcripts(
     let chromosome_names_map: BiMap<Box<str>,u16> = create_chromosome_names_map(bam_file);
 
     // Step 3. Fetch all BAM records
+    log_info!("Fetching all BAM records");
     let records_map: HashMap<usize,Vec<bam::Record>> = fetch_all_bam_records(
         bam_file,
         bam_bai_file,
@@ -275,6 +329,14 @@ pub fn identify_variant_transcripts(
     );
 
     // Step 4. Construct transcript models
+    log_info!("Constructing transcript models");
+    let pb = Arc::new(ProgressBar::new(records_map.len() as u64));
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})")
+            .unwrap()
+            .progress_chars("=>-")
+    );
     let thread_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build()
@@ -283,100 +345,117 @@ pub fn identify_variant_transcripts(
         records_map
             .par_iter()
             .filter_map(|(read_id, records)| {
-                let read_sequence: Box<str> =  get_original_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
-                let quality_scores: Vec<u8> = get_original_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
-                let alignment: Alignment = Alignment::new(
-                    *read_id,
-                    read_sequence,
-                    quality_scores,
-                    records.clone()
-                );
+                let result = {
+                    // Get read original sequence
+                    let read_sequence: Box<str> = get_original_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
 
-                // Check mapping quality
-                let mut min_mapping_quality_: u8 = 0u8;
-                for alignment_record in alignment.alignment_records.iter() {
-                    let curr_mapping_quality = alignment_record.record.mapping_quality().unwrap().get();
-                    if min_mapping_quality_ < curr_mapping_quality {
-                        min_mapping_quality_ = curr_mapping_quality;
+                    // Get base quality scores
+                    let quality_scores: Vec<u8> = get_original_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
+
+                    // Construct an Alignment object
+                    let alignment: Alignment = Alignment::new(
+                        *read_id,
+                        read_sequence,
+                        quality_scores,
+                        records.clone(),
+                    );
+
+                    // Get the maximum mapping quality score
+                    let mut min_mapping_quality_ = 0u8;
+                    for alignment_record in alignment.alignment_records.iter() {
+                        let curr_mapping_quality = alignment_record.record.mapping_quality().unwrap().get();
+                        min_mapping_quality_ = min_mapping_quality_.max(curr_mapping_quality);
                     }
-                }
-                if min_mapping_quality > min_mapping_quality_ as usize {
-                    // No exon will be identified
-                    return None;
-                }
+                    if min_mapping_quality > min_mapping_quality_ as usize {
+                        return None;
+                    }
 
-                // Identify exons
-                let exons: Vec<TranscriptModelExon> = alignment.identify_exons(min_mapping_quality);
+                    // Identify exons
+                    let exons = alignment.identify_exons(min_mapping_quality);
 
-                // Identify splice junctions
-                let splice_junctions: Vec<TranscriptModelSpliceJunction> = alignment.identify_splice_junctions(
-                    &chromosome_names_map,
-                    reference_genome_fasta_file,
-                    min_mapping_quality
-                );
+                    // Identify splice junctions
+                    let splice_junctions = alignment.identify_splice_junctions(
+                        &chromosome_names_map,
+                        reference_genome_fasta_file,
+                        min_mapping_quality,
+                    );
 
-                // Identify overlapping gene IDs
-                let reference_gene_ids: HashSet<Box<str>> = identify_overlapping_gene_ids(
-                    &exons,
-                    gene_annotator,
-                    &chromosome_names_map
-                );
+                    // Identify reference gene IDs
+                    let reference_gene_ids = identify_overlapping_gene_ids(
+                        &exons,
+                        gene_annotator,
+                        &chromosome_names_map,
+                    );
 
-                // Identify closest reference transcript IDs
-                let matched_reference_transcripts: Vec<ReferenceTranscriptMatch> = identify_closest_reference_transcript_ids(
-                    &exons,
-                    gene_annotator,
-                    &chromosome_names_map,
-                    &reference_gene_ids,
-                    reference_transcript_scoring_method.clone()
-                );
+                    // Fetch reference genes
+                    let mut reference_genes: Vec<&Gene> = Vec::new();
+                    for reference_gene_id in reference_gene_ids.iter() {
+                        let reference_gene = gene_annotator.get_gene(reference_gene_id).unwrap();
+                        reference_genes.push(reference_gene);
+                    }
 
-                // Identify splice variant records
-                let splice_variant_records: Vec<VariantRecord> = alignment.identify_splice_variant_records(
-                    &matched_reference_transcripts,
-                    &chromosome_names_map,
-                    min_mapping_quality
-                );
+                    // Identify closest reference transcripts
+                    let reference_transcript_matches = identify_reference_transcript_matches(
+                        &exons,
+                        reference_genes,
+                        &chromosome_names_map,
+                        reference_transcript_scoring_method.clone(),
+                        reference_transcript_selection_strategy.clone(),
+                        top_k,
+                        threshold
+                    );
 
-                // Identify sequence variant records
-                let sequence_variant_records: Vec<VariantRecord> = alignment.identify_sequence_variant_records(
-                    min_mapping_quality,
-                    min_average_base_quality
-                );
+                    // Identify splice variants
+                    let splice_variant_records: HashMap<Box<str>,Vec<VariantRecord>> = alignment.identify_splice_variant_records(
+                        &reference_transcript_matches,
+                        &chromosome_names_map,
+                        min_mapping_quality,
+                    );
 
-                // Construct a transcript model
-                let read_ids: Vec<usize> = vec![*read_id];
-                let mut transcript_model: TranscriptModel = TranscriptModel::new(
-                    alignment.read_id,
-                    matched_reference_transcripts,
-                    read_ids
-                );
-                for exon in exons {
-                    transcript_model.add_exon(exon);
-                }
-                for splice_junction in splice_junctions {
-                    transcript_model.add_splice_junction(splice_junction);
-                }
-                for splice_variant_record in splice_variant_records {
-                    let mut variant_call: VariantCall = VariantCall::new();
-                    variant_call.add_variant_record(splice_variant_record);
-                    transcript_model.add_variant_call(variant_call);
-                }
-                for sequence_variant_record in sequence_variant_records {
-                    let mut variant_call: VariantCall = VariantCall::new();
-                    variant_call.add_variant_record(sequence_variant_record);
-                    transcript_model.add_variant_call(variant_call);
-                }
+                    // Identify sequence variants
+                    let sequence_variant_records = alignment.identify_sequence_variant_records(
+                        min_mapping_quality,
+                        min_average_base_quality,
+                    );
 
-                Some(transcript_model)
+                    // Construct a TranscriptModel object
+                    let mut transcript_model = TranscriptModel::new(
+                        alignment.read_id,
+                        reference_transcript_matches,
+                        vec![*read_id],
+                    );
+                    for exon in exons {
+                        transcript_model.add_exon(exon);
+                    }
+                    for splice_junction in splice_junctions {
+                        transcript_model.add_splice_junction(splice_junction);
+                    }
+                    for (reference_transcript_id, variant_records) in splice_variant_records.iter() {
+                        for variant_record in variant_records.iter() {
+                            let mut variant_call = VariantCall::new();
+                            variant_call.add_variant_record(variant_record.clone());
+                            transcript_model.add_splice_variant_call(&*reference_transcript_id, variant_call);
+                        }
+                    }
+                    for variant_record in sequence_variant_records {
+                        let mut variant_call = VariantCall::new();
+                        variant_call.add_variant_record(variant_record);
+                        transcript_model.add_sequence_variant_call(variant_call);
+                    }
+
+                    Some(transcript_model)
+                };
+                pb.inc(1);
+                result
             })
             .collect()
     });
+    pb.finish_with_message("Completed constructing transcript models.");
 
     let mut transcript_model_set: TranscriptModelSet = TranscriptModelSet::new();
     let mut transcript_id: usize = 1;;
     for mut transcript_model in transcript_models {
-        transcript_model.transcript_id = transcript_id;
+        transcript_model.transcript_id = transcript_id;        
         transcript_model_set.add_transcript_model(transcript_model);
         transcript_id += 1;
     }

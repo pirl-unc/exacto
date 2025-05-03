@@ -1,3 +1,9 @@
-transcript_id	reference_transcript_id	reference_transcript_chromosome	reference_transcript_start	reference_transcript_end	reference_transcript_strand	reference_transcript_num_exons	num_overlap_bases	num_transcript_only_bases	num_reference_transcript_only_bases	score
-1	ENST00000269305.9	chr17	7668421	7687490	-	11	2512	0	0	2512.0
-2	ENST00000269305.9	chr17	7668421	7687490	-	11	2512	0	0	2512.0
+transcript_id	reference_gene_id	reference_transcript_id	reference_transcript_chromosome	reference_transcript_start	reference_transcript_end	reference_transcript_strand	reference_transcript_num_exons	num_overlap_bases	num_transcript_only_bases	num_reference_transcript_only_bases	score	scoring_method
+1	ENSG00000141510.18	ENST00000269305.9	chr17	7668421	7687490	-	11	2512	0	0	1.0	cosine_similarity
+1	ENSG00000141510.18	ENST00000619485.4	chr17	7668421	7687487	-	11	2506	6	0	0.99880505	cosine_similarity
+1	ENSG00000141510.18	ENST00000445888.6	chr17	7668421	7687487	-	11	2506	6	0	0.99880505	cosine_similarity
+1	ENSG00000141510.18	ENST00000620739.4	chr17	7668402	7687538	-	11	2512	0	67	0.986925	cosine_similarity
+2	ENSG00000141510.18	ENST00000269305.9	chr17	7668421	7687490	-	11	2512	0	0	1.0	cosine_similarity
+2	ENSG00000141510.18	ENST00000619485.4	chr17	7668421	7687487	-	11	2506	6	0	0.99880505	cosine_similarity
+2	ENSG00000141510.18	ENST00000445888.6	chr17	7668421	7687487	-	11	2506	6	0	0.99880505	cosine_similarity
+2	ENSG00000141510.18	ENST00000620739.4	chr17	7668402	7687538	-	11	2512	0	67	0.986925	cosine_similarity

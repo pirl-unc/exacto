@@ -16,13 +16,16 @@ use std::hash::{Hash, Hasher};
 use serde::{Deserialize, Serialize};
 use exacto_util::prelude::Transcript;
 
+use crate::prelude::ReferenceTranscriptScoringMethod;
+
 
 #[derive(Debug,Serialize,Deserialize)]
-    pub struct ReferenceTranscriptMatch {
+pub struct ReferenceTranscriptMatch {
     pub reference_transcript: Transcript,
     pub num_overlap_bases: u32,
     pub num_transcript_only_bases: u32,
     pub num_reference_only_bases: u32,
+    pub scoring_method: ReferenceTranscriptScoringMethod,
     pub score: f32
 }
 
@@ -32,6 +35,7 @@ impl PartialEq for ReferenceTranscriptMatch {
             self.num_overlap_bases == other.num_overlap_bases &&
             self.num_transcript_only_bases == other.num_transcript_only_bases &&
             self.num_reference_only_bases == other.num_reference_only_bases &&
+            self.scoring_method == other.scoring_method &&
             self.score == other.score
     }
 }
@@ -44,6 +48,8 @@ impl Hash for ReferenceTranscriptMatch {
         self.num_overlap_bases.hash(state);
         self.num_transcript_only_bases.hash(state);
         self.num_reference_only_bases.hash(state);
+        self.scoring_method.hash(state);
+        self.score.to_bits().hash(state);
     }
 }
 
@@ -53,6 +59,7 @@ impl ReferenceTranscriptMatch {
         num_overlap_bases: u32,
         num_transcript_only_bases: u32,
         num_reference_only_bases: u32,
+        scoring_method: ReferenceTranscriptScoringMethod,
         score: f32
     ) -> Self {
         Self {
@@ -60,6 +67,7 @@ impl ReferenceTranscriptMatch {
             num_overlap_bases: num_overlap_bases,
             num_transcript_only_bases: num_transcript_only_bases,
             num_reference_only_bases: num_reference_only_bases,
+            scoring_method: scoring_method,
             score: score
         }
     }
@@ -72,6 +80,7 @@ impl Clone for ReferenceTranscriptMatch {
             num_overlap_bases: self.num_overlap_bases,
             num_transcript_only_bases: self.num_transcript_only_bases,
             num_reference_only_bases: self.num_reference_only_bases,
+            scoring_method: self.scoring_method.clone(),
             score: self.score
         }
     }

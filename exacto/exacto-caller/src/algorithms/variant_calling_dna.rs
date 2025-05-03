@@ -13,6 +13,7 @@
 
 use bimap::BiMap;
 use bincode;
+use indicatif::{ProgressBar, ProgressStyle};
 use noodles_bam::{self as bam};
 use noodles_fasta::io::indexed_reader::Builder;
 use rayon::prelude::*;
@@ -32,7 +33,7 @@ use crate::algorithms::variant_calling::{
     diff_variant_records
 };
 use crate::common::bam::*;
-use crate::common::constants::SequenceOperationVariantTypes;
+use crate::common::constants::SequenceOperationVariantType;
 use crate::log_info;
 use crate::structs::alignment::Alignment;
 use crate::structs::alignment_record::AlignmentRecord;
@@ -128,6 +129,13 @@ pub fn identify_dna_variants(
         .build()
         .unwrap();
     log_info!("Identifying DNA variants.");
+    let pb = Arc::new(ProgressBar::new(ordered_regions.len() as u64));
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})")
+            .unwrap()
+            .progress_chars("=>-")
+    );
     for (chromosome,curr_regions) in &ordered_regions {
         capture_memory_usage("[Memory] At the start of a chromosome.");
         let mut variant_records_btree: BTreeMap<usize,HashSet<VariantRecord>> = BTreeMap::new();
@@ -178,7 +186,7 @@ pub fn identify_dna_variants(
             // Filter by chromosome (allow inter-chromosomal translocations)
             let chromosome_id: u16 = chromosome_names_map.get_by_left(chromosome).unwrap().clone();
             variant_records.retain(|vr| {
-                if vr.get_variant_type() == SequenceOperationVariantTypes::Translocation.into() {
+                if vr.get_variant_type() == SequenceOperationVariantType::Translocation.into() {
                     if vr.get_chromosome_1() == chromosome_id || vr.get_chromosome_2() == chromosome_id {
                         true
                     } else {
@@ -260,7 +268,9 @@ pub fn identify_dna_variants(
         variant_records_btree.clear();
         drop(variant_records_btree);
         capture_memory_usage("[Memory] At the end of a chromosome.");
+        pb.inc(1);
     }
+    pb.finish_with_message("Completed identifying DNA variants.");
     drop(thread_pool);
 
     // Step 6. Load all VariantCallSet objects and merge them
@@ -390,6 +400,13 @@ pub fn identify_case_specific_dna_variants(
     let mut max_distance: u32 = max(max_intrachromosomal_distance_tau, max_intrachromosomal_distance);
     max_distance = max(max_distance, max_interchromosomal_distance);
     let bin_size: u32 = 10_u32.pow((max_distance as f32).log10().floor() as u32 + 1);
+    let pb = Arc::new(ProgressBar::new(chromosomes.len() as u64));
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})")
+            .unwrap()
+            .progress_chars("=>-")
+    );
     for chromosome in chromosomes.iter() {
         let start: usize = 1;
         let end: usize = *chromosome_lengths.get(&chromosome.to_string().into_boxed_str()).unwrap();
@@ -440,7 +457,7 @@ pub fn identify_case_specific_dna_variants(
 
         // Filter by chromosome (allow inter-chromosomal translocations)
         case_variant_records_.retain(|vr| {
-            if vr.get_variant_type() == SequenceOperationVariantTypes::Translocation.into() {
+            if vr.get_variant_type() == SequenceOperationVariantType::Translocation.into() {
                 if vr.get_chromosome_1() == chromosome_id || vr.get_chromosome_2() == chromosome_id {
                     true
                 } else {
@@ -524,7 +541,7 @@ pub fn identify_case_specific_dna_variants(
 
                 // Filter by chromosome (allow inter-chromosomal translocations)
                 control_variant_records.retain(|vr| {
-                    if vr.get_variant_type() == SequenceOperationVariantTypes::Translocation.into() {
+                    if vr.get_variant_type() == SequenceOperationVariantType::Translocation.into() {
                         if vr.get_chromosome_1() == chromosome_id || vr.get_chromosome_2() == chromosome_id {
                             true
                         } else {
@@ -592,7 +609,9 @@ pub fn identify_case_specific_dna_variants(
         variant_call_set.variant_calls.clear();
         variant_call_set.variant_calls.shrink_to_fit();
         drop(variant_call_set);
+        pb.inc(1);
     }
+    pb.finish_with_message("Completed identifying case-specific DNA variants.");
 
     // Step 6. Load all VariantCallSet objects and merge them
     log_info!("Loading all temp files and merging them into a variant call set.");

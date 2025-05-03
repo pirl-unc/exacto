@@ -17,7 +17,7 @@ The purpose of this python3 script is to implement general-purpose utility funct
 
 
 import pysam
-from typing import List
+from typing import List, Set
 from .logging import get_logger
 
 
@@ -44,6 +44,13 @@ def get_chromosomes(bam_file: str) -> List[str]:
     """
     bam = pysam.AlignmentFile(bam_file, "rb")
     return list(bam.references)
+
+
+def get_kmers(sequence: str, k: int) -> Set[str]:
+    kmers = set()
+    for i in range(0, len(sequence) - k + 1):
+        kmers.add(sequence[i:i + k])
+    return kmers
 
 
 def str2bool(v):

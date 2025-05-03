@@ -20,7 +20,7 @@ and run Exacto 'call-rna-vars' command.
 import argparse
 import os
 
-from ..constants import GeneAnnotationSources
+from ..constants import GeneAnnotationSource
 from ..main import *
 from ..utilities import *
 
@@ -77,7 +77,7 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         type=str,
         required=True,
         help="Reference gene annotation source (choices: %s)." %
-             ','.join(GeneAnnotationSources.ALL)
+             ','.join([str(GeneAnnotationSource.GENCODE)])
     )
     parser_required.add_argument(
         "--output-dir",
@@ -124,6 +124,33 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SCORING_METHOD
     )
     parser_optional.add_argument(
+        "--reference-transcript-selection-strategy",
+        dest="reference_transcript_selection_strategy",
+        type=str,
+        default=CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SELECTION_STRATEGY,
+        required=False,
+        help="Reference transcript scoring method (default: %s)."
+             % CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SELECTION_STRATEGY
+    )
+    parser_optional.add_argument(
+        "--reference-transcript-top-k",
+        dest="reference_transcript_top_k",
+        type=int,
+        default=CALL_RNA_VARS_REFERENCE_TRANSCRIPT_TOP_K,
+        required=False,
+        help="Select top k reference transcripts (default: %i)."
+             % CALL_RNA_VARS_REFERENCE_TRANSCRIPT_TOP_K
+    )
+    parser_optional.add_argument(
+        "--reference-transcript-threshold",
+        dest="reference_transcript_threshold",
+        type=float,
+        default=CALL_RNA_VARS_REFERENCE_TRANSCRIPT_THRESHOLD,
+        required=False,
+        help="Select reference transcripts with scores greater than or equal to the threshold (default: %f)."
+             % CALL_RNA_VARS_REFERENCE_TRANSCRIPT_THRESHOLD
+    )
+    parser_optional.add_argument(
         "--min-average-base-quality",
         dest="min_average_base_quality",
         type=float,
@@ -168,10 +195,13 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
         bam_bai_file=args.bam_bai_file,
         reference_genome_fasta_file=args.reference_genome_fasta_file,
         gene_annotation_file=args.gene_annotation_file,
-        gene_annotation_source=args.gene_annotation_source,
+        gene_annotation_source=GeneAnnotationSource(args.gene_annotation_source),
         output_dir=args.output_dir,
         output_prefix=args.output_prefix,
-        reference_transcript_scoring_method=args.reference_transcript_scoring_method,
+        reference_transcript_scoring_method=ReferenceTranscriptScoringMethod(args.reference_transcript_scoring_method),
+        reference_transcript_selection_strategy=ReferenceTranscriptSelectionStrategy(args.reference_transcript_selection_strategy),
+        reference_transcript_top_k=args.reference_transcript_top_k,
+        reference_transcript_threshold=args.reference_transcript_threshold,
         min_mapping_quality=args.min_mapping_quality,
         min_average_base_quality=args.min_average_base_quality,
         num_threads=args.num_threads,

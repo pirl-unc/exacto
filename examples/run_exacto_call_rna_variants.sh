@@ -6,4 +6,7 @@ gtime -v \
     --gene-annotation-file ../test/data/gtf/gencode.v41.annotation.chr17-18.gtf.gz \
     --gene-annotation-source gencode \
     --output-dir outputs/ \
-    --output-prefix rna-100-tumor_minimap2_mdtagged_sorted
+    --output-prefix rna-100-tumor_minimap2_mdtagged_sorted \
+    --reference-transcript-scoring-method cosine_similarity \
+    --reference-transcript-selection-strategy top_k \
+    --reference-transcript-top-k 3

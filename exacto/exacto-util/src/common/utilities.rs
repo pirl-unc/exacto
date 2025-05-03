@@ -17,6 +17,7 @@ use std::collections::{HashMap, HashSet};
 
 pub fn calculate_cosine_similarity(vec1: &Vec<i8>, vec2: &Vec<i8>) -> f64 {
     assert_eq!(vec1.len(), vec2.len(), "Vectors must be the same length");
+    
     let (mut dot_product, mut norm_a_sq, mut norm_b_sq) = (0.0, 0.0, 0.0);
     for (&a, &b) in vec1.iter().zip(vec2.iter()) {
         let a_f64 = a as f64;
@@ -30,6 +31,18 @@ pub fn calculate_cosine_similarity(vec1: &Vec<i8>, vec2: &Vec<i8>) -> f64 {
     } else {
         dot_product / (norm_a_sq.sqrt() * norm_b_sq.sqrt())
     }
+}
+
+pub fn calculate_l2_distance(vec1: &Vec<i8>, vec2: &Vec<i8>) -> f64 {
+    assert_eq!(vec1.len(), vec2.len(), "Vectors must be the same length");
+
+    let mut sum_sq_diff = 0.0;
+    for (&a, &b) in vec1.iter().zip(vec2.iter()) {
+        let diff = (a - b) as f64;
+        sum_sq_diff += diff * diff;
+    }
+
+    sum_sq_diff.sqrt()
 }
 
 /// Clone a Box<dyn Any>

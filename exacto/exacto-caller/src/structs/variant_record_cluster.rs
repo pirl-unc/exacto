@@ -59,7 +59,7 @@ impl VariantRecordCluster {
         }
     }
 
-    pub fn get_variant_type(&self) -> SequenceOperationVariantTypes {
+    pub fn get_variant_type(&self) -> SequenceOperationVariantType {
         self.variant_records[0].get_variant_type()
     }
 

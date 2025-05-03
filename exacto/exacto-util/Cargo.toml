@@ -1,13 +1,12 @@
 [package]
 name = "exacto-util"
-version = "0.4.2"
+version = "0.4.3"
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
 bio = "2.0.3"
-chrono = "0.4.38"
 flate2 = "1.0.35"
 noodles-bgzf = "0.34.0"
 noodles-fasta = "0.46.0"
@@ -16,7 +15,6 @@ phf = { version = "0.11", features = ["macros"] }
 polars = { version = "0.45.0", features = ["csv","decompress","json","lazy","parquet","serde"] }
 rayon = "1.10.0"
 serde = { version = "1.0.210", features = ["derive"] }
-rand = "0.8.5"
 
 [profile.dev]
 opt-level = 0

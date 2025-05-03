@@ -13,14 +13,14 @@ fn test_variant_call_1() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let variant_record_1: VariantRecord = VariantRecord::new(1, go_1.clone());
     let variant_record_2: VariantRecord = VariantRecord::new(2, go_1.clone());
@@ -107,14 +107,14 @@ fn test_diff_variant_records_1() {
     let go_a1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let vr_a1: VariantRecord = VariantRecord::new(1, go_a1);
 
@@ -122,14 +122,14 @@ fn test_diff_variant_records_1() {
     let go_a2: SequenceOperation = SequenceOperation::new(
         0,
         1100,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1201,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let vr_a2: VariantRecord = VariantRecord::new(1, go_a2);
 
@@ -137,14 +137,14 @@ fn test_diff_variant_records_1() {
     let go_a3: SequenceOperation = SequenceOperation::new(
         0,
         1204,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1206,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "A".into(),
-        SequenceOperationVariantTypes::SingleNucleotideVariant
+        SequenceOperationVariantType::SingleNucleotideVariant
     );
     let vr_a3: VariantRecord = VariantRecord::new(1, go_a3);
 
@@ -152,14 +152,14 @@ fn test_diff_variant_records_1() {
     let go_a4: SequenceOperation = SequenceOperation::new(
         0,
         1399,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1401,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "T".into(),
-        SequenceOperationVariantTypes::SingleNucleotideVariant
+        SequenceOperationVariantType::SingleNucleotideVariant
     );
     let vr_a4: VariantRecord = VariantRecord::new(1, go_a4);
 
@@ -172,14 +172,14 @@ fn test_diff_variant_records_1() {
     let go_b1: SequenceOperation = SequenceOperation::new(
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1002,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "CGATCGACTA".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let vr_b1: VariantRecord = VariantRecord::new(2, go_b1);
 
@@ -187,14 +187,14 @@ fn test_diff_variant_records_1() {
     let go_b2: SequenceOperation = SequenceOperation::new(
         0,
         1204,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1206,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "A".into(),
-        SequenceOperationVariantTypes::SingleNucleotideVariant
+        SequenceOperationVariantType::SingleNucleotideVariant
     );
     let vr_b2: VariantRecord = VariantRecord::new(2, go_b2);
 
@@ -305,14 +305,14 @@ fn test_is_clusterable_1() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -320,14 +320,14 @@ fn test_is_clusterable_1() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1101,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -350,14 +350,14 @@ fn test_is_clusterable_2() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -365,14 +365,14 @@ fn test_is_clusterable_2() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1002,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "CGATCGACTC".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -395,14 +395,14 @@ fn test_is_clusterable_3() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1101,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -410,14 +410,14 @@ fn test_is_clusterable_3() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         998,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1111,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -440,14 +440,14 @@ fn test_is_clusterable_4() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         1,
         2001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Translocation
+        SequenceOperationVariantType::Translocation
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -455,14 +455,14 @@ fn test_is_clusterable_4() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         995,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         1,
         1998,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Translocation
+        SequenceOperationVariantType::Translocation
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -485,14 +485,14 @@ fn test_is_diffable_1() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         2,
         2001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Translocation
+        SequenceOperationVariantType::Translocation
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -500,14 +500,14 @@ fn test_is_diffable_1() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         995,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         1,
         1998,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Translocation
+        SequenceOperationVariantType::Translocation
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -531,14 +531,14 @@ fn test_is_diffable_2() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1111,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -546,14 +546,14 @@ fn test_is_diffable_2() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         989,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1151,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -577,14 +577,14 @@ fn test_is_diffable_3() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACTACGATCGACTACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -592,14 +592,14 @@ fn test_is_diffable_3() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         1005,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1006,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "CGACTACGATCGACTACGATCGACTACGAT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -623,14 +623,14 @@ fn test_is_diffable_4() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACTACGATCGACTACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -638,14 +638,14 @@ fn test_is_diffable_4() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         1002,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1003,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "CGATC".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -669,14 +669,14 @@ fn test_is_diffable_5() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACTACGATCGACTACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(2, go_1);
 
@@ -684,14 +684,14 @@ fn test_is_diffable_5() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         1002,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1003,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "A".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let b: VariantRecord = VariantRecord::new(2, go_2);
 
@@ -715,14 +715,14 @@ fn test_split_variant_records_by_chromosome_1() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1001,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGACTACGATCGACTACGATCGACT".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(1, go_1);
 
@@ -730,14 +730,14 @@ fn test_split_variant_records_by_chromosome_1() {
     let go_2: SequenceOperation = SequenceOperation::new(
         1,
         1002,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         1,
         1003,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "CGATC".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let b: VariantRecord = VariantRecord::new(1, go_2);
 
@@ -759,14 +759,14 @@ fn test_sweep_clusters_1() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1000,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1101,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let a: VariantRecord = VariantRecord::new(1, go_1);
 
@@ -774,14 +774,14 @@ fn test_sweep_clusters_1() {
     let go_2: SequenceOperation = SequenceOperation::new(
         0,
         989,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1151,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "".into(),
-        SequenceOperationVariantTypes::Deletion
+        SequenceOperationVariantType::Deletion
     );
     let b: VariantRecord = VariantRecord::new(1, go_2);
 
@@ -789,14 +789,14 @@ fn test_sweep_clusters_1() {
     let go_3: SequenceOperation = SequenceOperation::new(
         0,
         1200,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1201,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGTAGCTGACGTACATATACTGACC".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let c: VariantRecord = VariantRecord::new(1, go_3);
 
@@ -804,14 +804,14 @@ fn test_sweep_clusters_1() {
     let go_4: SequenceOperation = SequenceOperation::new(
         0,
         1299,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1301,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "T".into(),
-        SequenceOperationVariantTypes::SingleNucleotideVariant
+        SequenceOperationVariantType::SingleNucleotideVariant
     );
     let d: VariantRecord = VariantRecord::new(1, go_4);
 
@@ -835,14 +835,14 @@ fn test_sweep_clusters_2() {
     let go_1: SequenceOperation = SequenceOperation::new(
         0,
         1200,
-        Strands::Forward,
-        SequenceOperationTypes::Downstream,
+        Strand::Forward,
+        SequenceOperationType::Downstream,
         0,
         1201,
-        Strands::Forward,
-        SequenceOperationTypes::Upstream,
+        Strand::Forward,
+        SequenceOperationType::Upstream,
         "ACGATCGTAGCTGACGTACATATACTGACC".into(),
-        SequenceOperationVariantTypes::Insertion
+        SequenceOperationVariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(1, go_1);
 

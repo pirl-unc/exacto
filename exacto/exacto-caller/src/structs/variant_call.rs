@@ -76,9 +76,9 @@ impl VariantCall {
     ///
     /// (VariantRecord,read IDs).
     pub fn get_consensus_record(&self) -> (&VariantRecord,Vec<usize>) {
-        let mut map: HashMap<(u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes),Vec<&VariantRecord>> = HashMap::new();
+        let mut map: HashMap<(u16, u32, SequenceOperationType, u16, u32, SequenceOperationType, Box<str>, SequenceOperationVariantType),Vec<&VariantRecord>> = HashMap::new();
         for variant_record in self.variant_records.iter() {
-            let key: (u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes) = (
+            let key: (u16, u32, SequenceOperationType, u16, u32, SequenceOperationType, Box<str>, SequenceOperationVariantType) = (
                 variant_record.sequence_operation.chromosome_1,
                 variant_record.sequence_operation.position_1,
                 variant_record.sequence_operation.operation_1.clone(),
@@ -102,9 +102,9 @@ impl VariantCall {
     }
 
     pub fn get_named_consensus_record(&self, read_names_map: &BiMap<Box<str>,usize>) -> (&VariantRecord,Vec<Box<str>>) {
-        let mut map: HashMap<(u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes),Vec<&VariantRecord>> = HashMap::new();
+        let mut map: HashMap<(u16, u32, SequenceOperationType, u16, u32, SequenceOperationType, Box<str>, SequenceOperationVariantType),Vec<&VariantRecord>> = HashMap::new();
         for variant_record in self.variant_records.iter() {
-            let key: (u16,u32,SequenceOperationTypes,u16,u32,SequenceOperationTypes,Box<str>,SequenceOperationVariantTypes) = (
+            let key: (u16, u32, SequenceOperationType, u16, u32, SequenceOperationType, Box<str>, SequenceOperationVariantType) = (
                 variant_record.sequence_operation.chromosome_1,
                 variant_record.sequence_operation.position_1,
                 variant_record.sequence_operation.operation_1.clone(),

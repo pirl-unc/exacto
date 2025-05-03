@@ -1,5 +1,6 @@
 import pandas as pd
 from .data import get_data_path
+from exactolib.constants import OutputType
 from exactolib.main import identify_dna_variants,identify_case_specific_dna_variants
 
 
@@ -8,7 +9,7 @@ def test_call_dna_variants_1():
         bam_file=get_data_path(name='bam/dna-001-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/dna-001-tumor_minimap2_mdtagged_sorted.bam.bai'),
         output_tsv_file='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -31,7 +32,7 @@ def test_call_dna_variants_2():
         bam_file=get_data_path(name='bam/dna-002-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/dna-002-tumor_minimap2_mdtagged_sorted.bam.bai'),
         output_tsv_file='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -54,7 +55,7 @@ def test_call_dna_variants_3():
         bam_file=get_data_path(name='bam/dna-003-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/dna-003-tumor_minimap2_mdtagged_sorted.bam.bai'),
         output_tsv_file='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -77,7 +78,7 @@ def test_call_dna_variants_4():
         bam_file=get_data_path(name='bam/dna-004-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/dna-004-tumor_minimap2_mdtagged_sorted.bam.bai'),
         output_tsv_file='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -102,7 +103,7 @@ def test_call_dna_variants_5():
         bam_file=get_data_path(name='bam/dna-005-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/dna-005-tumor_minimap2_mdtagged_sorted.bam.bai'),
         output_tsv_file='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -127,7 +128,7 @@ def test_call_dna_variants_6():
         bam_file=get_data_path(name='bam/dna-006-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/dna-006-tumor_minimap2_mdtagged_sorted.bam.bai'),
         output_tsv_file='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -152,7 +153,7 @@ def test_call_dna_variants_7():
         bam_file=get_data_path(name='bam/dna-007-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/dna-007-tumor_minimap2_mdtagged_sorted.bam.bai'),
         output_tsv_file='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -179,7 +180,7 @@ def test_call_case_specific_dna_variants_1():
         control_bam_files=[get_data_path(name='bam/dna-001-normal_minimap2_mdtagged_sorted.bam')],
         control_bam_bai_files=[get_data_path(name='bam/dna-001-normal_minimap2_mdtagged_sorted.bam.bai')],
         output_tsv_file='',
-        output_type='dataframe',
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -206,7 +207,7 @@ def test_call_case_specific_dna_variants_2():
         control_bam_files=[get_data_path(name='bam/dna-002-normal_minimap2_mdtagged_sorted.bam')],
         control_bam_bai_files=[get_data_path(name='bam/dna-002-normal_minimap2_mdtagged_sorted.bam.bai')],
         output_tsv_file='',
-        output_type='dataframe',
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -233,7 +234,7 @@ def test_call_case_specific_dna_variants_3():
         control_bam_files=[get_data_path(name='bam/dna-003-normal_minimap2_mdtagged_sorted.bam')],
         control_bam_bai_files=[get_data_path(name='bam/dna-003-normal_minimap2_mdtagged_sorted.bam.bai')],
         output_tsv_file='',
-        output_type='dataframe',
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -260,7 +261,7 @@ def test_call_case_specific_dna_variants_4():
         control_bam_files=[get_data_path(name='bam/dna-004-normal_minimap2_mdtagged_sorted.bam')],
         control_bam_bai_files=[get_data_path(name='bam/dna-004-normal_minimap2_mdtagged_sorted.bam.bai')],
         output_tsv_file='',
-        output_type='dataframe',
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -287,7 +288,7 @@ def test_call_case_specific_dna_variants_5():
         control_bam_files=[get_data_path(name='bam/dna-005-normal_minimap2_mdtagged_sorted.bam')],
         control_bam_bai_files=[get_data_path(name='bam/dna-005-normal_minimap2_mdtagged_sorted.bam.bai')],
         output_tsv_file='',
-        output_type='dataframe',
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -314,7 +315,7 @@ def test_call_case_specific_dna_variants_6():
         control_bam_files=[get_data_path(name='bam/dna-006-normal_minimap2_mdtagged_sorted.bam')],
         control_bam_bai_files=[get_data_path(name='bam/dna-006-normal_minimap2_mdtagged_sorted.bam.bai')],
         output_tsv_file='',
-        output_type='dataframe',
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)
@@ -341,7 +342,7 @@ def test_call_case_specific_dna_variants_7():
         control_bam_files=[get_data_path(name='bam/dna-007-normal_minimap2_mdtagged_sorted.bam')],
         control_bam_bai_files=[get_data_path(name='bam/dna-007-normal_minimap2_mdtagged_sorted.bam.bai')],
         output_tsv_file='',
-        output_type='dataframe',
+        output_type=OutputType.DATAFRAME
     )
 
     assert(len(df_variants) == 1)

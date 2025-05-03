@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::PartialEq;
 use std::hash::{Hash, Hasher};
 
-use crate::common::constants::Strands;
+use crate::common::constants::Strand;
 
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -24,7 +24,7 @@ pub struct TranscriptModelExon {
     pub start: u32,
     pub end: u32,
     pub number: u16,
-    pub strand: Strands
+    pub strand: Strand
 }
 
 impl PartialEq for TranscriptModelExon {
@@ -55,7 +55,7 @@ impl TranscriptModelExon {
         start: u32,
         end: u32,
         number: u16,
-        strand: Strands
+        strand: Strand
     ) -> Self {
         Self {
             chromosome_id: chromosome_id,

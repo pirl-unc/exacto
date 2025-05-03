@@ -14,7 +14,7 @@ fn test_transcript_model_vectorize_exons_1() {
         3501,
         3510,
         1,
-        Strands::Forward
+        Strand::Forward
     );
 
     let exon_2: TranscriptModelExon = TranscriptModelExon::new(
@@ -22,7 +22,7 @@ fn test_transcript_model_vectorize_exons_1() {
         3551,
         3560,
         2,
-        Strands::Forward
+        Strand::Forward
     );
 
     let exon_3: TranscriptModelExon = TranscriptModelExon::new(
@@ -30,7 +30,7 @@ fn test_transcript_model_vectorize_exons_1() {
         3591,
         3600,
         3,
-        Strands::Forward
+        Strand::Forward
     );
 
     transcript_model.add_exon(exon_1);
@@ -64,7 +64,7 @@ fn test_transcript_model_vectorize_exons_2() {
         3501,
         3510,
         1,
-        Strands::Forward
+        Strand::Forward
     );
 
     let exon_2: TranscriptModelExon = TranscriptModelExon::new(
@@ -72,7 +72,7 @@ fn test_transcript_model_vectorize_exons_2() {
         3551,
         3560,
         2,
-        Strands::Forward
+        Strand::Forward
     );
 
     let exon_3: TranscriptModelExon = TranscriptModelExon::new(
@@ -80,7 +80,7 @@ fn test_transcript_model_vectorize_exons_2() {
         3591,
         3600,
         3,
-        Strands::Forward
+        Strand::Forward
     );
 
     transcript_model.add_exon(exon_1);

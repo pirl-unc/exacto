@@ -22,14 +22,14 @@ use crate::common::constants::*;
 pub struct SequenceOperation {
     pub chromosome_1: u16,
     pub position_1: u32,
-    pub strand_1: Strands,
-    pub operation_1: SequenceOperationTypes,
+    pub strand_1: Strand,
+    pub operation_1: SequenceOperationType,
     pub chromosome_2: u16,
     pub position_2: u32,
-    pub strand_2: Strands,
-    pub operation_2: SequenceOperationTypes,
+    pub strand_2: Strand,
+    pub operation_2: SequenceOperationType,
     pub sequence: Box<str>,
-    pub variant_type: SequenceOperationVariantTypes
+    pub variant_type: SequenceOperationVariantType
 }
 
 impl Hash for SequenceOperation {
@@ -51,14 +51,14 @@ impl SequenceOperation {
     pub fn new(
         chromosome_1: u16,
         position_1: u32,
-        strand_1: Strands,
-        operation_1: SequenceOperationTypes,
+        strand_1: Strand,
+        operation_1: SequenceOperationType,
         chromosome_2: u16,
         position_2: u32,
-        strand_2: Strands,
-        operation_2: SequenceOperationTypes,
+        strand_2: Strand,
+        operation_2: SequenceOperationType,
         sequence: Box<str>,
-        variant_type: SequenceOperationVariantTypes
+        variant_type: SequenceOperationVariantType
     ) -> Self {
         Self {
             chromosome_1,
@@ -132,40 +132,40 @@ impl SequenceOperation {
 
     pub fn get_variant_size(&self) -> isize {
         match self.variant_type {
-            SequenceOperationVariantTypes::Alternative3PrimeSpliceSite => {
+            SequenceOperationVariantType::Alternative3PrimeSpliceSite => {
                 -1
             },
-            SequenceOperationVariantTypes::Alternative5PrimeSpliceSite => {
+            SequenceOperationVariantType::Alternative5PrimeSpliceSite => {
                 -1
             },
-            SequenceOperationVariantTypes::Breakpoint => {
+            SequenceOperationVariantType::Breakpoint => {
                 (self.position_2.abs_diff(self.position_1) as isize) - 1
             },
-            SequenceOperationVariantTypes::CrypticExon => {
+            SequenceOperationVariantType::CrypticExon => {
                 (self.position_2.abs_diff(self.position_1) as isize) - 1
             },
-            SequenceOperationVariantTypes::Deletion => {
+            SequenceOperationVariantType::Deletion => {
                 (self.position_2.abs_diff(self.position_1) as isize) - 1
             },
-            SequenceOperationVariantTypes::ExonSkipping => {
+            SequenceOperationVariantType::ExonSkipping => {
                 (self.position_2.abs_diff(self.position_1) as isize) - 1
             },
-            SequenceOperationVariantTypes::FusionGene => {
+            SequenceOperationVariantType::FusionGene => {
                 -1
             },
-            SequenceOperationVariantTypes::Insertion => {
+            SequenceOperationVariantType::Insertion => {
                 self.get_sequence_length() as isize
             },
-            SequenceOperationVariantTypes::IntronRetention => {
+            SequenceOperationVariantType::IntronRetention => {
                 (self.position_2.abs_diff(self.position_1) as isize) - 1
             },
-            SequenceOperationVariantTypes::MultiNucleotideVariant => {
+            SequenceOperationVariantType::MultiNucleotideVariant => {
                 self.get_sequence_length() as isize
             },
-            SequenceOperationVariantTypes::SingleNucleotideVariant => {
+            SequenceOperationVariantType::SingleNucleotideVariant => {
                 1
             },
-            SequenceOperationVariantTypes::Translocation => {
+            SequenceOperationVariantType::Translocation => {
                 -1
             }
         }

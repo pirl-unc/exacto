@@ -200,6 +200,9 @@ fn identify_rna_variants(
     output_dir: String,
     output_prefix: String,
     reference_transcript_scoring_method: String,
+    reference_transcript_selection_strategy: String,
+    reference_transcript_top_k: usize,
+    reference_transcript_threshold: f32,
     min_mapping_quality: usize,
     min_average_base_quality: f32,
     num_threads: usize,
@@ -212,7 +215,8 @@ fn identify_rna_variants(
         panic!("Unsupported annotation source: {}", gene_annotation_source);
     };
 
-    let scoring_method: caller::ReferenceTranscriptScoringMethods = reference_transcript_scoring_method.as_str().parse().unwrap();
+    let scoring_method: caller::ReferenceTranscriptScoringMethod = reference_transcript_scoring_method.as_str().parse().unwrap();
+    let selection_strategy: caller::ReferenceTranscriptSelectionStrategy = reference_transcript_selection_strategy.as_str().parse().unwrap();
 
     let transcript_model_set: caller::TranscriptModelSet = caller::identify_variant_transcripts(
         bam_file.as_str(),
@@ -220,6 +224,9 @@ fn identify_rna_variants(
         reference_genome_fasta_file.as_str(),
         &gene_annotator,
         scoring_method,
+        selection_strategy,
+        reference_transcript_top_k,
+        reference_transcript_threshold,
         min_mapping_quality,
         min_average_base_quality,
         num_threads

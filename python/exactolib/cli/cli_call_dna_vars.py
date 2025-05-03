@@ -59,7 +59,7 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         "--mode",
         dest="mode",
         type=str,
-        choices=[DnaVariantCallingModes.ALL, DnaVariantCallingModes.CASE_SPECIFIC],
+        choices=[str(DnaVariantCallingMode.ALL), str(DnaVariantCallingMode.CASE_SPECIFIC)],
         required=True,
         help="DNA variant calling mode (either 'case-specific' or 'all'). "
              "If --mode case-specific, then at least one control BAM file needs to be supplied."
@@ -254,7 +254,7 @@ def run_cli_call_dna_vars_from_parsed_args(args):
     else:
         output_tsv_file = args.output_tsv_file
 
-    if args.mode == DnaVariantCallingModes.ALL:
+    if DnaVariantCallingMode(args.mode) == DnaVariantCallingMode.ALL:
         identify_dna_variants(
             bam_file=args.bam_file,
             bam_bai_file=args.bam_bai_file,
@@ -272,7 +272,7 @@ def run_cli_call_dna_vars_from_parsed_args(args):
             chromosomes=args.chromosomes,
             temp_dir=args.temp_dir
         )
-    elif args.mode == DnaVariantCallingModes.CASE_SPECIFIC:
+    elif DnaVariantCallingMode(args.mode) == DnaVariantCallingMode.CASE_SPECIFIC:
         assert(len(args.control_bam_files) > 0)
         assert (len(args.control_bam_files) == len(args.control_bam_bai_files))
         identify_case_specific_dna_variants(

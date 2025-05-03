@@ -16,21 +16,55 @@ The purpose of this python3 script is to define Exacto constants.
 """
 
 
-class DnaVariantCallingModes:
+from enum import Enum, IntEnum
+
+
+class DnaVariantCallingMode(Enum):
     CASE_SPECIFIC = 'case-specific'
     ALL = 'all'
 
+    def __str__(self) -> str:
+        return self.value
 
-class GeneAnnotationSources:
+
+class GeneAnnotationSource(Enum):
     GENCODE = 'gencode'
-    ALL = [GENCODE]
+
+    def __str__(self) -> str:
+        return self.value
 
 
-class SequenceOperationTypes:
-    BREAKPOINT = 'BND'
-    INSERTION = 'INS'
+class OutputType(Enum):
+    DATAFRAME = 'dataframe'
+    FILE = 'file'
+
+    def __str__(self) -> str:
+        return self.value
 
 
-class TranslationStrategies:
+class ReferenceTranscriptScoringMethod(Enum):
+    COSINE_SIMILARITY = 'cosine_similarity'
+    L2_DISTANCE = 'l2'
+    JACCARD = 'jaccard'
+    NET_OVERLAP = 'net_overlap'
+    NON_OVERLAP = 'non_overlap'
+    OVERLAP = 'overlap'
+    WEIGHTED_NET_OVERLAP = 'weighted_net_overlap'
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class ReferenceTranscriptSelectionStrategy(Enum):
+    TOP_K = 'top_k'
+    THRESHOLD = 'threshold'
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class TranslationStrategy(Enum):
     LONGEST_ORF = 'longest-orf'
-    ALL = [LONGEST_ORF]
+
+    def __str__(self) -> str:
+        return self.value

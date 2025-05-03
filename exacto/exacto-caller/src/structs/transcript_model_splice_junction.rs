@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::PartialEq;
 use std::hash::{Hash, Hasher};
 
-use crate::common::constants::Strands;
+use crate::common::constants::Strand;
 
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -26,7 +26,7 @@ pub struct TranscriptModelSpliceJunction {
     pub number: u16,
     pub splice_signal_start: Box<str>,
     pub splice_signal_end: Box<str>,
-    pub strand: Strands
+    pub strand: Strand
 }
 
 impl PartialEq for TranscriptModelSpliceJunction {
@@ -63,7 +63,7 @@ impl TranscriptModelSpliceJunction {
         number: u16,
         splice_signal_start: &str,
         splice_signal_end: &str,
-        strand: Strands
+        strand: Strand
     ) -> Self {
         Self {
             chromosome_id: chromosome_id,

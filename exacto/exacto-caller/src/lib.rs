@@ -6,7 +6,9 @@ extern crate env_logger;
 extern crate exacto_util;
 extern crate flate2;
 extern crate interavl;
+extern crate indicatif;
 extern crate log;
+extern crate nalgebra;
 extern crate noodles_bam;
 extern crate noodles_bgzf;
 extern crate noodles_core;
@@ -28,4 +30,3 @@ pub mod common;
 pub mod macros;
 pub mod structs;
 pub mod prelude;
-

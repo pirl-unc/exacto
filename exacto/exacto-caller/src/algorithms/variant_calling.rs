@@ -181,11 +181,11 @@ pub fn diff_variant_records(
     log_info!("\tCreating indices");
     capture_memory_usage("\tBefore creating indices");
     let mut position_snv_map: HashSet<(u16,u32)> = HashSet::new();
-    let mut position_1_map: HashMap<(u16,u32,SequenceOperationVariantTypes),BTreeMap<u32,HashSet<Arc<SequenceOperation>>>> = HashMap::new();
-    let mut position_2_map: HashMap<(u16,u32,SequenceOperationVariantTypes),BTreeMap<u32,HashSet<Arc<SequenceOperation>>>> = HashMap::new();
+    let mut position_1_map: HashMap<(u16, u32, SequenceOperationVariantType),BTreeMap<u32,HashSet<Arc<SequenceOperation>>>> = HashMap::new();
+    let mut position_2_map: HashMap<(u16, u32, SequenceOperationVariantType),BTreeMap<u32,HashSet<Arc<SequenceOperation>>>> = HashMap::new();
     for variant_record in b.iter() {
-        let variant_type: SequenceOperationVariantTypes = variant_record.get_variant_type();
-        if variant_type == SequenceOperationVariantTypes::SingleNucleotideVariant {
+        let variant_type: SequenceOperationVariantType = variant_record.get_variant_type();
+        if variant_type == SequenceOperationVariantType::SingleNucleotideVariant {
             position_snv_map.insert((variant_record.get_chromosome_1(), variant_record.get_position_1()));
         } else {
             let chr1: u16 = variant_record.get_chromosome_1();
@@ -225,8 +225,8 @@ pub fn diff_variant_records(
                 chunk
                     .par_iter()
                     .filter_map(|variant_a| {
-                        let variant_type: SequenceOperationVariantTypes = variant_a.get_variant_type();
-                        if variant_type == SequenceOperationVariantTypes::SingleNucleotideVariant {
+                        let variant_type: SequenceOperationVariantType = variant_a.get_variant_type();
+                        if variant_type == SequenceOperationVariantType::SingleNucleotideVariant {
                             if position_snv_map.contains(&(variant_a.get_chromosome_1(),variant_a.get_position_1())) {
                                 return None;
                             } else {
@@ -342,7 +342,7 @@ pub fn is_clusterable(
     }
 
     // The normalized edit distance must be within the allowed limit if they are both insertions
-    if a.get_variant_type() == SequenceOperationVariantTypes::Insertion {
+    if a.get_variant_type() == SequenceOperationVariantType::Insertion {
         let edit_distance = edit_distance(a.get_sequence(), b.get_sequence()) as f32;
         let max_size = f32::max(a.get_sequence_length() as f32, b.get_sequence_length() as f32);
         let normalized_edit_distance: f32 = edit_distance / max_size;
@@ -442,7 +442,7 @@ pub fn is_different(
     let pos2_distance = graph_operation_1.position_2.abs_diff(graph_operation_2.position_2);
 
     // Translocation
-    if graph_operation_1.variant_type == SequenceOperationVariantTypes::Translocation {
+    if graph_operation_1.variant_type == SequenceOperationVariantType::Translocation {
         if (graph_operation_1.chromosome_1 == graph_operation_2.chromosome_1 && pos1_distance <= max_interchromosomal_distance) ||
             (graph_operation_1.chromosome_2 == graph_operation_2.chromosome_2 && pos2_distance <= max_interchromosomal_distance) {
             return false;
@@ -454,7 +454,7 @@ pub fn is_different(
     let max_distance: u32 = calculate_max_distance(max(size_a, size_b) as f32, max_intrachromosomal_distance_tau, max_intrachromosomal_distance);
 
     // Insertion
-    if graph_operation_1.variant_type == SequenceOperationVariantTypes::Insertion {
+    if graph_operation_1.variant_type == SequenceOperationVariantType::Insertion {
         let edit_distance: f32 = edit_distance(&*graph_operation_1.sequence, &*graph_operation_2.sequence) as f32;
         let max_seq_length: f32 = max(graph_operation_1.get_sequence_length(), graph_operation_2.get_sequence_length()) as f32;
         let normalized_edit_distance = edit_distance / max_seq_length;

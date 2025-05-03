@@ -1,5 +1,6 @@
 import pandas as pd
 from .data import get_data_path
+from exactolib.constants import GeneAnnotationSource, OutputType
 from exactolib.main import identify_rna_variants
 
 
@@ -9,13 +10,13 @@ def test_call_rna_variants_1():
         bam_bai_file=get_data_path(name='bam/rna-100-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 9)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-100-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -36,13 +37,13 @@ def test_call_rna_variants_2():
         bam_bai_file=get_data_path(name='bam/rna-101-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 9)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-101-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -63,13 +64,13 @@ def test_call_rna_variants_3():
         bam_bai_file=get_data_path(name='bam/rna-102-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 9)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-102-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -90,13 +91,13 @@ def test_call_rna_variants_4():
         bam_bai_file=get_data_path(name='bam/rna-103-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 2)
+    assert(len(df_variants) == 169)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-103-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -119,13 +120,13 @@ def test_call_rna_variants_5():
         bam_bai_file=get_data_path(name='bam/rna-104-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 12)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-104-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -139,7 +140,7 @@ def test_call_rna_variants_5():
             (df_variants['position_2'] >= row['position_2'] - 100) &
             (df_variants['operation_2'] == row['operation_2'])
         ]
-        assert len(df_matched) == 1
+        assert len(df_matched) == 4
 
 
 def test_call_rna_variants_6():
@@ -148,13 +149,13 @@ def test_call_rna_variants_6():
         bam_bai_file=get_data_path(name='bam/rna-105-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 12)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-105-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -168,7 +169,7 @@ def test_call_rna_variants_6():
             (df_variants['position_2'] >= row['position_2'] - 100) &
             (df_variants['operation_2'] == row['operation_2'])
         ]
-        assert len(df_matched) == 1
+        assert len(df_matched) == 4
 
 
 def test_call_rna_variants_7():
@@ -177,13 +178,13 @@ def test_call_rna_variants_7():
         bam_bai_file=get_data_path(name='bam/rna-106-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 12)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-106-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -197,7 +198,7 @@ def test_call_rna_variants_7():
             (df_variants['position_2'] >= row['position_2'] - 100) &
             (df_variants['operation_2'] == row['operation_2'])
         ]
-        assert len(df_matched) == 1
+        assert len(df_matched) == 4
 
 
 def test_call_rna_variants_8():
@@ -206,13 +207,13 @@ def test_call_rna_variants_8():
         bam_bai_file=get_data_path(name='bam/rna-107-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 2)
+    assert(len(df_variants) == 16)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-107-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -226,7 +227,7 @@ def test_call_rna_variants_8():
             (df_variants['position_2'] >= row['position_2'] - 100) &
             (df_variants['operation_2'] == row['operation_2'])
         ]
-        assert len(df_matched) == 1
+        assert len(df_matched) == 4
 
 
 def test_call_rna_variants_9():
@@ -235,13 +236,13 @@ def test_call_rna_variants_9():
         bam_bai_file=get_data_path(name='bam/rna-108-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
         gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
-        gene_annotation_source='gencode',
+        gene_annotation_source=GeneAnnotationSource.GENCODE,
         output_dir='',
         output_prefix='',
-        output_type='dataframe'
+        output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 12)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-108-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
@@ -255,4 +256,4 @@ def test_call_rna_variants_9():
             (df_variants['position_2'] >= row['position_2'] - 100) &
             (df_variants['operation_2'] == row['operation_2'])
         ]
-        assert len(df_matched) == 1
+        assert len(df_matched) == 4

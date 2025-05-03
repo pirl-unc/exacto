@@ -13,10 +13,11 @@
 
 use exacto_util::prelude::*;
 use std::cmp::PartialEq;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use serde::{Deserialize, Serialize};
 
-use crate::prelude::{Strands, VariantCall};
+use crate::prelude::{Strand, VariantCall};
 use crate::structs::reference_transcript_match::ReferenceTranscriptMatch;
 use crate::structs::transcript_model_exon::TranscriptModelExon;
 use crate::structs::transcript_model_splice_junction::TranscriptModelSpliceJunction;
@@ -25,21 +26,23 @@ use crate::structs::transcript_model_splice_junction::TranscriptModelSpliceJunct
 #[derive(Debug,Serialize,Deserialize)]
 pub struct TranscriptModel {
     pub transcript_id: usize,
-    pub matched_reference_transcripts: Vec<ReferenceTranscriptMatch>,
+    pub reference_transcript_matches: Vec<ReferenceTranscriptMatch>,
     pub read_ids: Vec<usize>,
     pub exons: Vec<TranscriptModelExon>,
     pub splice_junctions: Vec<TranscriptModelSpliceJunction>,
-    pub variant_calls: Vec<VariantCall>
+    pub sequence_variant_calls: Vec<VariantCall>,
+    pub splice_variant_calls: HashMap<Box<str>,Vec<VariantCall>>
 }
 
 impl PartialEq for TranscriptModel {
     fn eq(&self, other: &Self) -> bool {
         self.transcript_id == other.transcript_id &&
-            self.matched_reference_transcripts == other.matched_reference_transcripts &&
+            self.reference_transcript_matches == other.reference_transcript_matches &&
             self.read_ids == other.read_ids &&
             self.exons == other.exons &&
             self.splice_junctions == other.splice_junctions &&
-            self.variant_calls == other.variant_calls
+            self.sequence_variant_calls == other.sequence_variant_calls &&
+            self.splice_variant_calls == other.splice_variant_calls
     }
 }
 
@@ -48,27 +51,34 @@ impl Eq for TranscriptModel {}
 impl Hash for TranscriptModel {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.transcript_id.hash(state);
-        self.matched_reference_transcripts.hash(state);
+        self.reference_transcript_matches.hash(state);
         self.read_ids.hash(state);
         self.exons.hash(state);
         self.splice_junctions.hash(state);
-        self.variant_calls.hash(state);
+        self.sequence_variant_calls.hash(state);
+        let mut sorted_keys: Vec<_> = self.splice_variant_calls.keys().collect();
+        sorted_keys.sort();
+        for key in sorted_keys {
+            key.hash(state);
+            self.splice_variant_calls[key].hash(state);
+        }
     }
 }
 
 impl TranscriptModel {
     pub fn new(
         transcript_id: usize,
-        matched_reference_transcripts: Vec<ReferenceTranscriptMatch>,
+        reference_transcript_matches: Vec<ReferenceTranscriptMatch>,
         read_ids: Vec<usize>
     ) -> Self {
         Self {
             transcript_id: transcript_id,
-            matched_reference_transcripts: matched_reference_transcripts,
+            reference_transcript_matches: reference_transcript_matches,
             read_ids: read_ids,
             exons: Vec::new(),
             splice_junctions: Vec::new(),
-            variant_calls: Vec::new()
+            sequence_variant_calls: Vec::new(),
+            splice_variant_calls: HashMap::new()
         }
     }
 
@@ -80,13 +90,20 @@ impl TranscriptModel {
         self.splice_junctions.push(splice_junction);
     }
 
-    pub fn add_variant_call(&mut self, variant_call: VariantCall) {
-        self.variant_calls.push(variant_call);
+    pub fn add_sequence_variant_call(&mut self, variant_call: VariantCall) {
+        self.sequence_variant_calls.push(variant_call);
+    }
+    
+    pub fn add_splice_variant_call(&mut self, reference_transcript_id: &str, variant_call: VariantCall) {
+        self.splice_variant_calls
+            .entry(reference_transcript_id.into())
+            .or_insert_with(Vec::new)
+            .push(variant_call);
     }
 
     pub fn get_start_position(&self) -> (u16,u32) {
         let first_exon_strand = self.exons.first().unwrap().strand.clone();
-        if first_exon_strand == Strands::Forward {
+        if first_exon_strand == Strand::Forward {
             (self.exons.first().unwrap().chromosome_id, self.exons.first().unwrap().start)
         } else {
             (self.exons.first().unwrap().chromosome_id, self.exons.first().unwrap().end)
@@ -95,7 +112,7 @@ impl TranscriptModel {
 
     pub fn get_end_position(&self) -> (u16,u32) {
         let last_exon_strand = self.exons.last().unwrap().strand.clone();
-        if last_exon_strand == Strands::Forward {
+        if last_exon_strand == Strand::Forward {
             (self.exons.last().unwrap().chromosome_id, self.exons.first().unwrap().end)
         } else {
             (self.exons.last().unwrap().chromosome_id, self.exons.first().unwrap().start)
@@ -133,11 +150,12 @@ impl Clone for TranscriptModel {
     fn clone(&self) -> Self {
         TranscriptModel {
             transcript_id: self.transcript_id,
-            matched_reference_transcripts: self.matched_reference_transcripts.clone(),
+            reference_transcript_matches: self.reference_transcript_matches.clone(),
             read_ids: self.read_ids.clone(),
             exons: self.exons.clone(),
             splice_junctions: self.splice_junctions.clone(),
-            variant_calls: self.variant_calls.clone()
+            sequence_variant_calls: self.sequence_variant_calls.clone(),
+            splice_variant_calls: self.splice_variant_calls.clone()
         }
     }
 }

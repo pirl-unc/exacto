@@ -1,9 +1,9 @@
 pub mod alignment;
 pub mod alignment_record;
-pub mod sequence_operation;
 pub mod mutant_peptide;
 pub mod mutant_peptides_set;
 pub mod reference_transcript_match;
+pub mod sequence_operation;
 pub mod transcript_model;
 pub mod transcript_model_exon;
 pub mod transcript_model_splice_junction;

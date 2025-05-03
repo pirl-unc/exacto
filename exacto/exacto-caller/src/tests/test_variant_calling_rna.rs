@@ -76,17 +76,34 @@ fn test_identify_closest_reference_transcript_id_1() {
         &chromosome_names_map
     );
 
+    // Fetch reference genes
+    let mut reference_genes: Vec<&Gene> = Vec::new();
+    for reference_gene_id in reference_gene_ids.iter() {
+        let reference_gene = gene_annotator.get_gene(reference_gene_id).unwrap();
+        reference_genes.push(reference_gene);
+    }
+
     // Identify closest reference transcript IDs
-    let matched_reference_transcripts: Vec<ReferenceTranscriptMatch> = identify_closest_reference_transcript_ids(
+    let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
         &exons,
-        &gene_annotator,
+        reference_genes,
         &chromosome_names_map,
-        &reference_gene_ids,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32
     );
 
-    assert!(matched_reference_transcripts.len() == 1);
-    assert!(matched_reference_transcripts[0].reference_transcript.transcript_id == "ENST00000269305.9".into());
+    assert!(
+        reference_transcript_matches.len() == 4,
+        "Expected 3 matched reference transcripts."
+    );
+    assert!(
+        reference_transcript_matches
+            .iter()
+            .any(|m| m.reference_transcript.transcript_id == "ENST00000269305.9".into()),
+        "Expected transcript_id 'ENST00000269305.9' not found in matched_reference_transcripts."
+    );
 }
 
 #[test]
@@ -114,7 +131,10 @@ fn test_identify_rna_variants_1() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -191,7 +211,10 @@ fn test_identify_rna_variants_2() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -243,7 +266,6 @@ fn test_identify_rna_variants_2() {
     }
 }
 
-
 #[test]
 fn test_identify_rna_variants_3() {
     let bam_path = Path::new("src/tests/data/bam/rna-102-tumor_minimap2_mdtagged_sorted.bam");
@@ -269,7 +291,10 @@ fn test_identify_rna_variants_3() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -346,7 +371,10 @@ fn test_identify_rna_variants_4() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -423,7 +451,10 @@ fn test_identify_rna_variants_5() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -471,7 +502,7 @@ fn test_identify_rna_variants_5() {
             .filter(col("variant_type").lt_eq(lit(variant_type.to_string())))
             .collect();
 
-        assert!(df_variants_.unwrap().height() == 1);
+        assert!(df_variants_.unwrap().height() == 4);
     }
 }
 
@@ -500,7 +531,10 @@ fn test_identify_rna_variants_6() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -548,7 +582,7 @@ fn test_identify_rna_variants_6() {
             .filter(col("variant_type").lt_eq(lit(variant_type.to_string())))
             .collect();
 
-        assert!(df_variants_.unwrap().height() == 1);
+        assert!(df_variants_.unwrap().height() == 4);
     }
 }
 
@@ -577,7 +611,10 @@ fn test_identify_rna_variants_7() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -625,7 +662,7 @@ fn test_identify_rna_variants_7() {
             .filter(col("variant_type").lt_eq(lit(variant_type.to_string())))
             .collect();
 
-        assert!(df_variants_.unwrap().height() == 1);
+        assert!(df_variants_.unwrap().height() == 4);
     }
 }
 
@@ -654,7 +691,10 @@ fn test_identify_rna_variants_8() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -702,7 +742,7 @@ fn test_identify_rna_variants_8() {
             .filter(col("variant_type").lt_eq(lit(variant_type.to_string())))
             .collect();
 
-        assert!(df_variants_.unwrap().height() == 1);
+        assert!(df_variants_.unwrap().height() == 4);
     }
 }
 
@@ -731,7 +771,10 @@ fn test_identify_rna_variants_9() {
         bam_bai_file,
         reference_genome_fasta_file,
         &gene_annotator,
-        ReferenceTranscriptScoringMethods::WeightedNetOverlap,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
         25,
         25f32,
         1
@@ -779,6 +822,6 @@ fn test_identify_rna_variants_9() {
             .filter(col("variant_type").lt_eq(lit(variant_type.to_string())))
             .collect();
 
-        assert!(df_variants_.unwrap().height() == 1);
+        assert!(df_variants_.unwrap().height() == 4);
     }
 }

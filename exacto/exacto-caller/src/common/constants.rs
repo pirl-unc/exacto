@@ -18,39 +18,27 @@ use std::str::FromStr;
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum ReferenceTranscriptScoringMethods {
-    NetOverlap,            // score = num_overlaps - num_nonoverlaps
-    WeightedNetOverlap,    // score = num_overlaps - 0.5 * num_nonoverlaps
-    Jaccard,               // score = num_overlaps / (num_overlaps + num_nonoverlaps)
-    Overlap,               // score = num_overlaps
-    Nonoverlap,            // score = num_nonoverlaps
-    CosineSimilarity       // score = cosine_similarity(transcript,reference_transcript)
+pub enum ReferenceTranscriptSelectionStrategy {
+    TopK,
+    Threshold
 }
 
-impl ReferenceTranscriptScoringMethods {
+impl ReferenceTranscriptSelectionStrategy {
     pub fn as_str(&self) -> &str {
         match self {
-            ReferenceTranscriptScoringMethods::NetOverlap => "net_overlap",
-            ReferenceTranscriptScoringMethods::WeightedNetOverlap => "weighted_net_overlap",
-            ReferenceTranscriptScoringMethods::Jaccard => "jaccard",
-            ReferenceTranscriptScoringMethods::Overlap => "overlap",
-            ReferenceTranscriptScoringMethods::Nonoverlap => "nonoverlap",
-            ReferenceTranscriptScoringMethods::CosineSimilarity => "cosine_similarity"
+            ReferenceTranscriptSelectionStrategy::TopK => "top_k",
+            ReferenceTranscriptSelectionStrategy::Threshold => "threshold"
         }
     }
 }
 
-impl FromStr for ReferenceTranscriptScoringMethods {
+impl FromStr for ReferenceTranscriptSelectionStrategy {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "net_overlap" => Ok(ReferenceTranscriptScoringMethods::NetOverlap),
-            "weighted_net_overlap" => Ok(ReferenceTranscriptScoringMethods::WeightedNetOverlap),
-            "jaccard" => Ok(ReferenceTranscriptScoringMethods::Jaccard),
-            "overlap" => Ok(ReferenceTranscriptScoringMethods::Overlap),
-            "nonoverlap" => Ok(ReferenceTranscriptScoringMethods::Nonoverlap),
-            "cosine_similarity" => Ok(ReferenceTranscriptScoringMethods::CosineSimilarity),
+            "top_k" => Ok(ReferenceTranscriptSelectionStrategy::TopK),
+            "threshold" => Ok(ReferenceTranscriptSelectionStrategy::Threshold),
             _ => Err(()),
         }
     }
@@ -58,7 +46,50 @@ impl FromStr for ReferenceTranscriptScoringMethods {
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum SequenceOperationTypes {
+pub enum ReferenceTranscriptScoringMethod {
+    CosineSimilarity,      // score = cosine_similarity(transcript,reference_transcript)
+    L2Distance,            // score = l2_distance(transcript,reference_transcript)
+    Jaccard,               // score = num_overlaps / (num_overlaps + num_nonoverlaps)
+    NetOverlap,            // score = num_overlaps - num_nonoverlaps
+    Nonoverlap,            // score = num_nonoverlaps
+    Overlap,               // score = num_overlaps
+    WeightedNetOverlap     // score = num_overlaps - 0.5 * num_nonoverlaps
+}
+
+impl ReferenceTranscriptScoringMethod {
+    pub fn as_str(&self) -> &str {
+        match self {
+            ReferenceTranscriptScoringMethod::CosineSimilarity => "cosine_similarity",
+            ReferenceTranscriptScoringMethod::Jaccard => "jaccard",
+            ReferenceTranscriptScoringMethod::L2Distance => "l2",
+            ReferenceTranscriptScoringMethod::NetOverlap => "net_overlap",
+            ReferenceTranscriptScoringMethod::Nonoverlap => "non_overlap",
+            ReferenceTranscriptScoringMethod::Overlap => "overlap",
+            ReferenceTranscriptScoringMethod::WeightedNetOverlap => "weighted_net_overlap",
+        }
+    }
+}
+
+impl FromStr for ReferenceTranscriptScoringMethod {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "cosine_similarity" => Ok(ReferenceTranscriptScoringMethod::CosineSimilarity),
+            "jaccard" => Ok(ReferenceTranscriptScoringMethod::Jaccard),
+            "l2" => Ok(ReferenceTranscriptScoringMethod::L2Distance),
+            "net_overlap" => Ok(ReferenceTranscriptScoringMethod::NetOverlap),
+            "nonoverlap" => Ok(ReferenceTranscriptScoringMethod::Nonoverlap),
+            "overlap" => Ok(ReferenceTranscriptScoringMethod::Overlap),
+            "weighted_net_overlap" => Ok(ReferenceTranscriptScoringMethod::WeightedNetOverlap),
+            _ => Err(()),
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum SequenceOperationType {
     Downstream,
     Read,
     Upstream,
@@ -66,37 +97,37 @@ pub enum SequenceOperationTypes {
     Skip
 }
 
-impl SequenceOperationTypes {
+impl SequenceOperationType {
     pub fn as_str(&self) -> &str {
         match self {
-            SequenceOperationTypes::Downstream => "D",
-            SequenceOperationTypes::Read => "R",
-            SequenceOperationTypes::Upstream => "U",
-            SequenceOperationTypes::Mark => "M",
-            SequenceOperationTypes::Skip => "S"
+            SequenceOperationType::Downstream => "D",
+            SequenceOperationType::Read => "R",
+            SequenceOperationType::Upstream => "U",
+            SequenceOperationType::Mark => "M",
+            SequenceOperationType::Skip => "S"
         }
     }
 }
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum Strands {
+pub enum Strand {
     Forward,
     Reverse
 }
 
-impl Strands {
+impl Strand {
     pub fn as_str(&self) -> &str {
         match self {
-            Strands::Forward => "+",
-            Strands::Reverse => "-"
+            Strand::Forward => "+",
+            Strand::Reverse => "-"
         }
     }
 }
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum SequenceOperationVariantTypes {
+pub enum SequenceOperationVariantType {
     Alternative3PrimeSpliceSite,
     Alternative5PrimeSpliceSite,
     Breakpoint,
@@ -111,21 +142,21 @@ pub enum SequenceOperationVariantTypes {
     Translocation
 }
 
-impl SequenceOperationVariantTypes {
+impl SequenceOperationVariantType {
     pub fn as_str(&self) -> &str {
         match self {
-            SequenceOperationVariantTypes::Alternative3PrimeSpliceSite => "A3P",
-            SequenceOperationVariantTypes::Alternative5PrimeSpliceSite => "A5P",
-            SequenceOperationVariantTypes::Breakpoint => "BND",
-            SequenceOperationVariantTypes::CrypticExon => "CRX",
-            SequenceOperationVariantTypes::Deletion => "DEL",
-            SequenceOperationVariantTypes::ExonSkipping => "SKP",
-            SequenceOperationVariantTypes::FusionGene => "FUS",
-            SequenceOperationVariantTypes::Insertion => "A5P",
-            SequenceOperationVariantTypes::IntronRetention => "IRT",
-            SequenceOperationVariantTypes::MultiNucleotideVariant => "MNV",
-            SequenceOperationVariantTypes::SingleNucleotideVariant => "SNV",
-            SequenceOperationVariantTypes::Translocation => "TRA"
+            SequenceOperationVariantType::Alternative3PrimeSpliceSite => "A3P",
+            SequenceOperationVariantType::Alternative5PrimeSpliceSite => "A5P",
+            SequenceOperationVariantType::Breakpoint => "BND",
+            SequenceOperationVariantType::CrypticExon => "CRX",
+            SequenceOperationVariantType::Deletion => "DEL",
+            SequenceOperationVariantType::ExonSkipping => "SKP",
+            SequenceOperationVariantType::FusionGene => "FUS",
+            SequenceOperationVariantType::Insertion => "A5P",
+            SequenceOperationVariantType::IntronRetention => "IRT",
+            SequenceOperationVariantType::MultiNucleotideVariant => "MNV",
+            SequenceOperationVariantType::SingleNucleotideVariant => "SNV",
+            SequenceOperationVariantType::Translocation => "TRA"
         }
     }
 }

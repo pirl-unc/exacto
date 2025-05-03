@@ -20,13 +20,45 @@ import gc
 import pandas as pd
 import polars as pl
 from exactolib import exactolibrs
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
+from .constants import *
 from .default import *
 from .logging import get_logger
-from .utilities import get_chromosomes
+from .utilities import get_chromosomes,get_kmers
 
 
 logger = get_logger(__name__)
+
+
+def diff_kmers(
+        query_sequences: Dict[str,str],
+        reference_sequences: Dict[str,str],
+        min_k: int,
+        max_k: int
+) -> pd.DataFrame:
+    # Step 1. Identify all k-mers in the reference sequences
+    reference_kmers = set()
+    for sequence in reference_sequences.values():
+        for k in range(min_k, max_k + 1):
+            kmers = get_kmers(sequence=sequence, k=k)
+            reference_kmers.update(kmers)
+
+    # Step 2. Identify k-mers unique to the query sequences
+    data = {
+        'peptide_id': [],
+        'kmer': [],
+        'k': []
+    }
+    for sequence_name,sequence in query_sequences.items():
+        for k in range(min_k, max_k + 1):
+            kmers = get_kmers(sequence=sequence, k=k)
+            for kmer in kmers:
+                if kmer not in reference_kmers:
+                    data['peptide_id'].append(sequence_name)
+                    data['kmer'].append(kmer)
+                    data['k'].append(k)
+
+    return pd.DataFrame(data)
 
 
 def identify_dna_variants(
@@ -45,7 +77,7 @@ def identify_dna_variants(
         max_interchromosomal_distance: int = CALL_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE,
         num_threads: int = CALL_DNA_VARS_NUM_THREADS,
         temp_dir: str = "",
-        output_type: str = "file"
+        output_type: OutputType = OutputType.FILE
 ) -> pd.DataFrame:
     """
     Identify DNA variants.
@@ -80,7 +112,6 @@ def identify_dna_variants(
     if chromosomes is None:
         chromosomes = get_chromosomes(bam_file=bam_file)
     assert len(chromosomes) > 0
-    assert output_type in ["file", "dataframe"]
     df_variants = exactolibrs.identify_dna_variants(
         bam_file=bam_file,
         bam_bai_file=bam_bai_file,
@@ -97,7 +128,7 @@ def identify_dna_variants(
         num_threads=num_threads,
         chromosomes=chromosomes,
         temp_dir=temp_dir,
-        output_type=output_type
+        output_type=str(output_type)
     )
     return df_variants.to_pandas()
 
@@ -121,7 +152,7 @@ def identify_case_specific_dna_variants(
         apply_infinite_sites_assumption: bool = True,
         num_threads: int = CALL_DNA_VARS_NUM_THREADS,
         temp_dir: str = "",
-        output_type: str = "file"
+        output_type: OutputType = OutputType.FILE
 ):
     """
     Identify case-specific DNA variants.
@@ -160,7 +191,6 @@ def identify_case_specific_dna_variants(
     assert len(chromosomes) > 0
     assert(len(control_bam_files) > 0, 'control_bam_files cannot be empty.')
     assert(len(control_bam_files) == len(control_bam_bai_files), 'len(control_bam_files) must be equal to len(control_bam_bai_files).')
-    assert output_type in ["file", "dataframe"]
     df_variants = exactolibrs.identify_case_specific_dna_variants(
         case_bam_file=case_bam_file,
         case_bam_bai_file=case_bam_bai_file,
@@ -180,7 +210,7 @@ def identify_case_specific_dna_variants(
         num_threads=num_threads,
         chromosomes=chromosomes,
         temp_dir=temp_dir,
-        output_type=output_type
+        output_type=str(output_type)
     )
     return df_variants.to_pandas()
 
@@ -190,15 +220,18 @@ def identify_rna_variants(
         bam_bai_file: str,
         reference_genome_fasta_file: str,
         gene_annotation_file: str,
-        gene_annotation_source: str,
+        gene_annotation_source: GeneAnnotationSource,
         output_dir: str,
         output_prefix: str,
-        reference_transcript_scoring_method: str = CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SCORING_METHOD,
+        reference_transcript_scoring_method: ReferenceTranscriptScoringMethod = ReferenceTranscriptScoringMethod(CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SCORING_METHOD),
+        reference_transcript_selection_strategy: ReferenceTranscriptSelectionStrategy = ReferenceTranscriptSelectionStrategy(CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SELECTION_STRATEGY),
+        reference_transcript_top_k: int = CALL_RNA_VARS_REFERENCE_TRANSCRIPT_TOP_K,
+        reference_transcript_threshold: float = CALL_RNA_VARS_REFERENCE_TRANSCRIPT_THRESHOLD,
         min_mapping_quality: int = CALL_RNA_VARS_MIN_MAPPING_QUALITY,
         min_average_base_quality: float = CALL_RNA_VARS_MIN_AVERAGE_BASE_QUALITY,
         num_threads: int = CALL_RNA_VARS_NUM_THREADS,
         temp_dir: str = "",
-        output_type: str = "file"
+        output_type: OutputType = OutputType.FILE
 ) -> Tuple[pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame]:
     """
     Identify RNA variants.
@@ -241,15 +274,18 @@ def identify_rna_variants(
         bam_bai_file=bam_bai_file,
         reference_genome_fasta_file=reference_genome_fasta_file,
         gene_annotation_file=gene_annotation_file,
-        gene_annotation_source=gene_annotation_source,
+        gene_annotation_source=str(gene_annotation_source),
         output_dir=output_dir,
         output_prefix=output_prefix,
-        reference_transcript_scoring_method=reference_transcript_scoring_method,
+        reference_transcript_scoring_method=str(reference_transcript_scoring_method),
+        reference_transcript_selection_strategy=str(reference_transcript_selection_strategy),
+        reference_transcript_top_k=reference_transcript_top_k,
+        reference_transcript_threshold=reference_transcript_threshold,
         min_mapping_quality=min_mapping_quality,
         min_average_base_quality=min_average_base_quality,
         num_threads=num_threads,
         temp_dir=temp_dir,
-        output_type=output_type
+        output_type=str(output_type)
     )
     return (df_exons.to_pandas(),
             df_read_filter_status.to_pandas(),
@@ -331,7 +367,7 @@ def translate(rna_sequence: str, strategy: TRANSLATE_STRATEGY):
 def translate_fasta_file(
         fasta_file: str,
         temp_dir: str,
-        strategy: TRANSLATE_STRATEGY,
+        strategy: TranslationStrategy = TranslationStrategy(TRANSLATE_STRATEGY),
         num_threads: int = TRANSLATE_NUM_THREADS,
 ) -> pd.DataFrame:
     """
@@ -353,7 +389,7 @@ def translate_fasta_file(
     """
     ipc_file = exactolibrs.translate_rna_fasta_file(
         fasta_file=fasta_file,
-        strategy=strategy,
+        strategy=str(strategy),
         num_threads=num_threads,
         temp_dir=temp_dir
     )
@@ -374,7 +410,7 @@ def translate_fasta_file(
 def translate_fastq_file(
         fastq_file: str,
         temp_dir: str,
-        strategy: TRANSLATE_STRATEGY,
+        strategy: TranslationStrategy = TranslationStrategy(TRANSLATE_STRATEGY),
         num_threads: int = TRANSLATE_NUM_THREADS,
 ) -> pd.DataFrame:
     """
@@ -396,7 +432,7 @@ def translate_fastq_file(
     """
     ipc_file = exactolibrs.translate_rna_fastq_file(
         fastq_file=fastq_file,
-        strategy=strategy,
+        strategy=str(strategy),
         num_threads=num_threads,
         temp_dir=temp_dir
     )

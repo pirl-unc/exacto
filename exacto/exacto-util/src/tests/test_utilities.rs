@@ -19,6 +19,22 @@ fn test_calculate_cosine_similarity_2() {
 }
 
 #[test]
+fn test_calculate_l2_distance_1() {
+    let v1: Vec<i8> = vec![1, 0, 1, 0];
+    let v2: Vec<i8> = vec![0, 1, 0, 1];
+    let l2_distance: f64 = calculate_l2_distance(&v1, &v2);
+    assert!(l2_distance == 2f64);
+}
+
+#[test]
+fn test_calculate_l2_distance_2() {
+    let v1: Vec<i8> = vec![1, 0, 1, 0];
+    let v2: Vec<i8> = vec![1, 1, 1, 0];
+    let l2_distance: f64 = calculate_l2_distance(&v1, &v2);
+    assert!(l2_distance == 1f64);
+}
+
+#[test]
 fn test_clone_boxed_any_1() {
     let value1: Box<str> = "helloworld".to_string().into();
     let boxed_value1: Box<dyn Any> = Box::new(value1); // Box the value as Box<dyn Any>

@@ -67,11 +67,11 @@ def add_cli_translate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
         "--strategy",
         dest="strategy",
         type=str,
-        choices=[TranslationStrategies.LONGEST_ORF],
+        choices=[str(TranslationStrategy.LONGEST_ORF)],
         required=True,
         help="Translation strategy (default: %s). Available options: '%s'." %
-             (TranslationStrategies.LONGEST_ORF,
-              ','.join(TranslationStrategies.ALL))
+             (str(TranslationStrategy.LONGEST_ORF),
+              ','.join([str(TranslationStrategy.LONGEST_ORF)]))
     )
 
     # Optional arguments
@@ -144,7 +144,7 @@ def run_cli_translate_vars_from_parsed_args(args) -> None:
             logger.info("%i reads in total in the FASTQ file." % count_reads_in_fastx_file(fastx_file=args.fasta_file))
             df_translations = translate_fasta_file(
                 fasta_file=args.fasta_file,
-                strategy=args.strategy,
+                strategy=TranslationStrategy(args.strategy),
                 num_threads=args.num_threads,
                 temp_dir=args.temp_dir
             )
@@ -152,7 +152,7 @@ def run_cli_translate_vars_from_parsed_args(args) -> None:
             logger.info("%i reads in total in the FASTQ file." % count_reads_in_fastx_file(fastx_file=args.fastq_file))
             df_translations = translate_fastq_file(
                 fastq_file=args.fastq_file,
-                strategy=args.strategy,
+                strategy=TranslationStrategy(args.strategy),
                 num_threads=args.num_threads,
                 temp_dir=args.temp_dir
             )

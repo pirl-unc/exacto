@@ -1,0 +1,11 @@
+peptide_id	kmer	k
+query_1	SIINFEKL	8
+query_1	MSIINFEK	8
+query_1	IINFEKLF	8
+query_1	INFEKLFG	8
+query_1	SIINFEKLF	9
+query_1	MSIINFEKL	9
+query_1	IINFEKLFG	9
+query_1	MSIINFEKLF	10
+query_1	SIINFEKLFG	10
+query_1	MSIINFEKLFG	11

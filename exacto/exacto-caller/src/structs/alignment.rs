@@ -20,9 +20,8 @@ use noodles_fasta::io::indexed_reader::Builder;
 use noodles_sam::alignment::Record;
 use noodles_sam::alignment::record::Flags;
 use regex::Regex;
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, VecDeque};
 
-use crate::algorithms::variant_calling_rna::*;
 use crate::common::bam::*;
 use crate::common::constants::*;
 use crate::prelude::ReferenceTranscriptMatch;
@@ -143,10 +142,10 @@ impl Alignment {
             let chromosome_id: u16 = alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
 
             // Get the alignment flag
-            let mut strand: Strands = Strands::Forward;
+            let mut strand: Strand = Strand::Forward;
             for flag in alignment_record.record.flags() {
                 if flag == Flags::REVERSE_COMPLEMENTED {
-                    strand = Strands::Reverse;
+                    strand = Strand::Reverse;
                     break;
                 }
             }
@@ -215,7 +214,7 @@ impl Alignment {
                         0,
                         strand.clone()
                     );
-                    if strand == Strands::Reverse {
+                    if strand == Strand::Reverse {
                         exons_.push_front(exon);
                     } else {
                         exons_.push_back(exon);
@@ -264,7 +263,7 @@ impl Alignment {
                 0,
                 strand.clone()
             );
-            if strand == Strands::Reverse {
+            if strand == Strand::Reverse {
                 exons_.push_front(exon);
             } else {
                 exons_.push_back(exon);
@@ -332,10 +331,10 @@ impl Alignment {
                 .unwrap();
 
             // Get the alignment flag
-            let mut strand: Strands = Strands::Forward;
+            let mut strand: Strand = Strand::Forward;
             for flag in alignment_record.record.flags() {
                 if flag == Flags::REVERSE_COMPLEMENTED {
-                    strand = Strands::Reverse;
+                    strand = Strand::Reverse;
                     break;
                 }
             }
@@ -441,7 +440,7 @@ impl Alignment {
                             "".into(),
                             strand.clone()
                         );
-                        if strand == Strands::Reverse {
+                        if strand == Strand::Reverse {
                             splice_junctions_.push_front(splice_junction);
                         } else {
                             splice_junctions_.push_back(splice_junction);
@@ -449,7 +448,7 @@ impl Alignment {
                     } else {
                         let mut splice_signal_start: Box<str> = spliced_sequence_str[..2].to_string().into_boxed_str();
                         let mut splice_signal_end: Box<str> = spliced_sequence_str[spliced_sequence_str.len()-2..].to_string().into_boxed_str();
-                        if strand == Strands::Reverse {
+                        if strand == Strand::Reverse {
                             splice_signal_start = reverse_complement(&*splice_signal_start);
                             splice_signal_end = reverse_complement(&*splice_signal_end);
                         }
@@ -462,7 +461,7 @@ impl Alignment {
                             &*splice_signal_end,
                             strand.clone()
                         );
-                        if strand == Strands::Reverse {
+                        if strand == Strand::Reverse {
                             splice_junctions_.push_front(splice_junction);
                         } else {
                             splice_junctions_.push_back(splice_junction);
@@ -499,37 +498,40 @@ impl Alignment {
 
     pub fn identify_splice_variant_records(
         &self, 
-        matched_reference_transcripts: &Vec<ReferenceTranscriptMatch>,
+        reference_transcript_matches: &Vec<ReferenceTranscriptMatch>,
         chromosome_names_map: &BiMap<Box<str>,u16>,
         min_mapping_quality: usize
-    ) -> Vec<VariantRecord> {
+    ) -> HashMap<Box<str>,Vec<VariantRecord>> {
         // Step 1. Identify exons
         let exons: Vec<TranscriptModelExon> = self.identify_exons(min_mapping_quality);
         
         // Step 2. Identify splice variant records
-        let mut splice_variant_records: Vec<VariantRecord> = Vec::new();
-        if matched_reference_transcripts.is_empty() {
+        let mut splice_variant_records: HashMap<Box<str>,Vec<VariantRecord>> = HashMap::new();
+        if reference_transcript_matches.is_empty() {
             // All the exons will be identified as cryptic exons
             for exon in exons.iter() {
                 let sequence_operation: SequenceOperation = SequenceOperation::new(
                     exon.chromosome_id,
                     exon.start,
                     exon.strand.clone(),
-                    SequenceOperationTypes::Read.clone(),
+                    SequenceOperationType::Read.clone(),
                     exon.chromosome_id,
                     exon.end,
                     exon.strand.clone(),
-                    SequenceOperationTypes::Read.clone(),
+                    SequenceOperationType::Read.clone(),
                     "".into(),
-                    SequenceOperationVariantTypes::CrypticExon.clone()
+                    SequenceOperationVariantType::CrypticExon.clone()
                 );
                 let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                splice_variant_records.push(variant_record);
+                splice_variant_records
+                    .entry("intergenic".into())
+                    .or_insert_with(Vec::new)
+                    .push(variant_record);
             }
         } else {
             let mut reference_transcripts: Vec<Transcript> = Vec::new();
-            for matched_reference_transcript in matched_reference_transcripts.iter() {
-                reference_transcripts.push(matched_reference_transcript.reference_transcript.clone());
+            for reference_transcript_match in reference_transcript_matches.iter() {
+                reference_transcripts.push(reference_transcript_match.reference_transcript.clone());
             }
 
             // Identify fusion
@@ -558,40 +560,46 @@ impl Alignment {
                     }
                 } else {
                     if overlapping_gene_id != curr_gene_id && overlapping_gene_id != "".into() {
-                        if prev_exon.strand.as_str() == Strands::Forward.as_str() {
+                        if prev_exon.strand.as_str() == Strand::Forward.as_str() {
                             let sequence_operation: SequenceOperation= SequenceOperation::new(
                                 prev_exon.chromosome_id,
                                 prev_exon.end,
                                 prev_exon.strand.clone(),
-                                SequenceOperationTypes::Downstream.clone(),
+                                SequenceOperationType::Downstream.clone(),
                                 exon.chromosome_id,
                                 exon.start,
                                 exon.strand.clone(),
-                                SequenceOperationTypes::Upstream.clone(),
+                                SequenceOperationType::Upstream.clone(),
                                 "".into(),
-                                SequenceOperationVariantTypes::FusionGene.clone()
+                                SequenceOperationVariantType::FusionGene.clone()
                             );
                             let variant_record: VariantRecord = VariantRecord::new(
                                 self.read_id, sequence_operation
                             );
-                            splice_variant_records.push(variant_record);
+                            splice_variant_records
+                                .entry(format!("{}-{}", overlapping_gene_id, curr_gene_id).into())
+                                .or_insert_with(Vec::new)
+                                .push(variant_record);
                         } else {
                             let sequence_operation: SequenceOperation = SequenceOperation::new(
                                 prev_exon.chromosome_id,
                                 prev_exon.start,
                                 prev_exon.strand.clone(),
-                                SequenceOperationTypes::Upstream.clone(),
+                                SequenceOperationType::Upstream.clone(),
                                 exon.chromosome_id,
                                 exon.end,
                                 exon.strand.clone(),
-                                SequenceOperationTypes::Downstream.clone(),
+                                SequenceOperationType::Downstream.clone(),
                                 "".into(),
-                                SequenceOperationVariantTypes::FusionGene.clone()
+                                SequenceOperationVariantType::FusionGene.clone()
                             );
                             let variant_record: VariantRecord = VariantRecord::new(
                                 self.read_id, sequence_operation
                             );
-                            splice_variant_records.push(variant_record);
+                            splice_variant_records
+                                .entry(format!("{}-{}", overlapping_gene_id, curr_gene_id).into())
+                                .or_insert_with(Vec::new)
+                                .push(variant_record);
                         }
                         curr_gene_id = overlapping_gene_id;
                     }
@@ -603,13 +611,14 @@ impl Alignment {
             for reference_transcript in reference_transcripts.iter() {
                 for reference_exon in reference_transcript.exons.values() {
                     let mut reference_exon_overlaps: bool = false;
+                    let mut is_fusion: bool = false;
                     let reference_exon_start: isize = reference_exon.start as isize;
                     let reference_exon_end: isize = reference_exon.end as isize;
                     let reference_chromosome_id: u16 = *chromosome_names_map.get_by_left(&*reference_exon.chromosome).unwrap();
-                    let reference_strand: Strands = if reference_exon.strand.as_str() == Strands::Forward.as_str() {
-                        Strands::Forward
+                    let reference_strand: Strand = if reference_exon.strand.as_str() == Strand::Forward.as_str() {
+                        Strand::Forward
                     } else {
-                        Strands::Reverse
+                        Strand::Reverse
                     };
                     for exon in exons.iter() {
                         if reference_chromosome_id == exon.chromosome_id {
@@ -623,50 +632,72 @@ impl Alignment {
                     }
 
                     // Check if the reference exon is skipped because of a fusion gene
-                    for variant_record in splice_variant_records.iter() {
-                        if variant_record.get_variant_type() == SequenceOperationVariantTypes::FusionGene {
-                            let position_1: isize = variant_record.get_position_1() as isize;
-                            let position_2: isize = variant_record.get_position_2() as isize;
-                            if reference_chromosome_id == variant_record.get_chromosome_1() && reference_chromosome_id == variant_record.get_chromosome_2() {
-                                if overlaps(position_1, position_2, reference_exon_start, reference_exon_end) {
-                                    reference_exon_overlaps = true;
-                                    break;
+                    for variant_records in splice_variant_records.values() {
+                        for variant_record in variant_records.iter() {
+                            if variant_record.get_variant_type() == SequenceOperationVariantType::FusionGene {
+                                if variant_record.get_operation_1() == SequenceOperationType::Downstream && 
+                                    variant_record.get_operation_2() == SequenceOperationType::Upstream {
+                                    if reference_chromosome_id == variant_record.get_chromosome_1() && 
+                                        reference_exon_start > variant_record.get_position_1() as isize {
+                                        is_fusion = true;
+                                    }
+                                    if reference_chromosome_id == variant_record.get_chromosome_2() &&
+                                        reference_exon_end < variant_record.get_position_2() as isize {
+                                        is_fusion = true;
+                                    }
+                                } else if variant_record.get_operation_1() == SequenceOperationType::Upstream && 
+                                    variant_record.get_operation_2() == SequenceOperationType::Downstream {
+                                    if reference_chromosome_id == variant_record.get_chromosome_1() &&
+                                        reference_exon_end < variant_record.get_position_1() as isize {
+                                        is_fusion = true;
+                                    }
+                                    if reference_chromosome_id == variant_record.get_chromosome_2() &&
+                                        reference_exon_start > variant_record.get_position_2() as isize {
+                                        is_fusion = true;
+                                    }
+                                } else {
+                                    panic!("Unexpected sequence operation for a fusion gene: {} and {}",
+                                           variant_record.get_operation_1().as_str(),
+                                           variant_record.get_operation_2().as_str());
                                 }
                             }
                         }
                     }
 
-                    if reference_exon_overlaps == false {
-                        let strand = if reference_exon.strand.as_str() == Strands::Forward.as_str() {
-                            Strands::Forward
+                    if reference_exon_overlaps == false && is_fusion == false {
+                        let strand = if reference_exon.strand.as_str() == Strand::Forward.as_str() {
+                            Strand::Forward
                         } else {
-                            Strands::Reverse
+                            Strand::Reverse
                         };
                         let sequence_operation: SequenceOperation = SequenceOperation::new(
                             reference_chromosome_id,
                             reference_exon.start,
                             strand.clone(),
-                            SequenceOperationTypes::Skip.clone(),
+                            SequenceOperationType::Skip.clone(),
                             reference_chromosome_id,
                             reference_exon.end,
                             strand.clone(),
-                            SequenceOperationTypes::Skip.clone(),
+                            SequenceOperationType::Skip.clone(),
                             "".into(),
-                            SequenceOperationVariantTypes::ExonSkipping.clone()
+                            SequenceOperationVariantType::ExonSkipping.clone()
                         );
                         let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                        splice_variant_records.push(variant_record);
+                        splice_variant_records
+                            .entry(reference_transcript.transcript_id.clone())
+                            .or_insert_with(Vec::new)
+                            .push(variant_record);
                     }
                 }
             }
 
             // Identify cryptic exons
             for exon in exons.iter() {
-                let mut is_cryptic: bool = true;
                 let exon_start: isize = exon.start as isize;
                 let exon_end: isize = exon.end as isize;
                 let chromosome_name: Box<str> = chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap().to_string().into_boxed_str();
                 for reference_transcript in reference_transcripts.iter() {
+                    let mut is_cryptic: bool = true;
                     for reference_exon in reference_transcript.exons.values() {
                         if chromosome_name == reference_exon.chromosome {
                             let reference_exon_start: isize = reference_exon.start as isize;
@@ -677,37 +708,37 @@ impl Alignment {
                             }
                         }
                     }
-                    if is_cryptic == false {
-                        break;
+                    if is_cryptic {
+                        let sequence_operation: SequenceOperation = SequenceOperation::new(
+                            exon.chromosome_id,
+                            exon.start,
+                            exon.strand.clone(),
+                            SequenceOperationType::Read.clone(),
+                            exon.chromosome_id,
+                            exon.end,
+                            exon.strand.clone(),
+                            SequenceOperationType::Read.clone(),
+                            "".into(),
+                            SequenceOperationVariantType::CrypticExon.clone()
+                        );
+                        let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
+                        splice_variant_records
+                            .entry(reference_transcript.transcript_id.clone())
+                            .or_insert_with(Vec::new)
+                            .push(variant_record);
                     }
-                }
-                if is_cryptic {
-                    let sequence_operation: SequenceOperation = SequenceOperation::new(
-                        exon.chromosome_id,
-                        exon.start,
-                        exon.strand.clone(),
-                        SequenceOperationTypes::Read.clone(),
-                        exon.chromosome_id,
-                        exon.end,
-                        exon.strand.clone(),
-                        SequenceOperationTypes::Read.clone(),
-                        "".into(),
-                        SequenceOperationVariantTypes::CrypticExon.clone()
-                    );
-                    let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                    splice_variant_records.push(variant_record);
                 }
             }
 
             // Identify intron retention
             for exon in exons.iter() {
-                let mut overlaps_exon: bool = false;
-                let mut overlaps_intron: bool = false;
-                let mut intron_retention_start: u32 = 0;
-                let mut intron_retention_end: u32 = 0;
                 let exon_start: isize = exon.start as isize;
                 let exon_end: isize = exon.end as isize;
                 for reference_transcript in reference_transcripts.iter() {
+                    let mut overlaps_exon: bool = false;
+                    let mut overlaps_intron: bool = false;
+                    let mut intron_retention_start: u32 = 0;
+                    let mut intron_retention_end: u32 = 0;
                     for intron in reference_transcript.get_introns().iter() {
                         let intron_start: isize = intron.start as isize;
                         let intron_end: isize = intron.end as isize;
@@ -731,22 +762,25 @@ impl Alignment {
                             break;
                         }
                     }
-                }
-                if overlaps_intron && overlaps_exon {
-                    let sequence_operation: SequenceOperation = SequenceOperation::new(
-                        exon.chromosome_id,
-                        intron_retention_start,
-                        exon.strand.clone(),
-                        SequenceOperationTypes::Read.clone(),
-                        exon.chromosome_id,
-                        intron_retention_end,
-                        exon.strand.clone(),
-                        SequenceOperationTypes::Read.clone(),
-                        "".into(),
-                        SequenceOperationVariantTypes::IntronRetention.clone()
-                    );
-                    let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                    splice_variant_records.push(variant_record);
+                    if overlaps_intron && overlaps_exon {
+                        let sequence_operation: SequenceOperation = SequenceOperation::new(
+                            exon.chromosome_id,
+                            intron_retention_start,
+                            exon.strand.clone(),
+                            SequenceOperationType::Read.clone(),
+                            exon.chromosome_id,
+                            intron_retention_end,
+                            exon.strand.clone(),
+                            SequenceOperationType::Read.clone(),
+                            "".into(),
+                            SequenceOperationVariantType::IntronRetention.clone()
+                        );
+                        let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
+                        splice_variant_records
+                            .entry(reference_transcript.transcript_id.clone())
+                            .or_insert_with(Vec::new)
+                            .push(variant_record);
+                    }
                 }
             }
 
@@ -769,92 +803,106 @@ impl Alignment {
 
                         // Check if the alternative splice site is a fusion gene breakpoint
                         let mut is_fusion_breakpoint: bool = false;
-                        for variant_record in splice_variant_records.iter() {
-                            if variant_record.get_variant_type() == SequenceOperationVariantTypes::FusionGene {
-                                if exon.chromosome_id == variant_record.get_chromosome_1() && exon.chromosome_id == variant_record.get_chromosome_2() {
-                                    let position_1: isize = variant_record.get_position_1() as isize;
-                                    let position_2: isize = variant_record.get_position_2() as isize;
-                                    if start >= position_1 - 1 && start <= position_1 + 1 {
-                                        is_fusion_breakpoint = true;
+                        for variant_records in splice_variant_records.values() {
+                            for variant_record in variant_records.iter() {
+                                if variant_record.get_variant_type() == SequenceOperationVariantType::FusionGene {
+                                    if exon.chromosome_id == variant_record.get_chromosome_1() && exon.chromosome_id == variant_record.get_chromosome_2() {
+                                        let position_1: isize = variant_record.get_position_1() as isize;
+                                        let position_2: isize = variant_record.get_position_2() as isize;
+                                        if start >= position_1 - 1 && start <= position_1 + 1 {
+                                            is_fusion_breakpoint = true;
+                                        }
+                                        if start >= position_2 - 1 && start <= position_2 + 1 {
+                                            is_fusion_breakpoint = true;
+                                        }
+                                        if end >= position_1 - 1 && end <= position_1 + 1 {
+                                            is_fusion_breakpoint = true;
+                                        }
+                                        if end >= position_2 - 1 && end <= position_2 + 1 {
+                                            is_fusion_breakpoint = true;
+                                        }
                                     }
-                                    if start >= position_2 - 1 && start <= position_2 + 1 {
-                                        is_fusion_breakpoint = true;
-                                    }
-                                    if end >= position_1 - 1 && end <= position_1 + 1 {
-                                        is_fusion_breakpoint = true;
-                                    }
-                                    if end >= position_2 - 1 && end <= position_2 + 1 {
-                                        is_fusion_breakpoint = true;
-                                    }
-                                }
+                                }   
                             }
                         }
                         if start != reference_exon_start && is_fusion_breakpoint == false {
                             // Check if 5' or 3' splice site
-                            if reference_exon.strand.as_str() == Strands::Forward.as_str() {
+                            if reference_exon.strand.as_str() == Strand::Forward.as_str() {
                                 let sequence_operation: SequenceOperation = SequenceOperation::new(
                                     exon.chromosome_id,
                                     exon.start - 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     exon.chromosome_id,
                                     exon.start - 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     "".into(),
-                                    SequenceOperationVariantTypes::Alternative3PrimeSpliceSite.clone()
+                                    SequenceOperationVariantType::Alternative3PrimeSpliceSite.clone()
                                 );
                                 let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records.push(variant_record);
+                                splice_variant_records
+                                    .entry(reference_transcript.transcript_id.clone())
+                                    .or_insert_with(Vec::new)
+                                    .push(variant_record);
                             } else {
                                 let sequence_operation: SequenceOperation = SequenceOperation::new(
                                     exon.chromosome_id,
                                     exon.start - 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     exon.chromosome_id,
                                     exon.start - 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     "".into(),
-                                    SequenceOperationVariantTypes::Alternative5PrimeSpliceSite.clone()
+                                    SequenceOperationVariantType::Alternative5PrimeSpliceSite.clone()
                                 );
                                 let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records.push(variant_record);
+                                splice_variant_records
+                                    .entry(reference_transcript.transcript_id.clone())
+                                    .or_insert_with(Vec::new)
+                                    .push(variant_record);
                             }
                         }
                         if end != reference_exon_end && is_fusion_breakpoint == false {
                             // Check if 5' or 3' splice site
-                            if reference_exon.strand.as_str() == Strands::Forward.as_str() {
+                            if reference_exon.strand.as_str() == Strand::Forward.as_str() {
                                 let sequence_operation: SequenceOperation = SequenceOperation::new(
                                     exon.chromosome_id,
                                     exon.end + 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     exon.chromosome_id,
                                     exon.end + 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     "".into(),
-                                    SequenceOperationVariantTypes::Alternative5PrimeSpliceSite.clone()
+                                    SequenceOperationVariantType::Alternative5PrimeSpliceSite.clone()
                                 );
                                 let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records.push(variant_record);
+                                splice_variant_records
+                                    .entry(reference_transcript.transcript_id.clone())
+                                    .or_insert_with(Vec::new)
+                                    .push(variant_record);
                             } else {
                                 let sequence_operation: SequenceOperation = SequenceOperation::new(
                                     exon.chromosome_id,
                                     exon.end + 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     exon.chromosome_id,
                                     exon.end + 1,
                                     exon.strand.clone(),
-                                    SequenceOperationTypes::Mark.clone(),
+                                    SequenceOperationType::Mark.clone(),
                                     "".into(),
-                                    SequenceOperationVariantTypes::Alternative3PrimeSpliceSite.clone()
+                                    SequenceOperationVariantType::Alternative3PrimeSpliceSite.clone()
                                 );
                                 let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records.push(variant_record);
+                                splice_variant_records
+                                    .entry(reference_transcript.transcript_id.clone())
+                                    .or_insert_with(Vec::new)
+                                    .push(variant_record);
                             }
                         }
                     }
@@ -901,10 +949,10 @@ impl Alignment {
             let mut curr_base_quality_pos: isize = -1;
 
             // Get the alignment flag
-            let mut strand: Strands = Strands::Forward;
+            let mut strand: Strand = Strand::Forward;
             for flag in alignment_record.record.flags() {
                 if flag == Flags::REVERSE_COMPLEMENTED {
-                    strand = Strands::Reverse;
+                    strand = Strand::Reverse;
                     break;
                 }
             }
@@ -979,13 +1027,13 @@ impl Alignment {
                         chromosome_id,
                         (curr_reference_pos - 1) as u32,
                         strand.clone(),
-                        SequenceOperationTypes::Downstream,
+                        SequenceOperationType::Downstream,
                         chromosome_id,
                         (curr_reference_pos + 1) as u32,
                         strand.clone(),
-                        SequenceOperationTypes::Upstream,
+                        SequenceOperationType::Upstream,
                         alternate_allele.into_boxed_str(),
-                        SequenceOperationVariantTypes::SingleNucleotideVariant.clone()
+                        SequenceOperationVariantType::SingleNucleotideVariant.clone()
                     );
                     let variant_record: VariantRecord = VariantRecord::new(
                         self.read_id,
@@ -1016,13 +1064,13 @@ impl Alignment {
                         chromosome_id,
                         curr_reference_pos as u32,
                         strand.clone(),
-                        SequenceOperationTypes::Downstream,
+                        SequenceOperationType::Downstream,
                         chromosome_id,
                         (curr_reference_pos + 1) as u32,
                         strand.clone(),
-                        SequenceOperationTypes::Upstream,
+                        SequenceOperationType::Upstream,
                         alternate_allele.into_boxed_str(),
-                        SequenceOperationVariantTypes::Insertion.clone()
+                        SequenceOperationVariantType::Insertion.clone()
                     );
                     let variant_record: VariantRecord = VariantRecord::new(
                         self.read_id,
@@ -1058,13 +1106,13 @@ impl Alignment {
                         chromosome_id,
                         (reference_start - 1) as u32,
                         strand.clone(),
-                        SequenceOperationTypes::Downstream,
+                        SequenceOperationType::Downstream,
                         chromosome_id,
                         (reference_end + 1) as u32,
                         strand.clone(),
-                        SequenceOperationTypes::Upstream,
+                        SequenceOperationType::Upstream,
                         "".to_string().into_boxed_str(),
-                        SequenceOperationVariantTypes::Deletion.clone()
+                        SequenceOperationVariantType::Deletion.clone()
                     );
                     let variant_record: VariantRecord = VariantRecord::new(
                         self.read_id,
@@ -1161,8 +1209,8 @@ impl Alignment {
                 let base_quality_scores: Vec<u8> = get_base_quality_scores(&curr_alignment_record.record);
                 let position_1: usize;
                 let position_2: usize;
-                let operation_1: SequenceOperationTypes;
-                let operation_2: SequenceOperationTypes;
+                let operation_1: SequenceOperationType;
+                let operation_2: SequenceOperationType;
                 let insertion: String;
                 let sequence_quality_scores: Vec<u8>;
 
@@ -1174,8 +1222,8 @@ impl Alignment {
                     );
                     position_1 = get_alignment_end_position(&curr_alignment_record.record);
                     position_2 = get_alignment_end_position(&curr_alignment_record.record) + 1;
-                    operation_1 = SequenceOperationTypes::Downstream;
-                    operation_2 = SequenceOperationTypes::Upstream;
+                    operation_1 = SequenceOperationType::Downstream;
+                    operation_2 = SequenceOperationType::Upstream;
                     insertion = read_sequence[self.get_read_length() - curr_alignment_record.read_start..self.get_read_length()].to_string();
                     sequence_quality_scores = base_quality_scores[self.get_read_length() - curr_alignment_record.read_start..self.get_read_length()].to_vec();
                 } else {
@@ -1186,16 +1234,16 @@ impl Alignment {
                     );
                     position_1 = get_alignment_start_position(&curr_alignment_record.record) - 1;
                     position_2 = get_alignment_start_position(&curr_alignment_record.record);
-                    operation_1 = SequenceOperationTypes::Downstream;
-                    operation_2 = SequenceOperationTypes::Upstream;
+                    operation_1 = SequenceOperationType::Downstream;
+                    operation_2 = SequenceOperationType::Upstream;
                     insertion = read_sequence[0..curr_alignment_record.read_start].to_string();
                     sequence_quality_scores = base_quality_scores[0..curr_alignment_record.read_start].to_vec();
                 }
 
-                let strand: Strands = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
-                    Strands::Reverse
+                let strand: Strand = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
+                    Strand::Reverse
                 } else {
-                    Strands::Forward
+                    Strand::Forward
                 };
 
                 // Exclude the following soft-clipping cases:
@@ -1232,7 +1280,7 @@ impl Alignment {
                         strand.clone(),
                         operation_1.clone(),
                         insertion.into_boxed_str(),
-                        SequenceOperationVariantTypes::Insertion.clone()
+                        SequenceOperationVariantType::Insertion.clone()
                     );
                     let variant_record: VariantRecord = VariantRecord::new(
                         self.read_id,
@@ -1249,8 +1297,8 @@ impl Alignment {
                 let base_quality_scores: Vec<u8> = get_base_quality_scores(&curr_alignment_record.record);
                 let position_1: usize;
                 let position_2: usize;
-                let operation_1: SequenceOperationTypes;
-                let operation_2: SequenceOperationTypes;
+                let operation_1: SequenceOperationType;
+                let operation_2: SequenceOperationType;
                 let insertion: String;
                 let sequence_quality_scores: Vec<u8>;
                 if curr_alignment_record.record.flags().is_reverse_complemented() {
@@ -1261,8 +1309,8 @@ impl Alignment {
                     );
                     position_1 = get_alignment_start_position(&curr_alignment_record.record) - 1;
                     position_2 = get_alignment_start_position(&curr_alignment_record.record);
-                    operation_1 = SequenceOperationTypes::Downstream;
-                    operation_2 = SequenceOperationTypes::Upstream;
+                    operation_1 = SequenceOperationType::Downstream;
+                    operation_2 = SequenceOperationType::Upstream;
                     insertion = read_sequence[0..(self.get_read_length() - curr_alignment_record.read_end - 1)].to_string();
                     sequence_quality_scores = base_quality_scores[0..(self.get_read_length() - curr_alignment_record.read_end - 1)].to_vec();
                 } else {
@@ -1273,15 +1321,15 @@ impl Alignment {
                     );
                     position_1 = get_alignment_end_position(&curr_alignment_record.record);
                     position_2 = get_alignment_end_position(&curr_alignment_record.record) + 1;
-                    operation_1 = SequenceOperationTypes::Downstream;
-                    operation_2 = SequenceOperationTypes::Upstream;
+                    operation_1 = SequenceOperationType::Downstream;
+                    operation_2 = SequenceOperationType::Upstream;
                     insertion = read_sequence[curr_alignment_record.read_end+1..self.get_read_length()].to_string();
                     sequence_quality_scores = base_quality_scores[(curr_alignment_record.read_end + 1)..self.get_read_length()].to_vec();
                 }
-                let strand: Strands = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
-                    Strands::Reverse
+                let strand: Strand = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
+                    Strand::Reverse
                 } else {
-                    Strands::Forward
+                    Strand::Forward
                 };
 
                 // Exclude the following soft-clipping cases:
@@ -1318,7 +1366,7 @@ impl Alignment {
                         strand.clone(),
                         operation_2.clone(),
                         insertion.into_boxed_str(),
-                        SequenceOperationVariantTypes::Insertion.clone()
+                        SequenceOperationVariantType::Insertion.clone()
                     );
                     let variant_record: VariantRecord = VariantRecord::new(
                         self.read_id,
@@ -1339,8 +1387,8 @@ impl Alignment {
                 let bnd_chromosome_2_id: u16;
                 let mut bnd_position_1: usize;
                 let mut bnd_position_2: usize;
-                let bnd_operation_1: SequenceOperationTypes;
-                let bnd_operation_2: SequenceOperationTypes;
+                let bnd_operation_1: SequenceOperationType;
+                let bnd_operation_2: SequenceOperationType;
                 let mut insertion: Box<str> = "".to_string().into_boxed_str();
                 let mut insertion_sequence_quality_scores: Vec<u8> = vec![];
                 if !prev_alignment_record.record.flags().is_reverse_complemented() && curr_alignment_record.record.flags().is_reverse_complemented() {
@@ -1348,29 +1396,29 @@ impl Alignment {
                     bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
                     bnd_position_1 = prev_alignment_record.record.alignment_end().unwrap().unwrap().get();
                     bnd_position_2 = curr_alignment_record.record.alignment_end().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationTypes::Downstream;
-                    bnd_operation_2 = SequenceOperationTypes::Downstream;
+                    bnd_operation_1 = SequenceOperationType::Downstream;
+                    bnd_operation_2 = SequenceOperationType::Downstream;
                 } else if prev_alignment_record.record.flags().is_reverse_complemented() && !curr_alignment_record.record.flags().is_reverse_complemented() {
                     bnd_chromosome_1_id = prev_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
                     bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
                     bnd_position_1 = prev_alignment_record.record.alignment_start().unwrap().unwrap().get();
                     bnd_position_2 = curr_alignment_record.record.alignment_start().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationTypes::Upstream;
-                    bnd_operation_2 = SequenceOperationTypes::Upstream;
+                    bnd_operation_1 = SequenceOperationType::Upstream;
+                    bnd_operation_2 = SequenceOperationType::Upstream;
                 } else if !prev_alignment_record.record.flags().is_reverse_complemented() && !curr_alignment_record.record.flags().is_reverse_complemented() {
                     bnd_chromosome_1_id = prev_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
                     bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
                     bnd_position_1 = prev_alignment_record.record.alignment_end().unwrap().unwrap().get();
                     bnd_position_2 = curr_alignment_record.record.alignment_start().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationTypes::Downstream;
-                    bnd_operation_2 = SequenceOperationTypes::Upstream;
+                    bnd_operation_1 = SequenceOperationType::Downstream;
+                    bnd_operation_2 = SequenceOperationType::Upstream;
                 } else {
                     bnd_chromosome_1_id = prev_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
                     bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
                     bnd_position_1 = prev_alignment_record.record.alignment_start().unwrap().unwrap().get();
                     bnd_position_2 = curr_alignment_record.record.alignment_end().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationTypes::Upstream;
-                    bnd_operation_2 = SequenceOperationTypes::Downstream;
+                    bnd_operation_1 = SequenceOperationType::Upstream;
+                    bnd_operation_2 = SequenceOperationType::Downstream;
                 }
 
                 // Check if the previous and the current alignments overlap
@@ -1396,14 +1444,14 @@ impl Alignment {
                     }
 
                     // Update position 1 by the number of overlapping bases
-                    if bnd_operation_1 == SequenceOperationTypes::Upstream {
+                    if bnd_operation_1 == SequenceOperationType::Upstream {
                         bnd_position_1 = bnd_position_1 + insertion.len();
                     } else {
                        bnd_position_1 = bnd_position_1 - insertion.len();
                     }
 
                     // Update position 2 by the number of overlapping bases
-                    if bnd_operation_2 == SequenceOperationTypes::Upstream {
+                    if bnd_operation_2 == SequenceOperationType::Upstream {
                         bnd_position_2 = bnd_position_2 + insertion.len();
                     } else {
                         bnd_position_2 = bnd_position_2 - insertion.len();
@@ -1429,15 +1477,15 @@ impl Alignment {
                 }
 
                 // Determine the strand
-                let bnd_strand_1: Strands = if is_aligned_to_reverse_strand(&prev_alignment_record.record) {
-                    Strands::Reverse
+                let bnd_strand_1: Strand = if is_aligned_to_reverse_strand(&prev_alignment_record.record) {
+                    Strand::Reverse
                 } else {
-                    Strands::Forward
+                    Strand::Forward
                 };
-                let bnd_strand_2: Strands = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
-                    Strands::Reverse
+                let bnd_strand_2: Strand = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
+                    Strand::Reverse
                 } else {
-                    Strands::Forward
+                    Strand::Forward
                 };
 
                 // Enforce an order for chromosomes 1 and 2 as well as positions 1 and 2
@@ -1476,7 +1524,7 @@ impl Alignment {
                     strand_2,
                     orientation_2,
                     insertion,
-                    SequenceOperationVariantTypes::Insertion.clone()
+                    SequenceOperationVariantType::Insertion.clone()
                 );
                 let variant_record = VariantRecord::new(self.read_id, graph_operation);
                 variant_records.push(variant_record);
