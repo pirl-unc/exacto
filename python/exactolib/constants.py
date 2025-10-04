@@ -64,7 +64,8 @@ class ReferenceTranscriptSelectionStrategy(Enum):
 
 
 class TranslationStrategy(Enum):
-    LONGEST_ORF = 'longest-orf'
+    LONGEST_ORF = 'longest_orf'
+    ALL_ORFS = 'all_orfs'
 
     def __str__(self) -> str:
         return self.value

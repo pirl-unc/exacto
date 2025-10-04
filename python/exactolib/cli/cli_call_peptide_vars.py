@@ -182,37 +182,38 @@ def run_cli_call_peptide_vars_from_parsed_args(args) -> None:
                     num_threads
                     gzip
     """
-    if args.gzip:
-        if args.output_tsv_file.endswith('.gz'):
-            output_tsv_file = args.output_tsv_file
-        else:
-            output_tsv_file = args.output_tsv_file + '.gz'
-        if args.output_fasta_file.endswith('.gz'):
-            output_fasta_file = args.output_fasta_file
-        else:
-            output_fasta_file = args.output_fasta_file + '.gz'
-    else:
-        output_tsv_file = args.output_tsv_file
-        output_fasta_file = args.output_fasta_file
-
-    if args.exclude_bed_file != "":
-        assert args.rna_bam_file != "", "If --excl-bed-file is specified, --rna-bam-file must be specified."
-        assert args.rna_bam_bai_file != "", "If --excl-bed-file is specified, --rna-bam-bai-file must be specified."
-
-    identify_peptide_variants(
-        fasta_file=args.fasta_file,
-        rna_bam_file=args.rna_bam_file,
-        rna_bam_bai_file=args.rna_bam_bai_file,
-        reference_fasta_file=args.reference_fasta_file,
-        translations_tsv_file=args.translations_tsv_file,
-        rna_variants_tsv_file=args.rna_variants_tsv_file,
-        dna_variants_tsv_file=args.dna_variants_tsv_file,
-        exclude_bed_file=args.exclude_bed_file,
-        min_reads=args.min_reads,
-        k=args.k,
-        num_threads=args.num_threads,
-        dna_variant_padding=args.dna_variant_padding,
-        output_tsv_file=output_tsv_file,
-        output_fasta_file=output_fasta_file,
-        gzip=args.gzip
-    )
+    pass
+    # if args.gzip:
+    #     if args.output_tsv_file.endswith('.gz'):
+    #         output_tsv_file = args.output_tsv_file
+    #     else:
+    #         output_tsv_file = args.output_tsv_file + '.gz'
+    #     if args.output_fasta_file.endswith('.gz'):
+    #         output_fasta_file = args.output_fasta_file
+    #     else:
+    #         output_fasta_file = args.output_fasta_file + '.gz'
+    # else:
+    #     output_tsv_file = args.output_tsv_file
+    #     output_fasta_file = args.output_fasta_file
+    #
+    # if args.exclude_bed_file != "":
+    #     assert args.rna_bam_file != "", "If --excl-bed-file is specified, --rna-bam-file must be specified."
+    #     assert args.rna_bam_bai_file != "", "If --excl-bed-file is specified, --rna-bam-bai-file must be specified."
+    #
+    # identify_peptide_variants(
+    #     fasta_file=args.fasta_file,
+    #     rna_bam_file=args.rna_bam_file,
+    #     rna_bam_bai_file=args.rna_bam_bai_file,
+    #     reference_fasta_file=args.reference_fasta_file,
+    #     translations_tsv_file=args.translations_tsv_file,
+    #     rna_variants_tsv_file=args.rna_variants_tsv_file,
+    #     dna_variants_tsv_file=args.dna_variants_tsv_file,
+    #     exclude_bed_file=args.exclude_bed_file,
+    #     min_reads=args.min_reads,
+    #     k=args.k,
+    #     num_threads=args.num_threads,
+    #     dna_variant_padding=args.dna_variant_padding,
+    #     output_tsv_file=output_tsv_file,
+    #     output_fasta_file=output_fasta_file,
+    #     gzip=args.gzip
+    # )

@@ -36,7 +36,7 @@
 //! ```
 
 
-use exacto_util::prelude::*;
+use exacto_core::prelude::*;
 use std::any::Any;
 use std::collections::{HashMap,HashSet,VecDeque};
 
@@ -156,6 +156,10 @@ impl MultiDiGraph {
         }
         println!("-------------------------------------------");
     }
+    
+    pub fn edge_exists(&self, from: usize, to: usize) -> bool {
+        self.graph.outgoing_edges.contains_key(&from) && self.graph.outgoing_edges[&from].contains(&to)
+    }
 
     /// Finds all paths between two nodes.
     ///
@@ -212,7 +216,7 @@ impl MultiDiGraph {
     ///
     /// Returns:
     ///     A vector of tuples where each tuple is (subgraph ID, a vector of node IDs).
-    pub fn find_subgraphs(&self) -> Vec<(usize,Vec<usize>)> {
+    pub fn find_subgraphs(&self) -> Vec<(usize, HashSet<usize>)> {
         // Step 1. Identify clusters of nodes
         let mut uf: UnionFind = UnionFind::new();
         for node_id in self.graph.nodes.iter() {
@@ -227,7 +231,7 @@ impl MultiDiGraph {
 
         // Step 2. Identify subgraphs
         let mut subgraph_idx: usize = 1;
-        let mut subgraphs: Vec<(usize,Vec<usize>)> = Vec::new();
+        let mut subgraphs: Vec<(usize,HashSet<usize>)> = Vec::new();
         for cluster in uf.get_clusters().iter() {
             subgraphs.push((subgraph_idx, cluster.clone()));
             subgraph_idx += 1;
@@ -307,7 +311,7 @@ impl MultiDiGraph {
     ///     Vector of tuples where each tuple is (subgraph ID, node level, node ID).
     pub fn get_node_levels(&self) -> Vec<(usize,usize,usize)> {
         // Step 1. Find all subgraphs
-        let subgraphs: Vec<(usize,Vec<usize>)> = self.find_subgraphs();
+        let subgraphs: Vec<(usize, HashSet<usize>)> = self.find_subgraphs();
 
         // Step 2. Get level data
         let mut node_levels: Vec<(usize,usize,usize)> = Vec::new();

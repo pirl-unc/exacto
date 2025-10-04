@@ -12,6 +12,7 @@
 
 
 use serde::{Deserialize, Serialize};
+
 use crate::structs::rna::RNA;
 use crate::structs::peptide::Peptide;
 

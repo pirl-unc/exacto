@@ -1,3 +1,5 @@
 pub use crate::algorithms::variant_integration::*;
-pub use crate::structs::integration_record::*;
-pub use crate::structs::integration_record_set::*;
+pub use crate::common::constants::*;
+pub use crate::structs::integrated_variant::*;
+pub use crate::structs::integrated_variant_distance::*;
+pub use crate::structs::integrated_variant_set::*;

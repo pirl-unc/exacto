@@ -67,7 +67,7 @@ def add_cli_translate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
         "--strategy",
         dest="strategy",
         type=str,
-        choices=[str(TranslationStrategy.LONGEST_ORF)],
+        choices=[str(TranslationStrategy.LONGEST_ORF), str(TranslationStrategy.ALL_ORFS)],
         required=True,
         help="Translation strategy (default: %s). Available options: '%s'." %
              (str(TranslationStrategy.LONGEST_ORF),
@@ -133,6 +133,7 @@ def run_cli_translate_vars_from_parsed_args(args) -> None:
                     num_threads
                     gzip
     """
+    pass
     if args.fasta_file or args.fastq_file:
         if args.output_tsv_file is None:
             raise Exception('--output-tsv-file must be specified.')
@@ -201,12 +202,10 @@ def run_cli_translate_vars_from_parsed_args(args) -> None:
                     file.write("%s\n" % curr_peptide_sequence)
         pysam.faidx(output_fasta_file, rebuild=True)
     elif args.sequence:
-        sequence, orf_start, orf_end = translate(rna_sequence=args.sequence, strategy=args.strategy)
-        print('Translated peptide sequence:')
-        print(sequence)
-        print('ORF start:')
-        print(orf_start)
-        print('ORF end:')
-        print(orf_end)
+        translations = translate(rna_sequence=args.sequence, strategy=args.strategy)
+        print('Translated peptide sequence(s):')
+        print('[orf_start:orf_end] [sequence]')
+        for (sequence, orf_start, orf_end) in translations:
+            print('%i:%i %s' % (orf_start, orf_end, sequence))
     else:
         raise Exception("Unexpected error: one of the following should have been specified: --fasta-file, --fastq-file, or --sequence.")

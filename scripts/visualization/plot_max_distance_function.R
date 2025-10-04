@@ -4,7 +4,7 @@ library(scales)
 
 OUTPUT.PDF <- "/Users/leework/Documents/Research/projects/project_exacto/exacto/misc/exacto_breakpoint_max_distance_plot.pdf"
 max.distance <- 1000
-tau <- 2000
+tau <- 1000
 variant.size <- seq(0, 20000, by = 1)
 y <- max.distance * (1 - exp(-variant.size / tau))
 data <- data.frame(variant.size = variant.size, distance = y)

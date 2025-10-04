@@ -111,28 +111,29 @@ def run_cli_diff_kmers_vars_from_parsed_args(args) -> None:
                     max_k
                     num_threads
     """
-    # Read the query FASTA file peptide sequences
-    query_sequences = {} # key = peptide ID, value = peptide sequence
-    query_fasta = pysam.FastaFile(args.query_fasta_file)
-    for sequence_name in query_fasta.references:
-        sequence = query_fasta.fetch(sequence_name)
-        query_sequences[sequence_name] = sequence
-
-    # Read the reference FASTA file peptide sequences
-    reference_sequences = {} # key = peptide ID, value = peptide sequence
-    reference_fasta = pysam.FastaFile(args.reference_fasta_file)
-    for sequence_name in reference_fasta.references:
-        sequence = reference_fasta.fetch(sequence_name)
-        reference_sequences[sequence_name] = sequence
-
-    # Identify unique kmers
-    df_unique_kmers = diff_kmers(
-        query_sequences=query_sequences,
-        reference_sequences=reference_sequences,
-        min_k=args.min_k,
-        max_k=args.max_k
-    )
-
-    # Write to TSV file
-    df_unique_kmers.to_csv(args.output_tsv_file, sep='\t', index=False)
-
+    pass
+    # # Read the query FASTA file peptide sequences
+    # query_sequences = {} # key = peptide ID, value = peptide sequence
+    # query_fasta = pysam.FastaFile(args.query_fasta_file)
+    # for sequence_name in query_fasta.references:
+    #     sequence = query_fasta.fetch(sequence_name)
+    #     query_sequences[sequence_name] = sequence
+    #
+    # # Read the reference FASTA file peptide sequences
+    # reference_sequences = {} # key = peptide ID, value = peptide sequence
+    # reference_fasta = pysam.FastaFile(args.reference_fasta_file)
+    # for sequence_name in reference_fasta.references:
+    #     sequence = reference_fasta.fetch(sequence_name)
+    #     reference_sequences[sequence_name] = sequence
+    #
+    # # Identify unique kmers
+    # df_unique_kmers = diff_kmers(
+    #     query_sequences=query_sequences,
+    #     reference_sequences=reference_sequences,
+    #     min_k=args.min_k,
+    #     max_k=args.max_k
+    # )
+    #
+    # # Write to TSV file
+    # df_unique_kmers.to_csv(args.output_tsv_file, sep='\t', index=False)
+    #

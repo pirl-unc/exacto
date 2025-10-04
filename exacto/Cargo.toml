@@ -1,10 +1,13 @@
 [workspace]
 members = [
     "exacto",
+    "exacto-annotator",
     "exacto-caller",
+    "exacto-core",
     "exacto-graph",
-    "exacto-translator",
-    "exacto-util"
+    "exacto-integrator",
+    "exacto-qc",
+    "exacto-translator"
 ]
 resolver = "2"
 

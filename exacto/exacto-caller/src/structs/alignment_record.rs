@@ -11,28 +11,36 @@
 // limitations under the License.
 
 
+use exacto_core::prelude::*;
 use noodles_bam as bam;
 
 
 #[derive(Debug)]
 pub struct AlignmentRecord {
-    pub read_start: usize,
-    pub read_end: usize,
-    pub reverse_complemented: bool,
+    /// Read sequence start position
+    pub read_start: u32,
+    
+    /// Read sequence end position
+    pub read_end: u32,
+
+    /// Reference strand
+    pub reference_strand: Strand,
+
     pub record: bam::Record
 }
 
 impl AlignmentRecord {
     pub fn new(
-        read_start: usize,
-        read_end: usize,
-        reverse_complemented: bool,
+        read_start: u32,
+        read_end: u32,
+        reference_strand: Strand,
         record: bam::Record
     ) -> Self {
+        assert!(read_start <= read_end);
         Self {
-            read_start: read_start,
-            read_end: read_end,
-            reverse_complemented: reverse_complemented,
+            read_start,
+            read_end,
+            reference_strand,
             record
         }
     }
@@ -43,7 +51,7 @@ impl Clone for AlignmentRecord {
         AlignmentRecord {
             read_start: self.read_start,
             read_end: self.read_end,
-            reverse_complemented: self.reverse_complemented,
+            reference_strand: self.reference_strand.clone(),
             record: self.record.clone()
         }
     }

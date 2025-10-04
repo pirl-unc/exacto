@@ -58,13 +58,13 @@ if __name__ == "__main__":
         'chromosome_1': ['chr17'],
         'position_1': [7676201],
         'strand_1': ['*'],
-        'operation_1': ['M'],
+        'operation_1': ['S'],
         'chromosome_2': ['chr17'],
-        'position_2': [7676201],
+        'position_2': [7676272],
         'strand_2': ['*'],
-        'operation_2': ['M'],
+        'operation_2': ['S'],
         'variant_size': [''],
-        'variant_type': ['A3P'],
+        'variant_type': ['SKP'],
         'variant_sequence': ['']
     }
     pd.DataFrame(data).to_csv('../../../test/data/tsv/ground_truth/rna-105-tumor_ground_truth.tsv', sep='\t', index=False)

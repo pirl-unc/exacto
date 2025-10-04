@@ -27,7 +27,6 @@ if __name__ == "__main__":
     tp53_tumor_sequence = ''
     tp53_normal_sequence = ''
     for _,row in df_exons_tp53.iterrows():
-        print(row)
         chromosome = row['chromosome']
         start = row['start']
         end = row['end']

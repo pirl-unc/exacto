@@ -20,7 +20,6 @@ and run Exacto 'call-rna-vars' command.
 import argparse
 import os
 
-from ..constants import GeneAnnotationSource
 from ..main import *
 from ..utilities import *
 
@@ -65,19 +64,33 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         help="Reference genome FASTA file."
     )
     parser_required.add_argument(
-        "--gene-annotation-file",
-        dest="gene_annotation_file",
+        "--reference-gene-annotation-file",
+        dest="reference_gene_annotation_file",
         type=str,
         required=True,
         help="Reference gene annotation file."
     )
     parser_required.add_argument(
-        "--gene-annotation-source",
-        dest="gene_annotation_source",
+        "--reference-gene-annotation-source",
+        dest="reference_gene_annotation_source",
         type=str,
         required=True,
         help="Reference gene annotation source (choices: %s)." %
              ','.join([str(GeneAnnotationSource.GENCODE)])
+    )
+    parser_required.add_argument(
+        "--reference-gene-annotation-assembly",
+        dest="reference_gene_annotation_assembly",
+        type=str,
+        required=True,
+        help="Reference gene annotation assembly (e.g. 'hg38')."
+    )
+    parser_required.add_argument(
+        "--reference-gene-annotation-version",
+        dest="reference_gene_annotation_version",
+        type=str,
+        required=True,
+        help="Reference gene annotation version (e.g. 'v41')."
     )
     parser_required.add_argument(
         "--output-dir",
@@ -167,6 +180,46 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=False,
         help="Temp directory (default: TMPDIR)."
     )
+    parser_required.add_argument(
+        "--gene-types",
+        dest="gene_types",
+        type=str,
+        nargs="+",
+        default=['protein_coding'],
+        action="extend",
+        required=False,
+        help="Reference gene types to include in annotation (default: ['protein_coding'])."
+    )
+    parser_required.add_argument(
+        "--gene-levels",
+        dest="gene_levels",
+        type=int,
+        nargs="+",
+        default=[1,2],
+        action="extend",
+        required=False,
+        help="Reference gene levels to include in annotation (default: [1,2])."
+    )
+    parser_required.add_argument(
+        "--transcript-types",
+        dest="transcript_types",
+        type=str,
+        nargs="+",
+        default=['protein_coding'],
+        action="extend",
+        required=False,
+        help="Reference transcript types to include in annotation (default: ['protein_coding'])."
+    )
+    parser_required.add_argument(
+        "--transcript-levels",
+        dest="transcript_levels",
+        type=int,
+        nargs="+",
+        default=[1,2],
+        action="extend",
+        required=False,
+        help="Reference transcript levels to include in annotation (default: [1,2])."
+    )
     parser.set_defaults(which='call-rna-vars')
     return sub_parsers
 
@@ -180,8 +233,8 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
                     bam_file
                     bam_bai_file
                     reference_genome_fasta_file
-                    gene_annotation_file
-                    gene_annotation_source
+                    reference_gene_annotation_file
+                    reference_gene_annotation_source
                     output_dir
                     output_prefix
                     num_threads
@@ -194,8 +247,14 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
         bam_file=args.bam_file,
         bam_bai_file=args.bam_bai_file,
         reference_genome_fasta_file=args.reference_genome_fasta_file,
-        gene_annotation_file=args.gene_annotation_file,
-        gene_annotation_source=GeneAnnotationSource(args.gene_annotation_source),
+        reference_gene_annotation_file=args.reference_gene_annotation_file,
+        reference_gene_annotation_source=GeneAnnotationSource(args.reference_gene_annotation_source),
+        reference_gene_annotation_assembly=args.reference_gene_annotation_assembly,
+        reference_gene_annotation_version=args.reference_gene_annotation_version,
+        gene_types=args.gene_types,
+        gene_levels=args.gene_levels,
+        transcript_types=args.transcript_types,
+        transcript_levels=args.transcript_levels,
         output_dir=args.output_dir,
         output_prefix=args.output_prefix,
         reference_transcript_scoring_method=ReferenceTranscriptScoringMethod(args.reference_transcript_scoring_method),

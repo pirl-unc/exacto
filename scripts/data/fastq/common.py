@@ -22,12 +22,15 @@ def create_fastq_file(
     """
     with open(output_fastq_file, 'w') as f:
         for i,sequence in enumerate(sequences):
+            forward = True
             for j in range(0, num_reads[i]):
                 if stranded == False:
-                    if random.random() < 0.5:
+                    if forward:
                         sequence_ = sequence
+                        forward = False
                     else:
                         sequence_ = reverse_complement(sequence)
+                        forward = True
                 else:
                     sequence_ = sequence
 
@@ -41,6 +44,11 @@ def create_fastq_file(
                 f.write('+\n')
                 f.write(base_quality_scores + '\n')
     os.system('gzip %s' % output_fastq_file)
+
+
+def generate_random_sequence(k: int) -> str:
+    nucleotides = ['A', 'C', 'G', 'T']
+    return ''.join(random.choices(nucleotides, k=k))
 
 
 def reverse_complement(sequence: str) -> str:

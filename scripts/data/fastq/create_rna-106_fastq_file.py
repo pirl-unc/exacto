@@ -58,7 +58,7 @@ if __name__ == "__main__":
         'strand_1': ['*'],
         'operation_1': ['S'],
         'chromosome_2': ['chr17'],
-        'position_2': [7676270],
+        'position_2': [7676272],
         'strand_2': ['*'],
         'operation_2': ['S'],
         'variant_size': [''],

@@ -18,6 +18,119 @@ use std::str::FromStr;
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum AlignmentStructureBaseContext {
+    Exonic,
+    Intronic,
+    Intergenic
+}
+
+impl AlignmentStructureBaseContext {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AlignmentStructureBaseContext::Exonic => "exonic",
+            AlignmentStructureBaseContext::Intronic => "intronic",
+            AlignmentStructureBaseContext::Intergenic => "intergenic"
+        }
+    }
+
+    pub fn as_symbol_str(&self) -> &str {
+        match self {
+            AlignmentStructureBaseContext::Exonic => ":",
+            AlignmentStructureBaseContext::Intronic => "$",
+            AlignmentStructureBaseContext::Intergenic => "",
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum AlignmentStructureBaseKind {
+    Match,
+    Mismatch,
+    Insertion,
+    Unaligned
+}
+
+impl AlignmentStructureBaseKind {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AlignmentStructureBaseKind::Match => "match",
+            AlignmentStructureBaseKind::Mismatch => "mismatch",
+            AlignmentStructureBaseKind::Insertion => "insertion",
+            AlignmentStructureBaseKind::Unaligned => "unaligned"
+        }
+    }
+
+    pub fn as_symbol_str(&self) -> &str {
+        match self {
+            AlignmentStructureBaseKind::Match => "=",
+            AlignmentStructureBaseKind::Mismatch => "*",
+            AlignmentStructureBaseKind::Insertion => "+",
+            AlignmentStructureBaseKind::Unaligned => "X"
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum AlignmentStructureEventContext {
+    BackSplicing,
+    CanonicalSplicing,
+    FusionGene,
+    NonCanonicalSplicing
+}
+
+impl AlignmentStructureEventContext {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AlignmentStructureEventContext::BackSplicing => "backsplicing",
+            AlignmentStructureEventContext::CanonicalSplicing => "canonical_splicing",
+            AlignmentStructureEventContext::FusionGene => "fusion_gene",
+            AlignmentStructureEventContext::NonCanonicalSplicing => "non_canonical_splicing"
+        }
+    }
+
+    pub fn as_symbol_str(&self) -> &str {
+        match self {
+            AlignmentStructureEventContext::BackSplicing => "/",
+            AlignmentStructureEventContext::CanonicalSplicing => ">",
+            AlignmentStructureEventContext::FusionGene => "@",
+            AlignmentStructureEventContext::NonCanonicalSplicing => "^"
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum AlignmentStructureEventKind {
+    Breakpoint,
+    Deletion,
+    Splicing,
+    Boundary
+}
+
+impl AlignmentStructureEventKind {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AlignmentStructureEventKind::Breakpoint => "breakpoint",
+            AlignmentStructureEventKind::Deletion => "deletion",
+            AlignmentStructureEventKind::Splicing => "splicing",
+            AlignmentStructureEventKind::Boundary => "boundary"
+        }
+    }
+
+    pub fn as_symbol_str(&self) -> &str {
+        match self {
+            AlignmentStructureEventKind::Breakpoint => "#",
+            AlignmentStructureEventKind::Deletion => "-",
+            AlignmentStructureEventKind::Splicing => "~",
+            AlignmentStructureEventKind::Boundary => "|"
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
 pub enum ReferenceTranscriptSelectionStrategy {
     TopK,
     Threshold
@@ -89,74 +202,131 @@ impl FromStr for ReferenceTranscriptScoringMethod {
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum SequenceOperationType {
+pub enum GraphOperationType {
     Downstream,
-    Read,
-    Upstream,
+    Include,
     Mark,
-    Skip
+    Skip,
+    Upstream
 }
 
-impl SequenceOperationType {
+impl GraphOperationType {
     pub fn as_str(&self) -> &str {
         match self {
-            SequenceOperationType::Downstream => "D",
-            SequenceOperationType::Read => "R",
-            SequenceOperationType::Upstream => "U",
-            SequenceOperationType::Mark => "M",
-            SequenceOperationType::Skip => "S"
+            GraphOperationType::Downstream => "D",
+            GraphOperationType::Include => "I",
+            GraphOperationType::Mark => "M",
+            GraphOperationType::Skip => "S",
+            GraphOperationType::Upstream => "U"
+        }
+    }
+}
+
+impl FromStr for GraphOperationType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "D" => Ok(GraphOperationType::Downstream),
+            "I" => Ok(GraphOperationType::Include),
+            "M" => Ok(GraphOperationType::Mark),
+            "S" => Ok(GraphOperationType::Skip),
+            "U" => Ok(GraphOperationType::Upstream),
+            _ => Err(()),
         }
     }
 }
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum Strand {
-    Forward,
-    Reverse
-}
-
-impl Strand {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Strand::Forward => "+",
-            Strand::Reverse => "-"
-        }
-    }
-}
-
-#[repr(u8)]
-#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum SequenceOperationVariantType {
-    Alternative3PrimeSpliceSite,
-    Alternative5PrimeSpliceSite,
+pub enum VariantType {
     Breakpoint,
+    CircularRNA,
     CrypticExon,
     Deletion,
-    ExonSkipping,
+    ExonTruncation,
     FusionGene,
     Insertion,
     IntronRetention,
     MultiNucleotideVariant,
     SingleNucleotideVariant,
-    Translocation
+    Translocation,
+    UTRExtension
 }
 
-impl SequenceOperationVariantType {
+impl VariantType {
     pub fn as_str(&self) -> &str {
         match self {
-            SequenceOperationVariantType::Alternative3PrimeSpliceSite => "A3P",
-            SequenceOperationVariantType::Alternative5PrimeSpliceSite => "A5P",
-            SequenceOperationVariantType::Breakpoint => "BND",
-            SequenceOperationVariantType::CrypticExon => "CRX",
-            SequenceOperationVariantType::Deletion => "DEL",
-            SequenceOperationVariantType::ExonSkipping => "SKP",
-            SequenceOperationVariantType::FusionGene => "FUS",
-            SequenceOperationVariantType::Insertion => "A5P",
-            SequenceOperationVariantType::IntronRetention => "IRT",
-            SequenceOperationVariantType::MultiNucleotideVariant => "MNV",
-            SequenceOperationVariantType::SingleNucleotideVariant => "SNV",
-            SequenceOperationVariantType::Translocation => "TRA"
+            VariantType::Breakpoint => "BND",
+            VariantType::CircularRNA => "CIR",
+            VariantType::CrypticExon => "CRX",
+            VariantType::Deletion => "DEL",
+            VariantType::ExonTruncation => "SKP",
+            VariantType::FusionGene => "FUS",
+            VariantType::Insertion => "INS",
+            VariantType::IntronRetention => "IRT",
+            VariantType::MultiNucleotideVariant => "MNV",
+            VariantType::SingleNucleotideVariant => "SNV",
+            VariantType::Translocation => "TRA",
+            VariantType::UTRExtension => "UTR"
+        }
+    }
+
+    // pub fn as_symbol_str(&self) -> &str {
+    //     match self {
+    //         VariantType::Breakpoint => "#",
+    //         VariantType::CircularRNA => "@",
+    //         VariantType::CrypticExon => "?",
+    //         VariantType::Deletion => "-",
+    //         VariantType::ExonTruncation => "!",
+    //         VariantType::FusionGene => "&",
+    //         VariantType::Insertion => "+",
+    //         VariantType::IntronRetention => "$",
+    //         VariantType::MultiNucleotideVariant => "{",
+    //         VariantType::NoncanonicalSplicing => "/",
+    //         VariantType::SingleNucleotideVariant => "*",
+    //         VariantType::Translocation => "^"
+    //     }
+    // }
+    //
+    // pub fn from_symbol_str(s: &str) -> Result<Self, ()> {
+    //     match s {
+    //         "#" => Ok(Self::Breakpoint),
+    //         "@" => Ok(Self::CircularRNA),
+    //         "?" => Ok(Self::CrypticExon),
+    //         "-" => Ok(Self::Deletion),
+    //         "!" => Ok(Self::ExonTruncation),
+    //         "&" => Ok(Self::FusionGene),
+    //         "+" => Ok(Self::Insertion),
+    //         "$" => Ok(Self::IntronRetention),
+    //         "{" => Ok(Self::MultiNucleotideVariant),
+    //         "/" => Ok(Self::NoncanonicalSplicing),
+    //         "*" => Ok(Self::SingleNucleotideVariant),
+    //         "^" => Ok(Self::Translocation),
+    //         _ => Err(())
+    //     }
+    // }
+}
+
+impl FromStr for VariantType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "BND" => Ok(Self::Breakpoint),
+            "CIR" => Ok(Self::CircularRNA),
+            "CRX" => Ok(Self::CrypticExon),
+            "DEL" => Ok(Self::Deletion),
+            "SKP" => Ok(Self::ExonTruncation),
+            "FUS" => Ok(Self::FusionGene),
+            "INS" => Ok(Self::Insertion),
+            "IRT" => Ok(Self::IntronRetention),
+            "MNV" => Ok(Self::MultiNucleotideVariant),
+            "SNV" => Ok(Self::SingleNucleotideVariant),
+            "TRA" => Ok(Self::Translocation),
+            "UTR" => Ok(Self::UTRExtension),
+            _ => Err(())
         }
     }
 }
+

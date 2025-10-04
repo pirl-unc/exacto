@@ -102,15 +102,6 @@ def add_cli_call_dna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_DNA_VARS_NUM_THREADS
     )
     parser_optional.add_argument(
-        "--gzip",
-        dest="gzip",
-        type=str2bool,
-        default=CALL_DNA_VARS_GZIP,
-        required=False,
-        help="If 'yes', gzip the output TSV file (default: %s)."
-             % CALL_DNA_VARS_GZIP
-    )
-    parser_optional.add_argument(
         '--chromosomes',
         dest='chromosomes',
         type=str,
@@ -231,7 +222,6 @@ def run_cli_call_dna_vars_from_parsed_args(args):
                     control_bam_file
                     control_bam_bai_file
                     num_threads
-                    gzip
                     chromosomes
                     min_reads
                     min_mapping_quality
@@ -243,23 +233,14 @@ def run_cli_call_dna_vars_from_parsed_args(args):
                     max_interchromosomal_distance
                     temp_dir
     """
+    pass
     if len(args.chromosomes) == 0 :
         args.chromosomes = get_chromosomes(bam_file=args.bam_file)
-
-    if args.gzip:
-        if args.output_tsv_file.endswith('.gz'):
-            output_tsv_file = args.output_tsv_file
-        else:
-            output_tsv_file = args.output_tsv_file + '.gz'
-    else:
-        output_tsv_file = args.output_tsv_file
-
     if DnaVariantCallingMode(args.mode) == DnaVariantCallingMode.ALL:
         identify_dna_variants(
             bam_file=args.bam_file,
             bam_bai_file=args.bam_bai_file,
-            output_tsv_file=output_tsv_file,
-            gzip=args.gzip,
+            output_tsv_file=args.output_tsv_file,
             min_reads=args.min_reads,
             min_mapping_quality=args.min_mapping_quality,
             min_average_base_quality=args.min_average_base_quality,
@@ -280,8 +261,7 @@ def run_cli_call_dna_vars_from_parsed_args(args):
             case_bam_bai_file=args.bam_bai_file,
             control_bam_files=args.control_bam_files,
             control_bam_bai_files=args.control_bam_bai_files,
-            output_tsv_file=output_tsv_file,
-            gzip=args.gzip,
+            output_tsv_file=args.output_tsv_file,
             chromosomes=args.chromosomes,
             min_reads=args.min_reads,
             min_mapping_quality=args.min_mapping_quality,
@@ -297,4 +277,3 @@ def run_cli_call_dna_vars_from_parsed_args(args):
         )
     else:
         raise Exception('Unsupported mode: %s' % args.mode)
-

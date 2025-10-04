@@ -11,12 +11,11 @@
 // limitations under the License.
 
 
-use std::collections::HashSet;
-use exacto_util::prelude::*;
+use exacto_core::prelude::*;
 use serde::{Serialize, Deserialize};
+use std::collections::HashSet;
 
-use crate::structs::peptide::Peptide;
-use crate::structs::translation::*;
+use crate::prelude::*;
 
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -40,7 +39,7 @@ impl RNA {
         let mut start_codons: HashSet<&str> = HashSet::new();
         start_codons.insert("AUG");
 
-        let peptides: Vec<(Box<str>,usize,usize,usize)> = translate(
+        let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
             &*self.sequence,
             start_codons
         );

@@ -18,14 +18,7 @@ if __name__ == "__main__":
     sequence_normal = str(fasta.fetch(chromosome, start - 1, end))
 
     # Step 3. Create a somatic version (7670500-7680500)
-    reference_position_1 = 7670400
-    reference_position_2 = 7680500
-    local_position_1 = length - (end - reference_position_1) - 1
-    local_position_2 = length - (end - reference_position_2) - 1
-    inverted_sequence = sequence_normal[local_position_1:local_position_2+1]
-    inverted_sequence = inverted_sequence[::-1]
-    sequence_tumor = sequence_normal
-    sequence_tumor = sequence_tumor[:local_position_1] + inverted_sequence + sequence_tumor[local_position_2+1:]
+    sequence_tumor = str(fasta.fetch(chromosome, start - 1, 7670500)) + reverse_complement(str(fasta.fetch(chromosome, 7670500, 7680500))) + str(fasta.fetch(chromosome, 7680500, end))
 
     # Step 4. Create FASTQ files
     create_fastq_file(
@@ -43,13 +36,13 @@ if __name__ == "__main__":
     data = {
         'variant_call_id': [4,5],
         'chromosome_1': ['chr17','chr17'],
-        'position_1': [7670399,7670400],
+        'position_1': [7670499,7670500],
         'strand_1': ['*','*'],
-        'operation_1': ['D','D'],
+        'operation_1': ['D','U'],
         'chromosome_2': ['chr17','chr17'],
         'position_2': [7680500,7680501],
         'strand_2': ['*','*'],
-        'operation_2': ['U','U'],
+        'operation_2': ['D','U'],
         'variant_size': ['',''],
         'variant_type': ['BND','BND'],
         'variant_sequence': ['','']

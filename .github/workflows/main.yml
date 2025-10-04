@@ -39,7 +39,6 @@ jobs:
         conda install -c conda-forge pytest==8.3.5
         conda install -c conda-forge pytest-cov==6.1.1
         
-        
         # Install exacto
         pip install . --verbose
 

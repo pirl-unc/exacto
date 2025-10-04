@@ -1,3 +1,2 @@
-transcript_id	start_chromosome	start	end_chromosome	end	num_exons	num_splice_junctions
-1	chr17	7687490	chr17	7687377	11	10
-2	chr17	7687490	chr17	7687377	11	10
+transcript_id	start_chromosome	start	end_chromosome	end	num_exons	num_introns
+1	chr17	7675994	chr17	7673608	11	10

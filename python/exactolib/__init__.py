@@ -1,4 +1,6 @@
-from pkg_resources import get_distribution
+from importlib.metadata import version, PackageNotFoundError
 
-
-__version__ = get_distribution('Exacto').version
+try:
+    __version__ = version("exacto")
+except PackageNotFoundError:
+    __version__ = "unknown"

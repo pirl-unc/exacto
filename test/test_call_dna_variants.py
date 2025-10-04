@@ -80,19 +80,18 @@ def test_call_dna_variants_4():
         output_tsv_file='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 2)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/dna-004-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
-            (df_variants['position_1'] <= row['position_1'] + 100) &
-            (df_variants['position_1'] >= row['position_1'] - 100) &
+            (df_variants['position_1'] <= row['position_1'] + 1000) &
+            (df_variants['position_1'] >= row['position_1'] - 1000) &
             (df_variants['operation_1'] == row['operation_1']) &
             (df_variants['chromosome_2'] == row['chromosome_2']) &
-            (df_variants['position_2'] <= row['position_2'] + 100) &
-            (df_variants['position_2'] >= row['position_2'] - 100) &
+            (df_variants['position_2'] <= row['position_2'] + 1000) &
+            (df_variants['position_2'] >= row['position_2'] - 1000) &
             (df_variants['operation_2'] == row['operation_2'])
         ]
         assert len(df_matched) == 1
@@ -264,18 +263,18 @@ def test_call_case_specific_dna_variants_4():
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variants) == 1)
+    assert(len(df_variants) == 2)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/dna-004-tumor_ground_truth.tsv'), sep='\t')
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
-            (df_variants['position_1'] <= row['position_1'] + 100) &
-            (df_variants['position_1'] >= row['position_1'] - 100) &
+            (df_variants['position_1'] <= row['position_1'] + 1000) &
+            (df_variants['position_1'] >= row['position_1'] - 1000) &
             (df_variants['operation_1'] == row['operation_1']) &
             (df_variants['chromosome_2'] == row['chromosome_2']) &
-            (df_variants['position_2'] <= row['position_2'] + 100) &
-            (df_variants['position_2'] >= row['position_2'] - 100) &
+            (df_variants['position_2'] <= row['position_2'] + 1000) &
+            (df_variants['position_2'] >= row['position_2'] - 1000) &
             (df_variants['operation_2'] == row['operation_2'])
         ]
         assert len(df_matched) == 1

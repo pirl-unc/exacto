@@ -11,7 +11,7 @@
 // limitations under the License.
 
 
-use exacto_util::prelude::*;
+use exacto_core::prelude::*;
 use std::any::Any;
 
 use crate::common::constants::VarGraphNodeTypes;

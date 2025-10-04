@@ -1,4 +1,4 @@
-extern crate exacto_util;
+extern crate exacto_core;
 extern crate flate2;
 extern crate noodles_fastq;
 extern crate rayon;

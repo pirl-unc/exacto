@@ -13,16 +13,13 @@
 
 use rayon::prelude::*;
 
-use crate::structs::rna::RNA;
-use crate::structs::translation::Translation;
-use crate::structs::translation_set::TranslationSet;
+use crate::prelude::*;
 
 
-pub fn translate(
+pub fn translate_rnas(
     rnas: Vec<RNA>,
     num_threads: usize
 ) -> TranslationSet {
-    // Step 1. Translate RNA sequences to peptide sequences
     let thread_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build()
@@ -33,12 +30,9 @@ pub fn translate(
             .filter_map(|rna| rna.translate()) // Filters out `None` and unwraps `Some`.
             .collect()
     });
-
-    // Step 2. Select peptides
     let mut translation_set: TranslationSet = TranslationSet::new();
     for translation in translations {
         translation_set.add_translation(translation);
     }
-
     translation_set
 }

@@ -11,7 +11,7 @@
 // limitations under the License.
 
 
-use exacto_util::prelude::*;
+use exacto_core::prelude::*;
 use std::any::Any;
 
 use crate::common::constants::*;
@@ -22,12 +22,12 @@ use crate::traits::vargraph_node::VarGraphNode;
 pub struct VarGraphVariantNode {
     pub chromosome_1: Box<str>,
     pub position_1: usize,
-    pub strand_1: VarGraphStrands,
     pub orientation_1: VarGraphOrientations,
+    pub strand_1: VarGraphStrands,
     pub chromosome_2: Box<str>,
     pub position_2: usize,
-    pub strand_2: VarGraphStrands,
     pub orientation_2: VarGraphOrientations,
+    pub strand_2: VarGraphStrands,
     pub sequence: Box<str>
 }
 
@@ -35,23 +35,23 @@ impl VarGraphVariantNode {
     pub fn new(
         chromosome_1: &str,
         position_1: usize,
-        strand_1: VarGraphStrands,
         orientation_1: VarGraphOrientations,
+        strand_1: VarGraphStrands,
         chromosome_2: &str,
         position_2: usize,
-        strand_2: VarGraphStrands,
         orientation_2: VarGraphOrientations,
+        strand_2: VarGraphStrands,
         sequence: &str
     ) -> Self {
         VarGraphVariantNode {
             chromosome_1: chromosome_1.into(),
             position_1: position_1,
-            strand_1: strand_1,
             orientation_1: orientation_1,
+            strand_1: strand_1,
             chromosome_2: chromosome_2.into(),
             position_2: position_2,
-            strand_2: strand_2,
             orientation_2: orientation_2,
+            strand_2: strand_2,
             sequence: sequence.into()
         }
     }
@@ -108,12 +108,12 @@ impl Clone for VarGraphVariantNode {
         let node: VarGraphVariantNode = VarGraphVariantNode::new(
             &*self.chromosome_1,
             self.position_1,
-            self.strand_1.clone(),
             self.orientation_1.clone(),
+            self.strand_1.clone(),
             &*self.chromosome_2,
             self.position_2,
-            self.strand_2.clone(),
             self.orientation_2.clone(),
+            self.strand_2.clone(),
             &*self.sequence
         );
         node

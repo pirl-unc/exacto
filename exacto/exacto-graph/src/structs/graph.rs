@@ -40,7 +40,7 @@
 //! ```
 
 
-use exacto_util::prelude::*;
+use exacto_core::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::any::Any;
 
@@ -56,14 +56,14 @@ pub struct Graph {
     /// - HashMap
     ///     Key     :   Source node ID.
     ///     Value   :   HashSet of destination node IDs.
-    pub outgoing_edges: HashMap<usize,HashSet<usize>>,
+    pub outgoing_edges: HashMap<usize, HashSet<usize>>,
 
     /// Incoming edges of the graph.
     ///
     /// HashMap
     ///     Key     :   Destination node ID.
     ///     Value   :   HashSet of source node IDs.
-    pub incoming_edges: HashMap<usize,HashSet<usize>>,
+    pub incoming_edges: HashMap<usize, HashSet<usize>>,
 
     /// Node attributes.
     ///

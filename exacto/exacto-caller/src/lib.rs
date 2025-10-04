@@ -3,10 +3,11 @@ extern crate bstr;
 extern crate chrono;
 extern crate edit_distance;
 extern crate env_logger;
-extern crate exacto_util;
+extern crate exacto_core;
 extern crate flate2;
 extern crate interavl;
 extern crate indicatif;
+extern crate itertools;
 extern crate log;
 extern crate nalgebra;
 extern crate noodles_bam;
@@ -22,11 +23,10 @@ extern crate serde;
 extern crate sysinfo;
 extern crate tempfile;
 
-
 #[cfg(test)]
 mod tests;
 pub mod algorithms;
 pub mod common;
 pub mod macros;
-pub mod structs;
 pub mod prelude;
+pub mod structs;

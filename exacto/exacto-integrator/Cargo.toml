@@ -1,12 +1,16 @@
 [package]
 name = "exacto-integrator"
-version = "0.4.3"
+version = "0.4.4"
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-exacto-util = { path = "../exacto-util", version = "0.4.3" }
+bimap = { version = "0.6.3", features = ["serde"] }
+exacto-annotator = { path = "../exacto-annotator", version = "0.4.4" }
+exacto-caller = { path = "../exacto-caller", version = "0.4.4" }
+exacto-core = { path = "../exacto-core", version = "0.4.4" }
+indicatif = "0.17"
 polars = { version = "0.45.0", features = ["csv","json","lazy","parquet","serde"] }
 rayon = "1.10.0"
 serde = { version = "1.0.210", features = ["derive"] }

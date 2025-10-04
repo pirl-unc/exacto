@@ -39,25 +39,30 @@ impl TranslationSet {
         self.translations.len()
     }
 
-    pub fn get_peptides_by_strategy(&self, strategy: &str) -> Vec<Translation> {
+    pub fn get_peptides_by_strategy(&self, strategy: TranslationStrategy) -> Vec<Translation> {
         let mut translations: Vec<Translation> = Vec::new();
-        if strategy == TranslationStrategies::ALL {
-            for translated_peptides in self.translations.iter() {
-                translations.push(translated_peptides.clone());
+        match strategy {
+            TranslationStrategy::AllORFs => {
+                for translated_peptides in self.translations.iter() {
+                    translations.push(translated_peptides.clone());
+                }
+            },
+            TranslationStrategy::LongestORF => {
+                for translation in self.translations.iter() {
+                    let mut translation_: Translation = Translation::new(translation.rna.clone());
+                    translation_.add_peptide(translation.get_longest_orf_peptide().clone());
+                    translations.push(translation_);
+                }
+            },
+            _ => {
+                panic!("Unsupported strategy: {}", strategy.as_str());
             }
-        } else if strategy == TranslationStrategies::LONGEST_ORF {
-            for translation in self.translations.iter() {
-                let mut translation_: Translation = Translation::new(translation.rna.clone());
-                translation_.add_peptide(translation.get_longest_orf_peptide().clone());
-                translations.push(translation_);
-            }
-        } else {
-            panic!("Unsupported strategy: {}", strategy);
         }
+
         translations
     }
 
-    pub fn to_dataframe(&self, strategy: &str) -> DataFrame {
+    pub fn to_dataframe(&self, strategy: TranslationStrategy) -> DataFrame {
         let mut peptide_id: usize = 1;
         let mut peptide_ids_map: HashMap<&str,usize> = HashMap::new();
 

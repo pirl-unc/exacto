@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+
 use crate::structs::multidigraph::MultiDiGraph;
 
 
@@ -95,7 +96,7 @@ fn test_multidigraph_find_subgraphs_1() {
     multidigraph.add_edge(node_5, node_6);
     multidigraph.add_edge(node_6, node_7);
     multidigraph.add_edge(node_7, node_8);
-    let subgraphs: Vec<(usize,Vec<usize>)> = multidigraph.find_subgraphs();
+    let subgraphs: Vec<(usize, HashSet<usize>)> = multidigraph.find_subgraphs();
     assert_eq!(subgraphs.len(), 2);
 }
 

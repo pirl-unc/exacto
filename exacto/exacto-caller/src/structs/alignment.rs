@@ -11,71 +11,172 @@
 // limitations under the License.
 
 
-use bimap::BiMap;
 use bstr::ByteSlice;
-use exacto_util::prelude::*;
+use exacto_core::prelude::*;
 use noodles_bam as bam;
-use noodles_core::{Region, Position};
-use noodles_fasta::io::indexed_reader::Builder;
 use noodles_sam::alignment::Record;
-use noodles_sam::alignment::record::Flags;
 use regex::Regex;
-use std::collections::{HashMap, VecDeque};
+use std::str::FromStr;
 
-use crate::common::bam::*;
-use crate::common::constants::*;
-use crate::prelude::ReferenceTranscriptMatch;
-use crate::structs::alignment_record::AlignmentRecord;
-use crate::structs::transcript_model_exon::TranscriptModelExon;
-use crate::structs::sequence_operation::SequenceOperation;
-use crate::structs::transcript_model_splice_junction::TranscriptModelSpliceJunction;
-use crate::structs::variant_record::VariantRecord;
+use crate::prelude::*;
 
 
+/// Represents the alignment of a single read against a reference.
+///
+/// This struct stores both the original FASTX information (sequence and
+/// quality scores) as well as processed alignment results. It is designed
+/// to keep traceability from the raw input read to its aligned form.
+///
+/// # Fields
+/// * `read_id` - A unique identifier for the read.
+///
+/// * `read_sequence` - The original nucleotide sequence from the FASTX read.
+///   Stored as a `Box<str>` to reduce heap allocation overhead.
+///
+/// * `base_quality_scores` - The per-base quality scores associated with the
+///   original read sequence.
+///
+/// * `alignment_records` - A collection of `AlignmentRecord` objects, each
+///   representing one alignment placement of the read (e.g., primary or
+///   secondary/supplementary alignments).
+///
+/// * `alignment_structure` - The consensus aligned structure representation,
+///   which may include gaps, mismatches, or other transformations introduced
+///   during alignment.
 #[derive(Debug)]
 pub struct Alignment {
-    pub read_id: usize,
-    pub original_read_sequence: Box<str>,
-    pub quality_scores: Vec<u8>,
-    pub alignment_records: Vec<AlignmentRecord>
+    read_id: usize,
+    read_sequence: Box<str>,
+    base_quality_scores: Vec<u8>,
+    alignment_records: Vec<AlignmentRecord>,
+    alignment_structure: AlignmentStructure
 }
 
 impl Alignment {
+
     pub fn new(
         read_id: usize,
-        original_read_sequence: Box<str>,
-        quality_scores: Vec<u8>,
-        records: Vec<bam::Record>
+        read_sequence: &str,
+        base_quality_scores: &Vec<u8>,
+        records: &Vec<bam::Record>
     ) -> Self {
         assert!(!records.is_empty());
 
         // Step 1. Make sure all the BAM records come from the same read ID
-        let first_read_id: &str = std::str::from_utf8(records[0].name().unwrap().as_bytes()).unwrap();
+        let first_read_id = std::str::from_utf8(records[0].name().unwrap().as_bytes()).unwrap();
         for record in records.iter().skip(1) {
-            assert!(std::str::from_utf8(record.name().unwrap().as_bytes()).unwrap() == first_read_id, "Not all records have the same read ID.");
+            let read_id = std::str::from_utf8(record.name().unwrap().as_bytes()).unwrap();
+            assert_eq!(read_id, first_read_id, "Not all records have the same read ID.");
         }
 
-        // Step 2. Identify alignment records
-        let mut alignment_records: Vec<AlignmentRecord> = Vec::new();
-        for record in records {
-            let mut aligned_sequence: Box<str> = get_aligned_sequence_from_cigar(&record).to_uppercase().into_boxed_str();
-            let mut read_start: usize = 0;
-            let mut read_end: usize = 0;
-            let mut reverse_complemented: bool = false;
-            let start_positions: Vec<usize> = find_substring_positions(&*original_read_sequence, &*aligned_sequence);
+        // Step 2. Build alignment records
+        let alignment_records: Vec<AlignmentRecord> = Self::build_alignment_records(
+            read_sequence,
+            records
+        );
 
+        // Step 3. Initialize alignment sequence
+        let mut alignment_structure: AlignmentStructure = Self::init_alignment_structure(
+            read_id, 
+            read_sequence,
+            base_quality_scores
+        );
+        
+        // Step 4. Identify local variants (using CS tags)
+        Self::identify_local_variants(
+            &mut alignment_structure, 
+            &alignment_records
+        );
+
+        // Step 3. Identify breakpoint variants (using SA tags and soft-clipped bases)
+        Self::identify_breakpoint_variants(
+            &mut alignment_structure,
+            &alignment_records,
+            read_id,
+            read_sequence
+        );
+
+        // Step 4. Check if the read sequence matches the original read sequence
+        assert_eq!(
+            read_sequence.to_uppercase(),
+            alignment_structure.get_read_sequence().to_uppercase(),
+            "read_sequence:\n{}\nalignment_structure.get_read_sequence():\n{}",
+            read_sequence.to_uppercase(),
+            alignment_structure.get_read_sequence().to_uppercase()
+        );
+        
+        Self {
+            read_id,
+            read_sequence: read_sequence.into(),
+            base_quality_scores: base_quality_scores.clone(),
+            alignment_records,
+            alignment_structure: alignment_structure
+        }
+    }
+    
+    pub fn get_alignment_records(&self) -> &Vec<AlignmentRecord> {
+        &self.alignment_records
+    }
+    
+    pub fn get_alignment_records_count(&self) -> usize {
+        self.alignment_records.len()
+    }
+
+    pub fn get_alignment_structure(&self) -> &AlignmentStructure {
+        &self.alignment_structure
+    }
+    
+    pub fn get_base_quality_scores(&self) -> &Vec<u8> {
+        &self.base_quality_scores
+    }
+
+    pub fn get_read_id(&self) -> usize {
+        self.read_id
+    }
+    
+    pub fn get_read_length(&self) -> usize {
+        self.read_sequence.len()
+    }
+    
+    pub fn get_read_sequence(&self) -> &str {
+        &*self.read_sequence
+    }
+}
+
+// Helper functions
+impl Alignment {
+    fn build_alignment_records(
+        read_sequence: &str,
+        records: &Vec<bam::Record>
+    ) -> Vec<AlignmentRecord> {
+        let mut alignment_records: Vec<AlignmentRecord> = Vec::new();
+
+        // Step 1. Identify alignment records
+        for record in records {
+            // Get the aligned sequence
+            let aligned_sequence: Box<str> = get_aligned_sequence_from_cigar(&record).into();
+
+            // Identify all start positions between aligned sequence and original read sequence
+            let start_positions: Vec<usize> = find_substring_positions(&*read_sequence.to_uppercase(), &*aligned_sequence.to_uppercase());
             assert!(!start_positions.is_empty(), "Could not find the aligned sequence in the original read sequence.");
 
+            // Get left and right soft-clipping information of the current record
+            let left_softclipping: (bool, usize) = get_left_softclipping(&record);
+            let right_softclipping: (bool, usize) = get_right_softclipping(&record);
+
+            // If there are multiple start positions, find where the aligned sequence starts
+            // on the original read sequence
+            let mut read_start: u32 = 0;
+            let mut read_end: u32 = 0;
+            let reference_strand: Strand = get_alignment_strand(&record);
             for start_position in start_positions.iter() {
                 // Check if the current start position aligns with the current alignment record
                 let end_position: usize = *start_position + aligned_sequence.len() - 1;
                 let num_left_bases: usize = *start_position;
-                let num_right_bases: usize = original_read_sequence.len() - end_position - 1;
-                let left_softclipping: (bool,usize) = get_left_softclipping(&record);
-                let right_softclipping: (bool,usize) = get_right_softclipping(&record);
+                let num_right_bases: usize = read_sequence.len() - end_position - 1;
 
                 let mut aligned: bool = true;
-                if record.flags().is_reverse_complemented() {
+                if reference_strand == Strand::Reverse {
                     if (left_softclipping.0 && left_softclipping.1 != num_right_bases) ||
                         (right_softclipping.0 && right_softclipping.1 != num_left_bases) {
                         aligned = false;
@@ -86,1340 +187,121 @@ impl Alignment {
                         aligned = false;
                     }
                 }
+
                 if aligned {
-                    read_start = *start_position;
-                    read_end = read_start + aligned_sequence.len() - 1;
-                    reverse_complemented = record.flags().is_reverse_complemented();
+                    read_start = *start_position as u32;
+                    read_end = read_start + (aligned_sequence.len() as u32) - 1;
                     break;
                 }
             }
 
             assert!(read_start != read_end, "read_start should not be the same as read_end.");
+            assert!(&*aligned_sequence == read_sequence[(read_start as usize)..(read_end as usize)+1].to_string(), "Aligned sequence does not match the identified part of the original read sequence.");
 
             let alignment_record: AlignmentRecord = AlignmentRecord::new(
                 read_start,
                 read_end,
-                reverse_complemented,
-                record
+                reference_strand,
+                record.clone()
             );
 
             alignment_records.push(alignment_record);
         }
 
-        // Step 3. Sort the alignment records
+        // Step 2. Sort alignment records by read start position
         alignment_records.sort_by_key(|alignment| alignment.read_start);
 
-        Self {
-            read_id,
-            original_read_sequence,
-            quality_scores,
-            alignment_records: alignment_records
-        }
+        alignment_records
     }
 
-    pub fn get_alignment_records_count(&self) -> usize {
-        self.alignment_records.len()
-    }
-
-    pub fn get_read_length(&self) -> usize {
-        self.original_read_sequence.len()
-    }
-
-    /// Identify exonic boundaries.
-    pub fn identify_exons(
-        &self,
-        min_mapping_quality: usize
-    ) -> Vec<TranscriptModelExon> {
-        // Step 1. Identify exonic boundaries
-        let mut exons_: VecDeque<TranscriptModelExon> = VecDeque::new();
-        for alignment_record in self.alignment_records.iter() {
-            // Check if the mapping quality meets the minimum mapping quality
-            if min_mapping_quality > alignment_record.record.mapping_quality().unwrap().get() as usize {
-                continue;
-            }
-
-            // Get the chromosome name
-            let chromosome_id: u16 = alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-
-            // Get the alignment flag
-            let mut strand: Strand = Strand::Forward;
-            for flag in alignment_record.record.flags() {
-                if flag == Flags::REVERSE_COMPLEMENTED {
-                    strand = Strand::Reverse;
-                    break;
-                }
-            }
-
-            // Get the CS tag
-            let cs_tag: String;
-            if let Some(value) = get_tag_value(&alignment_record.record, "cs") {
-                cs_tag = value.to_string();
-            } else {
-                panic!("Could not find the CS tag.");
-            }
-
-            // Get the start reference position
-            // curr_reference_pos always points at the end of the last variant
-            let mut curr_reference_pos: isize = match alignment_record.record.alignment_start().unwrap() {
-                Ok(s) => {
-                    s.get() as isize
-                },
-                Err(e) => {
-                    panic!("Could not fetch the start position");
-                },
-            };
-            let mut curr_exon_start: usize = curr_reference_pos as usize;
-            curr_reference_pos -= 1;
-
-            // Identify exons
-            let re = Regex::new(r"([:\-+*~=][0-9A-Za-z]+)").unwrap(); // or ([:][0-9]+|[-+*=][A-Za-z]+)
-            for value in re.captures_iter(&cs_tag) {
-                if value[0].contains(":") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-
-                    // Remove the first character
-                    let mut chars = value[0].chars();
-                    chars.next();
-
-                    // Increment current position by the number of matched nucleotides
-                    let num_matched_nucleotides: isize = chars.as_str().parse::<isize>().unwrap();
-                    curr_reference_pos += num_matched_nucleotides - 1;
-                } else if value[0].contains("*") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-                } else if value[0].contains("+") {
-                    // Do nothing
-                } else if value[0].contains("-") {
-                    // Increment current position
-                    curr_reference_pos += 1;
-
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Reference and alternate alleles
-                    let sequence: String = value_chars.as_str().to_string().to_uppercase();
-                    let variant_size: usize = sequence.chars().count();
-
-                    // Increment current reference position
-                    curr_reference_pos += (variant_size - 1) as isize;
-                } else if value[0].contains("~") {
-                    // Record an exon
-                    let curr_exon_end: usize =  curr_reference_pos as usize;
-                    let exon: TranscriptModelExon = TranscriptModelExon::new(
-                        chromosome_id,
-                        curr_exon_start as u32,
-                        curr_exon_end as u32,
-                        0,
-                        strand.clone()
-                    );
-                    if strand == Strand::Reverse {
-                        exons_.push_front(exon);
-                    } else {
-                        exons_.push_back(exon);
-                    }
-
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Get splicing size
-                    let splicing_str: String = value_chars.as_str().to_string();
-                    let re_splicing = Regex::new(r"\d+").unwrap(); // r"\d+" matches one or more digits
-                    let splicing_size: usize = match re_splicing.find(&splicing_str) {
-                        Some(matched) => {
-                            let num_str = &splicing_str[matched.start()..matched.end()];
-                            let size: usize = match num_str.parse::<usize>() {
-                                Ok(num) => num,
-                                Err(e) => {
-                                    panic!("Failed to convert the splicing size number to usize");
-                                },
-                            };
-                            size
-                        },
-                        None => {
-                            panic!("No numerical value was found in the splicing string: {}", splicing_str);
-                        }
-                    };
-
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-                    curr_reference_pos += (splicing_size - 1) as isize;
-
-                    // Update current exon start position
-                    curr_exon_start = (curr_reference_pos + 1) as usize;
-                } else {
-                    panic!("Unknown delimiter for CS tag: {}", value[0].to_string());
-                }
-            }
-
-            // Include the first/last exon
-            let curr_exon_end: usize =  curr_reference_pos as usize;
-            let exon: TranscriptModelExon = TranscriptModelExon::new(
-                chromosome_id,
-                curr_exon_start as u32,
-                curr_exon_end as u32,
-                0,
-                strand.clone()
+    fn init_alignment_structure(
+        read_id: usize,
+        read_sequence: &str,
+        base_quality_scores: &Vec<u8>
+    ) -> AlignmentStructure {
+        let mut alignment_structure: AlignmentStructure = AlignmentStructure::new(read_id);
+        for (i, s) in read_sequence.chars().enumerate() {
+            let nucleotide: Nucleotide = Nucleotide::from_str(s.to_string().as_str()).unwrap();
+            let base_quality: u8 = base_quality_scores[i];
+            let alignment_base: AlignmentStructureBase = AlignmentStructureBase::new(
+                i as u32,
+                nucleotide,
+                base_quality
             );
-            if strand == Strand::Reverse {
-                exons_.push_front(exon);
-            } else {
-                exons_.push_back(exon);
-            }
+            alignment_structure.add_base(alignment_base);
         }
-
-        // Step 2. Assign proper exon numbers
-        let mut exons: Vec<TranscriptModelExon> = Vec::new();
-        let mut exon_number: u16 = 1;
-        for exon_ in exons_ {
-            let exon: TranscriptModelExon = TranscriptModelExon::new(
-                exon_.chromosome_id,
-                exon_.start,
-                exon_.end,
-                exon_number,
-                exon_.strand
-            );
-            exons.push(exon);
-            exon_number += 1;
-        }
-        exons.sort_by_key(|e| e.number);
-        exons
+        alignment_structure
     }
 
-    // pub fn identify_overlapping_gene_ids(
-    //     exons: &Vec<TranscriptModelExon>,
-    //     gene_annotator: &impl GeneAnnotator,
-    //     chromosome_names_map: &BiMap<Box<str>,u16>
-    // ) -> HashSet<Box<str>> {
-    //     let mut gene_ids: HashSet<Box<str>> = HashSet::new();
-    //     for exon in exons.iter() {
-    //         let chromosome: Box<str> = chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap().to_string().into_boxed_str();
-    //         let gene_ids_: Vec<Box<str>> = gene_annotator.get_gene_ids_overlapping_region(&*chromosome, exon.start, exon.end);
-    //         for gene_id in gene_ids_ {
-    //             let gene: &Gene = gene_annotator.get_gene(&*gene_id).unwrap();
-    //             if gene.strand.as_str() == exon.strand.as_str() {
-    //                 gene_ids.insert(gene_id);
-    //             }
-    //         }
-    //     }
-    //     gene_ids
-    // }
+    /// Identify breakpoint variants using softclipped bases.
+    fn identify_breakpoint_variants(
+        alignment_structure: &mut AlignmentStructure,
+        alignment_records: &Vec<AlignmentRecord>,
+        read_id: usize,
+        read_sequence: &str
+    ) {
+        let mut prev_alignment_record: &AlignmentRecord = &alignment_records[0];
+        for (i, curr_alignment_record) in alignment_records.iter().enumerate() {
+            let reference_chromosome_id: u16 = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
+            let reference_strand: Strand = get_alignment_strand(&curr_alignment_record.record);
+            let mapping_quality: u32 = get_alignment_mapping_quality(&curr_alignment_record.record);
 
-    pub fn identify_splice_junctions(
-        &self,
-        chromosome_names_map: &BiMap<Box<str>,u16>,
-        reference_genome_fasta_file: &str,
-        min_mapping_quality: usize,
-    ) -> Vec<TranscriptModelSpliceJunction> {
-        // Step 1. Read the FASTA file
-        let mut fasta_reader = Builder::default().build_from_path(reference_genome_fasta_file).unwrap();
-
-        // Step 2. Identify splice junctions
-        let mut splice_junctions_: VecDeque<TranscriptModelSpliceJunction> = VecDeque::new();
-        for alignment_record in self.alignment_records.iter() {
-            // Check if the mapping quality meets the minimum mapping quality
-            if min_mapping_quality > alignment_record.record.mapping_quality().unwrap().get() as usize {
-                continue;
-            }
-
-            // Get the chromosome name
-            let chromosome_id: u16 = alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-            let chromosome_name: &str = chromosome_names_map
-                .get_by_right(&chromosome_id)
-                .unwrap();
-
-            // Get the alignment flag
-            let mut strand: Strand = Strand::Forward;
-            for flag in alignment_record.record.flags() {
-                if flag == Flags::REVERSE_COMPLEMENTED {
-                    strand = Strand::Reverse;
-                    break;
-                }
-            }
-
-            // Get the CS tag
-            let cs_tag: String;
-            if let Some(value) = get_tag_value(&alignment_record.record, "cs") {
-                cs_tag = value.to_string();
-            } else {
-                panic!("Could not find the CS tag.");
-            }
-
-            // Get the start reference position
-            // curr_reference_pos always points at the end of the last variant
-            let mut curr_reference_pos: isize = match alignment_record.record.alignment_start().unwrap() {
-                Ok(s) => {
-                    s.get() as isize
-                },
-                Err(e) => {
-                    panic!("Could not fetch the start position");
-                },
-            };
-            curr_reference_pos -= 1;
-
-            // Identify splicing in the CS tag
-            let re = Regex::new(r"([:\-+*~=][0-9A-Za-z]+)").unwrap(); // or ([:][0-9]+|[-+*=][A-Za-z]+)
-            for value in re.captures_iter(&cs_tag) {
-                if value[0].contains(":") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-
-                    // Remove the first character
-                    let mut chars = value[0].chars();
-                    chars.next();
-
-                    // Increment current position by the number of matched nucleotides
-                    let num_matched_nucleotides: isize = chars.as_str().parse::<isize>().unwrap();
-                    curr_reference_pos += num_matched_nucleotides - 1;      // minus 1 is necessary here
-                } else if value[0].contains("*") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-                } else if value[0].contains("+") {
-                    // Do nothing
-                } else if value[0].contains("-") {
-                    // Increment current position
-                    curr_reference_pos += 1;
-
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Reference and alternate alleles
-                    let sequence: String = value_chars.as_str().to_string().to_uppercase();
-                    let variant_size: usize = sequence.chars().count();
-
-                    // Increment current reference position
-                    curr_reference_pos += (variant_size as isize) - 1;
-                } else if value[0].contains("~") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Get splicing size
-                    let splicing_str: String = value_chars.as_str().to_string();
-                    let re_splicing = Regex::new(r"\d+").unwrap(); // r"\d+" matches one or more digits
-                    let splicing_size: usize = match re_splicing.find(&splicing_str) {
-                        Some(matched) => {
-                            let num_str = &splicing_str[matched.start()..matched.end()];
-                            let size: usize = match num_str.parse::<usize>() {
-                                Ok(num) => num,
-                                Err(e) => {
-                                    panic!("Failed to convert the splicing size number to usize");
-                                },
-                            };
-                            size
-                        },
-                        None => {
-                            panic!("No numerical value was found in the splicing string: {}", splicing_str);
-                        }
-                    };
-
-                    // Get the splicing sequence
-                    let reference_start: usize =  curr_reference_pos as usize;
-                    let reference_end: usize = (curr_reference_pos as usize) + splicing_size - 1;
-                    let position_start = Position::try_from(reference_start).unwrap();
-                    let position_end = Position::try_from(reference_end).unwrap();
-                    let region = Region::new(chromosome_name, position_start..=position_end);
-                    let ref_record = fasta_reader.query(&region).unwrap();
-                    let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
-                    let spliced_sequence_str: &str = std::str::from_utf8(ref_sequence_bytes).expect("Failed to convert sequence to UTF-8");
-
-                    // Record a splice junction
-                    if spliced_sequence_str.len() < 4 {
-                        let splice_junction: TranscriptModelSpliceJunction = TranscriptModelSpliceJunction::new(
-                            chromosome_id,
-                            reference_start as u32,
-                            reference_end as u32,
-                            0,
-                            "".into(),
-                            "".into(),
-                            strand.clone()
-                        );
-                        if strand == Strand::Reverse {
-                            splice_junctions_.push_front(splice_junction);
-                        } else {
-                            splice_junctions_.push_back(splice_junction);
-                        }
-                    } else {
-                        let mut splice_signal_start: Box<str> = spliced_sequence_str[..2].to_string().into_boxed_str();
-                        let mut splice_signal_end: Box<str> = spliced_sequence_str[spliced_sequence_str.len()-2..].to_string().into_boxed_str();
-                        if strand == Strand::Reverse {
-                            splice_signal_start = reverse_complement(&*splice_signal_start);
-                            splice_signal_end = reverse_complement(&*splice_signal_end);
-                        }
-                        let splice_junction: TranscriptModelSpliceJunction = TranscriptModelSpliceJunction::new(
-                            chromosome_id,
-                            reference_start as u32,
-                            reference_end as u32,
-                            0,
-                            &*splice_signal_start,
-                            &*splice_signal_end,
-                            strand.clone()
-                        );
-                        if strand == Strand::Reverse {
-                            splice_junctions_.push_front(splice_junction);
-                        } else {
-                            splice_junctions_.push_back(splice_junction);
-                        }
-                    }
-
-                    // Increment current reference position
-                    curr_reference_pos += (splicing_size as isize) - 1;
-                } else {
-                    panic!("Unknown delimiter for CS tag: {}", value[0].to_string());
-                }
-            }
-        }
-
-        // Step 2. Assign proper splice junction numbers
-        let mut splice_junctions: Vec<TranscriptModelSpliceJunction> = Vec::new();
-        let mut splice_junction_number: u16 = 1;
-        for splice_junction_ in splice_junctions_ {
-            let splice_junction: TranscriptModelSpliceJunction = TranscriptModelSpliceJunction::new(
-                splice_junction_.chromosome_id,
-                splice_junction_.start,
-                splice_junction_.end,
-                splice_junction_number,
-                &*splice_junction_.splice_signal_start,
-                &*splice_junction_.splice_signal_end,
-                splice_junction_.strand
-            );
-            splice_junctions.push(splice_junction);
-            splice_junction_number += 1;
-        }
-
-        splice_junctions
-    }
-
-    pub fn identify_splice_variant_records(
-        &self, 
-        reference_transcript_matches: &Vec<ReferenceTranscriptMatch>,
-        chromosome_names_map: &BiMap<Box<str>,u16>,
-        min_mapping_quality: usize
-    ) -> HashMap<Box<str>,Vec<VariantRecord>> {
-        // Step 1. Identify exons
-        let exons: Vec<TranscriptModelExon> = self.identify_exons(min_mapping_quality);
-        
-        // Step 2. Identify splice variant records
-        let mut splice_variant_records: HashMap<Box<str>,Vec<VariantRecord>> = HashMap::new();
-        if reference_transcript_matches.is_empty() {
-            // All the exons will be identified as cryptic exons
-            for exon in exons.iter() {
-                let sequence_operation: SequenceOperation = SequenceOperation::new(
-                    exon.chromosome_id,
-                    exon.start,
-                    exon.strand.clone(),
-                    SequenceOperationType::Read.clone(),
-                    exon.chromosome_id,
-                    exon.end,
-                    exon.strand.clone(),
-                    SequenceOperationType::Read.clone(),
-                    "".into(),
-                    SequenceOperationVariantType::CrypticExon.clone()
-                );
-                let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                splice_variant_records
-                    .entry("intergenic".into())
-                    .or_insert_with(Vec::new)
-                    .push(variant_record);
-            }
-        } else {
-            let mut reference_transcripts: Vec<Transcript> = Vec::new();
-            for reference_transcript_match in reference_transcript_matches.iter() {
-                reference_transcripts.push(reference_transcript_match.reference_transcript.clone());
-            }
-
-            // Identify fusion
-            let mut curr_gene_id: Box<str> = "".into();
-            let mut prev_exon: &TranscriptModelExon = exons.first().unwrap();
-            for (index,exon) in exons.iter().enumerate() {
-                // Found the overlapping gene ID
-                let exon_start: isize = exon.start as isize;
-                let exon_end: isize = exon.end as isize;
-                let mut overlapping_gene_id: Box<str> = "".into();
-                for reference_transcript in reference_transcripts.iter() {
-                    let reference_transcript_start: isize = reference_transcript.start as isize;
-                    let reference_transcript_end: isize = reference_transcript.end as isize;
-                    let reference_chromosome_id: u16 = *chromosome_names_map.get_by_left(&*reference_transcript.chromosome).unwrap();
-                    if reference_chromosome_id == exon.chromosome_id &&
-                        exon.strand.as_str() == reference_transcript.strand.as_str() {
-                        if overlaps(exon_start, exon_end, reference_transcript_start, reference_transcript_end) {
-                            overlapping_gene_id = reference_transcript.gene_id.clone();
-                            break;
-                        }
-                    }
-                }
-                if index == 0 {
-                    if overlapping_gene_id != "".into() {
-                        curr_gene_id = overlapping_gene_id;
-                    }
-                } else {
-                    if overlapping_gene_id != curr_gene_id && overlapping_gene_id != "".into() {
-                        if prev_exon.strand.as_str() == Strand::Forward.as_str() {
-                            let sequence_operation: SequenceOperation= SequenceOperation::new(
-                                prev_exon.chromosome_id,
-                                prev_exon.end,
-                                prev_exon.strand.clone(),
-                                SequenceOperationType::Downstream.clone(),
-                                exon.chromosome_id,
-                                exon.start,
-                                exon.strand.clone(),
-                                SequenceOperationType::Upstream.clone(),
-                                "".into(),
-                                SequenceOperationVariantType::FusionGene.clone()
-                            );
-                            let variant_record: VariantRecord = VariantRecord::new(
-                                self.read_id, sequence_operation
-                            );
-                            splice_variant_records
-                                .entry(format!("{}-{}", overlapping_gene_id, curr_gene_id).into())
-                                .or_insert_with(Vec::new)
-                                .push(variant_record);
-                        } else {
-                            let sequence_operation: SequenceOperation = SequenceOperation::new(
-                                prev_exon.chromosome_id,
-                                prev_exon.start,
-                                prev_exon.strand.clone(),
-                                SequenceOperationType::Upstream.clone(),
-                                exon.chromosome_id,
-                                exon.end,
-                                exon.strand.clone(),
-                                SequenceOperationType::Downstream.clone(),
-                                "".into(),
-                                SequenceOperationVariantType::FusionGene.clone()
-                            );
-                            let variant_record: VariantRecord = VariantRecord::new(
-                                self.read_id, sequence_operation
-                            );
-                            splice_variant_records
-                                .entry(format!("{}-{}", overlapping_gene_id, curr_gene_id).into())
-                                .or_insert_with(Vec::new)
-                                .push(variant_record);
-                        }
-                        curr_gene_id = overlapping_gene_id;
-                    }
-                }
-                prev_exon = exon;
-            }
-
-            // Identify reference exon skipping
-            for reference_transcript in reference_transcripts.iter() {
-                for reference_exon in reference_transcript.exons.values() {
-                    let mut reference_exon_overlaps: bool = false;
-                    let mut is_fusion: bool = false;
-                    let reference_exon_start: isize = reference_exon.start as isize;
-                    let reference_exon_end: isize = reference_exon.end as isize;
-                    let reference_chromosome_id: u16 = *chromosome_names_map.get_by_left(&*reference_exon.chromosome).unwrap();
-                    let reference_strand: Strand = if reference_exon.strand.as_str() == Strand::Forward.as_str() {
-                        Strand::Forward
-                    } else {
-                        Strand::Reverse
-                    };
-                    for exon in exons.iter() {
-                        if reference_chromosome_id == exon.chromosome_id {
-                            let exon_start: isize = exon.start as isize;
-                            let exon_end: isize = exon.end as isize;
-                            if overlaps(exon_start, exon_end, reference_exon_start, reference_exon_end) {
-                                reference_exon_overlaps = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Check if the reference exon is skipped because of a fusion gene
-                    for variant_records in splice_variant_records.values() {
-                        for variant_record in variant_records.iter() {
-                            if variant_record.get_variant_type() == SequenceOperationVariantType::FusionGene {
-                                if variant_record.get_operation_1() == SequenceOperationType::Downstream && 
-                                    variant_record.get_operation_2() == SequenceOperationType::Upstream {
-                                    if reference_chromosome_id == variant_record.get_chromosome_1() && 
-                                        reference_exon_start > variant_record.get_position_1() as isize {
-                                        is_fusion = true;
-                                    }
-                                    if reference_chromosome_id == variant_record.get_chromosome_2() &&
-                                        reference_exon_end < variant_record.get_position_2() as isize {
-                                        is_fusion = true;
-                                    }
-                                } else if variant_record.get_operation_1() == SequenceOperationType::Upstream && 
-                                    variant_record.get_operation_2() == SequenceOperationType::Downstream {
-                                    if reference_chromosome_id == variant_record.get_chromosome_1() &&
-                                        reference_exon_end < variant_record.get_position_1() as isize {
-                                        is_fusion = true;
-                                    }
-                                    if reference_chromosome_id == variant_record.get_chromosome_2() &&
-                                        reference_exon_start > variant_record.get_position_2() as isize {
-                                        is_fusion = true;
-                                    }
-                                } else {
-                                    panic!("Unexpected sequence operation for a fusion gene: {} and {}",
-                                           variant_record.get_operation_1().as_str(),
-                                           variant_record.get_operation_2().as_str());
-                                }
-                            }
-                        }
-                    }
-
-                    if reference_exon_overlaps == false && is_fusion == false {
-                        let strand = if reference_exon.strand.as_str() == Strand::Forward.as_str() {
-                            Strand::Forward
-                        } else {
-                            Strand::Reverse
-                        };
-                        let sequence_operation: SequenceOperation = SequenceOperation::new(
-                            reference_chromosome_id,
-                            reference_exon.start,
-                            strand.clone(),
-                            SequenceOperationType::Skip.clone(),
-                            reference_chromosome_id,
-                            reference_exon.end,
-                            strand.clone(),
-                            SequenceOperationType::Skip.clone(),
-                            "".into(),
-                            SequenceOperationVariantType::ExonSkipping.clone()
-                        );
-                        let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                        splice_variant_records
-                            .entry(reference_transcript.transcript_id.clone())
-                            .or_insert_with(Vec::new)
-                            .push(variant_record);
-                    }
-                }
-            }
-
-            // Identify cryptic exons
-            for exon in exons.iter() {
-                let exon_start: isize = exon.start as isize;
-                let exon_end: isize = exon.end as isize;
-                let chromosome_name: Box<str> = chromosome_names_map.get_by_right(&exon.chromosome_id).unwrap().to_string().into_boxed_str();
-                for reference_transcript in reference_transcripts.iter() {
-                    let mut is_cryptic: bool = true;
-                    for reference_exon in reference_transcript.exons.values() {
-                        if chromosome_name == reference_exon.chromosome {
-                            let reference_exon_start: isize = reference_exon.start as isize;
-                            let reference_exon_end: isize = reference_exon.end as isize;
-                            if overlaps(exon_start, exon_end, reference_exon_start, reference_exon_end) {
-                                is_cryptic = false;
-                                break;
-                            }
-                        }
-                    }
-                    if is_cryptic {
-                        let sequence_operation: SequenceOperation = SequenceOperation::new(
-                            exon.chromosome_id,
-                            exon.start,
-                            exon.strand.clone(),
-                            SequenceOperationType::Read.clone(),
-                            exon.chromosome_id,
-                            exon.end,
-                            exon.strand.clone(),
-                            SequenceOperationType::Read.clone(),
-                            "".into(),
-                            SequenceOperationVariantType::CrypticExon.clone()
-                        );
-                        let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                        splice_variant_records
-                            .entry(reference_transcript.transcript_id.clone())
-                            .or_insert_with(Vec::new)
-                            .push(variant_record);
-                    }
-                }
-            }
-
-            // Identify intron retention
-            for exon in exons.iter() {
-                let exon_start: isize = exon.start as isize;
-                let exon_end: isize = exon.end as isize;
-                for reference_transcript in reference_transcripts.iter() {
-                    let mut overlaps_exon: bool = false;
-                    let mut overlaps_intron: bool = false;
-                    let mut intron_retention_start: u32 = 0;
-                    let mut intron_retention_end: u32 = 0;
-                    for intron in reference_transcript.get_introns().iter() {
-                        let intron_start: isize = intron.start as isize;
-                        let intron_end: isize = intron.end as isize;
-                        let intron_chromosome_id: u16 = *chromosome_names_map.get_by_left(&intron.chromosome).unwrap();
-                        if intron_chromosome_id == exon.chromosome_id &&
-                            overlaps(exon_start, exon_end, intron_start, intron_end) {
-                            let (start, end) = find_overlap((exon_start, exon_end), (intron_start, intron_end)).unwrap();
-                            overlaps_intron = true;
-                            intron_retention_start = start as u32;
-                            intron_retention_end = end as u32;
-                            break;
-                        }
-                    }
-                    for reference_exon in reference_transcript.exons.values() {
-                        let reference_exon_start: isize = reference_exon.start as isize;
-                        let reference_exon_end: isize = reference_exon.end as isize;
-                        let exon_chromosome_id: u16 = *chromosome_names_map.get_by_left(&reference_exon.chromosome).unwrap();
-                        if exon_chromosome_id == exon.chromosome_id &&
-                            overlaps(exon_start, exon_end, reference_exon_start, reference_exon_end) {
-                            overlaps_exon = true;
-                            break;
-                        }
-                    }
-                    if overlaps_intron && overlaps_exon {
-                        let sequence_operation: SequenceOperation = SequenceOperation::new(
-                            exon.chromosome_id,
-                            intron_retention_start,
-                            exon.strand.clone(),
-                            SequenceOperationType::Read.clone(),
-                            exon.chromosome_id,
-                            intron_retention_end,
-                            exon.strand.clone(),
-                            SequenceOperationType::Read.clone(),
-                            "".into(),
-                            SequenceOperationVariantType::IntronRetention.clone()
-                        );
-                        let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                        splice_variant_records
-                            .entry(reference_transcript.transcript_id.clone())
-                            .or_insert_with(Vec::new)
-                            .push(variant_record);
-                    }
-                }
-            }
-
-            // Identify alternative splice sites
-            for reference_transcript in reference_transcripts.iter() {
-                for reference_exon in reference_transcript.get_sorted_exons() {
-                    let reference_exon_start: isize = reference_exon.start as isize;
-                    let reference_exon_end: isize = reference_exon.end as isize;
-                    let reference_chromosome_id: u16 = *chromosome_names_map.get_by_left(&reference_exon.chromosome).unwrap();
-                    for exon in exons.iter() {
-                        let exon_start: isize = exon.start as isize;
-                        let exon_end: isize = exon.end as isize;
-                        if reference_chromosome_id != exon.chromosome_id {
-                            continue;
-                        }
-                        if overlaps(exon_start, exon_end, reference_exon_start, reference_exon_end) == false {
-                            continue;
-                        }
-                        let (start,end) = find_overlap((exon_start, exon_end), (reference_exon_start, reference_exon_end)).unwrap();
-
-                        // Check if the alternative splice site is a fusion gene breakpoint
-                        let mut is_fusion_breakpoint: bool = false;
-                        for variant_records in splice_variant_records.values() {
-                            for variant_record in variant_records.iter() {
-                                if variant_record.get_variant_type() == SequenceOperationVariantType::FusionGene {
-                                    if exon.chromosome_id == variant_record.get_chromosome_1() && exon.chromosome_id == variant_record.get_chromosome_2() {
-                                        let position_1: isize = variant_record.get_position_1() as isize;
-                                        let position_2: isize = variant_record.get_position_2() as isize;
-                                        if start >= position_1 - 1 && start <= position_1 + 1 {
-                                            is_fusion_breakpoint = true;
-                                        }
-                                        if start >= position_2 - 1 && start <= position_2 + 1 {
-                                            is_fusion_breakpoint = true;
-                                        }
-                                        if end >= position_1 - 1 && end <= position_1 + 1 {
-                                            is_fusion_breakpoint = true;
-                                        }
-                                        if end >= position_2 - 1 && end <= position_2 + 1 {
-                                            is_fusion_breakpoint = true;
-                                        }
-                                    }
-                                }   
-                            }
-                        }
-                        if start != reference_exon_start && is_fusion_breakpoint == false {
-                            // Check if 5' or 3' splice site
-                            if reference_exon.strand.as_str() == Strand::Forward.as_str() {
-                                let sequence_operation: SequenceOperation = SequenceOperation::new(
-                                    exon.chromosome_id,
-                                    exon.start - 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    exon.chromosome_id,
-                                    exon.start - 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    "".into(),
-                                    SequenceOperationVariantType::Alternative3PrimeSpliceSite.clone()
-                                );
-                                let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records
-                                    .entry(reference_transcript.transcript_id.clone())
-                                    .or_insert_with(Vec::new)
-                                    .push(variant_record);
-                            } else {
-                                let sequence_operation: SequenceOperation = SequenceOperation::new(
-                                    exon.chromosome_id,
-                                    exon.start - 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    exon.chromosome_id,
-                                    exon.start - 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    "".into(),
-                                    SequenceOperationVariantType::Alternative5PrimeSpliceSite.clone()
-                                );
-                                let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records
-                                    .entry(reference_transcript.transcript_id.clone())
-                                    .or_insert_with(Vec::new)
-                                    .push(variant_record);
-                            }
-                        }
-                        if end != reference_exon_end && is_fusion_breakpoint == false {
-                            // Check if 5' or 3' splice site
-                            if reference_exon.strand.as_str() == Strand::Forward.as_str() {
-                                let sequence_operation: SequenceOperation = SequenceOperation::new(
-                                    exon.chromosome_id,
-                                    exon.end + 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    exon.chromosome_id,
-                                    exon.end + 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    "".into(),
-                                    SequenceOperationVariantType::Alternative5PrimeSpliceSite.clone()
-                                );
-                                let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records
-                                    .entry(reference_transcript.transcript_id.clone())
-                                    .or_insert_with(Vec::new)
-                                    .push(variant_record);
-                            } else {
-                                let sequence_operation: SequenceOperation = SequenceOperation::new(
-                                    exon.chromosome_id,
-                                    exon.end + 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    exon.chromosome_id,
-                                    exon.end + 1,
-                                    exon.strand.clone(),
-                                    SequenceOperationType::Mark.clone(),
-                                    "".into(),
-                                    SequenceOperationVariantType::Alternative3PrimeSpliceSite.clone()
-                                );
-                                let variant_record: VariantRecord = VariantRecord::new(self.read_id, sequence_operation);
-                                splice_variant_records
-                                    .entry(reference_transcript.transcript_id.clone())
-                                    .or_insert_with(Vec::new)
-                                    .push(variant_record);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        splice_variant_records
-    }
-
-    pub fn identify_sequence_variant_records(
-        &self,
-        min_mapping_quality: usize,
-        min_average_base_quality: f32
-    ) -> Vec<VariantRecord> {
-        let mut variant_records = self.identify_sequence_variant_records_in_cs_tag(
-            min_mapping_quality,
-            min_average_base_quality
-        );
-        variant_records.extend(
-            self.identify_sequence_variant_records_in_softclipping(
-                min_mapping_quality,
-                min_average_base_quality
-            )
-        );
-        variant_records
-    }
-
-    /// Identify intra-chromosomal SNVs, insertions, splicing, and deletions using CS tag.
-    pub fn identify_sequence_variant_records_in_cs_tag(
-        &self,
-        min_mapping_quality: usize,
-        min_average_base_quality: f32
-    ) -> Vec<VariantRecord> {
-        let mut variant_records: Vec<VariantRecord> = Vec::new();
-        for alignment_record in self.alignment_records.iter() {
-            // Check if the mapping quality meets the minimum mapping quality
-            if min_mapping_quality > alignment_record.record.mapping_quality().unwrap().get() as usize {
-                continue;
-            }
-
-            // Get the alignment base quality scores
-            let base_quality_scores: Vec<u8> = get_alignment_base_quality_scores(&alignment_record.record);
-            let mut curr_base_quality_pos: isize = -1;
-
-            // Get the alignment flag
-            let mut strand: Strand = Strand::Forward;
-            for flag in alignment_record.record.flags() {
-                if flag == Flags::REVERSE_COMPLEMENTED {
-                    strand = Strand::Reverse;
-                    break;
-                }
-            }
-
-            // Get the CS tag
-            let cs_tag: String;
-            if let Some(value) = get_tag_value(&alignment_record.record, "cs") {
-                cs_tag = value.to_string();
-            } else {
-                panic!("Could not find the CS tag.");
-            }
-
-            // Get the start reference position
-            // curr_reference_pos always points at the end of the last variant
-            let mut curr_reference_pos: isize = match alignment_record.record.alignment_start().unwrap() {
-                Ok(s) => {
-                    s.get() as isize
-                },
-                Err(e) => {
-                    panic!("Could not fetch the start position");
-                },
-            };
-            curr_reference_pos -= 1;
-
-            // Identify SNVs, insertions, deletions, and splicing in the CS tag
-            // let chromosome_name: &str = chromosome_names_map
-            //     .get_by_right(&alignment_record.record.reference_sequence_id().unwrap().unwrap())
-            //     .unwrap();
-            let chromosome_id: u16 = alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-            let re = Regex::new(r"([:\-+*~=][0-9A-Za-z]+)").unwrap(); // or ([:][0-9]+|[-+*=][A-Za-z]+)
-            for value in re.captures_iter(&cs_tag) {
-                if value[0].contains(":") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-                    curr_base_quality_pos += 1;
-
-                    // Remove the first character
-                    let mut chars = value[0].chars();
-                    chars.next();
-
-                    // Increment current position by the number of matched nucleotides
-                    let num_matched_nucleotides: isize = chars.as_str().parse::<isize>().unwrap();
-                    curr_reference_pos += num_matched_nucleotides - 1;      // minus 1 is necessary here
-                    curr_base_quality_pos += num_matched_nucleotides - 1;   // minus 1 is necessary here
-                } else if value[0].contains("*") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-                    curr_base_quality_pos += 1;
-
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Reference and alternate alleles
-                    let alleles: String = value_chars.as_str().to_string();
-                    let reference_allele: String = alleles.chars().nth(0).unwrap().to_string().to_uppercase();
-                    let alternate_allele: String = alleles.chars().nth(1).unwrap().to_string().to_uppercase();
-
-                    // Check base quality score
-                    let sequence_quality_scores: Vec<u8> = vec![base_quality_scores[curr_base_quality_pos as usize]];
-                    if min_average_base_quality > sequence_quality_scores[0] as f32 {
-                        continue;
-                    }
-
-                    // Exclude SNVs at the first or last base of the read
-                    if curr_base_quality_pos == 0 || curr_base_quality_pos == self.get_read_length() as isize - 1 {
-                        continue;
-                    }
-
-                    // Record a single-nucleotide variant
-                    let graph_operation: SequenceOperation = SequenceOperation::new(
-                        chromosome_id,
-                        (curr_reference_pos - 1) as u32,
-                        strand.clone(),
-                        SequenceOperationType::Downstream,
-                        chromosome_id,
-                        (curr_reference_pos + 1) as u32,
-                        strand.clone(),
-                        SequenceOperationType::Upstream,
-                        alternate_allele.into_boxed_str(),
-                        SequenceOperationVariantType::SingleNucleotideVariant.clone()
-                    );
-                    let variant_record: VariantRecord = VariantRecord::new(
-                        self.read_id,
-                        graph_operation
-                    );
-                    variant_records.push(variant_record);
-                } else if value[0].contains("+") {
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Reference and alternate alleles
-                    let alternate_allele: String = value_chars.as_str().to_string().to_uppercase();
-                    let variant_size: usize = alternate_allele.chars().count();
-
-                    // Base quality score
-                    curr_base_quality_pos += 1;
-                    let curr_base_quality_start: usize = curr_base_quality_pos as usize;
-                    let curr_base_quality_end: usize = curr_base_quality_start + variant_size - 1;
-                    let sequence_quality_scores: Vec<u8> = base_quality_scores[curr_base_quality_start..=curr_base_quality_end].to_vec();
-                    curr_base_quality_pos += (variant_size as isize) - 1;
-                    if min_average_base_quality > calculate_average_base_quality_score(&sequence_quality_scores) {
-                        continue;
-                    }
-
-                    // Record an insertion
-                    let graph_operation: SequenceOperation = SequenceOperation::new(
-                        chromosome_id,
-                        curr_reference_pos as u32,
-                        strand.clone(),
-                        SequenceOperationType::Downstream,
-                        chromosome_id,
-                        (curr_reference_pos + 1) as u32,
-                        strand.clone(),
-                        SequenceOperationType::Upstream,
-                        alternate_allele.into_boxed_str(),
-                        SequenceOperationVariantType::Insertion.clone()
-                    );
-                    let variant_record: VariantRecord = VariantRecord::new(
-                        self.read_id,
-                        graph_operation
-                    );
-                    variant_records.push(variant_record);
-                } else if value[0].contains("-") {
-                    // Increment current position
-                    curr_reference_pos += 1;
-
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Reference and alternate alleles
-                    let reference_allele: String = value_chars.as_str().to_string().to_uppercase();
-                    let alternate_allele: String = String::from("");
-                    let sequence: String = value_chars.as_str().to_string().to_uppercase();
-                    let variant_size: usize = sequence.chars().count() as usize;
-
-                    // Get the deletion sequence
-                    let reference_start: usize = curr_reference_pos as usize;
-                    let reference_end: usize = (curr_reference_pos as usize) + variant_size - 1;
-                    // let position_start: Position = Position::try_from(reference_start).unwrap();
-                    // let position_end: Position = Position::try_from(reference_end).unwrap();
-                    // let region: Region = Region::new(chromosome_name, position_start..=position_end);
-                    // let ref_record: fasta::Record = reader.query(&region).unwrap();
-                    // let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
-                    // let deletion_sequence_str: &str = std::str::from_utf8(ref_sequence_bytes).expect("Failed to convert sequence to UTF-8");
-
-                    // Record a deletion
-                    let graph_operation: SequenceOperation = SequenceOperation::new(
-                        chromosome_id,
-                        (reference_start - 1) as u32,
-                        strand.clone(),
-                        SequenceOperationType::Downstream,
-                        chromosome_id,
-                        (reference_end + 1) as u32,
-                        strand.clone(),
-                        SequenceOperationType::Upstream,
-                        "".to_string().into_boxed_str(),
-                        SequenceOperationVariantType::Deletion.clone()
-                    );
-                    let variant_record: VariantRecord = VariantRecord::new(
-                        self.read_id,
-                        graph_operation
-                    );
-                    variant_records.push(variant_record);
-
-                    // Increment current reference position
-                    curr_reference_pos += (variant_size as isize) - 1;
-                } else if value[0].contains("~") {
-                    // Increment current reference position
-                    curr_reference_pos += 1;
-
-                    // Remove the first character
-                    let mut value_chars = value[0].chars();
-                    value_chars.next();
-
-                    // Get splicing size
-                    let splicing_str: String = value_chars.as_str().to_string();
-                    let re_splicing = Regex::new(r"\d+").unwrap(); // r"\d+" matches one or more digits
-                    let splicing_size: usize = match re_splicing.find(&splicing_str) {
-                        Some(matched) => {
-                            let num_str = &splicing_str[matched.start()..matched.end()];
-                            let size: usize = match num_str.parse::<usize>() {
-                                Ok(num) => num,
-                                Err(e) => {
-                                    panic!("Failed to convert the splicing size number to usize");
-                                },
-                            };
-                            size
-                        },
-                        None => {
-                            panic!("No numerical value was found in the splicing string: {}", splicing_str);
-                        }
-                    };
-
-                    // Get the splicing sequence
-                    let reference_start: usize =  curr_reference_pos as usize;
-                    let reference_end: usize = (curr_reference_pos as usize) + splicing_size - 1;
-                    // let position_start = Position::try_from(start).unwrap();
-                    // let position_end = Position::try_from(end).unwrap();
-                    // let region = Region::new(chromosome, position_start..=position_end);
-                    // let ref_record = reader.query(&region).unwrap();
-                    // let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
-                    // let deletion_sequence_str: &str = std::str::from_utf8(ref_sequence_bytes).expect("Failed to convert sequence to UTF-8");
-
-                    // Record a splicing
-                    // let graph_operation: GraphOperation = GraphOperation::new(
-                    //     chromosome_id,
-                    //     (reference_start - 1) as u32,
-                    //     strand.clone(),
-                    //     GraphOperationOrientations::DOWNSTREAM,
-                    //     chromosome_id,
-                    //     (reference_end + 1) as u32,
-                    //     strand.clone(),
-                    //     GraphOperationOrientations::UPSTREAM,
-                    //     "".to_string().into_boxed_str()
-                    // );
-                    // let variant_record: VariantRecord = VariantRecord::new(
-                    //     self.read_id,
-                    //     graph_operation
-                    // );
-                    // variant_records.push(variant_record);
-
-                    // Increment current reference position
-                    curr_reference_pos += (splicing_size as isize) - 1;
-                } else {
-                    panic!("Unknown delimiter for CS tag: {}", value[0].to_string());
-                }
-            }
-        }
-
-        variant_records
-    }
-
-    /// Identify variant records using softclipped bases.
-    ///
-    /// # Parameters
-    ///
-    /// * `records` is a vector of all BAM records of the same read ID.
-    /// * `chromosomes` is a HashMap where `key` is chromosome ID and `value` is chromosome name.
-    pub fn identify_sequence_variant_records_in_softclipping(
-        &self,
-        min_mapping_quality: usize,
-        min_average_base_quality: f32
-    ) -> Vec<VariantRecord> {
-        let mut variant_records: Vec<VariantRecord> = Vec::new();
-        let mut prev_alignment_record: &AlignmentRecord = &self.alignment_records[0];
-        for (i,curr_alignment_record) in self.alignment_records.iter().enumerate() {
             // Identify soft-clipped insertion in the first alignment
             if (i == 0) && (curr_alignment_record.read_start != 0) {
-                let chromosome_id: u16 = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                let read_sequence: Box<str> = get_read_sequence(&curr_alignment_record.record);
-                let base_quality_scores: Vec<u8> = get_base_quality_scores(&curr_alignment_record.record);
-                let position_1: usize;
-                let position_2: usize;
-                let operation_1: SequenceOperationType;
-                let operation_2: SequenceOperationType;
-                let insertion: String;
-                let sequence_quality_scores: Vec<u8>;
-
-                if curr_alignment_record.record.flags().is_reverse_complemented() {
-                    let right_softclipping: (bool,usize) = get_right_softclipping(&curr_alignment_record.record);
-                    assert!(
-                        right_softclipping.0 && right_softclipping.1 == curr_alignment_record.read_start,
-                        "The 3' end of the first alignment (read ID: {}) is softclipped so the alignment's read start position is expected to be the same as the number of softclipped bases.", self.read_id
-                    );
-                    position_1 = get_alignment_end_position(&curr_alignment_record.record);
-                    position_2 = get_alignment_end_position(&curr_alignment_record.record) + 1;
-                    operation_1 = SequenceOperationType::Downstream;
-                    operation_2 = SequenceOperationType::Upstream;
-                    insertion = read_sequence[self.get_read_length() - curr_alignment_record.read_start..self.get_read_length()].to_string();
-                    sequence_quality_scores = base_quality_scores[self.get_read_length() - curr_alignment_record.read_start..self.get_read_length()].to_vec();
+                let (is_softclipped, softclip_length, reference_position) = if reference_strand == Strand::Reverse {
+                    let (is_softclipped, softclip_length) = get_right_softclipping(&curr_alignment_record.record);
+                    assert!(is_softclipped, "The 3' end of the first alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(softclip_length, curr_alignment_record.read_start as usize, "Read start position is expected to be the same as the number of soft-clipped bases.");
+                    let reference_position: u32 = get_alignment_end_position(&curr_alignment_record.record);
+                    (is_softclipped, softclip_length, reference_position)
                 } else {
-                    let left_softclipping: (bool,usize) = get_left_softclipping(&curr_alignment_record.record);
-                    assert!(
-                        left_softclipping.0 && left_softclipping.1 == curr_alignment_record.read_start,
-                        "The 5' end of the first alignment (read ID: {}) is softclipped so the alignment's read start position is expected to be the same as the number of softclipped bases.", self.read_id
-                    );
-                    position_1 = get_alignment_start_position(&curr_alignment_record.record) - 1;
-                    position_2 = get_alignment_start_position(&curr_alignment_record.record);
-                    operation_1 = SequenceOperationType::Downstream;
-                    operation_2 = SequenceOperationType::Upstream;
-                    insertion = read_sequence[0..curr_alignment_record.read_start].to_string();
-                    sequence_quality_scores = base_quality_scores[0..curr_alignment_record.read_start].to_vec();
-                }
-
-                let strand: Strand = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
-                    Strand::Reverse
-                } else {
-                    Strand::Forward
+                    let (is_softclipped, softclip_length) = get_left_softclipping(&curr_alignment_record.record);
+                    assert!(is_softclipped, "The 5' end of the first alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(softclip_length, curr_alignment_record.read_start as usize, "Read start position is expected to be the same as the number of soft-clipped bases.");
+                    let reference_position: u32 = get_alignment_start_position(&curr_alignment_record.record) - 1;
+                    (is_softclipped, softclip_length, reference_position)
                 };
-
-                // Exclude the following soft-clipping cases:
-                // - Does not meet the minimum mapping quality
-                // - Does not meet the minimum average base quality
-                // - Single base soft-clipping
-                // - 2 or 3-base soft-clipping with AA, CC, GG, or TT
-                let mut include: bool = true;
-                if min_mapping_quality > curr_alignment_record.record.mapping_quality().unwrap().get() as usize {
-                    include = false;
-                }
-                if min_average_base_quality > calculate_average_base_quality_score(&sequence_quality_scores) {
-                    include = false;
-                }
-                if insertion.len() == 1 {
-                    include = false;
-                }
-                if insertion.len() <= 3 {
-                    if insertion.to_uppercase().contains("AA") ||
-                        insertion.to_uppercase().contains("CC") ||
-                        insertion.to_uppercase().contains("GG") ||
-                        insertion.to_uppercase().contains("TT") {
-                        include = false;
-                    }
-                }
-                if include {
-                    let graph_operation: SequenceOperation = SequenceOperation::new(
-                        chromosome_id,
-                        position_1 as u32,
-                        strand.clone(),
-                        operation_1.clone(),
-                        chromosome_id,
-                        position_2 as u32,
-                        strand.clone(),
-                        operation_1.clone(),
-                        insertion.into_boxed_str(),
-                        SequenceOperationVariantType::Insertion.clone()
-                    );
-                    let variant_record: VariantRecord = VariantRecord::new(
-                        self.read_id,
-                        graph_operation
-                    );
-                    variant_records.push(variant_record);
+                for j in 0..softclip_length {
+                    let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as u32);
+                    alignment_base.set_mapping_quality(mapping_quality);
+                    alignment_base.set_reference_chromosome_id(reference_chromosome_id);
+                    alignment_base.set_reference_position(reference_position);
+                    alignment_base.set_reference_strand(reference_strand.clone());
+                    alignment_base.set_is_soft_clipped(true);
+                    alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
                 }
             }
 
             // Identify soft-clipped insertion in the last alignment
-            if (i == self.alignment_records.len() - 1) && ((curr_alignment_record.read_end) != self.get_read_length() - 1) {
-                let chromosome_id: u16 = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                let read_sequence: Box<str> = get_read_sequence(&curr_alignment_record.record);
-                let base_quality_scores: Vec<u8> = get_base_quality_scores(&curr_alignment_record.record);
-                let position_1: usize;
-                let position_2: usize;
-                let operation_1: SequenceOperationType;
-                let operation_2: SequenceOperationType;
-                let insertion: String;
-                let sequence_quality_scores: Vec<u8>;
-                if curr_alignment_record.record.flags().is_reverse_complemented() {
-                    let left_softclipping: (bool,usize) = get_left_softclipping(&curr_alignment_record.record);
-                    assert!(
-                        left_softclipping.0 && left_softclipping.1 == (self.get_read_length() - curr_alignment_record.read_end - 1),
-                        "The 5' end of the last alignment (read ID: {}) is softclipped so (read length - alignment's last read position - 1) is expected to be the same as the number of softclipped bases.", self.read_id
-                    );
-                    position_1 = get_alignment_start_position(&curr_alignment_record.record) - 1;
-                    position_2 = get_alignment_start_position(&curr_alignment_record.record);
-                    operation_1 = SequenceOperationType::Downstream;
-                    operation_2 = SequenceOperationType::Upstream;
-                    insertion = read_sequence[0..(self.get_read_length() - curr_alignment_record.read_end - 1)].to_string();
-                    sequence_quality_scores = base_quality_scores[0..(self.get_read_length() - curr_alignment_record.read_end - 1)].to_vec();
+            if (i == alignment_records.len() - 1) && ((curr_alignment_record.read_end as usize) != read_sequence.len() - 1) {
+                let (is_softclipped, softclip_length, reference_position) = if reference_strand == Strand::Reverse {
+                    let (is_softclipped, softclip_length) = get_left_softclipping(&curr_alignment_record.record);
+                    assert!(is_softclipped, "The 5' end of the last alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(softclip_length, curr_alignment_record.read_start as usize, "(Read length - alignment's last read position - 1) is expected to match the number of soft-clipped bases.");
+                    let reference_position: u32 = get_alignment_start_position(&curr_alignment_record.record) - 1;
+                    (is_softclipped, softclip_length, reference_position)
                 } else {
-                    let right_softclipping: (bool,usize) = get_right_softclipping(&curr_alignment_record.record);
-                    assert!(
-                        right_softclipping.0 && right_softclipping.1 == (self.get_read_length() - curr_alignment_record.read_end - 1),
-                        "The 3' end of the last alignment (read ID: {}) is softclipped so (read length - alignment's last read position - 1) is expected to be the same as the number of softclipped bases.", self.read_id
-                    );
-                    position_1 = get_alignment_end_position(&curr_alignment_record.record);
-                    position_2 = get_alignment_end_position(&curr_alignment_record.record) + 1;
-                    operation_1 = SequenceOperationType::Downstream;
-                    operation_2 = SequenceOperationType::Upstream;
-                    insertion = read_sequence[curr_alignment_record.read_end+1..self.get_read_length()].to_string();
-                    sequence_quality_scores = base_quality_scores[(curr_alignment_record.read_end + 1)..self.get_read_length()].to_vec();
-                }
-                let strand: Strand = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
-                    Strand::Reverse
-                } else {
-                    Strand::Forward
+                    let (is_softclipped, softclip_length) = get_right_softclipping(&curr_alignment_record.record);
+                    assert!(is_softclipped, "The 3' end of the last alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(softclip_length, curr_alignment_record.read_start as usize, "(Read length - alignment's last read position - 1) is expected to match the number of soft-clipped bases.");
+                    let reference_position = get_alignment_end_position(&curr_alignment_record.record);
+                    (is_softclipped, softclip_length, reference_position)
                 };
-
-                // Exclude the following soft-clipping cases:
-                // - Does not meet the minimum mapping quality
-                // - Does not meet the minimum average base quality
-                // - Single base soft-clipping
-                // - 2 or 3-base soft-clipping with AA, CC, GG, or TT
-                let mut include: bool = true;
-                if min_mapping_quality > curr_alignment_record.record.mapping_quality().unwrap().get() as usize {
-                    include = false;
-                }
-                if min_average_base_quality > calculate_average_base_quality_score(&sequence_quality_scores) {
-                    include = false;
-                }
-                if insertion.len() == 1 {
-                    include = false;
-                }
-                if insertion.len() <= 3 {
-                    if insertion.to_uppercase().contains("AA") ||
-                        insertion.to_uppercase().contains("CC") ||
-                        insertion.to_uppercase().contains("GG") ||
-                        insertion.to_uppercase().contains("TT") {
-                        include = false;
-                    }
-                }
-                if include {
-                    let graph_operation: SequenceOperation = SequenceOperation::new(
-                        chromosome_id,
-                        position_1 as u32,
-                        strand.clone(),
-                        operation_1.clone(),
-                        chromosome_id,
-                        position_2 as u32,
-                        strand.clone(),
-                        operation_2.clone(),
-                        insertion.into_boxed_str(),
-                        SequenceOperationVariantType::Insertion.clone()
-                    );
-                    let variant_record: VariantRecord = VariantRecord::new(
-                        self.read_id,
-                        graph_operation
-                    );
-                    variant_records.push(variant_record);
+                for j in 0..softclip_length {
+                    let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as u32);
+                    alignment_base.set_mapping_quality(mapping_quality);
+                    alignment_base.set_reference_chromosome_id(reference_chromosome_id);
+                    alignment_base.set_reference_position(reference_position);
+                    alignment_base.set_reference_strand(reference_strand.clone());
+                    alignment_base.set_is_soft_clipped(true);
+                    alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
                 }
             }
 
-            // Identify breakpoints (softclipping) between alignments
-            let prev_alignment_mapping_quality: usize = prev_alignment_record.record.mapping_quality().unwrap().get() as usize;
-            let curr_alignment_mapping_quality: usize = curr_alignment_record.record.mapping_quality().unwrap().get() as usize;
-            if i > 0 &&
-                prev_alignment_mapping_quality >= min_mapping_quality &&
-                curr_alignment_mapping_quality >= min_mapping_quality {
-                // Determine the following
-                let bnd_chromosome_1_id: u16;
-                let bnd_chromosome_2_id: u16;
-                let mut bnd_position_1: usize;
-                let mut bnd_position_2: usize;
-                let bnd_operation_1: SequenceOperationType;
-                let bnd_operation_2: SequenceOperationType;
-                let mut insertion: Box<str> = "".to_string().into_boxed_str();
-                let mut insertion_sequence_quality_scores: Vec<u8> = vec![];
-                if !prev_alignment_record.record.flags().is_reverse_complemented() && curr_alignment_record.record.flags().is_reverse_complemented() {
-                    bnd_chromosome_1_id = prev_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_position_1 = prev_alignment_record.record.alignment_end().unwrap().unwrap().get();
-                    bnd_position_2 = curr_alignment_record.record.alignment_end().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationType::Downstream;
-                    bnd_operation_2 = SequenceOperationType::Downstream;
-                } else if prev_alignment_record.record.flags().is_reverse_complemented() && !curr_alignment_record.record.flags().is_reverse_complemented() {
-                    bnd_chromosome_1_id = prev_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_position_1 = prev_alignment_record.record.alignment_start().unwrap().unwrap().get();
-                    bnd_position_2 = curr_alignment_record.record.alignment_start().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationType::Upstream;
-                    bnd_operation_2 = SequenceOperationType::Upstream;
-                } else if !prev_alignment_record.record.flags().is_reverse_complemented() && !curr_alignment_record.record.flags().is_reverse_complemented() {
-                    bnd_chromosome_1_id = prev_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_position_1 = prev_alignment_record.record.alignment_end().unwrap().unwrap().get();
-                    bnd_position_2 = curr_alignment_record.record.alignment_start().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationType::Downstream;
-                    bnd_operation_2 = SequenceOperationType::Upstream;
-                } else {
-                    bnd_chromosome_1_id = prev_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_chromosome_2_id = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
-                    bnd_position_1 = prev_alignment_record.record.alignment_start().unwrap().unwrap().get();
-                    bnd_position_2 = curr_alignment_record.record.alignment_end().unwrap().unwrap().get();
-                    bnd_operation_1 = SequenceOperationType::Upstream;
-                    bnd_operation_2 = SequenceOperationType::Downstream;
-                }
+            // Identify breakpoints (soft-clipping) between alignments
+            if i > 0 {
+                let mut bnd_1_read_position: u32 = prev_alignment_record.read_end;
+                let mut bnd_2_read_position: u32 = curr_alignment_record.read_start;
 
                 // Check if the previous and the current alignments overlap
                 let alignments_overlap: bool = overlaps(
@@ -1435,117 +317,204 @@ impl Alignment {
                         (prev_alignment_record.read_start as isize,prev_alignment_record.read_end as isize),
                         (curr_alignment_record.read_start as isize,curr_alignment_record.read_end as isize)
                     ).unwrap();
-                    insertion = self.original_read_sequence[(overlap_start as usize)..=(overlap_end as usize)].to_string().into_boxed_str();
-                    insertion_sequence_quality_scores = self.quality_scores[(overlap_start as usize)..=(overlap_end as usize)].to_vec();
+                    let insertion: Box<str> = read_sequence[(overlap_start as usize)..=(overlap_end as usize)].to_string().into_boxed_str();
 
-                    if prev_alignment_record.reverse_complemented && curr_alignment_record.reverse_complemented {
-                        insertion = reverse_complement(&*insertion);
-                        insertion_sequence_quality_scores.reverse();
-                    }
-
-                    // Update position 1 by the number of overlapping bases
-                    if bnd_operation_1 == SequenceOperationType::Upstream {
-                        bnd_position_1 = bnd_position_1 + insertion.len();
-                    } else {
-                       bnd_position_1 = bnd_position_1 - insertion.len();
-                    }
-
-                    // Update position 2 by the number of overlapping bases
-                    if bnd_operation_2 == SequenceOperationType::Upstream {
-                        bnd_position_2 = bnd_position_2 + insertion.len();
-                    } else {
-                        bnd_position_2 = bnd_position_2 - insertion.len();
+                    // Retreat read positions by the length of the insertion and mark each an insertion
+                    for j in overlap_start..=overlap_end {
+                        let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as u32);
+                        alignment_base.set_is_embedded_insertion(true);
+                        alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                        bnd_1_read_position -= 1;
+                        bnd_2_read_position += 1;
                     }
                 } else {
-                    // Check if an insertion exists between the breakpoints
-                    if prev_alignment_record.read_end+1 != curr_alignment_record.read_start &&
+                    // Check if an insertion (i.e. unaligned bases) exists between the breakpoints
+                    if prev_alignment_record.read_end + 1 != curr_alignment_record.read_start &&
                         prev_alignment_record.read_end < curr_alignment_record.read_start {
-                        insertion = self.original_read_sequence[(prev_alignment_record.read_end+1)..curr_alignment_record.read_start].to_string().into_boxed_str();
-                        insertion_sequence_quality_scores = self.quality_scores[(prev_alignment_record.read_end+1)..curr_alignment_record.read_start].to_vec();
-                        if prev_alignment_record.reverse_complemented && curr_alignment_record.reverse_complemented {
-                            insertion = reverse_complement(&*insertion);
-                            insertion_sequence_quality_scores.reverse();
+                        let insertion: Box<str> = read_sequence[(prev_alignment_record.read_end as usize) + 1..=(curr_alignment_record.read_start as usize) - 1].to_string().into_boxed_str();
+
+                        // Mark each unaligned base an insertion
+                        for j in (prev_alignment_record.read_end as usize) + 1..=(curr_alignment_record.read_start as usize) - 1 {
+                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as u32);
+                            alignment_base.set_is_embedded_insertion(true);
+                            alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
                         }
                     }
                 }
 
-                // Exclude the insertion if it does not meet the minimum average base quality
-                if insertion != "".into() {
-                    if min_average_base_quality > calculate_average_base_quality_score(&insertion_sequence_quality_scores) {
-                        insertion = "".to_string().into_boxed_str();
-                    }
-                }
+                assert!(bnd_1_read_position < bnd_2_read_position);
 
-                // Determine the strand
-                let bnd_strand_1: Strand = if is_aligned_to_reverse_strand(&prev_alignment_record.record) {
-                    Strand::Reverse
-                } else {
-                    Strand::Forward
+                let bnd_1_base: &AlignmentStructureBase = alignment_structure.get_base(bnd_1_read_position);
+                let bnd_2_base: &AlignmentStructureBase = alignment_structure.get_base(bnd_2_read_position);
+                let bnd_1_operation: GraphOperationType = match bnd_1_base.get_reference_strand().as_ref().unwrap() {
+                    Strand::Forward => GraphOperationType::Downstream,
+                    Strand::Reverse => GraphOperationType::Upstream,
+                    Strand::Both => panic!("Unexpected strand: {}", bnd_1_base.get_reference_strand().as_ref().unwrap().as_str())
                 };
-                let bnd_strand_2: Strand = if is_aligned_to_reverse_strand(&curr_alignment_record.record) {
-                    Strand::Reverse
-                } else {
-                    Strand::Forward
+                let bnd_2_operation: GraphOperationType = match bnd_2_base.get_reference_strand().as_ref().unwrap() {
+                    Strand::Forward => GraphOperationType::Upstream,
+                    Strand::Reverse => GraphOperationType::Downstream,
+                    Strand::Both => panic!("Unexpected strand: {}", bnd_2_base.get_reference_strand().as_ref().unwrap().as_str())
                 };
 
-                // Enforce an order for chromosomes 1 and 2 as well as positions 1 and 2
-                let (chromosome_1_id,position_1,strand_1,orientation_1,chromosome_2_id,position_2,strand_2,orientation_2) =
-                    if bnd_chromosome_1_id < bnd_chromosome_2_id ||
-                        (bnd_chromosome_1_id == bnd_chromosome_2_id && bnd_position_1 < bnd_position_2) {
-                        (
-                            bnd_chromosome_1_id,
-                            bnd_position_1 as u32,
-                            bnd_strand_1.clone(),
-                            bnd_operation_1.clone(),
-                            bnd_chromosome_2_id,
-                            bnd_position_2 as u32,
-                            bnd_strand_2.clone(),
-                            bnd_operation_2.clone()
-                        )
-                    } else {
-                        (
-                            bnd_chromosome_2_id,
-                            bnd_position_2 as u32,
-                            bnd_strand_2.clone(),
-                            bnd_operation_2.clone(),
-                            bnd_chromosome_1_id,
-                            bnd_position_1 as u32,
-                            bnd_strand_1.clone(),
-                            bnd_operation_1.clone()
-                        )
-                    };
-                let graph_operation = SequenceOperation::new(
-                    chromosome_1_id,
-                    position_1,
-                    strand_1,
-                    orientation_1,
-                    chromosome_2_id,
-                    position_2,
-                    strand_2,
-                    orientation_2,
-                    insertion,
-                    SequenceOperationVariantType::Insertion.clone()
+                let alignment_event: AlignmentStructureEvent = AlignmentStructureEvent::new(
+                    AlignmentStructureEventKind::Breakpoint,
+                    bnd_1_read_position,
+                    bnd_2_read_position,
+                    bnd_1_operation.clone(),
+                    bnd_2_operation.clone()
                 );
-                let variant_record = VariantRecord::new(self.read_id, graph_operation);
-                variant_records.push(variant_record);
+
+                alignment_structure.add_event(alignment_event);
             }
             prev_alignment_record = curr_alignment_record;
         }
-        variant_records
     }
-
-    pub fn is_spliced(&self) -> bool {
-        for alignment_record in self.alignment_records.iter() {
-            let cs_tag: String;
-            if let Some(value) = get_tag_value(&alignment_record.record, "cs") {
-                cs_tag = value.to_string();
+    
+    /// Identify local variants (SNVs, insertions, splicing, and deletions).
+    fn identify_local_variants(
+        alignment_structure: &mut AlignmentStructure,
+        alignment_records: &Vec<AlignmentRecord>
+    ) {
+        // Step 1. Update alignment sequence
+        for alignment_record in alignment_records.iter() {
+            let mut reference_position: isize = get_alignment_start_position(&alignment_record.record) as isize - 1;
+            let reference_chromosome_id: u16 = alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
+            let reference_strand: Strand = get_alignment_strand(&alignment_record.record);
+            let mapping_quality: u32 = get_alignment_mapping_quality(&alignment_record.record);
+            let cs_tag: String = get_tag_value(&alignment_record.record, "cs")
+                .expect("Could not find the CS tag.")
+                .to_string();
+            let mut read_position: isize = if reference_strand == Strand::Forward {
+                alignment_record.read_start as isize - 1
             } else {
-                panic!("Could not find the CS tag.");
-            }
-            if cs_tag.contains("~") {
-                return true;
+                alignment_record.read_end as isize + 1
+            };
+
+            // Identify SNVs, insertions, deletions, and splicing in the CS tag
+            let re = Regex::new(r"([:\-+*~=][0-9A-Za-z]+)").unwrap(); // or ([:][0-9]+|[-+*=][A-Za-z]+)
+            for cap in re.captures_iter(&cs_tag) {
+                let token = &cap[0];
+                let mut chars = token.chars();
+                let cs_tag_kind: CSTagKind = CSTagKind::from_str(chars.next().unwrap().to_string().as_str()).unwrap();
+                let payload = chars.as_str();
+
+                match cs_tag_kind {
+                    CSTagKind::Match => {
+                        let length: isize = payload.parse().unwrap();
+                        for _ in 0..length {
+                            read_position += if reference_strand == Strand::Forward { 1 } else { -1 };
+                            reference_position += 1;
+                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(read_position as u32);
+                            alignment_base.set_mapping_quality(mapping_quality);
+                            alignment_base.set_reference_chromosome_id(reference_chromosome_id);
+                            alignment_base.set_reference_position(reference_position as u32);
+                            alignment_base.set_reference_strand(reference_strand.clone());
+                            alignment_base.set_kind(AlignmentStructureBaseKind::Match);
+                        }
+                    },
+                    CSTagKind::Mismatch => {
+                        let alleles: Vec<char> = payload.chars().collect();
+                        assert_eq!(alleles.len(), 2, "1 reference allele and 1 alternate allele expected.");
+                        read_position += if reference_strand == Strand::Forward { 1 } else { -1 };
+                        reference_position += 1;
+                        let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(read_position as u32);
+                        alignment_base.set_mapping_quality(mapping_quality);
+                        alignment_base.set_reference_chromosome_id(reference_chromosome_id);
+                        alignment_base.set_reference_position(reference_position as u32);
+                        alignment_base.set_reference_strand(reference_strand.clone());
+                        alignment_base.set_kind(AlignmentStructureBaseKind::Mismatch);
+                    },
+                    CSTagKind::Insertion => {
+                        let insertion: String = payload.to_string();
+                        let length: usize = insertion.chars().count();
+                        for _ in 0..length {
+                            read_position += if reference_strand == Strand::Forward { 1 } else { -1 };
+                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(read_position as u32);
+                            alignment_base.set_mapping_quality(mapping_quality);
+                            alignment_base.set_reference_chromosome_id(reference_chromosome_id);
+                            alignment_base.set_reference_position(reference_position as u32);
+                            alignment_base.set_reference_strand(reference_strand.clone());
+                            alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                        }
+                    }
+                    CSTagKind::Deletion => {
+                        let length: usize = payload.chars().count();
+                        let read_position_1: u32 = read_position as u32;
+                        let read_position_2: u32 = if reference_strand == Strand::Forward { read_position as u32 + 1 } else { read_position as u32 - 1 };
+                        
+                        let alignment_event: AlignmentStructureEvent = if reference_strand == Strand::Forward {
+                            AlignmentStructureEvent::new(
+                                AlignmentStructureEventKind::Deletion,
+                                read_position_1,
+                                read_position_2,
+                                GraphOperationType::Downstream,
+                                GraphOperationType::Upstream
+                            )
+                        } else {
+                            AlignmentStructureEvent::new(
+                                AlignmentStructureEventKind::Deletion,
+                                read_position_2,
+                                read_position_1,
+                                GraphOperationType::Upstream,
+                                GraphOperationType::Downstream
+                            )
+                        };
+
+                        alignment_structure.add_event(alignment_event);
+
+                        reference_position += length as isize;
+                    }
+                    CSTagKind::Splicing => {
+                        let re_splicing = Regex::new(r"\d+").unwrap();
+                        let caps = re_splicing.find(&payload).expect("No numerical value found");
+
+                        let num_start = caps.start();
+                        let num_end = caps.end();
+
+                        // Extract donor splice site signal (2 letters before the number)
+                        let mut donor_splice_site_signal: Box<str> = payload[num_start - 2..num_start].into();
+
+                        // Extract acceptor splice site signal (2 letters after the number)
+                        let mut acceptor_splice_site_signal: Box<str> = payload[num_end..num_end + 2].into();
+
+                        // Optionally, parse the number
+                        let length: usize = payload[num_start..num_end]
+                            .parse()
+                            .expect("Failed to convert the splicing size number to usize");
+
+                        if reference_strand == Strand::Reverse {
+                            donor_splice_site_signal = reverse_complement(&*donor_splice_site_signal);
+                            acceptor_splice_site_signal = reverse_complement(&*acceptor_splice_site_signal);
+                        }
+
+                        let read_position_1: u32 = read_position as u32;
+                        let read_position_2: u32 = if reference_strand == Strand::Forward { read_position as u32 + 1 } else { read_position as u32 - 1 };
+
+                        let alignment_event: AlignmentStructureEvent = if reference_strand == Strand::Forward {
+                            AlignmentStructureEvent::new(
+                                AlignmentStructureEventKind::Splicing,
+                                read_position_1,
+                                read_position_2,
+                                GraphOperationType::Downstream,
+                                GraphOperationType::Upstream
+                            )
+                        } else {
+                            AlignmentStructureEvent::new(
+                                AlignmentStructureEventKind::Splicing,
+                                read_position_2,
+                                read_position_1,
+                                GraphOperationType::Downstream,
+                                GraphOperationType::Upstream
+                            )
+                        };
+
+                        alignment_structure.add_event(alignment_event);
+
+                        reference_position += length as isize;
+                    }
+                }
             }
         }
-        false
     }
 }

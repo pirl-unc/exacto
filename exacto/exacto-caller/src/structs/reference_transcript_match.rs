@@ -11,17 +11,17 @@
 // limitations under the License.
 
 
+use serde::{Deserialize, Serialize};
 use std::cmp::PartialEq;
 use std::hash::{Hash, Hasher};
-use serde::{Deserialize, Serialize};
-use exacto_util::prelude::Transcript;
 
-use crate::prelude::ReferenceTranscriptScoringMethod;
+use crate::prelude::*;
 
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct ReferenceTranscriptMatch {
-    pub reference_transcript: Transcript,
+    pub reference_gene_id: Box<str>,
+    pub reference_transcript_id: Box<str>,
     pub num_overlap_bases: u32,
     pub num_transcript_only_bases: u32,
     pub num_reference_only_bases: u32,
@@ -31,7 +31,8 @@ pub struct ReferenceTranscriptMatch {
 
 impl PartialEq for ReferenceTranscriptMatch {
     fn eq(&self, other: &Self) -> bool {
-        self.reference_transcript == other.reference_transcript &&
+        self.reference_gene_id == other.reference_gene_id && 
+            self.reference_transcript_id == other.reference_transcript_id &&
             self.num_overlap_bases == other.num_overlap_bases &&
             self.num_transcript_only_bases == other.num_transcript_only_bases &&
             self.num_reference_only_bases == other.num_reference_only_bases &&
@@ -44,7 +45,8 @@ impl Eq for ReferenceTranscriptMatch {}
 
 impl Hash for ReferenceTranscriptMatch {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.reference_transcript.hash(state);
+        self.reference_gene_id.hash(state);
+        self.reference_transcript_id.hash(state);
         self.num_overlap_bases.hash(state);
         self.num_transcript_only_bases.hash(state);
         self.num_reference_only_bases.hash(state);
@@ -55,7 +57,8 @@ impl Hash for ReferenceTranscriptMatch {
 
 impl ReferenceTranscriptMatch {
     pub fn new(
-        reference_transcript: Transcript,
+        reference_gene_id: &str,
+        reference_transcript_id: &str,
         num_overlap_bases: u32,
         num_transcript_only_bases: u32,
         num_reference_only_bases: u32,
@@ -63,7 +66,8 @@ impl ReferenceTranscriptMatch {
         score: f32
     ) -> Self {
         Self {
-            reference_transcript: reference_transcript,
+            reference_gene_id: reference_gene_id.into(),
+            reference_transcript_id: reference_transcript_id.into(),
             num_overlap_bases: num_overlap_bases,
             num_transcript_only_bases: num_transcript_only_bases,
             num_reference_only_bases: num_reference_only_bases,
@@ -76,7 +80,8 @@ impl ReferenceTranscriptMatch {
 impl Clone for ReferenceTranscriptMatch {
     fn clone(&self) -> Self {
         ReferenceTranscriptMatch {
-            reference_transcript: self.reference_transcript.clone(),
+            reference_gene_id: self.reference_gene_id.clone(),
+            reference_transcript_id: self.reference_transcript_id.clone(),
             num_overlap_bases: self.num_overlap_bases,
             num_transcript_only_bases: self.num_transcript_only_bases,
             num_reference_only_bases: self.num_reference_only_bases,

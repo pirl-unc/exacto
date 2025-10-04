@@ -56,11 +56,11 @@ if __name__ == "__main__":
         'chromosome_1': ['chr17'],
         'position_1': [7675976],
         'strand_1': ['*'],
-        'operation_1': ['R'],
+        'operation_1': ['I'],
         'chromosome_2': ['chr17'],
         'position_2': [7675993],
         'strand_2': ['*'],
-        'operation_2': ['R'],
+        'operation_2': ['I'],
         'variant_size': [''],
         'variant_type': ['IRT'],
         'variant_sequence': ['']

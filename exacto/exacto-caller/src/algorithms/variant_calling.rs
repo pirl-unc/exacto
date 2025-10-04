@@ -13,7 +13,7 @@
 
 use bimap::BiMap;
 use edit_distance::edit_distance;
-use exacto_util::prelude::*;
+use exacto_core::prelude::*;
 use interavl::IntervalTree;
 use rayon::prelude::*;
 use std::cmp::{min,max};
@@ -21,12 +21,8 @@ use std::collections::{BTreeMap,HashMap,HashSet};
 use std::sync::Arc;
 use sysinfo::System;
 
-use crate::common::constants::*;
+use crate::prelude::*;
 use crate::log_info;
-use crate::structs::sequence_operation::SequenceOperation;
-use crate::structs::variant_call::VariantCall;
-use crate::structs::variant_record::VariantRecord;
-use crate::structs::variant_record_cluster::VariantRecordCluster;
 
 
 pub fn capture_memory_usage(message: &str) {
@@ -64,6 +60,9 @@ fn calculate_max_distance(size: f32, tau: u32, max_distance: u32) -> u32 {
 /// Both breakpoint pairs must be within `max_breakpoint_distance (or d)` to be considered clusterable.
 /// * `max_interchromosomal_distance` is the maximum distance between two breakpoints for
 /// interchromosomal translocations.
+/// * `stranded` is a boolean indicating whether the variants are stranded. If true, then the
+/// variants must be on the same strand. If false, then the variants can be on the same or
+/// opposite strands.
 pub fn cluster_variant_records(
     variant_records: Vec<Arc<VariantRecord>>,
     num_threads: usize,
@@ -71,11 +70,12 @@ pub fn cluster_variant_records(
     max_ins_norm_edit_distance: f32,
     max_intrachromosomal_distance_tau: u32,
     max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32
+    max_interchromosomal_distance: u32,
+    stranded: bool
 ) -> Vec<VariantCall> {
     // Step 1. Split variant records
-    // Key = (chromosome_1 ID, chromosome ID)
-    let mut variant_records_map: HashMap<(u16,u16),Vec<Arc<VariantRecord>>> = split_variant_records_by_chromosome(
+    // Key = (chromosome_1 ID, chromosome_2 ID)
+    let mut variant_records_map: HashMap<(u16, u16), Vec<Arc<VariantRecord>>> = split_variant_records_by_chromosome(
         variant_records
             .into_iter()
             .map(|rc| Arc::new((*rc).clone()))
@@ -100,7 +100,7 @@ pub fn cluster_variant_records(
 
     // Step 3. Identify variant calls
     let mut variant_calls: Vec<VariantCall> = Vec::new();
-    for ((chromosome_1,chromosome_2), curr_variant_records) in variant_records_map.iter() {
+    for ((chromosome_1, chromosome_2), curr_variant_records) in variant_records_map.iter() {
         // Identify local clusters of variant records using sweep line algorithm
         let clusters: Vec<VariantRecordCluster> = sweep_clusters(
             curr_variant_records.clone(),
@@ -109,7 +109,8 @@ pub fn cluster_variant_records(
             max_intrachromosomal_distance_tau,
             max_intrachromosomal_distance,
             max_interchromosomal_distance,
-            num_threads
+            num_threads,
+            stranded
         );
 
         // Create variant calls
@@ -119,7 +120,7 @@ pub fn cluster_variant_records(
                 .flat_map(|curr_clusters| {
                     let mut curr_variant_calls: Vec<VariantCall> = Vec::new();
                     for curr_cluster in curr_clusters.iter() {
-                        let mut curr_variant_call: VariantCall = VariantCall::new();
+                        let mut curr_variant_call: VariantCall = VariantCall::new(0);
                         for variant_record in curr_cluster.variant_records.iter() {
                             curr_variant_call.add_variant_record((**variant_record).clone());
                         }
@@ -157,6 +158,9 @@ pub fn cluster_variant_records(
 /// interchromosomal translocations.
 /// * If `apply_infinite_sites_assumption` is true, any `a` variant record that shares a breakpoint
 /// (either position_1 or position_2) with any of the `b` variant record will be filtered out.
+/// * `stranded` is a boolean indicating whether the variants are stranded. If true, then the
+/// variants must be on the same strand. If false, then the variants can be on the same or
+/// opposite strands.
 ///
 /// # Returns:
 ///
@@ -171,7 +175,8 @@ pub fn diff_variant_records(
     max_intrachromosomal_distance_tau: u32,
     max_intrachromosomal_distance: u32,
     max_interchromosomal_distance: u32,
-    apply_infinite_sites_assumption: bool
+    apply_infinite_sites_assumption: bool,
+    stranded: bool
 ) -> Vec<Arc<VariantRecord>> {
     if b.is_empty() {
         return a;
@@ -181,11 +186,11 @@ pub fn diff_variant_records(
     log_info!("\tCreating indices");
     capture_memory_usage("\tBefore creating indices");
     let mut position_snv_map: HashSet<(u16,u32)> = HashSet::new();
-    let mut position_1_map: HashMap<(u16, u32, SequenceOperationVariantType),BTreeMap<u32,HashSet<Arc<SequenceOperation>>>> = HashMap::new();
-    let mut position_2_map: HashMap<(u16, u32, SequenceOperationVariantType),BTreeMap<u32,HashSet<Arc<SequenceOperation>>>> = HashMap::new();
+    let mut position_1_map: HashMap<(u16, u32, VariantType),BTreeMap<u32,HashSet<Arc<GraphOperation>>>> = HashMap::new();
+    let mut position_2_map: HashMap<(u16, u32, VariantType),BTreeMap<u32,HashSet<Arc<GraphOperation>>>> = HashMap::new();
     for variant_record in b.iter() {
-        let variant_type: SequenceOperationVariantType = variant_record.get_variant_type();
-        if variant_type == SequenceOperationVariantType::SingleNucleotideVariant {
+        let variant_type: VariantType = variant_record.get_variant_type().clone();
+        if variant_type == VariantType::SingleNucleotideVariant {
             position_snv_map.insert((variant_record.get_chromosome_1(), variant_record.get_position_1()));
         } else {
             let chr1: u16 = variant_record.get_chromosome_1();
@@ -199,13 +204,13 @@ pub fn diff_variant_records(
                 .or_insert_with(BTreeMap::new)
                 .entry(pos1)
                 .or_insert_with(HashSet::new)
-                .insert(Arc::new(variant_record.sequence_operation.clone()));
+                .insert(Arc::new(variant_record.graph_operation.clone()));
             position_2_map
                 .entry((chr2,zipcode2,variant_type.clone()))
                 .or_insert_with(BTreeMap::new)
                 .entry(pos2)
                 .or_insert_with(HashSet::new)
-                .insert(Arc::new(variant_record.sequence_operation.clone()));
+                .insert(Arc::new(variant_record.graph_operation.clone()));
         }
     }
     capture_memory_usage("\tAfter creating indices");
@@ -225,8 +230,8 @@ pub fn diff_variant_records(
                 chunk
                     .par_iter()
                     .filter_map(|variant_a| {
-                        let variant_type: SequenceOperationVariantType = variant_a.get_variant_type();
-                        if variant_type == SequenceOperationVariantType::SingleNucleotideVariant {
+                        let variant_type: VariantType = variant_a.get_variant_type().clone();
+                        if variant_type == VariantType::SingleNucleotideVariant {
                             if position_snv_map.contains(&(variant_a.get_chromosome_1(),variant_a.get_position_1())) {
                                 return None;
                             } else {
@@ -241,17 +246,18 @@ pub fn diff_variant_records(
                             for zipcode in min_zipcode1..=(zipcode1 + 1) {
                                 if let Some(btree) = position_1_map.get(&(chr1,zipcode,variant_type.clone())) {
                                     let results = btree.range(pos1 - max_distance..=pos1 + max_distance);
-                                    for (_, graph_operations) in results {
-                                        for graph_operation in graph_operations.iter() {
+                                    for (_, sequence_operations) in results {
+                                        for sequence_operation in sequence_operations.iter() {
                                             if !is_different(
-                                                &variant_a.sequence_operation,
-                                                graph_operation,
+                                                &variant_a.graph_operation,
+                                                sequence_operation,
                                                 min_size_proportion,
                                                 max_ins_norm_edit_distance,
                                                 max_intrachromosomal_distance_tau,
                                                 max_intrachromosomal_distance,
                                                 max_interchromosomal_distance,
-                                                apply_infinite_sites_assumption
+                                                apply_infinite_sites_assumption,
+                                                stranded
                                             ) {
                                                 return None;
                                             }
@@ -268,17 +274,18 @@ pub fn diff_variant_records(
                             for zipcode in min_zipcode2..=(zipcode2 + 1) {
                                 if let Some(btree) = position_2_map.get(&(chr2,zipcode,variant_type.clone())) {
                                     let results = btree.range(pos2 - max_distance..=pos2 + max_distance);
-                                    for (_, graph_operations) in results {
-                                        for graph_operation in graph_operations.iter() {
+                                    for (_, sequence_operations) in results {
+                                        for sequence_operation in sequence_operations.iter() {
                                             if !is_different(
-                                                &variant_a.sequence_operation,
-                                                graph_operation,
+                                                &variant_a.graph_operation,
+                                                sequence_operation,
                                                 min_size_proportion,
                                                 max_ins_norm_edit_distance,
                                                 max_intrachromosomal_distance_tau,
                                                 max_intrachromosomal_distance,
                                                 max_interchromosomal_distance,
-                                                apply_infinite_sites_assumption
+                                                apply_infinite_sites_assumption,
+                                                stranded
                                             ) {
                                                 return None;
                                             }
@@ -313,6 +320,9 @@ pub fn diff_variant_records(
 /// Both breakpoint pairs must be within `max_breakpoint_distance (or d)` to be considered clusterable.
 /// * `max_interchromosomal_distance` is the maximum distance between two breakpoints for
 /// interchromosomal translocations.
+/// * `stranded` is a boolean indicating whether the variants are stranded. If true, then the
+/// variants must be on the same strand. If false, then the variants can be on the same or
+/// opposite strands.
 ///
 /// # Returns:
 ///
@@ -324,7 +334,8 @@ pub fn is_clusterable(
     max_ins_norm_edit_distance: f32,
     max_intrachromosomal_distance_tau: u32,
     max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32
+    max_interchromosomal_distance: u32,
+    stranded: bool
 ) -> bool {
     // Chromosomes 1 and 2 must be the same
     if a.get_chromosome_1() != b.get_chromosome_1() || a.get_chromosome_2() != b.get_chromosome_2() {
@@ -342,9 +353,11 @@ pub fn is_clusterable(
     }
 
     // The normalized edit distance must be within the allowed limit if they are both insertions
-    if a.get_variant_type() == SequenceOperationVariantType::Insertion {
-        let edit_distance = edit_distance(a.get_sequence(), b.get_sequence()) as f32;
-        let max_size = f32::max(a.get_sequence_length() as f32, b.get_sequence_length() as f32);
+    if a.get_variant_type().clone() == VariantType::Insertion {
+        let a_sequence: String = a.graph_operation.get_standardized_sequence();
+        let b_sequence: String = b.graph_operation.get_standardized_sequence();
+        let edit_distance = edit_distance(a_sequence.as_str(), b_sequence.as_str()) as f32;
+        let max_size = f32::max(a_sequence.len() as f32, b_sequence.len() as f32);
         let normalized_edit_distance: f32 = edit_distance / max_size;
         if normalized_edit_distance > max_ins_norm_edit_distance {
             return false;
@@ -377,6 +390,12 @@ pub fn is_clusterable(
         return false;
     }
 
+    if stranded {
+        if a.get_strand_1() != b.get_strand_1() || a.get_strand_2() != b.get_strand_2() {
+            return false;
+        }
+    }
+
     // If none of the above conditions was met, then the two variant records can be clustered
     true
 }
@@ -401,50 +420,61 @@ pub fn is_clusterable(
 /// interchromosomal translocations.
 /// * If `apply_infinite_sites_assumption` is true, then if `a` shares a breakpoint
 /// (either position_1 or position_2) with `b`, then the return value will be false.
+/// * `stranded` is a boolean indicating whether the variants are stranded. If true, then the
+/// variants must be on the same strand. If false, then the variants can be on the same or
+/// opposite strands.
 ///
 /// # Returns:
 ///
 /// * True is `a` is different from `b`. False otherwise.
 pub fn is_different(
-    graph_operation_1: &SequenceOperation,
-    graph_operation_2: &SequenceOperation,
+    a: &GraphOperation,
+    b: &GraphOperation,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
     max_intrachromosomal_distance_tau: u32,
     max_intrachromosomal_distance: u32,
     max_interchromosomal_distance: u32,
-    apply_infinite_sites_assumption: bool
+    apply_infinite_sites_assumption: bool,
+    stranded: bool
 ) -> bool {
     // Fast early exit for different chromosomes
-    if graph_operation_1.chromosome_1 != graph_operation_2.chromosome_1 &&
-        graph_operation_1.chromosome_2 != graph_operation_2.chromosome_2 {
+    if a.get_chromosome_1() != b.get_chromosome_1() &&
+        a.get_chromosome_2() != b.get_chromosome_2() {
         return true;
     }
 
+    // Strand comparison
+    if stranded {
+        if a.get_strand_1() != b.get_strand_1() || a.get_strand_2() != b.get_strand_2() {
+            return true;
+        }
+    }
+
     // Precompute reusable properties
-    let size_a = graph_operation_1.get_variant_size();
-    let size_b = graph_operation_2.get_variant_size();
+    let size_a = a.get_variant_size();
+    let size_b = b.get_variant_size();
     let max_size = max(size_a, size_b);
     let min_size = min(size_a, size_b);
     let size_proportion = min_size as f32 / max_size as f32;
 
     // Infinite sites assumption
     if apply_infinite_sites_assumption {
-        if (graph_operation_1.chromosome_1 == graph_operation_2.chromosome_1 &&
-            graph_operation_1.position_1 == graph_operation_2.position_1) ||
-            (graph_operation_1.chromosome_2 == graph_operation_2.chromosome_2 &&
-                graph_operation_1.position_2 == graph_operation_2.position_2) {
+        if (a.get_chromosome_1() == b.get_chromosome_1() &&
+            a.get_position_1() == b.get_position_1()) ||
+            (a.get_chromosome_2() == b.get_chromosome_2() &&
+                a.get_position_2() == b.get_position_2()) {
             return false;
         }
     }
 
-    let pos1_distance = graph_operation_1.position_1.abs_diff(graph_operation_2.position_1);
-    let pos2_distance = graph_operation_1.position_2.abs_diff(graph_operation_2.position_2);
+    let pos1_distance = a.get_position_1().abs_diff(b.get_position_1());
+    let pos2_distance = a.get_position_2().abs_diff(b.get_position_2());
 
     // Translocation
-    if graph_operation_1.variant_type == SequenceOperationVariantType::Translocation {
-        if (graph_operation_1.chromosome_1 == graph_operation_2.chromosome_1 && pos1_distance <= max_interchromosomal_distance) ||
-            (graph_operation_1.chromosome_2 == graph_operation_2.chromosome_2 && pos2_distance <= max_interchromosomal_distance) {
+    if a.get_variant_type().clone() == VariantType::Translocation {
+        if (a.get_chromosome_1() == b.get_chromosome_1() && pos1_distance <= max_interchromosomal_distance) ||
+            (a.get_chromosome_2() == b.get_chromosome_2() && pos2_distance <= max_interchromosomal_distance) {
             return false;
         } else {
             return true;
@@ -454,11 +484,13 @@ pub fn is_different(
     let max_distance: u32 = calculate_max_distance(max(size_a, size_b) as f32, max_intrachromosomal_distance_tau, max_intrachromosomal_distance);
 
     // Insertion
-    if graph_operation_1.variant_type == SequenceOperationVariantType::Insertion {
-        let edit_distance: f32 = edit_distance(&*graph_operation_1.sequence, &*graph_operation_2.sequence) as f32;
-        let max_seq_length: f32 = max(graph_operation_1.get_sequence_length(), graph_operation_2.get_sequence_length()) as f32;
+    if a.get_variant_type().clone() == VariantType::Insertion {
+        let a_sequence: String = a.get_standardized_sequence();
+        let b_sequence: String = b.get_standardized_sequence();
+        let edit_distance: f32 = edit_distance(a_sequence.as_str(), b_sequence.as_str()) as f32;
+        let max_seq_length: f32 = max(a.get_sequence_length(), b.get_sequence_length()) as f32;
         let normalized_edit_distance = edit_distance / max_seq_length;
-        if graph_operation_1.chromosome_1 == graph_operation_2.chromosome_1 &&
+        if a.get_chromosome_1() == b.get_chromosome_1() &&
             pos1_distance <= max_distance &&
             size_proportion >= min_size_proportion &&
             normalized_edit_distance <= max_ins_norm_edit_distance {
@@ -469,10 +501,10 @@ pub fn is_different(
     }
 
     // Deletion, breakpoint or MNV
-    if (graph_operation_1.chromosome_1 == graph_operation_2.chromosome_1 &&
+    if (a.get_chromosome_1() == b.get_chromosome_1() &&
         pos1_distance <= max_distance &&
         size_proportion >= min_size_proportion) ||
-        (graph_operation_1.chromosome_2 == graph_operation_2.chromosome_2 &&
+        (a.get_chromosome_2() == b.get_chromosome_2() &&
             pos2_distance <= max_distance &&
             size_proportion >= min_size_proportion) {
         return false;
@@ -549,7 +581,8 @@ pub fn sweep_clusters(
     max_intrachromosomal_distance_tau: u32,
     max_intrachromosomal_distance: u32,
     max_interchromosomal_distance: u32,
-    num_threads: usize
+    num_threads: usize,
+    stranded: bool
 ) -> Vec<VariantRecordCluster> {
     // Step 1. Build a binary search tree
     let mut bst: BTreeMap<usize,Arc<VariantRecord>> = BTreeMap::new();
@@ -596,6 +629,7 @@ pub fn sweep_clusters(
                         max_intrachromosomal_distance_tau,
                         max_intrachromosomal_distance,
                         max_interchromosomal_distance,
+                        stranded
                     ) {
                         let variant_record_1_id: usize = *variant_records_map.get_by_left(variant_record_1).unwrap();
                         let variant_record_2_id: usize = *variant_records_map.get_by_left(variant_record_2).unwrap();

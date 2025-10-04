@@ -12,99 +12,119 @@
 
 
 use bimap::BiMap;
+use exacto_core::prelude::*;
 use serde::{Serialize, Deserialize};
 use std::hash::{Hash, Hasher};
 
-use crate::common::constants::*;
-use crate::structs::sequence_operation::SequenceOperation;
+use crate::prelude::*;
 
 
 #[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
 pub struct VariantRecord {
     pub read_id: usize,
-    pub sequence_operation: SequenceOperation
+    pub read_position_1: u32,
+    pub read_position_2: u32,
+    pub graph_operation: GraphOperation
 }
 
 impl Hash for VariantRecord {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.read_id.hash(state);
-        self.sequence_operation.hash(state);
+        self.read_position_1.hash(state);
+        self.read_position_2.hash(state);
+        self.graph_operation.hash(state);
     }
 }
 
 impl VariantRecord {
     pub fn new(
         read_id: usize,
-        sequence_operation: SequenceOperation
+        read_start_position: u32,
+        read_end_position: u32,
+        sequence_operation: GraphOperation
     ) -> Self {
         Self {
             read_id,
-            sequence_operation
+            read_position_1: read_start_position,
+            read_position_2: read_end_position,
+            graph_operation: sequence_operation
         }
     }
 
     pub fn get_chromosome_1(&self) -> u16 {
-        self.sequence_operation.chromosome_1
+        self.graph_operation.get_chromosome_1()
     }
 
     pub fn get_chromosome_2(&self) -> u16 {
-        self.sequence_operation.chromosome_2
+        self.graph_operation.get_chromosome_2()
     }
 
-    pub fn get_operation_1(&self) -> SequenceOperationType {
-        self.sequence_operation.operation_1.clone()
+    pub fn get_operation_1(&self) -> &GraphOperationType {
+        self.graph_operation.get_operation_type_1()
     }
 
-    pub fn get_operation_2(&self) -> SequenceOperationType {
-        self.sequence_operation.operation_2.clone()
+    pub fn get_operation_2(&self) -> &GraphOperationType {
+        self.graph_operation.get_operation_type_2()
     }
 
     pub fn get_position_1(&self) -> u32 {
-        self.sequence_operation.position_1
+        self.graph_operation.get_position_1()
     }
 
     pub fn get_position_2(&self) -> u32 {
-        self.sequence_operation.position_2
+        self.graph_operation.get_position_2()
     }
 
     pub fn get_read_id(&self) -> usize {
         self.read_id
     }
-
-    pub fn get_sequence_operation(&self) -> &SequenceOperation {
-        &self.sequence_operation
+    
+    pub fn get_read_position_1(&self) -> u32 {
+        self.read_position_1
     }
 
-    pub fn get_sequence_operation_boxed_str(&self) -> Box<str> {
-        self.sequence_operation.as_boxed_str()
+    pub fn get_read_position_2(&self) -> u32 {
+        self.read_position_2
     }
 
-    pub fn get_sequence_operation_named_boxed_str(&self, chromosome_names_map: &BiMap<Box<str>,u16>) -> Box<str> {
-        self.sequence_operation.as_named_boxed_str(chromosome_names_map)
+    pub fn get_graph_operation(&self) -> &GraphOperation {
+        &self.graph_operation
+    }
+
+    pub fn get_graph_operation_boxed_str(&self) -> Box<str> {
+        self.graph_operation.as_boxed_str()
+    }
+
+    pub fn get_graph_operation_named_boxed_str(&self, chromosome_names_map: &BiMap<Box<str>,u16>) -> Box<str> {
+        self.graph_operation.as_named_boxed_str(chromosome_names_map)
     }
 
     pub fn get_sequence(&self) -> &str {
-        &*self.sequence_operation.sequence
+        &*self.graph_operation.get_sequence()
     }
 
     pub fn get_sequence_length(&self) -> usize {
-        self.sequence_operation.get_sequence_length()
+        self.graph_operation.get_sequence_length()
     }
 
-    pub fn get_strand_1(&self) -> Strand {
-        self.sequence_operation.strand_1.clone()
+    pub fn get_standardized_sequence(&self) -> String {
+        self.graph_operation.get_standardized_sequence()
+    }
+    
+    pub fn get_strand_1(&self) -> &Strand {
+        self.graph_operation.get_strand_1()
     }
 
-    pub fn get_strand_2(&self) -> Strand {
-        self.sequence_operation.strand_2.clone()
+    pub fn get_strand_2(&self) -> &Strand {
+        self.graph_operation.get_strand_2()
     }
 
     pub fn get_variant_size(&self) -> isize {
-        self.sequence_operation.get_variant_size()
+        self.graph_operation.get_variant_size()
     }
 
-    pub fn get_variant_type(&self) -> SequenceOperationVariantType {
-        self.sequence_operation.variant_type.clone()
+    pub fn get_variant_type(&self) -> &VariantType {
+        self.graph_operation.get_variant_type()
     }
 }
 
@@ -112,7 +132,9 @@ impl Clone for VariantRecord {
     fn clone(&self) -> Self {
         VariantRecord {
             read_id: self.read_id,
-            sequence_operation: self.sequence_operation.clone()
+            read_position_1: self.read_position_1,
+            read_position_2: self.read_position_2,
+            graph_operation: self.graph_operation.clone()
         }
     }
 }

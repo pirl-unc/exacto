@@ -13,47 +13,57 @@
 
 use std::hash::{Hash, Hasher};
 
-use crate::common::constants::VarGraphStrands;
+use crate::structs::vargraph_port::VarGraphPort;
 
 
 #[derive(Clone,Debug)]
 pub struct VarGraphSegment {
     pub node_id: usize,
-    pub strand: VarGraphStrands,
-    pub sequence: Box<str>,         // sequence in the specified strand
-    pub cs_tag: Box<str>
+    pub node_start: usize,
+    pub node_end: usize,
+    pub node_subsequence: Box<str>,             // in the strand of entry_port.strand
+    pub entry_port: Option<VarGraphPort>,
+    pub exit_port: Option<VarGraphPort>
 }
 
 impl PartialEq for VarGraphSegment {
     fn eq(&self, other: &Self) -> bool {
         self.node_id == other.node_id &&
-            self.strand == other.strand &&
-            self.sequence == other.sequence &&
-            self.cs_tag == other.cs_tag
+            self.node_start == other.node_start &&
+            self.node_end == other.node_end &&
+            self.node_subsequence == other.node_subsequence &&
+            self.entry_port == other.entry_port &&
+            self.exit_port == other.exit_port
     }
 }
 
 impl Hash for VarGraphSegment {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.node_id.hash(state);
-        self.strand.as_str().hash(state);
-        self.sequence.hash(state);
-        self.cs_tag.hash(state);
+        self.node_start.hash(state);
+        self.node_end.hash(state);
+        self.node_subsequence.hash(state);
+        self.entry_port.hash(state);
     }
 }
 
 impl VarGraphSegment {
     pub fn new(
         node_id: usize,
-        strand: VarGraphStrands,
-        sequence: &str,
-        cs_tag: &str
+        node_start: usize,
+        node_end: usize,
+        node_subsequence: &str,
+        entry_port: Option<VarGraphPort>,
+        exit_port: Option<VarGraphPort>
     ) -> Self {
+        assert!(node_start <= node_end);
         VarGraphSegment {
             node_id: node_id,
-            strand: strand,
-            sequence: sequence.to_string().into_boxed_str(),
-            cs_tag: cs_tag.to_string().into_boxed_str()
+            node_start: node_start,
+            node_end: node_end,
+            node_subsequence: node_subsequence.into(),
+            entry_port: entry_port,
+            exit_port: exit_port
         }
     }
 }

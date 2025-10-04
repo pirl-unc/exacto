@@ -13,8 +13,9 @@
 
 use bimap::BiMap;
 use bincode;
+use exacto_core::prelude::*;
 use indicatif::{ProgressBar, ProgressStyle};
-use noodles_bam::{self as bam};
+use noodles_bam as bam;
 use noodles_fasta::io::indexed_reader::Builder;
 use rayon::prelude::*;
 use std::cmp::max;
@@ -28,32 +29,9 @@ use std::sync::Arc;
 use sysinfo::System;
 use tempfile::NamedTempFile;
 
-use crate::algorithms::variant_calling::{
-    cluster_variant_records,
-    diff_variant_records
-};
-use crate::common::bam::*;
-use crate::common::constants::SequenceOperationVariantType;
+use crate::prelude::*;
 use crate::log_info;
-use crate::structs::alignment::Alignment;
-use crate::structs::alignment_record::AlignmentRecord;
-use crate::structs::variant_call::VariantCall;
-use crate::structs::variant_call_set::VariantCallSet;
-use crate::structs::variant_record::VariantRecord;
 
-
-pub fn capture_memory_usage(message: &str) {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-    let pid = sysinfo::get_current_pid().unwrap();
-    if let Some(process) = sys.process(pid) {
-        let memory_usage = process.memory();
-        let memory_usage_gb = memory_usage as f64 / (1024.0 * 1024.0 * 1024.0);
-        log_info!("{}: {:.2} GB", message, memory_usage_gb);
-    } else {
-        log_info!("Could not get process memory usage");
-    }
-}
 
 /// Identify DNA variants.
 ///
@@ -75,8 +53,8 @@ pub fn identify_dna_variants(
     bam_file: &str,
     bam_bai_file: &str,
     min_reads: usize,
-    min_mapping_quality: usize,
-    min_average_base_quality: f32,
+    min_mapping_quality: u32,
+    min_base_quality: u8,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
     max_intrachromosomal_distance_tau: u32,
@@ -85,7 +63,7 @@ pub fn identify_dna_variants(
     num_threads: usize,
     chromosomes: Vec<&str>,
     temp_dir: &str
-) -> VariantCallSet {
+) -> DNAVariantCallSet {
     // Step 1. Get read IDs map
     log_info!("Converting read names to IDs.");
     let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
@@ -136,15 +114,14 @@ pub fn identify_dna_variants(
             .unwrap()
             .progress_chars("=>-")
     );
+    let mut variant_call_idx: usize = 1;
     for (chromosome,curr_regions) in &ordered_regions {
-        capture_memory_usage("[Memory] At the start of a chromosome.");
         let mut variant_records_btree: BTreeMap<usize,HashSet<VariantRecord>> = BTreeMap::new();
         let mut prev_end: isize = 0;
         for (start,end) in curr_regions.iter() {
             log_info!("Identifying variant calls in {}:{}-{}.", chromosome, start, end);
 
             // Fetch BAM records
-            capture_memory_usage("\t[Memory] before fetching BAM records.");
             let mut records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
                 bam_file,
                 bam_bai_file,
@@ -154,7 +131,6 @@ pub fn identify_dna_variants(
                 &read_names_map,
                 num_threads
             );
-            capture_memory_usage("\t[Memory] after fetching BAM records.");
 
             // Identify variant records
             log_info!("\tIdentifying variant records.");
@@ -162,31 +138,34 @@ pub fn identify_dna_variants(
                 records_map
                     .par_iter()
                     .map(|(read_id, records)| {
-                        let read_sequence: Box<str> =  get_original_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
-                        let quality_scores: Vec<u8> = get_original_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
+                        let read_sequence: Box<str> =  get_fastx_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
+                        let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
                         let alignment: Alignment = Alignment::new(
                             *read_id,
-                            read_sequence,
-                            quality_scores,
-                            records.clone()
+                            &*read_sequence,
+                            &quality_scores,
+                            records
                         );
-                        alignment.identify_sequence_variant_records(
+                        let variant_records: Vec<VariantRecord> = alignment
+                            .get_alignment_structure()
+                            .identify_dna_variant_records(
                             min_mapping_quality,
-                            min_average_base_quality
-                        )
+                            min_base_quality
+                        );
+                        variant_records
                     })
                     .flatten()
                     .collect()
             });
+
             records_map.clear();
             records_map.shrink_to_fit();
             drop(records_map);
-            capture_memory_usage("\t[Memory] after identifying variant records.");
 
             // Filter by chromosome (allow inter-chromosomal translocations)
             let chromosome_id: u16 = chromosome_names_map.get_by_left(chromosome).unwrap().clone();
             variant_records.retain(|vr| {
-                if vr.get_variant_type() == SequenceOperationVariantType::Translocation.into() {
+                if vr.get_variant_type().clone() == VariantType::Translocation {
                     if vr.get_chromosome_1() == chromosome_id || vr.get_chromosome_2() == chromosome_id {
                         true
                     } else {
@@ -203,14 +182,12 @@ pub fn identify_dna_variants(
             });
 
             // Add the variant records to the binary search tree
-            capture_memory_usage("\t[Memory] before adding variant records to the binary search tree.");
             for variant_record in variant_records.iter() {
                 variant_records_btree
                     .entry(variant_record.get_position_1() as usize)
                     .or_insert_with(HashSet::new)
                     .insert(variant_record.clone());
             }
-            capture_memory_usage("\t[Memory] after adding variant records to the binary search tree.");
 
             // Keep VariantRecord objects whose position_1 is equal to or greater than (prev_end - padding)
             prev_end = if prev_end - padding < 0 { 0 } else { prev_end - padding };
@@ -222,7 +199,6 @@ pub fn identify_dna_variants(
                 .for_each(|variant_record| {
                     variant_records.insert(variant_record.clone());
                 });
-            capture_memory_usage("\t[Memory] after deduplicating variant records.");
 
             // Update prev_end
             prev_end = *end as isize;
@@ -236,17 +212,20 @@ pub fn identify_dna_variants(
                 max_ins_norm_edit_distance,
                 max_intrachromosomal_distance_tau,
                 max_intrachromosomal_distance,
-                max_interchromosomal_distance
+                max_interchromosomal_distance,
+                false
             );
-            capture_memory_usage("\t[Memory] after clustering variant records into variant calls.");
 
             // Filter variant calls by the minimum read count and then store
             // them into a variant_call_set
             log_info!("\tFiltering variant calls by the minimum read count.");
-            let mut variant_call_set: VariantCallSet = VariantCallSet::new();
-            for variant_call in variant_calls {
+            let mut variant_call_set: DNAVariantCallSet = DNAVariantCallSet::new();
+            for mut variant_call in variant_calls {
                 if variant_call.get_consensus_record().1.len() >= min_reads {
+                    // Rename the variant call ID
+                    variant_call.id = variant_call_idx;
                     variant_call_set.add_variant_call(variant_call);
+                    variant_call_idx += 1;
                 }
             }
 
@@ -267,7 +246,6 @@ pub fn identify_dna_variants(
         }
         variant_records_btree.clear();
         drop(variant_records_btree);
-        capture_memory_usage("[Memory] At the end of a chromosome.");
         pb.inc(1);
     }
     pb.finish_with_message("Completed identifying DNA variants.");
@@ -275,24 +253,27 @@ pub fn identify_dna_variants(
 
     // Step 6. Load all VariantCallSet objects and merge them
     log_info!("Loading all temp files and merging them into a variant call set.");
-    capture_memory_usage("[Memory] Before loading all temp files and merging them into a variant call set.");
-    let mut variant_call_set: VariantCallSet = VariantCallSet::new();
+    let mut variant_calls: HashSet<VariantCall> = HashSet::new();
     for temp_file in temp_files.iter() {
         let mut file = File::open(temp_file.path().to_str().unwrap()).unwrap();
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).unwrap();
-        let variant_call_set_: VariantCallSet = bincode::deserialize(&buffer).expect("Failed to deserialize data");
+        let variant_call_set_: DNAVariantCallSet = bincode::deserialize(&buffer).expect("Failed to deserialize data");
         buffer.clear();
         buffer.shrink_to_fit();
-        for variant_call in variant_call_set_.variant_calls {
-            variant_call_set.add_variant_call(variant_call);
+        for (_,variant_call) in variant_call_set_.variant_calls {
+            variant_calls.insert(variant_call);
         }
     }
-
+    let mut variant_call_set: DNAVariantCallSet = DNAVariantCallSet::new();
+    let mut variant_call_id: usize = 1;
+    for mut variant_call in variant_calls {
+        variant_call.id = variant_call_id;
+        variant_call_set.add_variant_call(variant_call);
+        variant_call_id += 1;
+    }
     variant_call_set.load_read_names(read_names_map);
     variant_call_set.load_chromosome_names(chromosome_names_map);
-
-    capture_memory_usage("[Memory] After loading the entire variant_call_set.");
 
     variant_call_set
 }
@@ -323,8 +304,8 @@ pub fn identify_case_specific_dna_variants(
     control_bam_files: Vec<&str>,
     control_bam_bai_files: Vec<&str>,
     min_reads: usize,
-    min_mapping_quality: usize,
-    min_average_base_quality: f32,
+    min_mapping_quality: u32,
+    min_base_quality: u8,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
     max_intrachromosomal_distance_tau: u32,
@@ -334,7 +315,7 @@ pub fn identify_case_specific_dna_variants(
     num_threads: usize,
     chromosomes: Vec<&str>,
     temp_dir: &str
-) -> VariantCallSet {
+) -> DNAVariantCallSet {
     assert!(control_bam_files.len() == control_bam_bai_files.len());
 
     // Step 1. Get all chromosome IDs and names
@@ -407,16 +388,15 @@ pub fn identify_case_specific_dna_variants(
             .unwrap()
             .progress_chars("=>-")
     );
+    let mut variant_call_idx: usize = 1;
     for chromosome in chromosomes.iter() {
         let start: usize = 1;
         let end: usize = *chromosome_lengths.get(&chromosome.to_string().into_boxed_str()).unwrap();
         let chromosome_id: u16 = chromosome_names_map.get_by_left(&chromosome.to_string().into_boxed_str()).unwrap().clone();
 
-        capture_memory_usage("[Memory] At the start of a chromosome.");
         log_info!("Identifying variant calls in {}:{}-{}.", chromosome, 1, end);
 
         // Fetch case BAM records
-        capture_memory_usage("\t[Memory] before fetching BAM records.");
         let mut case_records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
             case_bam_file,
             case_bam_bai_file,
@@ -426,7 +406,6 @@ pub fn identify_case_specific_dna_variants(
             &case_read_names_map,
             num_threads
         );
-        capture_memory_usage("\t[Memory] after fetching BAM records.");
 
         // Identify case variant records
         log_info!("\tIdentifying case variant records.");
@@ -434,18 +413,21 @@ pub fn identify_case_specific_dna_variants(
             case_records_map
                 .par_iter()
                 .map(|(read_id, records)| {
-                    let read_sequence: Box<str> =  get_original_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
-                    let quality_scores: Vec<u8> = get_original_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
+                    let read_sequence: Box<str> =  get_fastx_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
+                    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
                     let alignment: Alignment = Alignment::new(
                         *read_id,
-                        read_sequence,
-                        quality_scores,
-                        records.clone()
+                        &*read_sequence,
+                        &quality_scores,
+                        records
                     );
-                    alignment.identify_sequence_variant_records(
+                    let variant_records: Vec<VariantRecord> = alignment
+                        .get_alignment_structure()
+                        .identify_dna_variant_records(
                         min_mapping_quality,
-                        min_average_base_quality
-                    )
+                        min_base_quality
+                    );
+                    variant_records
                 })
                 .flatten()
                 .collect()
@@ -453,11 +435,10 @@ pub fn identify_case_specific_dna_variants(
         case_records_map.clear();
         case_records_map.shrink_to_fit();
         drop(case_records_map);
-        capture_memory_usage("\t[Memory] after identifying variant records.");
 
         // Filter by chromosome (allow inter-chromosomal translocations)
         case_variant_records_.retain(|vr| {
-            if vr.get_variant_type() == SequenceOperationVariantType::Translocation.into() {
+            if vr.get_variant_type().clone() == VariantType::Translocation {
                 if vr.get_chromosome_1() == chromosome_id || vr.get_chromosome_2() == chromosome_id {
                     true
                 } else {
@@ -481,7 +462,8 @@ pub fn identify_case_specific_dna_variants(
             max_ins_norm_edit_distance,
             max_intrachromosomal_distance_tau,
             max_intrachromosomal_distance,
-            max_interchromosomal_distance
+            max_interchromosomal_distance,
+            false
         );
 
         // Filter variant calls by the minimum read count
@@ -499,7 +481,6 @@ pub fn identify_case_specific_dna_variants(
         for (i, control_bam_file) in control_bam_files.iter().enumerate() {
             if case_variant_records.is_empty() == false {
                 // Fetch case BAM records
-                capture_memory_usage("\t[Memory] before fetching control BAM records.");
                 let control_bam_bai_file: &str = control_bam_bai_files[i];
                 let mut control_records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
                     control_bam_file,
@@ -510,7 +491,6 @@ pub fn identify_case_specific_dna_variants(
                     &control_read_names_map.get(&control_bam_file.to_string().into_boxed_str()).unwrap(),
                     num_threads
                 );
-                capture_memory_usage("\t[Memory] after fetching control BAM records.");
 
                 // Identify control variant records
                 log_info!("\tIdentifying control variant records.");
@@ -518,18 +498,21 @@ pub fn identify_case_specific_dna_variants(
                     control_records_map
                         .par_iter()
                         .map(|(read_id, records)| {
-                            let read_sequence: Box<str> = get_original_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
-                            let quality_scores: Vec<u8> = get_original_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
+                            let read_sequence: Box<str> = get_fastx_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
+                            let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
                             let alignment: Alignment = Alignment::new(
                                 *read_id,
-                                read_sequence,
-                                quality_scores,
-                                records.clone()
+                                &*read_sequence,
+                                &quality_scores,
+                                records
                             );
-                            alignment.identify_sequence_variant_records(
-                                0,
-                                0f32
-                            )
+                            let variant_records: Vec<VariantRecord> = alignment
+                                .get_alignment_structure()
+                                .identify_dna_variant_records(
+                                min_mapping_quality,
+                                min_base_quality
+                            );
+                            variant_records
                         })
                         .flatten()
                         .collect()
@@ -537,11 +520,10 @@ pub fn identify_case_specific_dna_variants(
                 control_records_map.clear();
                 control_records_map.shrink_to_fit();
                 drop(control_records_map);
-                capture_memory_usage("\t[Memory] after identifying control variant records.");
 
                 // Filter by chromosome (allow inter-chromosomal translocations)
                 control_variant_records.retain(|vr| {
-                    if vr.get_variant_type() == SequenceOperationVariantType::Translocation.into() {
+                    if vr.get_variant_type().clone() == VariantType::Translocation {
                         if vr.get_chromosome_1() == chromosome_id || vr.get_chromosome_2() == chromosome_id {
                             true
                         } else {
@@ -571,7 +553,8 @@ pub fn identify_case_specific_dna_variants(
                     max_intrachromosomal_distance_tau,
                     max_intrachromosomal_distance,
                     max_interchromosomal_distance,
-                    apply_infinite_sites_assumption
+                    apply_infinite_sites_assumption,
+                    false
                 );
             }
         }
@@ -584,14 +567,18 @@ pub fn identify_case_specific_dna_variants(
             max_ins_norm_edit_distance,
             max_intrachromosomal_distance_tau,
             max_intrachromosomal_distance,
-            max_interchromosomal_distance
+            max_interchromosomal_distance,
+            false
         );
 
         log_info!("\tAdd case-specific variant calls to the set.");
-        let mut variant_call_set: VariantCallSet = VariantCallSet::new();
-        for variant_call in variant_calls {
+        let mut variant_call_set: DNAVariantCallSet = DNAVariantCallSet::new();
+        for mut variant_call in variant_calls {
             if variant_call.get_consensus_record().1.len() >= min_reads {
+                // Rename the variant call ID
+                variant_call.id = variant_call_idx;
                 variant_call_set.add_variant_call(variant_call);
+                variant_call_idx += 1;
             }
         }
 
@@ -615,24 +602,27 @@ pub fn identify_case_specific_dna_variants(
 
     // Step 6. Load all VariantCallSet objects and merge them
     log_info!("Loading all temp files and merging them into a variant call set.");
-    capture_memory_usage("[Memory] Before loading all temp files and merging them into a variant call set.");
-    let mut variant_call_set: VariantCallSet = VariantCallSet::new();
+    let mut variant_calls: HashSet<VariantCall> = HashSet::new();
     for temp_file in temp_files.iter() {
         let mut file = File::open(temp_file.path().to_str().unwrap()).unwrap();
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).unwrap();
-        let variant_call_set_: VariantCallSet = bincode::deserialize(&buffer).expect("Failed to deserialize data");
+        let variant_call_set_: DNAVariantCallSet = bincode::deserialize(&buffer).expect("Failed to deserialize data");
         buffer.clear();
         buffer.shrink_to_fit();
-        for variant_call in variant_call_set_.variant_calls {
-            variant_call_set.add_variant_call(variant_call);
+        for (_, variant_call) in variant_call_set_.variant_calls {
+            variant_calls.insert(variant_call);
         }
     }
-
+    let mut variant_call_set: DNAVariantCallSet = DNAVariantCallSet::new();
+    let mut variant_call_id: usize = 1;
+    for mut variant_call in variant_calls {
+        variant_call.id = variant_call_id;
+        variant_call_set.add_variant_call(variant_call);
+        variant_call_id += 1;
+    }
     variant_call_set.load_read_names(case_read_names_map);
     variant_call_set.load_chromosome_names(chromosome_names_map);
-
-    capture_memory_usage("[Memory] After loading the entire variant_call_set.");
 
     variant_call_set
 }

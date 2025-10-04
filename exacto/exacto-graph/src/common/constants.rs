@@ -12,6 +12,7 @@
 
 
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 
 #[repr(u8)]
@@ -64,6 +65,19 @@ impl VarGraphOrientations {
     }
 }
 
+impl FromStr for VarGraphOrientations {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "U" => Ok(VarGraphOrientations::Upstream),
+            "D" => Ok(VarGraphOrientations::Downstream),
+            "*" => Ok(VarGraphOrientations::Any),
+            _ => Err(()),
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
 pub enum VarGraphStrands {
@@ -76,6 +90,18 @@ impl VarGraphStrands {
         match self {
             VarGraphStrands::Forward => "+",
             VarGraphStrands::Reverse => "-"
+        }
+    }
+}
+
+impl FromStr for VarGraphStrands {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "+" => Ok(VarGraphStrands::Forward),
+            "-" => Ok(VarGraphStrands::Reverse),
+            _ => Err(()),
         }
     }
 }
@@ -100,13 +126,18 @@ impl VarGraphEdgeDirections {
 #[repr(u8)]
 #[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
 pub enum VarGraphEdgeAttributeKeys {
-    Direction
+
+    Direction,
+    Orientation,
+    Strand
 }
 
 impl VarGraphEdgeAttributeKeys {
     pub fn as_str(&self) -> &str {
         match self {
-            VarGraphEdgeAttributeKeys::Direction => "DIRECTION"
+            VarGraphEdgeAttributeKeys::Direction => "DIRECTION",
+            VarGraphEdgeAttributeKeys::Orientation => "ORIENTATION",
+            VarGraphEdgeAttributeKeys::Strand => "STRAND"
         }
     }
 }

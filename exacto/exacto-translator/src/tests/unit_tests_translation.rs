@@ -1,4 +1,4 @@
-use exacto_util::common::files::is_gzipped;
+use exacto_core::prelude::*;
 use flate2::read::GzDecoder;
 use noodles_fastq as fastq;
 use std::fs;
@@ -6,13 +6,11 @@ use std::fs::File;
 use std::io::{BufReader,Read};
 use std::path::Path;
 
-use crate::algorithms::translation::translate;
-use crate::structs::rna::RNA;
-use crate::structs::translation_set::TranslationSet;
+use crate::prelude::*;
 
 
 #[test]
-fn translate_rna_fastq_1() {
+fn test_translation_1() {
     // Step 1. Read the RNA FASTQ file
     let fastq_path = Path::new("src/tests/data/fastq/sample200normal_long_read_rna.fastq.gz");
     let fastq_full_path = fs::canonicalize(fastq_path).unwrap();
@@ -49,7 +47,7 @@ fn translate_rna_fastq_1() {
     }
 
     // Step 2. Translate the RNA sequences
-    let translation_set: TranslationSet = translate(
+    let translation_set: TranslationSet = translate_rnas(
         rnas,
         2
     );
@@ -61,10 +59,9 @@ fn translate_rna_fastq_1() {
             if translation.get_longest_orf_peptide().sequence == "MEEPQSDPSVEPPLSQETFSDLWKLLPENNVLSPLPSQAMDDLMLSPDDIEQWFTEDPGPDEAPRMPEAAPPVAPAPAAPTPAAPAPAPSWPLSSSVPSQKTYQGSYGFRLGFLHSGTAKSVTCTYSPALNKMFCQLAKTCPVQLWVDSTPPPGTRVRAMAIYKQSQHMTEVVRRCPHHERCSDSDGLAPPQHLIRVEGNLRVEYLDDRNTFRHSVVVPYEPPEVGSDCTTIHYNYMCNSSCMGGMNRRPILTIITLEDSSGNLLGRNSFEVRVCACPGRDRRTEEENLRKKGEPHHELPPGSTKRALPNNTSSSPQPKKKPLDGEYFTLQIRGRERFEMFRELNEALELKDAQAGKEPGGSRAHSSHLKSKKGQSTSRHKKLMFKTEGPDSD*".into() {
                 found = true;
             }
-            assert!(translation.get_peptides_count() == 19);
+            assert!(translation.get_peptides_count() == 38);
         }
     }
     assert!(found);
     assert!(translation_set.translations.len() == 200);
 }
-

@@ -1,0 +1,33 @@
+[package]
+name = "exacto-core"
+version = "0.4.4"
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bimap = { version = "0.6.3", features = ["serde"] }
+bio = "2.0.3"
+bitvec = "1"
+chrono = "0.4.38"
+env_logger = "0.10"
+flate2 = "1.0.35"
+log = "0.4.22"
+noodles-bam = "0.83.0"
+noodles-bgzf = "0.43.0"
+noodles-core = "0.18.0"
+noodles-fasta = "0.56.0"
+noodles-sam = "0.79.0"
+once_cell = "1.20.2"
+phf = { version = "0.11", features = ["macros"] }
+polars = { version = "0.45.0", features = ["csv","decompress","json","lazy","parquet","serde"] }
+rayon = "1.10.0"
+serde = { version = "1.0.210", features = ["derive"] }
+sysinfo = "0.32.0"
+tempfile = "3.22.0"
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+incremental = true
