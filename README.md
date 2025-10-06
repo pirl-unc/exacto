@@ -106,7 +106,32 @@ exacto call-rna-vars [-h]
     [--transcript-levels TRANSCRIPT_LEVELS [TRANSCRIPT_LEVELS ...]]
 ```
 
-## 05. DNA / RNA Variant Types Identified by Exacto
+## 05. Input Preparation
+
+### DNA variant calling
+
+Exacto performs DNA variant identification using the [cs tag](https://github.com/lh3/minimap2#cs) produced by [minimap2](https://github.com/lh3/minimap2) alignments.
+
+For automated long-read DNA alignment, you can use the Nexus workflow manager:<br/>
+https://github.com/pirl-unc/nexus/tree/main/src/nexuslib/pipelines/alignment/long_read_alignment_minimap2
+
+If you prefer to run `minimap2` outside of Nexus, use the following parameters:
+```
+-ax map-hifi --cs --eqx -Y -L --secondary=no
+```
+
+### RNA variant calling
+
+Exacto identifies RNA variants from assembled transcript models rather than directly from raw reads. 
+You can generate transcript models from long RNA-seq reads using [RNAbloom2](https://github.com/bcgsc/RNA-Bloom). A corresponding `Nexus` workflow for RNAbloom2 is available here:<br/>
+https://github.com/pirl-unc/nexus/tree/main/src/nexuslib/pipelines/assembly/transcriptome_assembly_rnabloom2
+
+After assembling the transcriptome, align the asembled transcripts back to the reference genome using `minimap2` with the following parameters:
+```
+-ax splice:hq -uf --cs --eqx -Y -L --secondary=no
+```
+
+## 06. DNA / RNA Variant Types Identified by Exacto
 
 ### DNA (Somatic and Germline)
 
