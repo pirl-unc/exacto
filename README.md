@@ -8,7 +8,7 @@ identifies genomic and transcriptomic variants from reference-aligned long-read 
 
 ## 01. Docker Container
 Docker images for Exacto can be found here: <br/>
-https://hub.docker.com/repository/docker/ajslee/exacto/general
+https://hub.docker.com/r/ajslee/exacto
 
 ## 02. Dependencies
 - python3 (3.10 tested)
