@@ -34,6 +34,8 @@ pip install exacto-<version>.tar.gz --verbose
 
 ## 04. Usage
 
+Example scripts for running Exacto can be found [here](https://github.com/pirl-unc/exacto/tree/main/examples).
+
 Calling somatic DNA variants from tumor (case) and normal (control) long-read BAM files:
 ```
 exacto call-dna-vars [-h] 
