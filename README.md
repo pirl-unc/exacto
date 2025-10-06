@@ -6,7 +6,11 @@ identifies genomic and transcriptomic variants from reference-aligned long-read 
 [![build](https://github.com/pirl-unc/exacto/actions/workflows/main.yml/badge.svg)](https://github.com/pirl-unc/exacto/actions/workflows/main.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-## 01. Dependencies
+## 01. Docker Container
+Docker images for Exacto can be found here: <br/>
+https://hub.docker.com/repository/docker/ajslee/exacto/general
+
+## 02. Dependencies
 - python3 (3.10 tested)
 - numpy (>=1.22.3)
 - pandas (>=2.0.3)
@@ -16,14 +20,19 @@ identifies genomic and transcriptomic variants from reference-aligned long-read 
 - pytz (>=2024.1)
 - rust
 
-## 02. Installation
+## 03. Installation
 ```
 conda create -n exacto python=3.10
 conda activate exacto
+pip install pysam==0.23.0
+conda install -c conda-forge rust==1.86.0
+conda install -c anaconda pandas==2.2.3
+conda install -c conda-forge polars==1.26.0
+conda install -c conda-forge pyarrow==19.0.1
 pip install exacto-<version>.tar.gz --verbose
 ```
 
-## 03. Usage
+## 04. Usage
 
 Calling somatic DNA variants from tumor (case) and normal (control) long-read BAM files:
 ```
@@ -97,7 +106,7 @@ exacto call-rna-vars [-h]
     [--transcript-levels TRANSCRIPT_LEVELS [TRANSCRIPT_LEVELS ...]]
 ```
 
-## 04. DNA / RNA Variant Types Identified by Exacto
+## 05. DNA / RNA Variant Types Identified by Exacto
 
 ### DNA (Somatic and Germline)
 
