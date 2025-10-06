@@ -34,9 +34,19 @@ pip install exacto-<version>.tar.gz --verbose
 
 ## 04. Usage
 
+| Command         | Description                                     |
+|-----------------|-------------------------------------------------|
+| `annotate`      | Annotate variants                               | 
+| `call-dna-vars` | Perform somatic or germline DNA variant calling |
+| `call-rna-vars` | Perform RNA variant calling                     |
+| `translate`     | Translate full-length RNA reads                 |
+
 Example scripts for running Exacto can be found [here](https://github.com/pirl-unc/exacto/tree/main/examples).
 
-Calling somatic DNA variants from tumor (case) and normal (control) long-read BAM files:
+### Somatic DNA variant calling
+
+Identify somatic DNA variants in a tumor long-read DNA BAM file against a set of normal long-read DNA BAM files:
+
 ```
 exacto call-dna-vars [-h] 
     --bam-file BAM_FILE 
@@ -60,7 +70,10 @@ exacto call-dna-vars [-h]
     [--temp-dir TEMP_DIR]
 ```
 
-Calling germline DNA variants in a long-read BAM:
+### Germline DNA variant calling
+
+Identify germline DNA variants in a long-read DNA BAM file:
+
 ```
 exacto call-dna-vars [-h] 
     --bam-file BAM_FILE 
@@ -82,7 +95,10 @@ exacto call-dna-vars [-h]
     [--temp-dir TEMP_DIR]
 ```
 
-Calling RNA variants in a long-read BAM of assembled transcripts:
+### RNA variant calling
+
+Identify RNA variants in a long-read assembled transcripts BAM file:
+
 ```
 exacto call-rna-vars [-h] 
     --bam-file BAM_FILE
@@ -106,6 +122,21 @@ exacto call-rna-vars [-h]
     [--gene-levels GENE_LEVELS [GENE_LEVELS ...]] 
     [--transcript-types TRANSCRIPT_TYPES [TRANSCRIPT_TYPES ...]]
     [--transcript-levels TRANSCRIPT_LEVELS [TRANSCRIPT_LEVELS ...]]
+```
+
+### Translation
+
+Translate RNA sequences to peptide sequences.
+
+```
+exacto translate [-h] 
+    (--fastq-file FASTQ_FILE | --fasta-file FASTA_FILE | --sequence SEQUENCE) 
+    --strategy {longest_orf,all_orfs} 
+    [--output-tsv-file OUTPUT_TSV_FILE]
+    [--output-fasta-file OUTPUT_FASTA_FILE]
+    [--num-threads NUM_THREADS]
+    [--temp-dir TEMP_DIR]
+    [--gzip GZIP]
 ```
 
 ## 05. Input Preparation
