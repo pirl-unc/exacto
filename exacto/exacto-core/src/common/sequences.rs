@@ -112,7 +112,7 @@ pub fn reverse_complement(sequence: &str) -> Box<str> {
 pub fn translate(
     rna_sequence: &str,
     start_codons: HashSet<&str>
-) -> Vec<(Box<str>,usize,usize,usize)> {
+) -> Vec<(Box<str>, usize, usize, usize)> {
     // Step 1. Convert DNA to RNA
     let rna_sequence_: Box<str> = rna_sequence
         .replace('T', "U")
@@ -133,7 +133,7 @@ pub fn translate(
         }
         let codon: String = rna_sequence_[i..=i+2].to_uppercase();
         if start_codons_.contains(&codon.into_boxed_str()) {
-            start_codon_positions.push((i, i+2));
+            start_codon_positions.push((i as usize, (i+2) as usize));
         }
     }
 
@@ -143,11 +143,11 @@ pub fn translate(
         let mut peptide = String::new();
         let orf_start: usize = *i;
         let mut orf_end: usize = *i;
-        for codon_start in (*i..rna_sequence_.len()).step_by(3) {
-            if codon_start + 2 >= rna_sequence_.len() {
+        for codon_start in (*i..rna_sequence_.len() as usize).step_by(3) {
+            if codon_start + 2 >= rna_sequence_.len() as usize {
                 break;
             }
-            let codon: &str = &rna_sequence_[codon_start..=codon_start + 2].to_uppercase();
+            let codon: &str = &rna_sequence_[codon_start as usize..=(codon_start + 2) as usize].to_uppercase();
             let amino_acid: &str = CODON_TABLE[codon];
             peptide.push_str(amino_acid);
             orf_end = codon_start + 2;
@@ -155,7 +155,7 @@ pub fn translate(
                 break;
             }
         }
-        peptides.push((peptide.clone().into_boxed_str(), orf_start, orf_end, peptide.len()));
+        peptides.push((peptide.clone().into_boxed_str(), orf_start, orf_end, peptide.len() as usize));
     }
 
     peptides

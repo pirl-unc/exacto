@@ -45,7 +45,7 @@ impl IntegratedVariantSet {
         let mut reference_transcript_ids: Vec<String> = Vec::new();
         let mut rna_variant_call_ids: Vec<u64> = Vec::new();
         let mut dna_variant_call_ids: Vec<u64> = Vec::new();
-        let mut distances: Vec<u32> = Vec::new();
+        let mut distances: Vec<u64> = Vec::new();
         let mut rna_variant_positions: Vec<String> = Vec::new();
         let mut dna_variant_positions: Vec<String> = Vec::new();
 
@@ -59,7 +59,7 @@ impl IntegratedVariantSet {
                 reference_transcript_ids.push(reference_transcript_ids_string);
                 rna_variant_call_ids.push(integrated_variant.rna_variant_call_id as u64);
                 dna_variant_call_ids.push(*dna_variant_call_id as u64);
-                distances.push(integrated_variant_distance.distance);
+                distances.push(integrated_variant_distance.distance as u64);
                 rna_variant_positions.push(integrated_variant_distance.rna_variant_position_used.as_str().to_string());
                 dna_variant_positions.push(integrated_variant_distance.dna_variant_position_used.as_str().to_string());
             }
@@ -67,7 +67,7 @@ impl IntegratedVariantSet {
 
         DataFrame::new(vec![
             Column::from(Series::new("transcript_model_id".into(), transcript_model_ids)),
-            Column::from(Series::new("reference_transcript_id".into(), reference_transcript_ids)),
+            Column::from(Series::new("reference_transcript_ids".into(), reference_transcript_ids)),
             Column::from(Series::new("rna_variant_call_id".into(), rna_variant_call_ids)),
             Column::from(Series::new("dna_variant_call_id".into(), dna_variant_call_ids)),
             Column::from(Series::new("distance".into(), distances)),

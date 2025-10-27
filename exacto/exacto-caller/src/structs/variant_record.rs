@@ -19,12 +19,25 @@ use std::hash::{Hash, Hasher};
 use crate::prelude::*;
 
 
-#[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
+#[derive(Debug,Eq,Serialize,Deserialize)]
 pub struct VariantRecord {
     pub read_id: usize,
-    pub read_position_1: u32,
-    pub read_position_2: u32,
+    pub read_position_1: usize,
+    pub read_position_2: usize,
     pub graph_operation: GraphOperation
+}
+
+impl PartialEq for VariantRecord {
+    fn eq(&self, other: &Self) -> bool {
+        if self.read_id == other.read_id &&
+            self.read_position_1 == other.read_position_1 &&
+            self.read_position_2 == other.read_position_2 &&
+            self.graph_operation == other.graph_operation {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Hash for VariantRecord {
@@ -39,8 +52,8 @@ impl Hash for VariantRecord {
 impl VariantRecord {
     pub fn new(
         read_id: usize,
-        read_start_position: u32,
-        read_end_position: u32,
+        read_start_position: usize,
+        read_end_position: usize,
         sequence_operation: GraphOperation
     ) -> Self {
         Self {
@@ -59,6 +72,10 @@ impl VariantRecord {
         self.graph_operation.get_chromosome_2()
     }
 
+    pub fn get_id(&self) -> Box<str> {
+        format!("{}:{}-{}", self.read_id, self.read_position_1, self.read_position_2).into()
+    }
+
     pub fn get_operation_1(&self) -> &GraphOperationType {
         self.graph_operation.get_operation_type_1()
     }
@@ -67,11 +84,11 @@ impl VariantRecord {
         self.graph_operation.get_operation_type_2()
     }
 
-    pub fn get_position_1(&self) -> u32 {
+    pub fn get_position_1(&self) -> usize {
         self.graph_operation.get_position_1()
     }
 
-    pub fn get_position_2(&self) -> u32 {
+    pub fn get_position_2(&self) -> usize {
         self.graph_operation.get_position_2()
     }
 
@@ -79,11 +96,11 @@ impl VariantRecord {
         self.read_id
     }
     
-    pub fn get_read_position_1(&self) -> u32 {
+    pub fn get_read_position_1(&self) -> usize {
         self.read_position_1
     }
 
-    pub fn get_read_position_2(&self) -> u32 {
+    pub fn get_read_position_2(&self) -> usize {
         self.read_position_2
     }
 

@@ -72,6 +72,20 @@ def add_cli_integrate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
              ','.join([str(GeneAnnotationSource.GENCODE)])
     )
     parser_required.add_argument(
+        "--reference-gene-annotation-assembly",
+        dest="reference_gene_annotation_assembly",
+        type=str,
+        required=True,
+        help="Reference gene annotation assembly (e.g. 'hg38')."
+    )
+    parser_required.add_argument(
+        "--reference-gene-annotation-version",
+        dest="reference_gene_annotation_version",
+        type=str,
+        required=True,
+        help="Reference gene annotation version (e.g. 'v41')."
+    )
+    parser_required.add_argument(
         "--output-tsv-file",
         dest="output_tsv_file",
         type=str,
@@ -117,14 +131,6 @@ def add_cli_integrate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
         help="Maximum intergenic distance (default: %i)."
              % INTEGRATE_VARS_MAX_INTERGENIC_DISTANCE
     )
-    parser_optional.add_argument(
-        "--temp-dir",
-        dest="temp_dir",
-        type=str,
-        default="",
-        required=False,
-        help="Temp directory (default: TMPDIR)."
-    )
     parser.set_defaults(which='integrate-vars')
     return sub_parsers
 
@@ -146,17 +152,17 @@ def run_cli_integrate_vars_from_parsed_args(args) -> None:
                     max_intergenic_distance
                     temp_dir
     """
-    pass
-    # integrate_dna_rna_variants(
-    #     annotated_dna_variant_callset_tsv_file=args.annotated_dna_vars_tsv_file,
-    #     rna_variant_callset_tsv_file=args.rna_vars_tsv_file,
-    #     reference_gene_annotation_file=args.reference_gene_annotation_file,
-    #     reference_gene_annotation_source=args.reference_gene_annotation_source,
-    #     output_tsv_file=args.output_tsv_file,
-    #     num_threads=args.num_threads,
-    #     max_exon_offset=args.max_exon_offset,
-    #     max_transcript_boundary_offset=args.max_transcript_boundary_offset,
-    #     max_intergenic_distance=args.max_intergenic_distance,
-    #     temp_dir=args.temp_dir
-    # )
-    #
+    integrate_dna_rna_variants(
+        dna_variant_call_annotation_set_tsv_file=args.annotated_dna_vars_tsv_file,
+        rna_variant_call_set_tsv_file=args.rna_vars_tsv_file,
+        reference_gene_annotation_file=args.reference_gene_annotation_file,
+        reference_gene_annotation_source=args.reference_gene_annotation_source,
+        reference_gene_annotation_assembly=args.reference_gene_annotation_assembly,
+        reference_gene_annotation_version=args.reference_gene_annotation_version,
+        output_tsv_file=args.output_tsv_file,
+        max_exon_offset=args.max_exon_offset,
+        max_transcript_boundary_offset=args.max_transcript_boundary_offset,
+        max_intergenic_distance=args.max_intergenic_distance,
+        num_threads=args.num_threads
+    )
+

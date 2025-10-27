@@ -39,7 +39,6 @@ pub fn annotate_variant_calls(
     transcript_levels: Vec<u8>,
     output_tsv_file: String,
     num_threads: usize,
-    temp_dir: String,
     output_type: String
 ) -> PyResult<PyDataFrame> {
     let gene_annotator = if reference_gene_annotation_source.as_str() == "gencode" {

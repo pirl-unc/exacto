@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+
 use crate::prelude::*;
 
 
@@ -15,6 +16,13 @@ fn test_find_kmers_1() {
             panic!("Unexpected error.")
         }
     }
+}
+
+#[test]
+fn test_find_substring_positions_1() {
+    let value: String = "helloworldhelloworld".to_string();
+    let positions: Vec<usize> = find_substring_positions(value.as_str(), "hello");
+    assert_eq!(positions, vec![0, 10]);
 }
 
 #[test]
@@ -41,7 +49,7 @@ fn test_reverse_complement_2() {
 #[test]
 fn test_translate_1() {
     let rna_sequence: String = "AUGUAG".to_string();
-    let peptides: Vec<(Box<str>,usize,usize,usize)> = translate(
+    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -94,7 +102,7 @@ fn test_translate_3() {
 #[test]
 fn test_translate_4() {
     let rna_sequence: String = "AUGAUUUGCCAUAUCGGGGCGAAC".to_string();
-    let peptides: Vec<(Box<str>,usize,usize,usize)> = translate(
+    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -112,7 +120,7 @@ fn test_translate_4() {
 #[test]
 fn test_translate_5() {
     let rna_sequence: String = "AUGAUUUGCCAUAUCGGGGCGAACUGAAUGAUUUGCCAUAUCGGGGCGAAC".to_string();
-    let peptides: Vec<(Box<str>,usize,usize,usize)> = translate(
+    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -131,7 +139,7 @@ fn test_translate_5() {
 #[test]
 fn test_translate_6() {
     let rna_sequence: String = "AUUAUUAUUAUUAUUAUUAUUAUUAUU".to_string();
-    let peptides: Vec<(Box<str>,usize,usize,usize)> = translate(
+    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -141,7 +149,7 @@ fn test_translate_6() {
 #[test]
 fn test_translate_7() {
     let rna_sequence: String = "ATGGGGCCCATGCCTTAG".to_string();
-    let peptides: Vec<(Box<str>,usize,usize,usize)> = translate(
+    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );

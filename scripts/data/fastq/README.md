@@ -4,16 +4,24 @@
 
 Ground Truth
 
-| Sample ID     | Variant ID | Read Type           | Chromosome 1 | Position 1 | Operation 1 | Chromosome 2 | Position 2  | Operation 2 | Variant Type | Sequence               | Description                                               |
-|---------------|------------|---------------------|--------------|------------|-----|--------------|-------------|------|--------------|--------------------------------|-----------------------------------------------------------|
-| dna-001-tumor | 1          | long-read           | chr17        | 7674224    | D   | chr17        | 7674226     | U    | SNV          | A                              | TP53                                                      |
-| dna-002-tumor | 2          | long-read           | chr17        | 7674225    | D   | chr17        | 7674226     | U    | INS          | ACGTACGTGGTATGCATGCTGAGACTGAGG | TP53                                                      |
-| dna-003-tumor | 3          | long-read           | chr17        | 7674200    | D   | chr17        | 7674231     | U    | DEL          |                                | TP53                                                      |
-| dna-004-tumor | 4          | long-read           | chr17        | 7670399    | D   | chr17        | 7680500     | D    | BND          |                                | Inversion (TP53)                                          |
-| dna-004-tumor | 5          | long-read           | chr17        | 7670400    | U   | chr17        | 7680501     | U    | BND          |                                | Inversion (TP53)                                          |
-| dna-005-tumor | 6          | long-read           | chr17        | 4637154    | D   | chr17        | 7674880     | U    | BND          | TATATACGAGCGTACGTGACTGGTACGTTA | Translocation (ALOX15-TP53)                               |
-| dna-006-tumor | 7          | long-read           | chr17        | 7676155    | D   | chr18        | 5170100     | U    | TRA          |                                | Translocation (TP53-AKAIN1) - interchromosomal breakpoint |
-| dna-007-tumor | 8          | long-read           | chr17        | 7676155    | D   | chr18        | 5170100     | D    | TRA          |                                | Translocation (TP53-AKAIN1) - interchromosomal breakpoint  |
+| Sample ID     | Variant ID | Read Type           | Chromosome 1 | Position 1 | Operation 1 | Chromosome 2 | Position 2  | Operation 2 | Variant Type | Sequence                        | Description                                               |
+|---------------|------------|---------------------|--------------|------------|-------------|--------------|-------------|-------------|--------------|---------------------------------|-----------------------------------------------------------|
+| dna-001-tumor | 1          | long-read           | chr17        | 7674224    | D           | chr17        | 7674226     | U           | SNV          | A                               | TP53 SNV                                                  |
+| dna-002-tumor | 2          | long-read           | chr17        | 7674225    | D           | chr17        | 7674226     | U           | INS          | ACGTACGTGGTATGCATGCTGAGACTGAGG  | TP53 insertion                                            |
+| dna-003-tumor | 3          | long-read           | chr17        | 7674200    | D           | chr17        | 7674231     | U           | DEL          |                                 | TP53 deletion                                             |
+| dna-004-tumor | 4          | long-read           | chr17        | 7670399    | D           | chr17        | 7680500     | D           | BND          |                                 | TP53 inversion                                            |
+| dna-004-tumor | 5          | long-read           | chr17        | 7670400    | U           | chr17        | 7680501     | U           | BND          |                                 | TP53 inversion                                            |
+| dna-005-tumor | 6          | long-read           | chr17        | 4637154    | D           | chr17        | 7674880     | U           | BND          | TATATACGAGCGTACGTGACTGGTACGTTA  | Translocation (ALOX15-TP53)                               |
+| dna-006-tumor | 7          | long-read           | chr17        | 7676155    | D           | chr18        | 5170100     | U           | TRA          |                                 | Translocation (TP53-AKAIN1) - interchromosomal breakpoint |
+| dna-007-tumor | 8          | long-read           | chr17        | 7676155    | D           | chr18        | 5170100     | D           | TRA          |                                 | Translocation (TP53-AKAIN1) - interchromosomal breakpoint |
+| dna-008-tumor | 9          | long-read           | chr17        | 7668421    | U           | chr17        | 7687490     | D           | DUP          |                                 | TP53 duplication                                          |
+| dna-009-tumor | 10         | long-read           | chr17        | 7687490    | D           | chr17        | 7687490     | D           | INVDUP       |                                 | TP53 inverted duplication                                 |
+| dna-009-tumor | 11         | long-read           | chr17        | 7668421    | U           | chr17        | 7687490     | U           | INVDUP       |                                 | TP53 inverted duplication                                 |
+| dna-010-tumor | 12         | long-read           | chr17        | 7687490    | D           | chr17        | 7668421     | U           | INVDUP       |                                 | TP53 inverted duplication                                 |
+| dna-010-tumor | 13         | long-read           | chr17        | 7687490    | D           | chr17        | 7687490     | D           | INVDUP       |                                 | TP53 inverted duplication                                 |
+| dna-010-tumor | 14         | long-read           | chr17        | 7668421    | U           | chr17        | 7687490     | U           | INVDUP       |                                 | TP53 inverted duplication                                 |
+| dna-011-tumor | 15         | long-read           | chr17        | 7687490    | U           | chr17        | 7687491     | U           | INS          | TATCTCGCGAATTCAGCTACTACTACGGGA  | TP53 insertion (softclipped)                              |
+| dna-011-tumor | 16         | long-read           | chr17        | 7668420    | U           | chr17        | 7668421     | U           | INS          | AGCGGCGAATATCAGCTACCTCTTAAGATC  | TP53 insertion (softclipped)                              |
 
 ## RNA Samples
 

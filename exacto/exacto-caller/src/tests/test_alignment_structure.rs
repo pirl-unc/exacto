@@ -651,15 +651,15 @@ fn test_alignment_structure_11() {
 
     let mut num_fusion_gene: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::FusionGene {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::FusionGene {
             num_fusion_gene += 1;
         }
     }
 
-    let variant_records = alignment_structure.identify_rna_variant_records(
+    let variant_records = alignment_structure.identify_variant_records(
         30,
         30,
-        &gene_annotator
+        AnalyteType::RNA
     );
 
     let mut fusion_gene_exists: bool = false;
@@ -761,7 +761,7 @@ fn test_alignment_structure_12() {
 
     let mut num_noncanonical_splicing: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
             num_noncanonical_splicing += 1;
         }
     }
@@ -856,7 +856,7 @@ fn test_alignment_structure_13() {
 
     let mut num_noncanonical_splicing: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
             num_noncanonical_splicing += 1;
         }
     }
@@ -951,7 +951,7 @@ fn test_alignment_structure_14() {
 
     let mut num_noncanonical_splicing: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
             num_noncanonical_splicing += 1;
         }
     }
@@ -1042,7 +1042,7 @@ fn test_alignment_structure_15() {
 
     let mut num_noncanonical_splicing: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
             num_noncanonical_splicing += 1;
         }
     }
@@ -1133,7 +1133,7 @@ fn test_alignment_structure_16() {
 
     let mut num_noncanonical_splicing: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::NonCanonicalSplicing {
             num_noncanonical_splicing += 1;
         }
     }
@@ -1233,15 +1233,15 @@ fn test_alignment_structure_17() {
 
     let mut num_fusion_gene: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::FusionGene {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::FusionGene {
             num_fusion_gene += 1;
         }
     }
 
-    let variant_records: Vec<VariantRecord> = alignment_structure.identify_rna_variant_records(
+    let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(
         30,
         30,
-        &gene_annotator
+        AnalyteType::RNA
     );
 
     assert_eq!(num_fusion_gene, 2);
@@ -1356,15 +1356,15 @@ fn test_alignment_structure_18() {
 
     let mut num_fusion_gene: usize = 0;
     for event in alignment_structure.get_events().values() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::FusionGene {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::FusionGene {
             num_fusion_gene += 1;
         }
     }
 
-    let variant_records: Vec<VariantRecord> = alignment_structure.identify_rna_variant_records(
+    let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(
         30,
         30,
-        &gene_annotator
+        AnalyteType::RNA
     );
 
     assert_eq!(num_fusion_gene, 2);
@@ -1458,7 +1458,7 @@ fn test_alignment_structure_19() {
 
     let mut num_backsplicing: usize = 0;
     for ((i,j),event) in alignment_structure.get_events() {
-        if *event.get_context().unwrap() == AlignmentStructureEventContext::BackSplicing {
+        if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::BackSplicing {
             num_backsplicing += 1;
         }
     }

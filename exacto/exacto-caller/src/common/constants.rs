@@ -16,6 +16,54 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "category", content = "value")]
+pub enum AlignmentStructureKind {
+    Base(AlignmentStructureBaseKind),
+    Event(AlignmentStructureEventKind)
+}
+
+impl AlignmentStructureKind {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AlignmentStructureKind::Base(base_kind) => base_kind.as_str(),
+            AlignmentStructureKind::Event(event_kind) => event_kind.as_str()
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "category", content = "value")]
+pub enum AlignmentStructureContext {
+    Base(AlignmentStructureBaseContext),
+    Event(AlignmentStructureEventContext)
+}
+
+impl AlignmentStructureContext {
+    pub fn as_base(&self) -> Option<&AlignmentStructureBaseContext> {
+        if let AlignmentStructureContext::Base(ref base_ctx) = self {
+            Some(base_ctx)
+        } else {
+            None
+        }
+    }
+
+    pub fn as_event(&self) -> Option<&AlignmentStructureEventContext> {
+        if let AlignmentStructureContext::Event(ref event_ctx) = self {
+            Some(event_ctx)
+        } else {
+            None
+        }
+    }
+    
+    pub fn as_str(&self) -> &str {
+        match self {
+            AlignmentStructureContext::Base(base_context) => base_context.as_str(),
+            AlignmentStructureContext::Event(event_context) => event_context.as_str()
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
 pub enum AlignmentStructureBaseContext {
@@ -38,6 +86,19 @@ impl AlignmentStructureBaseContext {
             AlignmentStructureBaseContext::Exonic => ":",
             AlignmentStructureBaseContext::Intronic => "$",
             AlignmentStructureBaseContext::Intergenic => "",
+        }
+    }
+}
+
+impl FromStr for AlignmentStructureBaseContext {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "exonic" | ":" => Ok(AlignmentStructureBaseContext::Exonic),
+            "intronic" | "$" => Ok(AlignmentStructureBaseContext::Intronic),
+            "intergenic" | "" => Ok(AlignmentStructureBaseContext::Intergenic),
+            _ => Err(())
         }
     }
 }
@@ -71,6 +132,20 @@ impl AlignmentStructureBaseKind {
     }
 }
 
+impl FromStr for AlignmentStructureBaseKind {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "match" | "=" => Ok(AlignmentStructureBaseKind::Match),
+            "mismatch" | "*" => Ok(AlignmentStructureBaseKind::Mismatch),
+            "insertion" | "+" => Ok(AlignmentStructureBaseKind::Insertion),
+            "unaligned" | "X" => Ok(AlignmentStructureBaseKind::Unaligned),
+            _ => Err(())
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
 pub enum AlignmentStructureEventContext {
@@ -84,9 +159,9 @@ impl AlignmentStructureEventContext {
     pub fn as_str(&self) -> &str {
         match self {
             AlignmentStructureEventContext::BackSplicing => "backsplicing",
-            AlignmentStructureEventContext::CanonicalSplicing => "canonical_splicing",
-            AlignmentStructureEventContext::FusionGene => "fusion_gene",
-            AlignmentStructureEventContext::NonCanonicalSplicing => "non_canonical_splicing"
+            AlignmentStructureEventContext::CanonicalSplicing => "canonical",
+            AlignmentStructureEventContext::FusionGene => "fusion",
+            AlignmentStructureEventContext::NonCanonicalSplicing => "noncanonical"
         }
     }
 
@@ -96,6 +171,20 @@ impl AlignmentStructureEventContext {
             AlignmentStructureEventContext::CanonicalSplicing => ">",
             AlignmentStructureEventContext::FusionGene => "@",
             AlignmentStructureEventContext::NonCanonicalSplicing => "^"
+        }
+    }
+}
+
+impl FromStr for AlignmentStructureEventContext {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "backsplicing" | "/" => Ok(AlignmentStructureEventContext::BackSplicing),
+            "canonical" | ">" => Ok(AlignmentStructureEventContext::CanonicalSplicing),
+            "fusion" | "@" => Ok(AlignmentStructureEventContext::FusionGene),
+            "noncanonical" | "^" => Ok(AlignmentStructureEventContext::NonCanonicalSplicing),
+            _ => Err(())
         }
     }
 }
@@ -125,6 +214,48 @@ impl AlignmentStructureEventKind {
             AlignmentStructureEventKind::Deletion => "-",
             AlignmentStructureEventKind::Splicing => "~",
             AlignmentStructureEventKind::Boundary => "|"
+        }
+    }
+}
+
+impl FromStr for AlignmentStructureEventKind {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "breakpoint" | "#" => Ok(AlignmentStructureEventKind::Breakpoint),
+            "deletion" | "-" => Ok(AlignmentStructureEventKind::Deletion),
+            "splicing" | "~" => Ok(AlignmentStructureEventKind::Splicing),
+            "boundary" | "|" => Ok(AlignmentStructureEventKind::Boundary),
+            _ => Err(())
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum AlignmentStructureRecordType {
+    Base,
+    Event
+}
+
+impl AlignmentStructureRecordType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AlignmentStructureRecordType::Base => "base",
+            AlignmentStructureRecordType::Event => "event"
+        }
+    }
+}
+
+impl FromStr for AlignmentStructureRecordType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "base" => Ok(AlignmentStructureRecordType::Base),
+            "event" => Ok(AlignmentStructureRecordType::Event),
+            _ => Err(())
         }
     }
 }
@@ -207,7 +338,8 @@ pub enum GraphOperationType {
     Include,
     Mark,
     Skip,
-    Upstream
+    Upstream,
+    Noop
 }
 
 impl GraphOperationType {
@@ -217,7 +349,8 @@ impl GraphOperationType {
             GraphOperationType::Include => "I",
             GraphOperationType::Mark => "M",
             GraphOperationType::Skip => "S",
-            GraphOperationType::Upstream => "U"
+            GraphOperationType::Upstream => "U",
+            GraphOperationType::Noop => "N"
         }
     }
 }
@@ -232,6 +365,7 @@ impl FromStr for GraphOperationType {
             "M" => Ok(GraphOperationType::Mark),
             "S" => Ok(GraphOperationType::Skip),
             "U" => Ok(GraphOperationType::Upstream),
+            "N" => Ok(GraphOperationType::Noop),
             _ => Err(()),
         }
     }

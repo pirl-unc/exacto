@@ -1,12 +1,14 @@
 [package]
 name = "exacto-translator"
-version = "0.4.4"
+version = "0.4.5"
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-exacto-core = { path = "../exacto-core", version = "0.4.4" }
+exacto-annotator = { path = "../exacto-annotator", version = "0.4.5" }
+exacto-caller = { path = "../exacto-caller", version = "0.4.5" }
+exacto-core = { path = "../exacto-core", version = "0.4.5" }
 flate2 = "1.0"
 noodles-fastq = "0.16.0"
 polars = { version = "0.45.0", features = ["csv","json","lazy","parquet","serde"] }

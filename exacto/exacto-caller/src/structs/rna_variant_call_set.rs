@@ -49,7 +49,7 @@ pub struct RNAVariantCallSet {
     /// Nested structure for position indexing:
     /// - Outer HashMap: Maps chromosome IDs to their position index
     /// - Inner BTreeMap: Maps positions to variant call IDs
-    position_index: HashMap<u16, BTreeMap<u32, HashSet<usize>>>
+    position_index: HashMap<u16, BTreeMap<usize, HashSet<usize>>>
 }
 
 impl RNAVariantCallSet {
@@ -83,8 +83,8 @@ impl RNAVariantCallSet {
         let consensus_record = variant_call.get_consensus_record().0;
         let chromosome_1_id: u16 = consensus_record.get_chromosome_1();
         let chromosome_2_id: u16 = consensus_record.get_chromosome_2();
-        let position_1: u32 = consensus_record.graph_operation.get_position_1();
-        let position_2: u32 = consensus_record.graph_operation.get_position_2();
+        let position_1: usize = consensus_record.graph_operation.get_position_1();
+        let position_2: usize = consensus_record.graph_operation.get_position_2();
 
         // Index the variant by its first breakpoint position
         self.position_index
@@ -138,7 +138,7 @@ impl RNAVariantCallSet {
         variant_calls_map
     }
 
-    pub fn get_variant_calls_by_range(&self, chromosome_id: u16, start: u32, end: u32) -> Vec<&VariantCall> {
+    pub fn get_variant_calls_by_range(&self, chromosome_id: u16, start: usize, end: usize) -> Vec<&VariantCall> {
         let mut result_ids = HashSet::new();
 
         if let Some(position_map) = self.position_index.get(&chromosome_id) {
@@ -184,10 +184,9 @@ impl RNAVariantCallSet {
         let operation_2_col = df.column("operation_2").unwrap().str().unwrap();
         let variant_type_col = df.column("variant_type").unwrap().str().unwrap();
         let variant_sequence_col = df.column("variant_sequence").unwrap().str().unwrap();
-        let consensus_read_names_col_casted = df.column("consensus_read_names").unwrap().cast(&DataType::String).unwrap();
-        let consensus_read_names_col = consensus_read_names_col_casted.str().unwrap();
-        let read_start_position_col = df.column("read_start_position").unwrap().i64().unwrap();
-        let read_end_position_col = df.column("read_end_position").unwrap().i64().unwrap();
+        let consensus_read_names_col = df.column("consensus_read_names").unwrap().str().unwrap();
+        let read_start_col = df.column("read_start").unwrap().i64().unwrap();
+        let read_end_col = df.column("read_end").unwrap().i64().unwrap();
 
         let mut variant_call_set_rna: RNAVariantCallSet = RNAVariantCallSet::new();
 
@@ -205,33 +204,34 @@ impl RNAVariantCallSet {
         // Read names
         let mut read_names: HashSet<Box<str>> = HashSet::new();
         for i in 0 ..df.height() {
-            for read_name in consensus_read_names_col.get(i).unwrap().split(',') {
-                read_names.insert(read_name.into());                
+            let consensus_read_names: Vec<Box<str>> = consensus_read_names_col.get(i).unwrap().split(",").map(|s| s.into()).collect();
+            for consensus_read_name in consensus_read_names {
+                read_names.insert(consensus_read_name);
             }
         }
         let mut read_names_map: BiMap<Box<str>, usize> = BiMap::new();
         for (i,read_name) in read_names.iter().enumerate() {
             read_names_map.insert(read_name.clone(), i);
         }
-        
+
         for i in 0 ..df.height() {
             let variant_call_id: usize = variant_call_id_col.get(i).unwrap() as usize;
             let transcript_model_id: usize = transcript_model_id_col.get(i).unwrap() as usize;
             let mut reference_transcript_ids: Vec<Box<str>> = reference_transcript_ids_col.get(i).unwrap().split(",").map(|s| s.into()).collect();
             reference_transcript_ids.sort();
             let chromosome_1: Box<str> = chromosome_1_col.get(i).unwrap().into();
-            let position_1: u32 = position_1_col.get(i).unwrap() as u32;
+            let position_1: usize = position_1_col.get(i).unwrap() as usize;
             let strand_1: Strand = Strand::from_str(strand_1_col.get(i).unwrap().into()).unwrap();
             let operation_1: GraphOperationType = GraphOperationType::from_str(operation_1_col.get(i).unwrap().into()).unwrap();
             let chromosome_2: Box<str> = chromosome_2_col.get(i).unwrap().into();
-            let position_2: u32 = position_2_col.get(i).unwrap() as u32;
+            let position_2: usize = position_2_col.get(i).unwrap() as usize;
             let strand_2: Strand = Strand::from_str(strand_2_col.get(i).unwrap().into()).unwrap();
             let operation_2: GraphOperationType = GraphOperationType::from_str(operation_2_col.get(i).unwrap().into()).unwrap();
             let variant_type: VariantType = VariantType::from_str(variant_type_col.get(i).unwrap()).unwrap();
             let variant_sequence: Box<str> = variant_sequence_col.get(i).unwrap().into();
-            let consensus_read_names: Vec<Box<str>> = consensus_read_names_col.get(i).unwrap().split(',').map(|s| s.into()).collect();
-            let read_start_position: u32 = read_start_position_col.get(i).unwrap() as u32;
-            let read_end_position: u32 = read_end_position_col.get(i).unwrap() as u32;
+            let consensus_read_names: Box<str> = consensus_read_names_col.get(i).unwrap().into();
+            let read_start: usize = read_start_col.get(i).unwrap() as usize;
+            let read_end: usize = read_end_col.get(i).unwrap() as usize;
 
             let sequence_operation: GraphOperation = GraphOperation::new(
                 *chromosome_names_map.get_by_left(&*chromosome_1).unwrap(),
@@ -247,13 +247,13 @@ impl RNAVariantCallSet {
             );
 
             let mut variant_call: VariantCall = VariantCall::new(variant_call_id);
-            
-            for consensus_read_name in consensus_read_names.iter() {
+
+            for consensus_read_name in consensus_read_names.split(",") {
                 let read_id: usize = *read_names_map.get_by_left(consensus_read_name).unwrap();
                 let variant_record: VariantRecord = VariantRecord::new(
                     read_id,
-                    read_start_position,
-                    read_end_position,
+                    read_start,
+                    read_end,
                     sequence_operation.clone()
                 );
                 variant_call.add_variant_record(variant_record);
@@ -318,22 +318,22 @@ impl RNAVariantCallSet {
                                     transcript_model_id.clone() as u64,
                                     reference_transcript_ids_string,
                                     chromosome_1,
-                                    consensus_record.graph_operation.get_position_1(),
+                                    consensus_record.graph_operation.get_position_1() as u64,
                                     consensus_record.graph_operation.get_strand_1().as_str(),
                                     consensus_record.graph_operation.get_operation_type_1().as_str(),
                                     chromosome_2,
-                                    consensus_record.graph_operation.get_position_2(),
+                                    consensus_record.graph_operation.get_position_2() as u64,
                                     consensus_record.graph_operation.get_strand_2().as_str(),
                                     consensus_record.graph_operation.get_operation_type_2().as_str(),
                                     consensus_record.get_variant_size() as i64,
                                     consensus_record.get_variant_type().as_str().to_string(),
                                     &*consensus_record.graph_operation.get_sequence(),
                                     consensus_read_names.join(","),
-                                    consensus_read_names.len() as u32,
+                                    consensus_read_names.len() as u64,
                                     read_names.join(","),
-                                    read_names.len() as u32,
-                                    consensus_record.read_position_1,
-                                    consensus_record.read_position_2
+                                    read_names.len() as u64,
+                                    consensus_record.read_position_1 as u64,
+                                    consensus_record.read_position_2 as u64
                                 )
                             );
                         }
@@ -344,7 +344,7 @@ impl RNAVariantCallSet {
                 .collect()
         });
 
-        DataFrame::new(vec![
+        let df: DataFrame = DataFrame::new(vec![
             Column::from(Series::new("variant_call_id".into(), rows.iter().map(|r| r.0).collect::<Vec<_>>())),
             Column::from(Series::new("transcript_model_id".into(), rows.iter().map(|r| r.1).collect::<Vec<_>>())),
             Column::from(Series::new("reference_transcript_ids".into(), rows.iter().map(|r| r.2.clone()).collect::<Vec<_>>())),
@@ -363,9 +363,11 @@ impl RNAVariantCallSet {
             Column::from(Series::new("consensus_read_names_count".into(), rows.iter().map(|r| r.15).collect::<Vec<_>>())),
             Column::from(Series::new("read_names".into(), rows.iter().map(|r| r.16.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("read_names_count".into(), rows.iter().map(|r| r.17).collect::<Vec<_>>())),
-            Column::from(Series::new("read_start_position".into(), rows.iter().map(|r| r.18.clone()).collect::<Vec<_>>())),
-            Column::from(Series::new("read_end_position".into(), rows.iter().map(|r| r.19).collect::<Vec<_>>()))
-        ]).unwrap()
+            Column::from(Series::new("read_start".into(), rows.iter().map(|r| r.18.clone()).collect::<Vec<_>>())),
+            Column::from(Series::new("read_end".into(), rows.iter().map(|r| r.19).collect::<Vec<_>>()))
+        ]).unwrap();
+
+        df.sort(["variant_call_id"], SortMultipleOptions::default()).unwrap()
     }
 
     pub fn to_tsv_file(&self, output_file: &str, num_threads: usize) {

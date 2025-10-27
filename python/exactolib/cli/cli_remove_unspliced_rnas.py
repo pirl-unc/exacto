@@ -49,6 +49,13 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
         help="Input BAM file of assembled transcripts."
     )
     parser_required.add_argument(
+        "--bam-bai-file",
+        dest="bam_bai_file",
+        type=str,
+        required=True,
+        help="Input BAM.BAI file of assembled transcripts."
+    )
+    parser_required.add_argument(
         "--fasta-file",
         dest="fasta_file",
         type=str,
@@ -71,8 +78,29 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
              ','.join([str(GeneAnnotationSource.GENCODE)])
     )
     parser_required.add_argument(
+        "--reference-gene-annotation-assembly",
+        dest="reference_gene_annotation_assembly",
+        type=str,
+        required=True,
+        help="Reference gene annotation assembly (e.g. 'hg38')."
+    )
+    parser_required.add_argument(
+        "--reference-gene-annotation-version",
+        dest="reference_gene_annotation_version",
+        type=str,
+        required=True,
+        help="Reference gene annotation version (e.g. 'v41')."
+    )
+    parser_required.add_argument(
         "--output-bam-file",
         dest="output_bam_file",
+        type=str,
+        required=True,
+        help="Output BAM file."
+    )
+    parser_required.add_argument(
+        "--output-bam-bai-file",
+        dest="output_bam_bai_file",
         type=str,
         required=True,
         help="Output BAM file."
@@ -83,13 +111,6 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
         type=str,
         required=True,
         help="Output FASTA file."
-    )
-    parser_required.add_argument(
-        "--output-tsv-file",
-        dest="output_tsv_file",
-        type=str,
-        required=True,
-        help="Output TSV file."
     )
 
     # Optional arguments
@@ -112,6 +133,46 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
         help="Minimum mapping quality (default: %i)."
              % REMOVE_UNSPLICED_RNAS_MIN_MAPPING_QUALITY
     )
+    parser_optional.add_argument(
+        "--gene-types",
+        dest="gene_types",
+        type=str,
+        nargs="+",
+        default=['protein_coding'],
+        action="extend",
+        required=False,
+        help="Reference gene types to include in annotation (default: ['protein_coding'])."
+    )
+    parser_optional.add_argument(
+        "--gene-levels",
+        dest="gene_levels",
+        type=int,
+        nargs="+",
+        default=[1,2],
+        action="extend",
+        required=False,
+        help="Reference gene levels to include in annotation (default: [1,2])."
+    )
+    parser_optional.add_argument(
+        "--transcript-types",
+        dest="transcript_types",
+        type=str,
+        nargs="+",
+        default=['protein_coding'],
+        action="extend",
+        required=False,
+        help="Reference transcript types to include in annotation (default: ['protein_coding'])."
+    )
+    parser_optional.add_argument(
+        "--transcript-levels",
+        dest="transcript_levels",
+        type=int,
+        nargs="+",
+        default=[1,2],
+        action="extend",
+        required=False,
+        help="Reference transcript levels to include in annotation (default: [1,2])."
+    )
     parser.set_defaults(which='remove-unspliced-rnas')
     return sub_parsers
 
@@ -132,17 +193,21 @@ def run_cli_remove_unspliced_rnas_from_parsed_args(args) -> None:
                     num_threads
                     min_mapping_quality
     """
-    pass
-    # integrate_dna_rna_variants(
-    #     annotated_dna_variant_callset_tsv_file=args.annotated_dna_vars_tsv_file,
-    #     rna_variant_callset_tsv_file=args.rna_vars_tsv_file,
-    #     reference_gene_annotation_file=args.reference_gene_annotation_file,
-    #     reference_gene_annotation_source=args.reference_gene_annotation_source,
-    #     output_tsv_file=args.output_tsv_file,
-    #     num_threads=args.num_threads,
-    #     max_exon_offset=args.max_exon_offset,
-    #     max_transcript_boundary_offset=args.max_transcript_boundary_offset,
-    #     max_intergenic_distance=args.max_intergenic_distance,
-    #     temp_dir=args.temp_dir
-    # )
-
+    remove_unspliced_rnas(
+        bam_file=args.bam_file,
+        bam_bai_file=args.bam_bai_file,
+        fasta_file=args.fasta_file,
+        reference_gene_annotation_file=args.reference_gene_annotation_file,
+        reference_gene_annotation_source=GeneAnnotationSource(args.reference_gene_annotation_source),
+        reference_gene_annotation_assembly=args.reference_gene_annotation_assembly,
+        reference_gene_annotation_version=args.reference_gene_annotation_version,
+        gene_types=args.gene_types,
+        gene_levels=args.gene_levels,
+        transcript_types=args.transcript_types,
+        transcript_levels=args.transcript_levels,
+        output_bam_file=args.output_bam_file,
+        output_bam_bai_file=args.output_bam_bai_file,
+        output_fasta_file=args.output_fasta_file,
+        num_threads=args.num_threads,
+        min_mapping_quality=args.min_mapping_quality
+    )

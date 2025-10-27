@@ -10,6 +10,7 @@ extern crate phf;
 extern crate polars;
 extern crate rayon;
 extern crate serde;
+extern crate tempfile;
 
 #[cfg(test)]
 mod tests;

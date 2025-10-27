@@ -91,9 +91,9 @@ impl VariantCall {
     ///
     /// (VariantRecord,read IDs).
     pub fn get_consensus_record(&self) -> (&VariantRecord, Vec<usize>) {
-        let mut map: HashMap<(u16, u32, GraphOperationType, u16, u32, GraphOperationType, Box<str>, VariantType),Vec<&VariantRecord>> = HashMap::new();
+        let mut map: HashMap<(u16, usize, GraphOperationType, u16, usize, GraphOperationType, Box<str>, VariantType),Vec<&VariantRecord>> = HashMap::new();
         for variant_record in self.variant_records.iter() {
-            let key: (u16, u32, GraphOperationType, u16, u32, GraphOperationType, Box<str>, VariantType) = (
+            let key: (u16, usize, GraphOperationType, u16, usize, GraphOperationType, Box<str>, VariantType) = (
                 variant_record.graph_operation.get_chromosome_1(),
                 variant_record.graph_operation.get_position_1(),
                 variant_record.graph_operation.get_operation_type_1().clone(),

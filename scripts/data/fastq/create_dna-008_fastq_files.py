@@ -1,5 +1,3 @@
-import os
-import sys
 import pandas as pd
 import pysam
 from common import *
@@ -20,7 +18,6 @@ if __name__ == "__main__":
     sequence_tumor = str(fasta.fetch(chromosome, 7665000 - 1, 7668421)) + \
                      str(fasta.fetch(chromosome, 7668421 - 1, 7687490)) + \
                      str(fasta.fetch(chromosome, 7668421 - 1, 7687490)) + \
-                     reverse_complement(str(fasta.fetch(chromosome, 7668421 - 1, 7687490))) + \
                      str(fasta.fetch(chromosome, 7687490, 7690000))
 
     # Step 4. Create FASTQ files

@@ -44,12 +44,12 @@ pub fn identify_rna_variants(
     reference_transcript_selection_strategy: String,
     reference_transcript_top_k: usize,
     reference_transcript_threshold: f32,
-    min_mapping_quality: u32,
+    min_mapping_quality: usize,
     min_average_base_quality: u8,
     num_threads: usize,
     temp_dir: String,
     output_type: String
-) -> PyResult<(PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame,PyDataFrame)> {
+) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let gene_annotator = if reference_gene_annotation_source.as_str() == "gencode" {
         let gene_types_: Option<HashSet<&str>> = (!gene_types.is_empty()).then(|| gene_types.iter().map(String::as_str).collect());
         let gene_levels_: Option<HashSet<u8>> = (!gene_levels.is_empty()).then(|| gene_levels.iter().copied().collect());
@@ -90,6 +90,7 @@ pub fn identify_rna_variants(
             let df_matched_reference_transcripts: DataFrame = transcript_model_set.get_reference_transcript_matches_dataframe();
             let df_introns: DataFrame = transcript_model_set.get_introns_dataframe();
             let df_transcripts: DataFrame = transcript_model_set.get_transcripts_dataframe();
+            let df_transcript_structures: DataFrame = transcript_model_set.get_transcript_structures_dataframe();
             let df_variant_calls: DataFrame = transcript_model_set.get_variant_calls_dataframe(num_threads);
             Ok((PyDataFrame(df_exons),
                 PyDataFrame(df_read_filter_status),
@@ -97,6 +98,7 @@ pub fn identify_rna_variants(
                 PyDataFrame(df_matched_reference_transcripts),
                 PyDataFrame(df_introns),
                 PyDataFrame(df_transcripts),
+                PyDataFrame(df_transcript_structures),
                 PyDataFrame(df_variant_calls)))
         }
         "file" => {
@@ -105,6 +107,7 @@ pub fn identify_rna_variants(
                 output_prefix.as_str()
             );
             Ok((PyDataFrame(DataFrame::new(vec![]).unwrap()),
+                PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),

@@ -9,6 +9,7 @@ pub use crate::structs::alignment_record::AlignmentRecord;
 pub use crate::structs::alignment_structure::AlignmentStructure;
 pub use crate::structs::alignment_structure_base::AlignmentStructureBase;
 pub use crate::structs::alignment_structure_event::AlignmentStructureEvent;
+pub use crate::structs::alignment_structure_record::AlignmentStructureRecord;
 pub use crate::structs::graph_operation::GraphOperation;
 pub use crate::structs::mutant_peptide::MutantPeptide;
 pub use crate::structs::mutant_peptides_set::MutantPeptidesSet;

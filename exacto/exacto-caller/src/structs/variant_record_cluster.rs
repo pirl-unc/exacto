@@ -21,20 +21,20 @@ pub struct VariantRecordCluster {
     pub variant_records: Vec<Arc<VariantRecord>>,
     pub chromosome_1: u16,
     pub chromosome_2: u16,
-    pub min_position_1: u32,
-    pub max_position_1: u32,
-    pub min_position_2: u32,
-    pub max_position_2: u32
+    pub min_position_1: usize,
+    pub max_position_1: usize,
+    pub min_position_2: usize,
+    pub max_position_2: usize
 }
 
 impl VariantRecordCluster {
     pub fn new(
         chromosome_1: u16,
         chromosome_2: u16,
-        min_position_1: u32,
-        max_position_1: u32,
-        min_position_2: u32,
-        max_position_2: u32
+        min_position_1: usize,
+        max_position_1: usize,
+        min_position_2: usize,
+        max_position_2: usize
     ) -> Self {
         Self {
             variant_records: Vec::new(),

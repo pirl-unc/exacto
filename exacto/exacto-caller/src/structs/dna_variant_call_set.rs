@@ -41,7 +41,7 @@ pub struct DNAVariantCallSet {
     /// Nested structure for position indexing:
     /// - Outer HashMap: Maps chromosome IDs to their position index
     /// - Inner BTreeMap: Maps positions to variant call IDs
-    position_index: HashMap<u16, BTreeMap<u32, HashSet<usize>>>
+    position_index: HashMap<u16, BTreeMap<usize, HashSet<usize>>>
 }
 
 impl DNAVariantCallSet {
@@ -59,8 +59,8 @@ impl DNAVariantCallSet {
             let consensus_record = variant_call.get_consensus_record().0;
             let chromosome_1_id: u16 = consensus_record.get_chromosome_1();
             let chromosome_2_id: u16 = consensus_record.get_chromosome_2();
-            let position_1: u32 = consensus_record.graph_operation.get_position_1();
-            let position_2: u32 = consensus_record.graph_operation.get_position_2();
+            let position_1: usize = consensus_record.graph_operation.get_position_1();
+            let position_2: usize = consensus_record.graph_operation.get_position_2();
 
             // Index the variant by its first breakpoint position
             self.position_index
@@ -91,7 +91,7 @@ impl DNAVariantCallSet {
         self.variant_calls.values().collect()
     }
 
-    pub fn get_variant_calls_by_range(&self, chromosome_id: u16, start: u32, end: u32) -> Vec<&VariantCall> {
+    pub fn get_variant_calls_by_range(&self, chromosome_id: u16, start: usize, end: usize) -> Vec<&VariantCall> {
         let mut result_ids = HashSet::new();
 
         if let Some(position_map) = self.position_index.get(&chromosome_id) {
@@ -169,20 +169,20 @@ impl DNAVariantCallSet {
                         (
                             variant_call.id as u64,
                             chromosome_1,
-                            consensus_record.graph_operation.get_position_1(),
+                            consensus_record.graph_operation.get_position_1() as u64,
                             consensus_record.graph_operation.get_strand_1().as_str(),
                             consensus_record.graph_operation.get_operation_type_1().as_str(),
                             chromosome_2,
-                            consensus_record.graph_operation.get_position_2(),
+                            consensus_record.graph_operation.get_position_2() as u64,
                             consensus_record.graph_operation.get_strand_2().as_str(),
                             consensus_record.graph_operation.get_operation_type_2().as_str(),
                             consensus_record.get_variant_size() as i64,
                             consensus_record.get_variant_type().as_str().to_string(),
                             consensus_record.get_standardized_sequence(),
                             consensus_read_names.join(","),
-                            consensus_read_names.len() as u32,
+                            consensus_read_names.len() as u64,
                             read_names.join(","),
-                            read_names.len() as u32
+                            read_names.len() as u64
                         )
                     })
                 })

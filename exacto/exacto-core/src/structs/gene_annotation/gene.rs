@@ -22,13 +22,32 @@ pub struct Gene {
     pub gene_id: Box<str>,
     pub source: Box<str>,
     pub chromosome: Box<str>,
-    pub start: u32,
-    pub end: u32,
+    pub start: usize,
+    pub end: usize,
     pub strand: Strand,
     pub gene_name: Box<str>,
     pub level: u8,
     pub gene_type: Box<str>,
-    pub transcripts: HashMap<Box<str>,Transcript>
+    pub transcripts: HashMap<Box<str>, Transcript>
+}
+
+impl PartialEq for Gene {
+    fn eq(&self, other: &Self) -> bool {
+        if self.gene_id == other.gene_id &&
+            self.source == other.source &&
+            self.chromosome == other.chromosome &&
+            self.start == other.start &&
+            self.end == other.end &&
+            self.strand == other.strand &&
+            self.level == other.level &&
+            self.gene_name == other.gene_name &&
+            self.gene_type == other.gene_type &&
+            self.transcripts == other.transcripts {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Gene {
@@ -36,8 +55,8 @@ impl Gene {
         gene_id: &str,
         source: &str,
         chromosome: &str,
-        start: u32,
-        end: u32,
+        start: usize,
+        end: usize,
         strand: Strand,
         gene_name: &str,
         level: u8,
@@ -61,7 +80,7 @@ impl Gene {
         self.transcripts.insert(transcript.transcript_id.clone(), transcript);
     }
 
-    pub fn get_size(&self) -> u32 {
+    pub fn get_size(&self) -> usize {
         self.end - self.start + 1
     }
 

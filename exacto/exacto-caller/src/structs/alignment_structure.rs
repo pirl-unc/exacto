@@ -14,6 +14,7 @@
 use bimap::BiMap;
 use exacto_core::prelude::*;
 use itertools::Itertools;
+use polars::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -29,11 +30,11 @@ pub struct AlignmentStructure {
     
     /// A map between (read_position_1, read_position_2) and its alignment event.
     /// Note that `read_position_1` is smaller than or equal to `read_position_2`.
-    events: HashMap<(u32, u32), AlignmentStructureEvent>,
+    events: HashMap<(usize, usize), AlignmentStructureEvent>,
 
     /// Events index. The key is a read position and the value is another read position
     /// that together appear as a key in `events`.
-    events_index: HashMap<u32, u32>
+    events_index: HashMap<usize, usize>
 }
 
 /// API methods
@@ -82,9 +83,9 @@ impl AlignmentStructure {
 
         // Step 2. Make sure each reference transcript sequence has 1 base that
         // overlaps with one of the self.bases
-        let mut overlaps: HashMap<&str, bool> = HashMap::new();
+        let mut reference_transcript_overlap_map: HashMap<&str, bool> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
-            overlaps.insert(reference_transcript_sequence.get_transcript_id().into(), false);
+            reference_transcript_overlap_map.insert(reference_transcript_sequence.get_transcript_id().into(), false);
         }
         if reference_transcript_sequences.is_empty() == false {
             for base in self.get_bases() {
@@ -93,7 +94,7 @@ impl AlignmentStructure {
                         if base.get_reference_chromosome_id().unwrap() == base_reference.reference_chromosome_id &&
                             base.get_reference_position().unwrap() == base_reference.reference_position &&
                             base.get_reference_strand().as_ref().unwrap().clone() == base_reference.reference_strand {
-                            overlaps.insert(reference_transcript_sequence.get_transcript_id(), true);
+                            reference_transcript_overlap_map.insert(reference_transcript_sequence.get_transcript_id(), true);
                         }
                     }
                 }
@@ -102,7 +103,7 @@ impl AlignmentStructure {
             // Make sure every reference transcript sequence overlaps with one of the self.bases
             for reference_transcript_sequence in reference_transcript_sequences.iter() {
                 assert_eq!(
-                    *overlaps.get(reference_transcript_sequence.get_transcript_id()).unwrap(), true,
+                    *reference_transcript_overlap_map.get(reference_transcript_sequence.get_transcript_id()).unwrap(), true,
                     "None of the ReferenceTranscriptSequence bases for {} overlaps with any of the AlignmentStructure bases.",
                     reference_transcript_sequence.get_transcript_id()
                 );
@@ -110,7 +111,7 @@ impl AlignmentStructure {
         }
 
         // Step 3. Index the positions of the reference transcript sequences
-        let mut reference_transcripts_positions_map: HashMap<(u16, u32, Strand), &ReferenceTranscriptSequence> = HashMap::new();
+        let mut reference_transcripts_positions_map: HashMap<(u16, usize, Strand), &ReferenceTranscriptSequence> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
             for base in reference_transcript_sequence.get_bases() {
                 reference_transcripts_positions_map.insert(
@@ -126,7 +127,7 @@ impl AlignmentStructure {
         for i in 0..self.get_bases_length() {
             let base: &mut AlignmentStructureBase = self.get_mut_base(i);
             if *base.get_kind() != AlignmentStructureBaseKind::Unaligned {
-                let key: (u16, u32, Strand) = (
+                let key: (u16, usize, Strand) = (
                     base.get_reference_chromosome_id().unwrap(),
                     base.get_reference_position().unwrap(),
                     base.get_reference_strand().as_ref().unwrap().clone()
@@ -134,12 +135,26 @@ impl AlignmentStructure {
                 if reference_transcripts_positions_map.contains_key(&key) {
                     let reference_transcript_sequence: &ReferenceTranscriptSequence = reference_transcripts_positions_map.get(&key).unwrap();
                     base.set_context(AlignmentStructureBaseContext::Exonic);
+                    base.set_reference_gene_id(reference_transcript_sequence.get_gene_id().into());
                     base.set_reference_transcript_id(reference_transcript_sequence.get_transcript_id());
+                    let reference_transcript_id: &str = reference_transcript_sequence.get_transcript_id();
+                    let reference_transcript: &Transcript = gene_annotator.get_transcript(reference_transcript_id).unwrap();
+                    let base_reference_position: isize = base.get_reference_position().unwrap() as isize;
+                    for exon in reference_transcript.exons.values() {
+                        let exon_start: isize = exon.start as isize;
+                        let exon_end: isize = exon.end as isize;
+                        if overlaps(base_reference_position, base_reference_position, exon_start, exon_end) {
+                            base.set_reference_exon_id(&*exon.exon_id);
+                            break;
+                        }
+                    }
+                    assert_eq!(base.get_reference_exon_id().is_some(), true);
                 } else {
                     for reference_transcript_sequence in reference_transcript_sequences.iter() {
                         if base.get_reference_position().unwrap() >= reference_transcript_sequence.get_transcript_start() &&
                             base.get_reference_position().unwrap() <= reference_transcript_sequence.get_transcript_end() {
                             base.set_context(AlignmentStructureBaseContext::Intronic);
+                            base.set_reference_gene_id(reference_transcript_sequence.get_gene_id().into());
                             base.set_reference_transcript_id(reference_transcript_sequence.get_transcript_id());
                             break;
                         }
@@ -152,9 +167,9 @@ impl AlignmentStructure {
         }
 
         // Step 5. Identify reference transcript introns
-        let mut reference_transcripts_introns_map: HashMap<u16, HashSet<(u32, u32)>> = HashMap::new();
+        let mut reference_transcripts_introns_map: HashMap<u16, HashSet<(usize, usize)>> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
-            let introns: Vec<(u16, u32, u32)> = reference_transcript_sequence.get_introns();
+            let introns: Vec<(u16, usize, usize)> = reference_transcript_sequence.get_introns();
             for (chromosome_id, start, end) in introns.iter() {
                 reference_transcripts_introns_map
                     .entry(*chromosome_id)
@@ -164,7 +179,7 @@ impl AlignmentStructure {
         }
 
         // Step 6. Identify context of each AlignmentStructureEvent
-        let event_keys: Vec<(u32, u32)> = self.get_events().keys().cloned().collect();
+        let event_keys: Vec<(usize, usize)> = self.get_events().keys().cloned().collect();
         for (read_position_1, read_position_2) in event_keys {
             let base_1: AlignmentStructureBase = self.get_base(read_position_1).clone();
             let base_2: AlignmentStructureBase = self.get_base(read_position_2).clone();
@@ -179,8 +194,8 @@ impl AlignmentStructure {
                 AlignmentStructureEventKind::Splicing => {
                     let reference_chromosome_id: u16 = base_1.get_reference_chromosome_id().unwrap();
                     let reference_strand: Strand = base_1.get_reference_strand().as_ref().unwrap().clone();
-                    let mut reference_start: u32 = base_1.get_reference_position().unwrap();
-                    let mut reference_end: u32 = base_2.get_reference_position().unwrap();
+                    let mut reference_start: usize = base_1.get_reference_position().unwrap();
+                    let mut reference_end: usize = base_2.get_reference_position().unwrap();
                     if reference_strand == Strand::Forward {
                         reference_start = reference_start + 1;
                         reference_end = reference_end - 1;
@@ -207,13 +222,13 @@ impl AlignmentStructure {
                 },
                 AlignmentStructureEventKind::Breakpoint => {
                     if base_1.get_reference_chromosome_id().unwrap() == base_2.get_reference_chromosome_id().unwrap() {
-                        let left_bases_set: HashSet<(u16, u32)> = (0..=read_position_1 as usize)
+                        let left_bases_set: HashSet<(u16, usize)> = (0..=read_position_1 as usize)
                             .map(|i| {
-                                let base = self.get_base(i as u32);
+                                let base = self.get_base(i as usize);
                                 (base.get_reference_chromosome_id().unwrap(), base.get_reference_position().unwrap())
                             })
                             .collect();
-                        let right_bases_set: HashSet<(u16, u32)> = (read_position_2..self.get_bases_length())
+                        let right_bases_set: HashSet<(u16, usize)> = (read_position_2..self.get_bases_length())
                             .map(|i| {
                                 let base = self.get_base(i);
                                 (base.get_reference_chromosome_id().unwrap(), base.get_reference_position().unwrap())
@@ -241,7 +256,7 @@ impl AlignmentStructure {
         }
 
         // Step 7. Identify skipped reference transcript bases
-        let mut reference_transcripts_bases: HashMap<(u16, u32, &Strand), (&str, &ReferenceBase)> = HashMap::new();
+        let mut reference_transcripts_bases: HashMap<(u16, usize, &Strand), (&str, &ReferenceBase)> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
             for base in reference_transcript_sequence.get_bases() {
                 reference_transcripts_bases.insert(
@@ -250,7 +265,7 @@ impl AlignmentStructure {
                 );
             }
         }
-        let alignment_structure_bases: HashSet<(u16, u32, &Strand)> = self
+        let alignment_structure_bases: HashSet<(u16, usize, &Strand)> = self
             .get_bases()
             .iter()
             .map(|base|
@@ -259,7 +274,7 @@ impl AlignmentStructure {
                  base.get_reference_strand().as_ref().unwrap())
             )
             .collect();
-        let mut reference_transcript_bases_skipped: HashSet<(u16, u32, &Strand)> = reference_transcripts_bases
+        let mut reference_transcript_bases_skipped: HashSet<(u16, usize, &Strand)> = reference_transcripts_bases
             .keys()
             .cloned()
             .filter(|pos| !alignment_structure_bases.contains(pos))
@@ -267,10 +282,10 @@ impl AlignmentStructure {
             .collect();
 
         // Step 8. Get the alignment structure base reference positions and sort them
-        let mut base_reference_positions_map: HashMap<Box<str>, Vec<(u32, u32)>> = HashMap::new();
+        let mut base_reference_positions_map: HashMap<Box<str>, Vec<(usize, usize)>> = HashMap::new();
         for ((read_position_1, read_position_2), event) in self.get_events() {
             if event.get_kind() == &AlignmentStructureEventKind::Splicing {
-                if *event.get_context().unwrap() == AlignmentStructureEventContext::CanonicalSplicing {
+                if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::CanonicalSplicing {
                     continue;
                 }
             }
@@ -326,7 +341,7 @@ impl AlignmentStructure {
         // Step 9. Identify the closet event for each skipped reference transcript base
         // Key: (chromosome ID, reference position, reference strand)
         // Value: (read position 1, read position 2)
-        let mut events_map: HashMap<(u16, u32, &Strand), (u32, u32)> = HashMap::new();
+        let mut events_map: HashMap<(u16, usize, &Strand), (usize, usize)> = HashMap::new();
         for (reference_chromosome_id, reference_position, reference_strand) in reference_transcript_bases_skipped.iter() {
             let reference_transcript_id: Box<str> = reference_transcripts_bases
                 .get(&(*reference_chromosome_id, *reference_position, reference_strand))
@@ -335,8 +350,8 @@ impl AlignmentStructure {
                 .into();
 
             // Identify the closest base
-            let vec: &Vec<(u32, u32)> = base_reference_positions_map.get(&reference_transcript_id).unwrap();
-            let closest_read_position: u32 = match vec.binary_search_by_key(reference_position, |&(_, base_reference_position)| base_reference_position) {
+            let vec: &Vec<(usize, usize)> = base_reference_positions_map.get(&reference_transcript_id).unwrap();
+            let closest_read_position: usize = match vec.binary_search_by_key(reference_position, |&(_, base_reference_position)| base_reference_position) {
                 Ok(idx) => {
                     vec[idx].0
                 },
@@ -346,10 +361,10 @@ impl AlignmentStructure {
                     } else if idx == vec.len() {
                         vec[vec.len() - 1].0
                     } else {
-                        let read_position_1: u32 = vec[idx-1].0;
-                        let read_position_2: u32 = vec[idx].0;
-                        let reference_position_1: u32 = vec[idx-1].1;
-                        let reference_position_2: u32 = vec[idx].1;
+                        let read_position_1: usize = vec[idx-1].0;
+                        let read_position_2: usize = vec[idx].0;
+                        let reference_position_1: usize = vec[idx-1].1;
+                        let reference_position_2: usize = vec[idx].1;
                         if reference_position.abs_diff(reference_position_1) <= reference_position.abs_diff(reference_position_2) {
                             read_position_1
                         } else {
@@ -376,7 +391,7 @@ impl AlignmentStructure {
                 );
             } else {
                 assert!(self.events_index.contains_key(&closest_read_position), "Event does not exist for base position {}. Skipped reference position: {}:{}", closest_read_position, reference_chromosome_id, reference_position);
-                let closest_read_position_2: u32 = *self.events_index.get(&closest_read_position).unwrap();
+                let closest_read_position_2: usize = *self.events_index.get(&closest_read_position).unwrap();
                 assert!(self.has_event_between(closest_read_position, closest_read_position_2), "Event does not exist between bases {} and {}", closest_read_position, closest_read_position_2);
                 events_map.insert(
                     (*reference_chromosome_id, *reference_position, reference_strand), (closest_read_position, closest_read_position_2)
@@ -390,11 +405,11 @@ impl AlignmentStructure {
         for ((chromosome_id, reference_position, reference_strand), (read_position_1, read_position_2)) in events_map.iter() {
             let reference_base: &ReferenceBase = reference_transcripts_bases.get(&(*chromosome_id, *reference_position, reference_strand)).unwrap().1;
             assert!(self.has_event_between(*read_position_1, *read_position_2) == true);
-            self.get_mut_event(*read_position_1, *read_position_2).add_reference_base(reference_base.clone());
+            self.get_mut_event(*read_position_1, *read_position_2).add_skipped_reference_base(reference_base.clone());
         }
     }
 
-    pub fn get_base(&self, read_position: u32) -> &AlignmentStructureBase {
+    pub fn get_base(&self, read_position: usize) -> &AlignmentStructureBase {
         self.bases.get(read_position as usize).unwrap()
     }
 
@@ -402,13 +417,13 @@ impl AlignmentStructure {
         &self.bases
     }
 
-    pub fn get_bases_length(&self) -> u32 {
-        self.bases.len() as u32
+    pub fn get_bases_length(&self) -> usize {
+        self.bases.len() as usize
     }
     
     pub fn get_event(&self,
-        read_position_1: u32,
-        read_position_2: u32
+        read_position_1: usize,
+        read_position_2: usize
     ) -> &AlignmentStructureEvent {
         if read_position_1 < read_position_2 {
             self.events
@@ -421,17 +436,17 @@ impl AlignmentStructure {
         }
     }
 
-    pub fn get_events(&self) -> &HashMap<(u32, u32), AlignmentStructureEvent> {
+    pub fn get_events(&self) -> &HashMap<(usize, usize), AlignmentStructureEvent> {
         &self.events
     }
 
-    pub fn get_event_at_read_position(&self, read_position: u32) -> &AlignmentStructureEvent {
+    pub fn get_event_at_read_position(&self, read_position: usize) -> &AlignmentStructureEvent {
         let read_position_2 = self.events_index.get(&read_position).unwrap();
         self.get_event(read_position, *read_position_2)
     }
     
-    pub fn get_events_of_kind(&self, kind: AlignmentStructureEventKind) -> Vec<(u32, u32, &AlignmentStructureEvent)> {
-        let mut events: Vec<(u32, u32, &AlignmentStructureEvent)> = Vec::new();
+    pub fn get_events_of_kind(&self, kind: AlignmentStructureEventKind) -> Vec<(usize, usize, &AlignmentStructureEvent)> {
+        let mut events: Vec<(usize, usize, &AlignmentStructureEvent)> = Vec::new();
         for ((read_position_1, read_position_2), event) in self.get_events() {
             if event.get_kind() == &kind {
                 events.push((*read_position_1, *read_position_2, event));
@@ -440,14 +455,14 @@ impl AlignmentStructure {
         events
     }
 
-    pub fn get_mut_base(&mut self, read_position: u32) -> &mut AlignmentStructureBase {
+    pub fn get_mut_base(&mut self, read_position: usize) -> &mut AlignmentStructureBase {
         self.bases.get_mut(read_position as usize).unwrap()
     }
 
     pub fn get_mut_event(
         &mut self,
-        read_position_1: u32,
-        read_position_2: u32
+        read_position_1: usize,
+        read_position_2: usize
     ) -> &mut AlignmentStructureEvent {
         if read_position_1 < read_position_2 {
             assert!(
@@ -499,50 +514,24 @@ impl AlignmentStructure {
         reference_transcript_ids
     }
 
+    pub fn has_event(&self, read_position: usize) -> bool {
+        if self.events_index.contains_key(&read_position) {
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn has_event_between(
         &self,
-        read_position_1: u32,
-        read_position_2: u32
+        read_position_1: usize,
+        read_position_2: usize
     ) -> bool {
         if read_position_1 < read_position_2 {
             self.events.contains_key(&(read_position_1, read_position_2))
         } else {
             self.events.contains_key(&(read_position_2, read_position_1))
         }
-    }
-
-    /// Identifies DNA variant records.
-    ///
-    /// The following DNA variant types are identified:
-    ///     - Single-nucleotide variant
-    ///     - Multi-nucleotide variant
-    ///     - Insertion
-    ///     - Deletion
-    ///     - Breakpoint
-    ///     - Translocation
-    ///
-    /// # Arguments
-    /// * `min_mapping_quality`: Minimum mapping quality (inclusive).
-    /// * `min_base_quality`: Minimum base quality (inclusive).
-    ///
-    /// # Returns
-    /// Vector of VariantRecord objects.
-    pub fn identify_dna_variant_records(
-        &self,
-        min_mapping_quality: u32,
-        min_base_quality: u8
-    ) -> Vec<VariantRecord> {
-        let mut variant_records: Vec<VariantRecord> = self.identify_base_kind_variant_records(
-            min_mapping_quality,
-            min_base_quality
-        );
-        variant_records.extend(self.identify_event_kind_variant_records(min_mapping_quality));
-        variant_records.sort_by(|a, b| {
-            a.get_chromosome_1()
-                .cmp(&b.get_chromosome_1())
-                .then(a.get_position_1().cmp(&b.get_position_1()))
-        });
-        variant_records
     }
 
     pub fn identify_exons(&self) -> Vec<TranscriptModelExon> {
@@ -577,7 +566,7 @@ impl AlignmentStructure {
         let mut clusters: Vec<HashSet<usize>> = uf.get_clusters();
         for cluster in clusters.iter() {
             // Sort the read positions
-            let mut read_positions: Vec<u32> = cluster.iter().map(|&pos| pos as u32).collect();
+            let mut read_positions: Vec<usize> = cluster.iter().map(|&pos| pos as usize).collect();
             read_positions.sort();
 
             let mut bases: Vec<&AlignmentStructureBase> = Vec::new();
@@ -587,10 +576,10 @@ impl AlignmentStructure {
 
             let reference_chromosome_id: u16 = bases.first().unwrap().get_reference_chromosome_id().unwrap();
             let reference_strand: Strand = bases.first().unwrap().get_reference_strand().as_ref().unwrap().clone();
-            let reference_start: u32 = bases.iter().map(|base| base.get_reference_position().unwrap()).min().unwrap();
-            let reference_end: u32 = bases.iter().map(|base| base.get_reference_position().unwrap()).max().unwrap();
-            let read_start_position: u32 = bases.first().unwrap().get_read_position();
-            let read_end_position: u32 = bases.last().unwrap().get_read_position();
+            let reference_start: usize = bases.iter().map(|base| base.get_reference_position().unwrap()).min().unwrap();
+            let reference_end: usize = bases.iter().map(|base| base.get_reference_position().unwrap()).max().unwrap();
+            let read_start_position: usize = bases.first().unwrap().get_read_position();
+            let read_end_position: usize = bases.last().unwrap().get_read_position();
 
             let exon: TranscriptModelExon = TranscriptModelExon::new(
                 reference_chromosome_id,
@@ -680,58 +669,274 @@ impl AlignmentStructure {
         introns
     }
 
-    /// Identifies RNA variant records.
-    ///
-    /// The following RNA variant types are identified:
-    ///     - Single-nucleotide variant
-    ///     - Multi-nucleotide variant
-    ///     - Insertion
-    ///     - Deletion
-    ///     - Breakpoint
-    ///     - Translocation
-    ///     - Fusion gene
-    ///     - Circular RNA
-    ///     - Cryptic exon
-    ///     - Exon truncation
-    ///     - Intron retention
-    ///
-    /// # Arguments
-    /// * `min_mapping_quality`: Minimum mapping quality (inclusive).
-    /// * `min_base_quality`: Minimum base quality (inclusive).
-    /// * `gene_annotator`: Gene annotator.
-    /// * `reference_transcript_sequence`: Reference to ReferenceTranscriptSequence object.
-    /// * `chromosome_names_map`: Chromosome names bimap.
-    ///
-    /// # Returns
-    /// Vector of VariantRecord objects.
-    pub fn identify_rna_variant_records(
+    pub fn identify_records(&self) -> Vec<AlignmentStructureRecord> {
+        // Step 1. Cluster bases
+        let num_bases: usize = self.get_bases_length();
+        let mut uf_bases: UnionFind = UnionFind::new();
+        for i in 0..num_bases {
+            let curr_base: &AlignmentStructureBase = self.get_base(i);
+            if !curr_base.is_embedded_insertion() {
+                uf_bases.union(i as usize, i as usize);
+            }
+        }
+        for i in 0..num_bases {
+            if i > 0 {
+                let prev_base: &AlignmentStructureBase = self.get_base(i - 1);
+                let curr_base: &AlignmentStructureBase = self.get_base(i);
+                if !prev_base.is_embedded_insertion() && !curr_base.is_embedded_insertion() {
+                    if prev_base.get_context().is_some() && curr_base.get_context().is_some() {
+                        if *prev_base.get_kind() == *curr_base.get_kind() &&
+                            *prev_base.get_context().as_ref().unwrap() == *curr_base.get_context().as_ref().unwrap() &&
+                            prev_base.get_reference_chromosome_id().unwrap() == curr_base.get_reference_chromosome_id().unwrap() &&
+                            prev_base.get_reference_position().unwrap().abs_diff(curr_base.get_reference_position().unwrap()) <= 1 &&
+                            prev_base.get_reference_strand().as_ref().unwrap() == curr_base.get_reference_strand().as_ref().unwrap() {
+                            uf_bases.union(i as usize - 1, i as usize);
+                        }
+                    } else {
+                        if *prev_base.get_kind() == *curr_base.get_kind() &&
+                            prev_base.get_reference_chromosome_id().unwrap() == curr_base.get_reference_chromosome_id().unwrap() &&
+                            prev_base.get_reference_position().unwrap().abs_diff(curr_base.get_reference_position().unwrap()) <= 1 &&
+                            prev_base.get_reference_strand().as_ref().unwrap() == curr_base.get_reference_strand().as_ref().unwrap() {
+                            uf_bases.union(i as usize - 1, i as usize);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Step 2. Record bases
+        let mut records: Vec<AlignmentStructureRecord> = Vec::new();
+        for cluster in uf_bases.get_clusters() {
+            let mut read_positions: Vec<usize> = cluster.into_iter().collect();
+            read_positions.sort();
+            let bases: Vec<&AlignmentStructureBase> = read_positions.iter().map(|&i| self.get_base(i as usize)).collect();
+            let first_base: &AlignmentStructureBase = bases.first().unwrap();
+            let last_base: &AlignmentStructureBase = bases.last().unwrap();
+            let mut sequence: String = String::new();
+            let mut base_quality_scores: Vec<u8> = Vec::new();
+            for base in bases.iter() {
+                sequence.push_str(base.get_nucleotide().as_str());
+                base_quality_scores.push(base.get_base_quality());
+            }
+            let (base_1, base_2) = if *first_base.get_kind() == AlignmentStructureBaseKind::Unaligned {
+                (first_base, last_base)
+            } else {
+                if *first_base.get_reference_strand().as_ref().unwrap() == Strand::Forward {
+                    (first_base, last_base)
+                } else {
+                    (last_base, first_base)
+                }
+            };
+            match first_base.get_kind() {
+                AlignmentStructureBaseKind::Match => {
+                    let record: AlignmentStructureRecord = AlignmentStructureRecord::new(
+                        first_base.get_read_position(),
+                        last_base.get_read_position(),
+                        sequence.as_str(),
+                        base_quality_scores,
+                        AlignmentStructureRecordType::Base,
+                        AlignmentStructureKind::Base(first_base.get_kind().clone()),
+                        first_base.get_context().as_ref().cloned().map(AlignmentStructureContext::Base),
+                        base_1.get_reference_chromosome_id().unwrap(),
+                        base_1.get_reference_position().unwrap(),
+                        GraphOperationType::Include,
+                        base_1.get_reference_strand().as_ref().unwrap().clone(),
+                        base_1.get_mapping_quality().unwrap_or(0),
+                        base_2.get_reference_chromosome_id().unwrap(),
+                        base_2.get_reference_position().unwrap(),
+                        GraphOperationType::Include,
+                        base_2.get_reference_strand().as_ref().unwrap().clone(),
+                        base_2.get_mapping_quality().unwrap_or(0),
+                        base_1.get_reference_gene_id().clone(),
+                        base_1.get_reference_transcript_id().clone(),
+                        base_1.get_reference_exon_id().clone(),
+                        base_2.get_reference_gene_id().clone(),
+                        base_2.get_reference_transcript_id().clone(),
+                        base_2.get_reference_exon_id().clone(),
+                        None
+                    );
+                    records.push(record);
+                },
+                AlignmentStructureBaseKind::Mismatch => {
+                    let record: AlignmentStructureRecord = AlignmentStructureRecord::new(
+                        first_base.get_read_position(),
+                        last_base.get_read_position(),
+                        sequence.as_str(),
+                        base_quality_scores,
+                        AlignmentStructureRecordType::Base,
+                        AlignmentStructureKind::Base(first_base.get_kind().clone()),
+                        first_base.get_context().as_ref().cloned().map(AlignmentStructureContext::Base),
+                        base_1.get_reference_chromosome_id().unwrap(),
+                        base_1.get_reference_position().unwrap() - 1,
+                        GraphOperationType::Downstream,
+                        base_1.get_reference_strand().as_ref().unwrap().clone(),
+                        base_1.get_mapping_quality().unwrap_or(0),
+                        base_2.get_reference_chromosome_id().unwrap(),
+                        base_2.get_reference_position().unwrap() + 1,
+                        GraphOperationType::Upstream,
+                        base_2.get_reference_strand().as_ref().unwrap().clone(),
+                        base_2.get_mapping_quality().unwrap_or(0),
+                        base_1.get_reference_gene_id().clone(),
+                        base_1.get_reference_transcript_id().clone(),
+                        base_1.get_reference_exon_id().clone(),
+                        base_2.get_reference_gene_id().clone(),
+                        base_2.get_reference_transcript_id().clone(),
+                        base_2.get_reference_exon_id().clone(),
+                        None
+                    );
+                    records.push(record);
+                },
+                AlignmentStructureBaseKind::Insertion => {
+                    if first_base.is_embedded_insertion() == false && last_base.is_embedded_insertion() == false {
+                        let record: AlignmentStructureRecord = AlignmentStructureRecord::new(
+                            first_base.get_read_position(),
+                            last_base.get_read_position(),
+                            sequence.as_str(),
+                            base_quality_scores,
+                            AlignmentStructureRecordType::Base,
+                            AlignmentStructureKind::Base(first_base.get_kind().clone()),
+                            first_base.get_context().as_ref().cloned().map(AlignmentStructureContext::Base),
+                            base_1.get_reference_chromosome_id().unwrap(),
+                            base_1.get_reference_position().unwrap(),
+                            GraphOperationType::Downstream,
+                            base_1.get_reference_strand().as_ref().unwrap().clone(),
+                            base_1.get_mapping_quality().unwrap_or(0),
+                            base_2.get_reference_chromosome_id().unwrap(),
+                            base_2.get_reference_position().unwrap() + 1,
+                            GraphOperationType::Upstream,
+                            base_2.get_reference_strand().as_ref().unwrap().clone(),
+                            base_2.get_mapping_quality().unwrap_or(0),
+                            base_1.get_reference_gene_id().clone(),
+                            base_1.get_reference_transcript_id().clone(),
+                            base_1.get_reference_exon_id().clone(),
+                            base_2.get_reference_gene_id().clone(),
+                            base_2.get_reference_transcript_id().clone(),
+                            base_2.get_reference_exon_id().clone(),
+                            None
+                        );
+                        records.push(record);
+                    }
+                },
+                AlignmentStructureBaseKind::Unaligned => {
+                    let record: AlignmentStructureRecord = AlignmentStructureRecord::new(
+                        first_base.get_read_position(),
+                        last_base.get_read_position(),
+                        sequence.as_str(),
+                        base_quality_scores,
+                        AlignmentStructureRecordType::Base,
+                        AlignmentStructureKind::Base(first_base.get_kind().clone()),
+                        None,
+                        0,
+                        0,
+                        GraphOperationType::Noop,
+                        Strand::Unknown,
+                        0,
+                        0,
+                        0,
+                        GraphOperationType::Noop,
+                        Strand::Unknown,
+                        0,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None
+                    );
+                    records.push(record);
+                }
+            }
+        }
+
+        // Step 3. Record events
+        for ((read_position_1, read_position_2), event) in self.events.iter() {
+            let prev_base: &AlignmentStructureBase = self.get_base(event.get_prev_read_position());
+            let next_base: &AlignmentStructureBase = self.get_base(event.get_next_read_position());
+
+            // Get the sequence between the two read positions
+            let mut sequence: String = "".to_string();
+            let mut base_quality_scores: Vec<u8> = Vec::new();
+            if read_position_1 < read_position_2 {
+                for k in read_position_1 + 1..=read_position_2 - 1 {
+                    let base: &AlignmentStructureBase = self.get_base(k);
+                    sequence.push_str(base.get_nucleotide().as_str());
+                    base_quality_scores.push(base.get_base_quality());
+                }
+            }
+
+            let (base_1, base_2, operation_1, operation_2) = if prev_base.get_reference_chromosome_id().unwrap() == next_base.get_reference_chromosome_id().unwrap() {
+                if prev_base.get_reference_position().unwrap() < next_base.get_reference_position().unwrap() {
+                    (prev_base, next_base, event.get_prev_graph_operation_type(), event.get_next_graph_operation_type())
+                } else {
+                    (next_base, prev_base, event.get_next_graph_operation_type(), event.get_prev_graph_operation_type())
+                }
+            } else {
+                (prev_base, next_base, event.get_prev_graph_operation_type(), event.get_next_graph_operation_type())
+            };
+
+            let record: AlignmentStructureRecord = AlignmentStructureRecord::new(
+                prev_base.get_read_position(),
+                next_base.get_read_position(),
+                sequence.as_str(),
+                base_quality_scores,
+                AlignmentStructureRecordType::Event,
+                AlignmentStructureKind::Event(event.get_kind().clone()),
+                event.get_context().as_ref().cloned().map(AlignmentStructureContext::Event),
+                base_1.get_reference_chromosome_id().unwrap(),
+                base_1.get_reference_position().unwrap(),
+                operation_1.clone(),
+                base_1.get_reference_strand().as_ref().unwrap().clone(),
+                base_1.get_mapping_quality().unwrap_or(0),
+                base_2.get_reference_chromosome_id().unwrap(),
+                base_2.get_reference_position().unwrap(),
+                operation_2.clone(),
+                base_2.get_reference_strand().as_ref().unwrap().clone(),
+                base_2.get_mapping_quality().unwrap_or(0),
+                base_1.get_reference_gene_id().clone(),
+                base_1.get_reference_transcript_id().clone(),
+                base_1.get_reference_exon_id().clone(),
+                base_2.get_reference_gene_id().clone(),
+                base_2.get_reference_transcript_id().clone(),
+                base_2.get_reference_exon_id().clone(),
+                Some(event.get_skipped_reference_bases_clusters())
+            );
+            records.push(record);
+        }
+
+        // Step 4. Sort the records
+        records.sort_by(|a, b| {
+            a.get_start().cmp(&b.get_start()).then(a.get_end().cmp(&b.get_end()))
+        });
+
+        records
+    }
+
+    pub fn identify_variant_records(
         &self,
-        min_mapping_quality: u32,
+        min_mapping_quality: usize,
         min_base_quality: u8,
-        gene_annotator: &(impl GeneAnnotator + Sync),
+        analyte_type: AnalyteType
     ) -> Vec<VariantRecord> {
-        // Step 1. Identify variant records based on the AlignmentStructureBase kinds
-        let mut variant_records: Vec<VariantRecord> = self.identify_base_kind_variant_records(
+        // Step 1. Get records
+        let records: Vec<AlignmentStructureRecord> = self.identify_records();
+
+        // Step 2. Identify base variant records
+        let mut variant_records: Vec<VariantRecord> = self.identify_base_variant_records(
+            &records,
             min_mapping_quality,
-            min_base_quality
+            min_base_quality,
+            analyte_type.clone()
         );
 
-        // Step 2. Identify variant records based on the AlignmentStructureBase contexts
-        variant_records.extend(self.identify_base_context_variant_records(
+        // Step 3. Identify event variant records
+        variant_records.extend(self.identify_event_variant_records(
+            &records,
             min_mapping_quality,
             min_base_quality
         ));
 
-        // Step 3. Identify variant records based on the AlignmentStructureEvent kinds
-        variant_records.extend(self.identify_event_kind_variant_records(min_mapping_quality));
-
-        // Step 4. Identify variant records based on the AlignmentStructureEvent contexts
-        variant_records.extend(self.identify_event_context_variant_records(
-            min_mapping_quality,
-            gene_annotator
-        ));
-
-        // Step 5. Sort the variant records
+        // Step 4. Sort the variant records
         variant_records.sort_by(|a, b| {
             a.get_chromosome_1()
                 .cmp(&b.get_chromosome_1())
@@ -755,279 +960,77 @@ impl AlignmentStructure {
         false
     }
 
-    // pub fn to_string(&self) -> String {
-    //     let mut structure: String = "".to_string();
-    //     for i in 0..self.get_bases_length() {
-    //         let base: &AlignmentStructureBase = self.get_base(i);
-    //     }
-    // }
+    pub fn to_dataframe(&self, chromosome_names_map: &BiMap<Box<str>, u16>) -> DataFrame {
+        let records_map = self.to_record(chromosome_names_map);
+        DataFrame::new(vec![
+            Column::from(Series::new("index".into(), records_map.get("index").unwrap())),
+            Column::from(Series::new("read_start".into(), records_map.get("read_start").unwrap())),
+            Column::from(Series::new("read_end".into(), records_map.get("read_end").unwrap())),
+            Column::from(Series::new("sequence".into(), records_map.get("sequence").unwrap())),
+            Column::from(Series::new("type".into(), records_map.get("type").unwrap())),
+            Column::from(Series::new("kind".into(), records_map.get("kind").unwrap())),
+            Column::from(Series::new("context".into(), records_map.get("context").unwrap())),
+            Column::from(Series::new("chromosome_1".into(), records_map.get("chromosome_1").unwrap())),
+            Column::from(Series::new("position_1".into(), records_map.get("position_1").unwrap())),
+            Column::from(Series::new("operation_1".into(), records_map.get("operation_1").unwrap())),
+            Column::from(Series::new("strand_1".into(), records_map.get("strand_1").unwrap())),
+            Column::from(Series::new("chromosome_2".into(), records_map.get("chromosome_2").unwrap())),
+            Column::from(Series::new("position_2".into(), records_map.get("position_2").unwrap())),
+            Column::from(Series::new("operation_2".into(), records_map.get("operation_2").unwrap())),
+            Column::from(Series::new("strand_2".into(), records_map.get("strand_2").unwrap())),
+            Column::from(Series::new("gene_id_1".into(), records_map.get("gene_id_1").unwrap())),
+            Column::from(Series::new("transcript_id_1".into(), records_map.get("transcript_id_1").unwrap())),
+            Column::from(Series::new("exon_id_1".into(), records_map.get("exon_id_1").unwrap())),
+            Column::from(Series::new("gene_id_2".into(), records_map.get("gene_id_2").unwrap())),
+            Column::from(Series::new("transcript_id_2".into(), records_map.get("transcript_id_2").unwrap())),
+            Column::from(Series::new("exon_id_2".into(), records_map.get("exon_id_2").unwrap())),
+            Column::from(Series::new("skipped".into(), records_map.get("skipped").unwrap()))
+        ]).unwrap()
+    }
+
+    pub fn to_record(&self, chromosome_names_map: &BiMap<Box<str>, u16>) -> HashMap<Box<str>, Vec<AnyValue>> {
+        let mut records_map: HashMap<Box<str>, Vec<AnyValue>> = HashMap::new();
+        let mut index: u64 = 0;
+        for record in self.identify_records().iter() {
+            let chromosome_1: String = chromosome_names_map.get_by_right(&record.get_chromosome_1()).unwrap().to_string();
+            let chromosome_2: String = chromosome_names_map.get_by_right(&record.get_chromosome_2()).unwrap().to_string();
+            records_map.entry("index".into()).or_insert_with(Vec::new).push(AnyValue::UInt64(index));
+            records_map.entry("read_start".into()).or_insert_with(Vec::new).push(AnyValue::UInt64(record.get_start() as u64));
+            records_map.entry("read_end".into()).or_insert_with(Vec::new).push(AnyValue::UInt64(record.get_end() as u64));
+            records_map.entry("sequence".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_sequence().to_string().as_str().into()));
+            records_map.entry("type".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_record_type().as_str().into()));
+            records_map.entry("kind".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_kind().as_str().into()));
+            records_map.entry("context".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_context().as_ref().map_or("".into(), |k| k.clone().as_str().into())));
+            records_map.entry("chromosome_1".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(chromosome_1.as_str().into()));
+            records_map.entry("position_1".into()).or_insert_with(Vec::new).push(AnyValue::UInt64(record.get_position_1() as u64));
+            records_map.entry("operation_1".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_operation_1().as_str().into()));
+            records_map.entry("strand_1".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_strand_1().as_str().into()));
+            records_map.entry("chromosome_2".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(chromosome_2.as_str().into()));
+            records_map.entry("position_2".into()).or_insert_with(Vec::new).push(AnyValue::UInt64(record.get_position_2() as u64));
+            records_map.entry("operation_2".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_operation_2().as_str().into()));
+            records_map.entry("strand_2".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_strand_2().as_str().into()));
+            records_map.entry("gene_id_1".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_gene_id_1().as_ref().map_or("".into(),|k| k.to_string().into())));
+            records_map.entry("transcript_id_1".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_transcript_id_1().as_ref().map_or("".into(), |k| k.to_string().into())));
+            records_map.entry("exon_id_1".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_exon_id_1().as_ref().map_or("".into(), |k| k.to_string().into())));
+            records_map.entry("gene_id_2".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_gene_id_2().as_ref().map_or("".into(), |k| k.to_string().into())));
+            records_map.entry("transcript_id_2".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_transcript_id_2().as_ref().map_or("".into(), |k| k.to_string().into())));
+            records_map.entry("exon_id_2".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_exon_id_2().as_ref().map_or("".into(), |k| k.to_string().into())));
+            records_map.entry("skipped".into()).or_insert_with(Vec::new).push(AnyValue::StringOwned(record.get_skipped_string(chromosome_names_map).as_str().into()));
+            index += 1;
+        }
+        records_map
+    }
 }
 
 /// Helper functions
 impl AlignmentStructure {
 
-    /// Identifies variant records in self.bases based on the AlignmentStructureBaseKind.
+    /// Identifies base variant records.
     ///
     /// This function identifies the following variant types:
     /// - Single-nucleotide variant
     /// - Multi-nucleotide variant
-    /// - Insertion.
-    ///
-    /// # Arguments
-    /// * `min_mapping_quality`: Minimum mapping quality.
-    /// * `min_base_quality`: Minimum base quality.
-    ///
-    /// # Returns
-    /// * Vector of VariantRecord objects.
-    fn identify_base_kind_variant_records(
-        &self,
-        min_mapping_quality: u32,
-        min_base_quality: u8
-    ) -> Vec<VariantRecord> {
-        // Step 1. Cluster the bases based on the base kind
-        let mut uf: UnionFind = UnionFind::new();
-        for base in self.get_bases().iter() {
-            let id = base.get_read_position() as usize;
-            match *base.get_kind() {
-                AlignmentStructureBaseKind::Mismatch => {
-                    uf.union(id, id);
-                },
-                AlignmentStructureBaseKind::Insertion => {
-                    if base.is_embedded_insertion() == false {
-                        uf.union(id, id);
-                    }
-                },
-                _ => {
-                    // Do nothing
-                }
-            }
-        }
-        for pair in self.get_bases().windows(2) {
-            // Union adjacent bases that are contiguous and share the same context
-            let prev_base: &AlignmentStructureBase = &pair[0];
-            let curr_base: &AlignmentStructureBase = &pair[1];
-
-            if prev_base.is_embedded_insertion() || curr_base.is_embedded_insertion() {
-                continue;
-            }
-
-            if curr_base.get_mapping_quality().unwrap() < min_mapping_quality {
-                continue;
-            }
-
-            if curr_base.get_base_quality() < min_base_quality {
-                continue;
-            }
-
-            // Make sure the current base is not an embedded insertion
-            if curr_base.is_embedded_insertion() {
-                continue;
-            }
-
-            // Require all reference fields to be present on both sides
-            if let (
-                Some(&prev_chr),
-                Some(&curr_chr),
-                Some(prev_strand),
-                Some(curr_strand),
-                Some(prev_pos),
-                Some(curr_pos),
-            ) = (
-                prev_base.get_reference_chromosome_id().as_ref(),
-                curr_base.get_reference_chromosome_id().as_ref(),
-                prev_base.get_reference_strand().as_ref(),
-                curr_base.get_reference_strand().as_ref(),
-                prev_base.get_reference_position().as_ref(),
-                curr_base.get_reference_position().as_ref(),
-            ) {
-                if prev_chr == curr_chr && prev_strand == curr_strand {
-                    // MNV
-                    if prev_pos.abs_diff(*curr_pos) == 1 {
-                        if *prev_base.get_kind() == *curr_base.get_kind() && *prev_base.get_kind() == AlignmentStructureBaseKind::Mismatch {
-                            uf.union(
-                                prev_base.get_read_position() as usize,
-                                curr_base.get_read_position() as usize,
-                            );
-                        }
-                    }
-
-                    // Insertion
-                    if *prev_pos == *curr_pos {
-                        if *prev_base.get_kind() == *curr_base.get_kind() && *prev_base.get_kind() == AlignmentStructureBaseKind::Insertion {
-                            uf.union(
-                                prev_base.get_read_position() as usize,
-                                curr_base.get_read_position() as usize,
-                            );
-                        }
-                    }
-                }
-            }
-        }
-
-        // Step 2. Identify SNVs, MNVs, and insertions
-        let mut variant_records: Vec<VariantRecord> = Vec::new();
-        let read_sequence_length: u32 = self.get_bases_length();
-        for cluster in uf.get_clusters().iter() {
-            // Sort the read positions
-            let mut read_positions: Vec<u32> = cluster.iter().map(|&pos| pos as u32).collect();
-            read_positions.sort();
-
-            let bases: Vec<&AlignmentStructureBase> = read_positions.iter().map(|&pos| self.get_base(pos)).collect();
-            if read_positions.len() == 1 {
-                assert!(*bases[0].get_kind() == AlignmentStructureBaseKind::Mismatch);
-
-                // Exclude SNVs at the first or last base of the read
-                if bases[0].get_read_position() == 0 ||
-                    bases[0].get_read_position() == read_sequence_length - 1 {
-                    continue;
-                }
-
-                let graph_operation: GraphOperation = GraphOperation::new(
-                    bases[0].get_reference_chromosome_id().unwrap(),
-                    bases[0].get_reference_position().unwrap() - 1,
-                    bases[0].get_reference_strand().as_ref().unwrap().clone(),
-                    GraphOperationType::Downstream,
-                    bases[0].get_reference_chromosome_id().unwrap(),
-                    bases[0].get_reference_position().unwrap() + 1,
-                    bases[0].get_reference_strand().as_ref().unwrap().clone(),
-                    GraphOperationType::Upstream,
-                    bases[0].get_nucleotide().as_str().into(),
-                    VariantType::SingleNucleotideVariant
-                );
-                variant_records.push(
-                    VariantRecord::new(
-                        self.read_id,
-                        bases[0].get_read_position(),
-                        bases[0].get_read_position(),
-                        graph_operation
-                    )
-                );
-            } else {
-                if *bases[0].get_kind() == AlignmentStructureBaseKind::Mismatch {
-                    let first_base: &AlignmentStructureBase = bases.first().unwrap();
-                    let last_base: &AlignmentStructureBase = bases.last().unwrap();
-                    let sequence: String = bases
-                        .iter()
-                        .map(|b| b.get_nucleotide().as_str())
-                        .collect::<Vec<_>>()
-                        .join("");
-                    let (chrom1, pos1, strand1, op1, chrom2, pos2, strand2, op2, seq_box) = if bases[0].get_reference_strand().as_ref().unwrap().clone() == Strand::Forward {
-                        (
-                            first_base.get_reference_chromosome_id().unwrap(),
-                            first_base.get_reference_position().unwrap() - 1,
-                            first_base.get_reference_strand().as_ref().unwrap().clone(),
-                            GraphOperationType::Downstream,
-                            last_base.get_reference_chromosome_id().unwrap(),
-                            last_base.get_reference_position().unwrap() + 1,
-                            last_base.get_reference_strand().as_ref().unwrap().clone(),
-                            GraphOperationType::Upstream,
-                            sequence.into_boxed_str()
-                        )
-                    } else {
-                        (
-                            last_base.get_reference_chromosome_id().unwrap(),
-                            last_base.get_reference_position().unwrap() + 1,
-                            last_base.get_reference_strand().as_ref().unwrap().clone(),
-                            GraphOperationType::Downstream,
-                            first_base.get_reference_chromosome_id().unwrap(),
-                            first_base.get_reference_position().unwrap() - 1,
-                            first_base.get_reference_strand().as_ref().unwrap().clone(),
-                            GraphOperationType::Upstream,
-                            reverse_complement(&sequence)
-                        )
-                    };
-                    let graph_operation: GraphOperation = GraphOperation::new(
-                        chrom1, pos1, strand1, op1,
-                        chrom2, pos2, strand2, op2,
-                        seq_box,
-                        VariantType::MultiNucleotideVariant
-                    );
-                    variant_records.push(VariantRecord::new(
-                        self.read_id,
-                        first_base.get_read_position(),
-                        last_base.get_read_position(),
-                        graph_operation,
-                    ));
-                }
-                if *bases[0].get_kind() == AlignmentStructureBaseKind::Insertion {
-                    let mut sequence: String = bases
-                        .iter()
-                        .map(|b| b.get_nucleotide().as_str())
-                        .collect::<Vec<_>>()
-                        .join("");
-                    let first_base: &AlignmentStructureBase = bases.first().unwrap();
-                    let last_base: &AlignmentStructureBase = bases.last().unwrap();
-                    let is_softclipped = bases.iter().any(|b| b.is_soft_clipped());
-                    if is_softclipped {
-                        assert!(
-                            first_base.get_read_position() == 0 ||
-                            last_base.get_read_position() == read_sequence_length - 1,
-                            "Softclipped bases are expected to be either at \
-                            the start or end of the read sequence."
-                        );
-
-                        // Skip likely template-switching artifacts
-                        if sequence.len() == 1 {
-                            continue;
-                        }
-                        if sequence.len() <= 3 {
-                            let up: String = sequence.to_uppercase();
-                            if up.contains("AA") ||
-                                up.contains("CC") ||
-                                up.contains("GG") ||
-                                up.contains("TT") {
-                                continue;
-                            }
-                        }
-                        let chromosome_id: u16 = first_base.get_reference_chromosome_id().unwrap();
-                        let strand: Strand = first_base.get_reference_strand().as_ref().unwrap().clone();
-                        let at_start: bool = first_base.get_read_position() == 0;
-                        let (reference_position_1, reference_position_2) = match (at_start, strand.clone()) {
-                            (true, Strand::Forward)  => (first_base.get_reference_position().unwrap() - 1, first_base.get_reference_position().unwrap()),
-                            (true, Strand::Reverse)  => (first_base.get_reference_position().unwrap(),     first_base.get_reference_position().unwrap() + 1),
-                            (false, Strand::Forward) => (first_base.get_reference_position().unwrap(),     first_base.get_reference_position().unwrap() + 1),
-                            (false, Strand::Reverse) => (first_base.get_reference_position().unwrap() - 1, first_base.get_reference_position().unwrap()),
-                            _ => panic!("Invalid strand")
-                        };
-                        let graph_operation = GraphOperation::new(
-                            chromosome_id, reference_position_1, strand.clone(), GraphOperationType::Downstream,
-                            chromosome_id, reference_position_2, strand.clone(), GraphOperationType::Upstream,
-                            sequence.into_boxed_str(),
-                            VariantType::Insertion
-                        );
-                        variant_records.push(VariantRecord::new(
-                            self.read_id,
-                            first_base.get_read_position(),
-                            last_base.get_read_position(),
-                            graph_operation,
-                        ));
-                    } else {
-                        let chromosome_id: u16 = first_base.get_reference_chromosome_id().unwrap();
-                        let reference_position: u32 = first_base.get_reference_position().unwrap();
-                        let strand: Strand = first_base.get_reference_strand().as_ref().unwrap().clone();
-                        let graph_operation = GraphOperation::new(
-                            chromosome_id, reference_position, strand.clone(), GraphOperationType::Downstream,
-                            chromosome_id, reference_position + 1, strand.clone(), GraphOperationType::Upstream,
-                            sequence.into_boxed_str(),
-                            VariantType::Insertion,
-                        );
-                        variant_records.push(VariantRecord::new(
-                            self.read_id,
-                            first_base.get_read_position(),
-                            last_base.get_read_position(),
-                            graph_operation
-                        ));
-                    }
-                }
-            }
-        }
-
-        variant_records
-    }
-
-    /// Identifies variant records in self.bases based on the AlignmentStructureBaseContext.
-    ///
-    /// This function identifies the following variant types:
+    /// - Insertion
     /// - Cryptic exon
     /// - Intron retention
     /// - UTR extension
@@ -1038,295 +1041,121 @@ impl AlignmentStructure {
     ///
     /// # Returns
     /// * Vector of VariantRecord objects.
-    fn identify_base_context_variant_records(
+    fn identify_base_variant_records(
         &self,
-        min_mapping_quality: u32,
-        min_base_quality: u8
+        records: &Vec<AlignmentStructureRecord>,
+        min_mapping_quality: usize,
+        min_base_quality: u8,
+        analyte_type: AnalyteType
     ) -> Vec<VariantRecord> {
-        // Step 1. Cluster the bases based on the base context
-        let mut uf: UnionFind = UnionFind::new();
-        for base in self.get_bases().iter() {
-            if base.get_context().is_some() {
-                if *base.get_context().as_ref().unwrap() != AlignmentStructureBaseContext::Exonic {
-                    let id = base.get_read_position() as usize;
-                    uf.union(id, id);
-                }
-            }
-        }
-        for pair in self.get_bases().windows(2) {
-            // Union adjacent bases that are contiguous and share the same context
-            let prev: &AlignmentStructureBase = &pair[0];
-            let curr: &AlignmentStructureBase = &pair[1];
+        let mut variant_records: Vec<VariantRecord> = Vec::new();
 
-            if curr.get_mapping_quality().unwrap() < min_mapping_quality {
+        // Step 1. Identify variant records based on the AlignmentStructureBase kinds
+        for i in 0..records.len() {
+            let curr_record: &AlignmentStructureRecord = records.get(i).unwrap();
+
+            if *curr_record.get_record_type() == AlignmentStructureRecordType::Event {
                 continue;
             }
 
-            if curr.get_base_quality() < min_base_quality {
-               continue;
-            }
-
-            // Require all reference fields to be present on both sides
-            if let (
-                Some(&prev_chr),
-                Some(&curr_chr),
-                Some(prev_strand),
-                Some(curr_strand),
-                Some(prev_pos),
-                Some(curr_pos),
-            ) = (
-                prev.get_reference_chromosome_id().as_ref(),
-                curr.get_reference_chromosome_id().as_ref(),
-                prev.get_reference_strand().as_ref(),
-                curr.get_reference_strand().as_ref(),
-                prev.get_reference_position().as_ref(),
-                curr.get_reference_position().as_ref(),
-            ) {
-                if prev_chr == curr_chr &&
-                    prev_strand == curr_strand &&
-                    prev_pos.abs_diff(*curr_pos) == 1 &&
-                    *prev.get_context().as_ref().unwrap() == *curr.get_context().as_ref().unwrap() &&
-                    prev.get_context().as_ref().unwrap().clone() != AlignmentStructureBaseContext::Exonic {
-                    uf.union(
-                        prev.get_read_position() as usize,
-                        curr.get_read_position() as usize
-                    );
-                }
-            }
-        }
-
-        // Step 2. Identify cryptic exons and intron retentions
-        let mut variant_records: Vec<VariantRecord> = Vec::new();
-        for cluster in uf.get_clusters().iter() {
-            // Sort the read positions
-            let mut read_positions: Vec<u32> = cluster.iter().map(|&pos| pos as u32).collect();
-            read_positions.sort();
-
-            // Get the first and last bases in the cluster
-            let first_base: &AlignmentStructureBase = self.get_base(read_positions[0]);
-            let last_base: &AlignmentStructureBase = self.get_base(read_positions[read_positions.len() - 1]);
-
-            // Get the previous and next bases
-            let prev_base: Option<&AlignmentStructureBase> = if first_base.get_read_position() > 0 {
-                Some(self.get_base(first_base.get_read_position() - 1))
-            } else {
-                None
-            };
-
-            let next_base: Option<&AlignmentStructureBase> = if last_base.get_read_position() < self.get_bases_length() - 1 {
-                Some(self.get_base(last_base.get_read_position() + 1))
-            } else {
-                None
-            };
-
-            // Determine if the cluster is a cryptic exon, intron retention, or UTR extension
-            // If there is an exonic base immediately adjacent in reference coordinates
-            // (same chromosome, same strand, and abs_diff(ref_pos) <= 1), classify this
-            // cluster of read positions as an intron retention.
-            // If there is an intergenic base immediately adjacent in reference coordinates
-            // (same chromosome, same strand, and abs_diff(ref_pos) <= 1), classify this
-            // cluster of read positions as an UTR extension.
-            // Otherwise, classify as a cryptic exon.
-            let mut variant_type: VariantType = VariantType::CrypticExon;
-            if prev_base.is_some() {
-                let prev_base_: &AlignmentStructureBase = prev_base.unwrap();
-                if prev_base_.get_reference_chromosome_id().unwrap() == first_base.get_reference_chromosome_id().unwrap() &&
-                    *prev_base_.get_reference_strand().as_ref().unwrap() == *first_base.get_reference_strand().as_ref().unwrap() &&
-                    prev_base_.get_reference_position().unwrap().abs_diff(first_base.get_reference_position().unwrap()) <= 1 &&
-                    prev_base_.get_context().as_ref().unwrap().clone() == AlignmentStructureBaseContext::Exonic {
-                    if first_base.get_context().as_ref().unwrap() == &AlignmentStructureBaseContext::Intronic {
-                        variant_type = VariantType::IntronRetention;
-                    }
-                    if first_base.get_context().as_ref().unwrap() == &AlignmentStructureBaseContext::Intergenic {
-                        variant_type = VariantType::UTRExtension;
-                    }
-                }
-            }
-            if next_base.is_some() {
-                let next_base_: &AlignmentStructureBase = next_base.unwrap();
-                if next_base_.get_reference_chromosome_id().unwrap() == last_base.get_reference_chromosome_id().unwrap() &&
-                    *next_base_.get_reference_strand().as_ref().unwrap() == *last_base.get_reference_strand().as_ref().unwrap() &&
-                    next_base_.get_reference_position().unwrap().abs_diff(last_base.get_reference_position().unwrap()) <= 1 &&
-                    next_base_.get_context().as_ref().unwrap().clone() == AlignmentStructureBaseContext::Exonic {
-                    if last_base.get_context().as_ref().unwrap() == &AlignmentStructureBaseContext::Intronic {
-                        variant_type = VariantType::IntronRetention;
-                    }
-                    if last_base.get_context().as_ref().unwrap() == &AlignmentStructureBaseContext::Intergenic {
-                        variant_type = VariantType::UTRExtension;
-                    }
-                }
-            }
-
-            let graph_operation: GraphOperation = GraphOperation::new(
-                first_base.get_reference_chromosome_id().unwrap(),
-                first_base.get_reference_position().unwrap(),
-                first_base.get_reference_strand().as_ref().unwrap().clone(),
-                GraphOperationType::Include,
-                last_base.get_reference_chromosome_id().unwrap(),
-                last_base.get_reference_position().unwrap(),
-                last_base.get_reference_strand().as_ref().unwrap().clone(),
-                GraphOperationType::Include,
-                "".into(),
-                variant_type
-            );
-
-            variant_records.push(
-                VariantRecord::new(
-                    self.read_id,
-                    first_base.get_read_position(),
-                    last_base.get_read_position(),
-                    graph_operation
-                )
-            );
-        }
-
-        variant_records
-    }
-
-    /// Identifies variant records in self.events based on the AlignmentStructureEventKind.
-    ///
-    /// This function identifies the following variant types:
-    /// - Breakpoint
-    /// - Deletion
-    /// - Translocation
-    ///
-    /// # Arguments
-    /// * `min_mapping_quality`: Minimum mapping quality.
-    /// * `min_base_quality`: Minimum base quality.
-    ///
-    /// # Returns
-    /// * Vector of VariantRecord objects.
-    fn identify_event_kind_variant_records(&self, min_mapping_quality: u32) -> Vec<VariantRecord> {
-        let mut variant_records: Vec<VariantRecord> = Vec::new();
-        for ((read_position_1, read_position_2), event) in self.get_events().iter() {
-            let base_1: &AlignmentStructureBase = self.get_base(*read_position_1);
-            let base_2: &AlignmentStructureBase = self.get_base(*read_position_2);
-
-            // Check if the minimum mapping quality is met
-            if base_1.get_mapping_quality().unwrap() < min_mapping_quality ||
-                base_2.get_mapping_quality().unwrap() < min_mapping_quality {
+            // Check the mapping quality scores
+            if curr_record.get_mapping_quality_1() < min_mapping_quality || curr_record.get_mapping_quality_2() < min_mapping_quality {
                 continue;
             }
 
-            match event.get_kind() {
-                AlignmentStructureEventKind::Breakpoint => {
-                    if event.get_context().is_some() {
-                        // Let the event context decide the variant type
+            match curr_record.get_kind() {
+                AlignmentStructureKind::Base(AlignmentStructureBaseKind::Mismatch) => {
+                    // Exclude SNVs or MNVs at the first or last base of the read
+                    // if the analyte type is RNA
+                    if analyte_type == AnalyteType::RNA &&
+                        (curr_record.get_start() == 0 || curr_record.get_end() == self.get_bases_length() - 1) {
                         continue;
                     }
 
-                    // Fetch any insertion sequence between the breakpoints
-                    let mut insertion_bases: Vec<&AlignmentStructureBase> = Vec::new();
-                    let mut insertion_sequence: String = "".to_string();
-                    if read_position_1.abs_diff(*read_position_2) > 1 {
-                        for i in read_position_1 + 1..=read_position_2 - 1 {
-                            insertion_bases.push(self.get_base(i));
-                        }
-                        insertion_sequence = insertion_bases
-                            .iter()
-                            .map(|b| b.get_nucleotide().as_str())
-                            .collect::<Vec<_>>()
-                            .join("");
-                        let insertion_is_embedded_insertion: HashSet<bool> = insertion_bases
-                            .iter()
-                            .map(|b| b.is_embedded_insertion())
-                            .collect();
-                        assert!(
-                            insertion_is_embedded_insertion.len() == 1 &&
-                            insertion_is_embedded_insertion.contains(&true),
-                            "All insertion nucleotides are expected to be labeled as embedded insertions."
-                        );
+                    let sequence: String = curr_record
+                        .get_sequence()
+                        .chars()
+                        .zip(curr_record.get_base_quality_scores())
+                        .filter(|(_, &q)| q >= min_base_quality)
+                        .map(|(c, _)| c)
+                        .collect();
+
+                    if sequence.len() == 0 {
+                        continue;
                     }
 
-                    let variant_type: VariantType = if base_1.get_reference_chromosome_id().unwrap() == base_2.get_reference_chromosome_id().unwrap() {
-                        VariantType::Breakpoint
+                    let decrement: usize = sequence.len().abs_diff(curr_record.get_sequence().len()) as usize;
+
+                    let variant_type = if sequence.len() == 1 {
+                        VariantType::SingleNucleotideVariant
                     } else {
-                        VariantType::Translocation
+                        VariantType::MultiNucleotideVariant
                     };
 
-                    let graph_operation: GraphOperation = if
-                        event.get_prev_read_position() == base_1.get_read_position() &&
-                        event.get_next_read_position() == base_2.get_read_position() {
-                        GraphOperation::new(
-                            base_1.get_reference_chromosome_id().unwrap(),
-                            base_1.get_reference_position().unwrap(),
-                            base_1.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_prev_graph_operation_type().clone(),
-                            base_2.get_reference_chromosome_id().unwrap(),
-                            base_2.get_reference_position().unwrap(),
-                            base_2.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_next_graph_operation_type().clone(),
-                            insertion_sequence.into(),
-                            variant_type
-                        )
-                    } else if
-                        event.get_prev_read_position() == base_2.get_read_position() &&
-                        event.get_next_read_position() == base_1.get_read_position() {
-                        GraphOperation::new(
-                            base_2.get_reference_chromosome_id().unwrap(),
-                            base_2.get_reference_position().unwrap(),
-                            base_2.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_prev_graph_operation_type().clone(),
-                            base_1.get_reference_chromosome_id().unwrap(),
-                            base_1.get_reference_position().unwrap(),
-                            base_1.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_next_graph_operation_type().clone(),
-                            insertion_sequence.into(),
-                            variant_type
-                        )
-                    } else {
-                        panic!("Mismatch between alignment event and bases.");
-                    };
+                    let graph_operation: GraphOperation = GraphOperation::new(
+                        curr_record.get_chromosome_1(),
+                        curr_record.get_position_1(),
+                        curr_record.get_strand_1().clone(),
+                        curr_record.get_operation_1().clone(),
+                        curr_record.get_chromosome_2(),
+                        curr_record.get_position_2() - decrement,
+                        curr_record.get_strand_2().clone(),
+                        curr_record.get_operation_2().clone(),
+                        sequence.into(),
+                        variant_type
+                    );
 
                     variant_records.push(
                         VariantRecord::new(
                             self.read_id,
-                            *read_position_1,
-                            *read_position_2,
+                            curr_record.get_start(),
+                            curr_record.get_end(),
                             graph_operation
                         )
                     );
                 },
-                AlignmentStructureEventKind::Deletion => {
-                    let graph_operation: GraphOperation = if
-                        event.get_prev_read_position() == base_1.get_read_position() &&
-                        event.get_next_read_position() == base_2.get_read_position() {
-                        GraphOperation::new(
-                            base_1.get_reference_chromosome_id().unwrap(),
-                            base_1.get_reference_position().unwrap(),
-                            base_1.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_prev_graph_operation_type().clone(),
-                            base_2.get_reference_chromosome_id().unwrap(),
-                            base_2.get_reference_position().unwrap(),
-                            base_2.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_next_graph_operation_type().clone(),
-                            "".into(),
-                            VariantType::Deletion
-                        )
-                    } else if
-                        event.get_prev_read_position() == base_2.get_read_position() &&
-                        event.get_next_read_position() == base_1.get_read_position() {
-                        GraphOperation::new(
-                            base_2.get_reference_chromosome_id().unwrap(),
-                            base_2.get_reference_position().unwrap(),
-                            base_2.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_prev_graph_operation_type().clone(),
-                            base_1.get_reference_chromosome_id().unwrap(),
-                            base_1.get_reference_position().unwrap(),
-                            base_1.get_reference_strand().as_ref().unwrap().clone(),
-                            event.get_next_graph_operation_type().clone(),
-                            "".into(),
-                            VariantType::Deletion
-                        )
-                    } else {
-                        panic!("Mismatch between alignment event and bases.");
-                    };
+                AlignmentStructureKind::Base(AlignmentStructureBaseKind::Insertion) => {
+                    // Exclude template-switching artifacts if the analyte type is RNA
+                    if analyte_type == AnalyteType::RNA &&
+                        (curr_record.get_start() == 0 || curr_record.get_end() == self.get_bases_length() - 1) &&
+                        curr_record.get_sequence().len() <= 3 &&
+                        (curr_record.get_sequence().to_uppercase().contains("AA") ||
+                         curr_record.get_sequence().to_uppercase().contains("CC") ||
+                         curr_record.get_sequence().to_uppercase().contains("GG") ||
+                         curr_record.get_sequence().to_uppercase().contains("TT")) {
+                        continue;
+                    }
+
+                    let sequence: String = curr_record
+                        .get_sequence()
+                        .chars()
+                        .zip(curr_record.get_base_quality_scores())
+                        .filter(|(_, &q)| q >= min_base_quality)
+                        .map(|(c, _)| c)
+                        .collect();
+
+                    if sequence.len() == 0 {
+                        continue;
+                    }
+
+                    let graph_operation: GraphOperation = GraphOperation::new(
+                        curr_record.get_chromosome_1(),
+                        curr_record.get_position_1(),
+                        curr_record.get_strand_1().clone(),
+                        curr_record.get_operation_1().clone(),
+                        curr_record.get_chromosome_2(),
+                        curr_record.get_position_2(),
+                        curr_record.get_strand_2().clone(),
+                        curr_record.get_operation_2().clone(),
+                        sequence.into(),
+                        VariantType::Insertion
+                    );
 
                     variant_records.push(
                         VariantRecord::new(
                             self.read_id,
-                            *read_position_1,
-                            *read_position_2,
+                            curr_record.get_start(),
+                            curr_record.get_end(),
                             graph_operation
                         )
                     );
@@ -1336,15 +1165,191 @@ impl AlignmentStructure {
                 }
             }
         }
+
+        if analyte_type == AnalyteType::DNA {
+            return variant_records;
+        }
+
+        // Step 2. Identify variant records based on the AlignmentStructureBase contexts
+        let mut uf: UnionFind = UnionFind::new();
+        for i in 0..records.len() {
+            let record: &AlignmentStructureRecord = records.get(i).unwrap();
+            if *record.get_record_type() == AlignmentStructureRecordType::Base &&
+                *record.get_context().as_ref().unwrap() != AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) {
+                uf.union(i, i);
+            }
+        }
+        for i in 1..records.len() {
+            let prev_record: &AlignmentStructureRecord = records.get(i - 1).unwrap();
+            let curr_record: &AlignmentStructureRecord = records.get(i).unwrap();
+            match (prev_record.get_record_type(), curr_record.get_record_type()) {
+                (AlignmentStructureRecordType::Event, AlignmentStructureRecordType::Event) => {
+                    continue;
+                },
+                (AlignmentStructureRecordType::Event, AlignmentStructureRecordType::Base) => {
+                    if *curr_record.get_context().as_ref().unwrap() != AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) &&
+                        *prev_record.get_kind() == AlignmentStructureKind::Event(AlignmentStructureEventKind::Deletion) &&
+                        prev_record.get_chromosome_1() == curr_record.get_chromosome_1() &&
+                        prev_record.get_chromosome_2() == curr_record.get_chromosome_2() &&
+                        prev_record.get_strand_1() == curr_record.get_strand_1() &&
+                        prev_record.get_strand_2() == curr_record.get_strand_2() &&
+                        (prev_record.get_position_1().abs_diff(curr_record.get_position_2()) <= 1 ||
+                         prev_record.get_position_2().abs_diff(curr_record.get_position_1()) <= 1) {
+                        let base_1: &AlignmentStructureBase = self.get_base(prev_record.get_start());
+                        let base_2: &AlignmentStructureBase = self.get_base(prev_record.get_end());
+                        if *base_1.get_context().as_ref().unwrap() != AlignmentStructureBaseContext::Exonic &&
+                            *base_1.get_context().as_ref().unwrap() == *base_2.get_context().as_ref().unwrap() &&
+                            *base_1.get_context().as_ref().unwrap() == *curr_record.get_context().as_ref().unwrap().as_base().unwrap() {
+                            uf.union(i - 1, i);
+                        }
+                    }
+                },
+                (AlignmentStructureRecordType::Base, AlignmentStructureRecordType::Event) => {
+                    if *prev_record.get_context().as_ref().unwrap() != AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) &&
+                        *curr_record.get_kind() == AlignmentStructureKind::Event(AlignmentStructureEventKind::Deletion) &&
+                        prev_record.get_chromosome_1() == curr_record.get_chromosome_1() &&
+                        prev_record.get_chromosome_2() == curr_record.get_chromosome_2() &&
+                        prev_record.get_strand_1() == curr_record.get_strand_1() &&
+                        prev_record.get_strand_2() == curr_record.get_strand_2() &&
+                        (prev_record.get_position_1().abs_diff(curr_record.get_position_2()) <= 1 ||
+                         prev_record.get_position_2().abs_diff(curr_record.get_position_1()) <= 1) {
+                        let base_1: &AlignmentStructureBase = self.get_base(curr_record.get_start());
+                        let base_2: &AlignmentStructureBase = self.get_base(curr_record.get_end());
+                        if *base_1.get_context().as_ref().unwrap() != AlignmentStructureBaseContext::Exonic &&
+                            *base_1.get_context().as_ref().unwrap() == *base_2.get_context().as_ref().unwrap() &&
+                            *base_1.get_context().as_ref().unwrap() == *prev_record.get_context().as_ref().unwrap().as_base().unwrap() {
+                            uf.union(i - 1, i);
+                        }
+                    }
+                }
+                (AlignmentStructureRecordType::Base, AlignmentStructureRecordType::Base) => {
+                    if *prev_record.get_context().as_ref().unwrap() != AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) &&
+                        *curr_record.get_context().as_ref().unwrap() != AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) &&
+                        *prev_record.get_context().as_ref().unwrap().as_base().unwrap() == *curr_record.get_context().as_ref().unwrap().as_base().unwrap() &&
+                        prev_record.get_chromosome_1() == curr_record.get_chromosome_1() &&
+                        prev_record.get_chromosome_2() == curr_record.get_chromosome_2() &&
+                        prev_record.get_strand_1() == curr_record.get_strand_1() &&
+                        prev_record.get_strand_2() == curr_record.get_strand_2() &&
+                        (prev_record.get_position_1().abs_diff(curr_record.get_position_2()) <= 1 ||
+                         prev_record.get_position_2().abs_diff(curr_record.get_position_1()) <= 1) {
+                        uf.union(i - 1, i);
+                    }
+                }
+            }
+        }
+        for cluster in uf.get_clusters().iter() {
+            // Sort the record positions
+            let mut record_indices: Vec<usize> = cluster.iter().map(|&pos| pos as usize).collect();
+            record_indices.sort();
+
+            let first_record: &AlignmentStructureRecord = records.get(*record_indices.first().unwrap() as usize).unwrap();
+            let last_record: &AlignmentStructureRecord = records.get(*record_indices.last().unwrap() as usize).unwrap();
+
+            let prev_record: Option<&AlignmentStructureRecord> = if *record_indices.first().unwrap() > 0usize  {
+                records.get(record_indices[0] as usize - 1)
+            } else {
+                None
+            };
+
+            let next_record: Option<&AlignmentStructureRecord> = if *record_indices.last().unwrap() < records.len() as usize - 1  {
+                records.get(*record_indices.last().unwrap() as usize + 1)
+            } else {
+                None
+            };
+
+            let mut variant_type: VariantType = VariantType::CrypticExon;
+            if prev_record.is_some() {
+                let prev_record_: &AlignmentStructureRecord = prev_record.unwrap();
+                if *prev_record_.get_record_type() == AlignmentStructureRecordType::Base &&
+                    *prev_record_.get_context().as_ref().unwrap() == AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) &&
+                    prev_record_.get_chromosome_1() == first_record.get_chromosome_1() &&
+                    prev_record_.get_chromosome_2() == first_record.get_chromosome_2() &&
+                    prev_record_.get_strand_1() == first_record.get_strand_1() &&
+                    prev_record_.get_strand_2() == first_record.get_strand_2() &&
+                    (prev_record_.get_position_1().abs_diff(first_record.get_position_2()) <= 1 ||
+                     prev_record_.get_position_2().abs_diff(first_record.get_position_1()) <= 1) {
+                    if *first_record.get_context().as_ref().unwrap() == AlignmentStructureContext::Base(AlignmentStructureBaseContext::Intronic) {
+                        variant_type = VariantType::IntronRetention;
+                    }
+                    if *first_record.get_context().as_ref().unwrap() == AlignmentStructureContext::Base(AlignmentStructureBaseContext::Intergenic) {
+                        variant_type = VariantType::UTRExtension;
+                    }
+                }
+            }
+            if next_record.is_some() {
+                let next_record_: &AlignmentStructureRecord = next_record.unwrap();
+                if *next_record_.get_record_type() == AlignmentStructureRecordType::Base &&
+                    *next_record_.get_context().as_ref().unwrap() == AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) &&
+                    next_record_.get_chromosome_1() == last_record.get_chromosome_1() &&
+                    next_record_.get_chromosome_2() == last_record.get_chromosome_2() &&
+                    next_record_.get_strand_1() == last_record.get_strand_1() &&
+                    next_record_.get_strand_2() == last_record.get_strand_2() &&
+                    (next_record_.get_position_1().abs_diff(last_record.get_position_2()) <= 1 ||
+                        next_record_.get_position_2().abs_diff(last_record.get_position_1()) <= 1) {
+                    if *last_record.get_context().as_ref().unwrap() == AlignmentStructureContext::Base(AlignmentStructureBaseContext::Intronic) {
+                        variant_type = VariantType::IntronRetention;
+                    }
+                    if *last_record.get_context().as_ref().unwrap() == AlignmentStructureContext::Base(AlignmentStructureBaseContext::Intergenic) {
+                        variant_type = VariantType::UTRExtension;
+                    }
+                }
+            }
+
+            assert_eq!(first_record.get_chromosome_1() == last_record.get_chromosome_1(), true, "The first and last records must have the same chromosome 1.");
+            assert_eq!(first_record.get_chromosome_2() == last_record.get_chromosome_2(), true, "The first and last records must have the same chromosome 2.");
+            assert_eq!(first_record.get_strand_1() == last_record.get_strand_1(), true, "The first and last records must have the same strand 1.");
+            assert_eq!(first_record.get_strand_2() == last_record.get_strand_2(), true, "The first and last records must have the same strand 2.");
+
+            let graph_operation: GraphOperation = if *first_record.get_strand_1() == Strand::Forward {
+                GraphOperation::new(
+                    first_record.get_chromosome_1(),
+                    first_record.get_position_1(),
+                    first_record.get_strand_1().clone(),
+                    GraphOperationType::Include,
+                    last_record.get_chromosome_1(),
+                    last_record.get_position_2(),
+                    last_record.get_strand_1().clone(),
+                    GraphOperationType::Include,
+                    "".into(),
+                    variant_type
+                )
+            } else {
+                GraphOperation::new(
+                    first_record.get_chromosome_1(),
+                    first_record.get_position_2(),
+                    first_record.get_strand_1().clone(),
+                    GraphOperationType::Include,
+                    last_record.get_chromosome_1(),
+                    last_record.get_position_1(),
+                    last_record.get_strand_1().clone(),
+                    GraphOperationType::Include,
+                    "".into(),
+                    variant_type
+                )
+            };
+
+            variant_records.push(
+                VariantRecord::new(
+                    self.read_id,
+                    first_record.get_start(),
+                    last_record.get_end(),
+                    graph_operation
+                )
+            );
+        }
+
         variant_records
     }
 
-    /// Identifies variant records in self.events based on the AlignmentStructureEventContext.
+    /// Identifies event variant records.
     ///
     /// This function identifies the following variant types:
+    /// - Breakpoint
     /// - Circular RNA
+    /// - Deletion
     /// - Exon truncation
     /// - Fusion gene
+    /// - Translocation
     ///
     /// # Arguments
     /// * `min_mapping_quality`: Minimum mapping quality.
@@ -1352,251 +1357,278 @@ impl AlignmentStructure {
     ///
     /// # Returns
     /// * Vector of VariantRecord objects.
-    fn identify_event_context_variant_records(
+    fn identify_event_variant_records(
         &self,
-        min_mapping_quality: u32,
-        gene_annotator: &(impl GeneAnnotator + Sync)
+        records: &Vec<AlignmentStructureRecord>,
+        min_mapping_quality: usize,
+        min_base_quality: u8
     ) -> Vec<VariantRecord> {
-        // Step 1. Record variant records
         let mut variant_records: Vec<VariantRecord> = Vec::new();
-        let last_base_position: u32 = self.get_bases_length() - 1;
-        for ((read_position_1, read_position_2), event) in self.get_events().iter() {
-            let (base_1, base_2) = if *read_position_1 == 0 && *read_position_2 == 0 {
-                (self.get_base(*read_position_2), self.get_base(*read_position_2))
-            } else if *read_position_1 == last_base_position && *read_position_2 == last_base_position {
-                (self.get_base(*read_position_1), self.get_base(*read_position_1))
-            } else {
-                (self.get_base(*read_position_1), self.get_base(*read_position_2))
-            };
-
-            // Check if the minimum mapping quality is met
-            if base_1.get_mapping_quality().unwrap() < min_mapping_quality ||
-                base_2.get_mapping_quality().unwrap() < min_mapping_quality {
+        for record in records.iter() {
+            if *record.get_record_type() == AlignmentStructureRecordType::Base {
                 continue;
             }
 
-            if event.get_context().is_some() {
-                match event.get_context().unwrap() {
-                    AlignmentStructureEventContext::BackSplicing => {
-                        // Fetch any insertion sequence between the breakpoints
-                        let mut insertion_alignment_bases: Vec<&AlignmentStructureBase> = Vec::new();
-                        let mut insertion_sequence: String = "".to_string();
-                        if read_position_1.abs_diff(*read_position_2) > 1 {
-                            for i in read_position_1 + 1..=read_position_2 - 1 {
-                                insertion_alignment_bases.push(self.get_base(i));
-                            }
-                            insertion_sequence = insertion_alignment_bases
-                                .iter()
-                                .map(|b| b.get_nucleotide().as_str())
-                                .collect::<Vec<_>>()
-                                .join("");
-                            let insertion_is_embedded_insertion: HashSet<bool> = insertion_alignment_bases
-                                .iter()
-                                .map(|b| b.is_embedded_insertion())
-                                .collect();
-                            assert!(
-                                insertion_is_embedded_insertion.len() == 1 && insertion_is_embedded_insertion.contains(&true),
-                                "All insertion nucleotides are expected to be labeled as embedded insertions."
-                            );
-                        }
-
-                        let graph_operation: GraphOperation = if
-                            event.get_prev_read_position() == base_1.get_read_position() &&
-                            event.get_next_read_position() == base_2.get_read_position() {
-                            GraphOperation::new(
-                                base_1.get_reference_chromosome_id().unwrap(),
-                                base_1.get_reference_position().unwrap(),
-                                base_1.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_prev_graph_operation_type().clone(),
-                                base_2.get_reference_chromosome_id().unwrap(),
-                                base_2.get_reference_position().unwrap(),
-                                base_2.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_next_graph_operation_type().clone(),
-                                insertion_sequence.into(),
-                                VariantType::CircularRNA
-                            )
-                        } else if
-                            event.get_prev_read_position() == base_2.get_read_position() &&
-                            event.get_next_read_position() == base_1.get_read_position() {
-                            GraphOperation::new(
-                                base_2.get_reference_chromosome_id().unwrap(),
-                                base_2.get_reference_position().unwrap(),
-                                base_2.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_prev_graph_operation_type().clone(),
-                                base_1.get_reference_chromosome_id().unwrap(),
-                                base_1.get_reference_position().unwrap(),
-                                base_1.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_next_graph_operation_type().clone(),
-                                insertion_sequence.into(),
-                                VariantType::CircularRNA
-                            )
-                        } else {
-                            panic!("Mismatch between alignment event and bases.");
-                        };
-
-                        variant_records.push(
-                            VariantRecord::new(
-                                self.read_id,
-                                *read_position_1,
-                                *read_position_2,
-                                graph_operation
-                            )
-                        );
-                    },
-                    AlignmentStructureEventContext::FusionGene => {
-                        // Fetch any insertion sequence between the breakpoints
-                        let mut insertion_alignment_bases: Vec<&AlignmentStructureBase> = Vec::new();
-                        let mut insertion_sequence: String = "".to_string();
-                        if read_position_1.abs_diff(*read_position_2) > 1 {
-                            for i in read_position_1 + 1..=read_position_2 - 1 {
-                                insertion_alignment_bases.push(self.get_base(i));
-                            }
-                            insertion_sequence = insertion_alignment_bases
-                                .iter()
-                                .map(|b| b.get_nucleotide().as_str())
-                                .collect::<Vec<_>>()
-                                .join("");
-                            let insertion_is_embedded_insertion: HashSet<bool> = insertion_alignment_bases
-                                .iter()
-                                .map(|b| b.is_embedded_insertion())
-                                .collect();
-                            assert!(
-                                insertion_is_embedded_insertion.len() == 1 && insertion_is_embedded_insertion.contains(&true),
-                                "All insertion nucleotides are expected to be labeled as embedded insertions."
-                            );
-                        }
-
-                        let graph_operation: GraphOperation = if
-                            event.get_prev_read_position() == base_1.get_read_position() &&
-                            event.get_next_read_position() == base_2.get_read_position() {
-                            GraphOperation::new(
-                                base_1.get_reference_chromosome_id().unwrap(),
-                                base_1.get_reference_position().unwrap(),
-                                base_1.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_prev_graph_operation_type().clone(),
-                                base_2.get_reference_chromosome_id().unwrap(),
-                                base_2.get_reference_position().unwrap(),
-                                base_2.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_next_graph_operation_type().clone(),
-                                insertion_sequence.into(),
-                                VariantType::FusionGene
-                            )
-                        } else if
-                            event.get_prev_read_position() == base_2.get_read_position() &&
-                            event.get_next_read_position() == base_1.get_read_position() {
-                            GraphOperation::new(
-                                base_2.get_reference_chromosome_id().unwrap(),
-                                base_2.get_reference_position().unwrap(),
-                                base_2.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_prev_graph_operation_type().clone(),
-                                base_1.get_reference_chromosome_id().unwrap(),
-                                base_1.get_reference_position().unwrap(),
-                                base_1.get_reference_strand().as_ref().unwrap().clone(),
-                                event.get_next_graph_operation_type().clone(),
-                                insertion_sequence.into(),
-                                VariantType::FusionGene
-                            )
-                        } else {
-                            panic!("Mismatch between alignment event and bases.");
-                        };
-
-                        variant_records.push(
-                            VariantRecord::new(
-                                self.read_id,
-                                *read_position_1,
-                                *read_position_2,
-                                graph_operation
-                            )
-                        );
-
-                        // Record exon truncations
-                        for reference_bases in event.get_skipped_reference_bases_clusters() {
-                            // Identify start and end positions of exon truncation
-                            let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
-                            let reference_position_1: u32 = reference_bases.first().unwrap().reference_position;
-                            let reference_position_2: u32 = reference_bases.last().unwrap().reference_position;
-                            let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
-                            let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
-                                reference_bases
-                                    .iter()
-                                    .map(|x| x.reference_nucleotide.as_str())
-                                    .collect()
-                            } else {
-                                reference_bases
-                                    .iter()
-                                    .rev()
-                                    .map(|x| x.reference_nucleotide.as_str())
-                                    .collect()
-                            };
-                            let graph_operation: GraphOperation = GraphOperation::new(
-                                reference_chromosome_id,
-                                reference_position_1,
-                                reference_strand.clone(),
-                                GraphOperationType::Skip,
-                                reference_chromosome_id,
-                                reference_position_2,
-                                reference_strand.clone(),
-                                GraphOperationType::Skip,
-                                sequence.into(),
-                                VariantType::ExonTruncation
-                            );
-                            variant_records.push(
-                                VariantRecord::new(
-                                    self.read_id,
-                                    *read_position_1,
-                                    *read_position_2,
-                                    graph_operation
-                                )
-                            );
-                        }
-                    },
-                    AlignmentStructureEventContext::NonCanonicalSplicing => {
-                        // Record exon truncations
-                        for reference_bases in event.get_skipped_reference_bases_clusters() {
-                            // Identify start and end positions of exon truncation
-                            let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
-                            let reference_position_1: u32 = reference_bases.first().unwrap().reference_position;
-                            let reference_position_2: u32 = reference_bases.last().unwrap().reference_position;
-                            let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
-                            let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
-                                reference_bases
-                                    .iter()
-                                    .map(|x| x.reference_nucleotide.as_str())
-                                    .collect()
-                            } else {
-                                reference_bases
-                                    .iter()
-                                    .rev()
-                                    .map(|x| x.reference_nucleotide.as_str())
-                                    .collect()
-                            };
-                            let graph_operation: GraphOperation = GraphOperation::new(
-                                reference_chromosome_id,
-                                reference_position_1,
-                                reference_strand.clone(),
-                                GraphOperationType::Skip,
-                                reference_chromosome_id,
-                                reference_position_2,
-                                reference_strand.clone(),
-                                GraphOperationType::Skip,
-                                sequence.into(),
-                                VariantType::ExonTruncation
-                            );
-                            variant_records.push(
-                                VariantRecord::new(
-                                    self.read_id,
-                                    *read_position_1,
-                                    *read_position_2,
-                                    graph_operation
-                                )
-                            );
-                        }
-                    },
-                    _ => {
-                        // Do nothing
-                    }
-                }
+            // Check the mapping quality scores
+            if record.get_mapping_quality_1() < min_mapping_quality || record.get_mapping_quality_2() < min_mapping_quality {
+                continue;
             }
+
+            match record.get_kind() {
+                AlignmentStructureKind::Event(AlignmentStructureEventKind::Breakpoint) => {
+                    // Get sequence
+                    let sequence = record.get_sequence();
+                    let base_quality_scores = record.get_base_quality_scores();
+                    let mut filtered_sequence = String::new();
+                    for (base, &quality) in sequence.chars().zip(base_quality_scores) {
+                        if quality >= min_base_quality {
+                            filtered_sequence.push(base);
+                        }
+                    }
+
+                    // Get variant type
+                    let mut variant_type: VariantType = VariantType::Breakpoint;
+                    if record.get_context().is_some() {
+                        match record.get_context().as_ref().unwrap() {
+                            AlignmentStructureContext::Event(AlignmentStructureEventContext::BackSplicing) => {
+                                variant_type = VariantType::CircularRNA;
+                            },
+                            AlignmentStructureContext::Event(AlignmentStructureEventContext::FusionGene) => {
+                                variant_type = VariantType::FusionGene;
+                            },
+                            AlignmentStructureContext::Event(AlignmentStructureEventContext::NonCanonicalSplicing) => {
+                                if record.get_chromosome_1() == record.get_chromosome_2() {
+                                    variant_type = VariantType::Breakpoint;
+                                } else {
+                                    variant_type = VariantType::Translocation;
+                                }
+                            },
+                            _ => {
+                                // Do nothing
+                            }
+                        }
+                    } else {
+                        if record.get_chromosome_1() == record.get_chromosome_2() {
+                            variant_type = VariantType::Breakpoint;
+                        } else {
+                            variant_type = VariantType::Translocation;
+                        }
+                    }
+
+                    let graph_operation: GraphOperation = GraphOperation::new(
+                        record.get_chromosome_1(),
+                        record.get_position_1(),
+                        record.get_strand_1().clone(),
+                        record.get_operation_1().clone(),
+                        record.get_chromosome_2(),
+                        record.get_position_2(),
+                        record.get_strand_2().clone(),
+                        record.get_operation_2().clone(),
+                        filtered_sequence.into(),
+                        variant_type
+                    );
+
+                    variant_records.push(
+                        VariantRecord::new(
+                            self.read_id,
+                            record.get_start(),
+                            record.get_end(),
+                            graph_operation
+                        )
+                    );
+
+                    if record.get_skipped().is_some() {
+                        for reference_bases in record.get_skipped().as_ref().unwrap().iter() {
+                            let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
+                            let reference_position_1: usize = reference_bases.first().unwrap().reference_position;
+                            let reference_position_2: usize = reference_bases.last().unwrap().reference_position;
+                            let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
+                            let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
+                                reference_bases
+                                    .iter()
+                                    .map(|x| x.reference_nucleotide.as_str())
+                                    .collect()
+                            } else {
+                                reference_bases
+                                    .iter()
+                                    .rev()
+                                    .map(|x| x.reference_nucleotide.as_str())
+                                    .collect()
+                            };
+
+                            let graph_operation: GraphOperation = GraphOperation::new(
+                                reference_chromosome_id,
+                                reference_position_1,
+                                reference_strand.clone(),
+                                GraphOperationType::Skip,
+                                reference_chromosome_id,
+                                reference_position_2,
+                                reference_strand.clone(),
+                                GraphOperationType::Skip,
+                                sequence.into(),
+                                VariantType::ExonTruncation
+                            );
+
+                            variant_records.push(
+                                VariantRecord::new(
+                                    self.read_id,
+                                    record.get_start(),
+                                    record.get_end(),
+                                    graph_operation
+                                )
+                            );
+                        }
+                    }
+                },
+                AlignmentStructureKind::Event(AlignmentStructureEventKind::Boundary) => {
+                    for reference_bases in record.get_skipped().as_ref().unwrap().iter() {
+                        let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
+                        let reference_position_1: usize = reference_bases.first().unwrap().reference_position;
+                        let reference_position_2: usize = reference_bases.last().unwrap().reference_position;
+                        let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
+                        let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
+                            reference_bases
+                                .iter()
+                                .map(|x| x.reference_nucleotide.as_str())
+                                .collect()
+                        } else {
+                            reference_bases
+                                .iter()
+                                .rev()
+                                .map(|x| x.reference_nucleotide.as_str())
+                                .collect()
+                        };
+
+                        let graph_operation: GraphOperation = GraphOperation::new(
+                            reference_chromosome_id,
+                            reference_position_1,
+                            reference_strand.clone(),
+                            GraphOperationType::Skip,
+                            reference_chromosome_id,
+                            reference_position_2,
+                            reference_strand.clone(),
+                            GraphOperationType::Skip,
+                            sequence.into(),
+                            VariantType::ExonTruncation
+                        );
+
+                        variant_records.push(
+                            VariantRecord::new(
+                                self.read_id,
+                                record.get_start(),
+                                record.get_end(),
+                                graph_operation
+                            )
+                        );
+                    }
+                },
+                AlignmentStructureKind::Event(AlignmentStructureEventKind::Deletion) => {
+                    let graph_operation: GraphOperation = GraphOperation::new(
+                        record.get_chromosome_1(),
+                        record.get_position_1(),
+                        record.get_strand_1().clone(),
+                        record.get_operation_1().clone(),
+                        record.get_chromosome_2(),
+                        record.get_position_2(),
+                        record.get_strand_2().clone(),
+                        record.get_operation_2().clone(),
+                        "".into(),
+                        VariantType::Deletion
+                    );
+
+                    variant_records.push(
+                        VariantRecord::new(
+                            self.read_id,
+                            record.get_start(),
+                            record.get_end(),
+                            graph_operation
+                        )
+                    );
+                },
+                AlignmentStructureKind::Event(AlignmentStructureEventKind::Splicing) => {
+                    if record.get_context().is_some() {
+                        if record.get_context().as_ref().unwrap() == &AlignmentStructureContext::Event(AlignmentStructureEventContext::FusionGene) {
+                            // Get sequence
+                            let sequence = record.get_sequence();
+                            let base_quality_scores = record.get_base_quality_scores();
+                            let mut filtered_sequence = String::new();
+                            for (base, &quality) in sequence.chars().zip(base_quality_scores) {
+                                if quality >= min_base_quality {
+                                    filtered_sequence.push(base);
+                                }
+                            }
+
+                            let graph_operation: GraphOperation = GraphOperation::new(
+                                record.get_chromosome_1(),
+                                record.get_position_1(),
+                                record.get_strand_1().clone(),
+                                record.get_operation_1().clone(),
+                                record.get_chromosome_2(),
+                                record.get_position_2(),
+                                record.get_strand_2().clone(),
+                                record.get_operation_2().clone(),
+                                filtered_sequence.into(),
+                                VariantType::FusionGene
+                            );
+
+                            variant_records.push(
+                                VariantRecord::new(
+                                    self.read_id,
+                                    record.get_start(),
+                                    record.get_end(),
+                                    graph_operation
+                                )
+                            );
+                        }
+                    }
+
+                    if record.get_skipped().is_some() {
+                        for reference_bases in record.get_skipped().as_ref().unwrap().iter() {
+                            let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
+                            let reference_position_1: usize = reference_bases.first().unwrap().reference_position;
+                            let reference_position_2: usize = reference_bases.last().unwrap().reference_position;
+                            let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
+                            let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
+                                reference_bases
+                                    .iter()
+                                    .map(|x| x.reference_nucleotide.as_str())
+                                    .collect()
+                            } else {
+                                reference_bases
+                                    .iter()
+                                    .rev()
+                                    .map(|x| x.reference_nucleotide.as_str())
+                                    .collect()
+                            };
+
+                            let graph_operation: GraphOperation = GraphOperation::new(
+                                reference_chromosome_id,
+                                reference_position_1,
+                                reference_strand.clone(),
+                                GraphOperationType::Skip,
+                                reference_chromosome_id,
+                                reference_position_2,
+                                reference_strand.clone(),
+                                GraphOperationType::Skip,
+                                sequence.into(),
+                                VariantType::ExonTruncation
+                            );
+
+                            variant_records.push(
+                                VariantRecord::new(
+                                    self.read_id,
+                                    record.get_start(),
+                                    record.get_end(),
+                                    graph_operation
+                                )
+                            );
+                        }
+                    }
+                },
+                _ => {
+                    continue;
+                }
+            };
         }
 
         variant_records

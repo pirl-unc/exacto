@@ -20,8 +20,8 @@ use std::hash::{Hash, Hasher};
 pub fn vectorize_exons(
     exons: &Vec<TranscriptModelExon>,
     reference_chromosome_id: u16,
-    reference_start: u32,
-    reference_end: u32,
+    reference_start: usize,
+    reference_end: usize,
     aligned_value: i8,
     unaligned_value: i8
 ) -> Vec<i8> {
@@ -46,16 +46,16 @@ pub fn vectorize_exons(
 #[derive(Debug,Serialize,Deserialize)]
 pub struct TranscriptModelExon {
     pub reference_chromosome_id: u16,
-    pub reference_start: u32,
-    pub reference_end: u32,
+    pub reference_start: usize,
+    pub reference_end: usize,
     pub reference_strand: Strand,
     pub exon_number: u16,
 
     /// FASTX read sequence start position
-    pub read_start_position: u32,
+    pub read_start_position: usize,
 
     /// FASTX read sequence end position
-    pub read_end_position: u32
+    pub read_end_position: usize
 }
 
 impl PartialEq for TranscriptModelExon {
@@ -87,12 +87,12 @@ impl Hash for TranscriptModelExon {
 impl TranscriptModelExon {
     pub fn new(
         reference_chromosome_id: u16,
-        reference_start: u32,
-        reference_end: u32,
+        reference_start: usize,
+        reference_end: usize,
         reference_strand: Strand,
         exon_number: u16,
-        read_start_position: u32,
-        read_end_position: u32
+        read_start_position: usize,
+        read_end_position: usize
     ) -> Self {
         assert!(read_start_position <= read_end_position, "read_start_position should be less than or equal to read_end_position.");
         assert!(reference_start <= reference_end, "reference_start should be less than reference_end.");

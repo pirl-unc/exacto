@@ -1,6 +1,6 @@
 mod test_fasta;
 mod test_files;
-mod test_gene_annotation;
+mod test_gencode;
 mod test_interval_tree;
 mod test_sequences;
 mod test_transcript;
@@ -8,3 +8,10 @@ mod test_trie;
 mod test_union_find;
 mod test_utilities;
 mod test_bam;
+mod test_cds;
+mod test_exon;
+mod test_gene;
+mod test_intron;
+mod test_start_codon;
+mod test_stop_codon;
+mod test_utr;

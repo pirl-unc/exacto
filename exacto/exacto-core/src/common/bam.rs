@@ -81,17 +81,17 @@ pub fn create_read_names_map(
     num_threads: usize
 ) -> BiMap<Box<str>, usize> {
     // Step 1. Split the BAM into regions
-    let chromosome_names_map: BiMap<Box<str>,u16> = create_chromosome_names_map(bam_file);
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
     let chromosome_names: Vec<&str> = chromosome_names_map
         .left_values()
         .map(|boxed_str| boxed_str.as_ref())
         .collect();
-    let regions: HashMap<Box<str>,Vec<(usize,usize)>> = generate_regions(
+    let regions: HashMap<Box<str>,Vec<(usize, usize)>> = generate_regions(
         bam_file,
         &chromosome_names,
         10_000_000
     );
-    let regions_flattened: Vec<(Box<str>,usize,usize)> = regions
+    let regions_flattened: Vec<(Box<str>, usize, usize)> = regions
         .into_iter()
         .flat_map(|(chromosome, intervals)| {
             intervals
@@ -136,7 +136,7 @@ pub fn create_read_names_map(
     });
 
     // Step 3. Assign an ID for each read name
-    let mut read_names_map: BiMap<Box<str>,usize> = BiMap::new();
+    let mut read_names_map: BiMap<Box<str>, usize> = BiMap::new();
     let mut read_id: usize = 1;
     let mut read_names_: Vec<&Box<str>> = read_names.iter().collect();
     read_names_.sort();
@@ -230,7 +230,7 @@ pub fn fetch_bam_records(
         .num_threads(num_threads)
         .build()
         .unwrap();
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, usize> = get_chromosome_lengths(bam_file);
 
     // Step 1. Read the BAM header and index
     let mut reader = bam::io::reader::Builder::default()
@@ -355,11 +355,11 @@ pub fn fetch_bam_records(
     });
 
     // Step 6. Combine primary and supplementary records
-    let mut combined_records: HashMap<usize,HashMap<(u16,u32,u32,Box<str>),&bam::Record>> = HashMap::new();
+    let mut combined_records: HashMap<usize,HashMap<(u16, usize, usize, Box<str>),&bam::Record>> = HashMap::new();
     for record in primary_records.iter().chain(supplementary_records.iter()) {
         let read_name: Box<str> = record.name().unwrap().to_string().into_boxed_str();
         let read_index: usize = *read_names_map.get_by_left(&read_name).unwrap();
-        let key: (u16,u32,u32,Box<str>) = (
+        let key: (u16,usize,usize,Box<str>) = (
             record.flags().bits(),
             get_alignment_start_position(&record),
             get_alignment_end_position(&record),
@@ -405,8 +405,8 @@ pub fn generate_buffered_regions(
     chunk_size: usize,
     chunk_size_buffer: usize
 ) -> HashMap<Box<str>, Vec<(usize, usize)>> {
-    let mut buffered_regions: HashMap<Box<str>,Vec<(usize,usize)>> = HashMap::new();
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let mut buffered_regions: HashMap<Box<str>,Vec<(usize, usize)>> = HashMap::new();
+    let chromosome_lengths: HashMap<Box<str>, usize> = get_chromosome_lengths(bam_file);
     for chromosome in chromosomes.iter() {
         let chromosome_length: usize = *chromosome_lengths.get(&chromosome.to_string().into_boxed_str()).unwrap();
         // Divide the chromosome into chunks with overlaps
@@ -449,8 +449,8 @@ pub fn generate_regions(
     chromosomes: &Vec<&str>,
     chunk_size: usize,
 ) -> HashMap<Box<str>, Vec<(usize, usize)>> {
-    let mut regions: HashMap<Box<str>,Vec<(usize,usize)>> = HashMap::new();
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let mut regions: HashMap<Box<str>,Vec<(usize, usize)>> = HashMap::new();
+    let chromosome_lengths: HashMap<Box<str>, usize> = get_chromosome_lengths(bam_file);
     for chromosome in chromosomes.iter() {
         let chromosome_length: usize = *chromosome_lengths.get(&chromosome.to_string().into_boxed_str()).unwrap();
         // Divide the chromosome into chunks with overlaps
@@ -484,8 +484,8 @@ pub fn generate_regions(
 ///
 /// # Returns
 /// * Alignment end position.
-pub fn get_alignment_end_position(record: &bam::Record) -> u32 {
-    let alignment_start_position: u32 = record.alignment_start().unwrap().unwrap().get() as u32;
+pub fn get_alignment_end_position(record: &bam::Record) -> usize {
+    let alignment_start_position: usize = record.alignment_start().unwrap().unwrap().get() as usize;
     let alignment_span: usize = record
         .cigar()
         .iter()
@@ -493,7 +493,7 @@ pub fn get_alignment_end_position(record: &bam::Record) -> u32 {
         .filter(|op| matches!(op.kind(), Kind::Match | Kind::Deletion | Kind::SequenceMatch | Kind::SequenceMismatch | Kind::Skip))
         .map(|op| op.len())
         .sum();
-    let alignment_last_position: u32 = alignment_start_position + alignment_span as u32 - 1;
+    let alignment_last_position: usize = alignment_start_position + alignment_span as usize - 1;
     alignment_last_position
 }
 
@@ -504,8 +504,8 @@ pub fn get_alignment_end_position(record: &bam::Record) -> u32 {
 ///
 /// # Returns
 /// * Mapping quality.
-pub fn get_alignment_mapping_quality(record: &bam::Record) -> u32 {
-    record.mapping_quality().unwrap().get() as u32
+pub fn get_alignment_mapping_quality(record: &bam::Record) -> usize {
+    record.mapping_quality().unwrap().get() as usize
 }
 
 /// Gets the aligned sequence from the CIGAR string.
@@ -521,7 +521,7 @@ pub fn get_aligned_sequence_from_cigar(record: &bam::Record) -> Box<str> {
     for cigar in record.cigar().iter() {
         let cigar_ = cigar.unwrap();
         match cigar_.kind() {
-            Kind::SequenceMatch | Kind::SequenceMismatch=> {
+            Kind::Match | Kind::SequenceMatch | Kind::SequenceMismatch=> {
                 for _ in 0..cigar_.len() {
                     if let Some(base) = record.sequence().get(read_pos) {
                         aligned_sequence.push(char::from(base));
@@ -562,8 +562,8 @@ pub fn get_aligned_sequence_from_cigar(record: &bam::Record) -> Box<str> {
 ///
 /// # Returns
 /// * Alignment start position.
-pub fn get_alignment_start_position(record: &bam::Record) -> u32 {
-    record.alignment_start().unwrap().unwrap().get() as u32
+pub fn get_alignment_start_position(record: &bam::Record) -> usize {
+    record.alignment_start().unwrap().unwrap().get() as usize
 }
 
 /// Gets the alignment strand.
@@ -607,7 +607,7 @@ pub fn get_bam_header(bam_file: &str) -> Header {
 pub fn get_chromosome_lengths(bam_file: &str) -> HashMap<Box<str>, usize> {
     let mut reader = bam::io::reader::Builder::default().build_from_path(bam_file).unwrap();
     let header = reader.read_header().unwrap();
-    let mut chromosome_lengths: HashMap<Box<str>,usize> = HashMap::new();
+    let mut chromosome_lengths: HashMap<Box<str>, usize> = HashMap::new();
     for chromosome in header.reference_sequences().iter() {
         chromosome_lengths.insert(chromosome.0.to_string().into_boxed_str(), chromosome.1.length().get() as usize);
     }
@@ -657,7 +657,7 @@ pub fn get_cigar_operations(record: &bam::Record) -> Vec<(Kind, usize)> {
 /// # Returns
 /// * CIGAR string.
 pub fn get_cigar_string(record: &bam::Record) -> Box<str> {
-    let cigar_vec: Vec<(Kind,usize)> = get_cigar_operations(record);
+    let cigar_vec: Vec<(Kind, usize)> = get_cigar_operations(record);
     cigar_vec
         .iter()
         .map(|(kind, len)| format!("{}{}", len,  kind_to_char(*kind)))

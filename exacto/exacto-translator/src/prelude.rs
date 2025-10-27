@@ -1,6 +1,9 @@
 pub use crate::algorithms::translation::*;
 pub use crate::common::constants::*;
 pub use crate::structs::peptide::Peptide;
+pub use crate::structs::primary_structure::PrimaryStructure;
+pub use crate::structs::primary_structure_set::PrimaryStructureSet;
+pub use crate::structs::primary_structure_record::PrimaryStructureRecord;
 pub use crate::structs::rna::RNA;
 pub use crate::structs::translation::Translation;
 pub use crate::structs::translation_set::TranslationSet;

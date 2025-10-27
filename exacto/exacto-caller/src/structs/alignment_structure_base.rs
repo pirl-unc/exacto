@@ -19,24 +19,26 @@ use crate::prelude::*;
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct AlignmentStructureBase {
-    read_position: u32,
+    read_position: usize,
     nucleotide: Nucleotide,
     base_quality: u8,
     kind: AlignmentStructureBaseKind,
     is_soft_clipped: bool,
     is_embedded_insertion: bool,
-    mapping_quality: Option<u32>,
+    mapping_quality: Option<usize>,
     context: Option<AlignmentStructureBaseContext>,
     reference_chromosome_id: Option<u16>,
-    reference_position: Option<u32>,
+    reference_position: Option<usize>,
     reference_strand: Option<Strand>,
-    reference_transcript_id: Option<Box<str>>
+    reference_gene_id: Option<Box<str>>,
+    reference_transcript_id: Option<Box<str>>,
+    reference_exon_id: Option<Box<str>>
 }
 
 // API methods
 impl AlignmentStructureBase {
     pub fn new(
-        read_position: u32,
+        read_position: usize,
         nucleotide: Nucleotide,
         base_quality: u8
     ) -> Self {
@@ -52,7 +54,9 @@ impl AlignmentStructureBase {
             reference_chromosome_id: None,
             reference_position: None,
             reference_strand: None,
-            reference_transcript_id: None
+            reference_gene_id: None,
+            reference_transcript_id: None,
+            reference_exon_id: None
         }
     }
     
@@ -68,7 +72,7 @@ impl AlignmentStructureBase {
         &self.kind
     }
 
-    pub fn get_mapping_quality(&self) -> &Option<u32> {
+    pub fn get_mapping_quality(&self) -> &Option<usize> {
         &self.mapping_quality
     }
 
@@ -76,15 +80,23 @@ impl AlignmentStructureBase {
         &self.nucleotide
     }
 
-    pub fn get_read_position(&self) -> u32 {
+    pub fn get_read_position(&self) -> usize {
         self.read_position
+    }
+
+    pub fn get_reference_exon_id(&self) -> &Option<Box<str>> {
+        &self.reference_exon_id
     }
 
     pub fn get_reference_chromosome_id(&self) -> &Option<u16> {
         &self.reference_chromosome_id
     }
 
-    pub fn get_reference_position(&self) -> &Option<u32> {
+    pub fn get_reference_gene_id(&self) -> &Option<Box<str>> {
+        &self.reference_gene_id
+    }
+
+    pub fn get_reference_position(&self) -> &Option<usize> {
         &self.reference_position
     }
 
@@ -120,15 +132,23 @@ impl AlignmentStructureBase {
         self.kind = kind;
     }
     
-    pub fn set_mapping_quality(&mut self, value: u32) {
+    pub fn set_mapping_quality(&mut self, value: usize) {
         self.mapping_quality = Some(value);
     }
-    
+
+    pub fn set_reference_exon_id(&mut self, value: &str) {
+        self.reference_exon_id = Some(value.into());
+    }
+
     pub fn set_reference_chromosome_id(&mut self, value: u16) {
         self.reference_chromosome_id = Some(value);
     }
+
+    pub fn set_reference_gene_id(&mut self, value: &str) {
+        self.reference_gene_id = Some(value.into());
+    }
     
-    pub fn set_reference_position(&mut self, value: u32) {
+    pub fn set_reference_position(&mut self, value: usize) {
         self.reference_position = Some(value);
     }
     
@@ -155,7 +175,9 @@ impl Clone for AlignmentStructureBase {
             reference_chromosome_id: self.reference_chromosome_id,
             reference_position: self.reference_position,
             reference_strand: self.reference_strand.clone(),
-            reference_transcript_id: self.reference_transcript_id.clone()
+            reference_gene_id: self.reference_gene_id.clone(),
+            reference_transcript_id: self.reference_transcript_id.clone(),
+            reference_exon_id: self.reference_exon_id.clone()
         }
     }
 }

@@ -17,14 +17,14 @@ use crate::prelude::*;
 pub trait GeneAnnotator {
     fn get_assembly(&self) -> &str;
     fn get_version(&self) -> &str;
-    fn get_gene_ids_at_locus(&self, chromosome: &str, position: u32) -> Vec<Box<str>>;
-    fn get_gene_ids_overlapping_region(&self, chromosome: &str, start: u32, end: u32) -> Vec<Box<str>>;
-    fn get_transcript_ids_overlapping_region(&self, chromosome: &str, start: u32, end: u32) -> Vec<Box<str>>;
-    fn get_exon_ids_overlapping_region(&self, chromosome: &str, start: u32, end: u32) -> Vec<Box<str>>;
+    fn get_gene_ids_at_locus(&self, chromosome: &str, position: usize) -> Vec<Box<str>>;
+    fn get_gene_ids_overlapping_region(&self, chromosome: &str, start: usize, end: usize) -> Vec<Box<str>>;
+    fn get_transcript_ids_overlapping_region(&self, chromosome: &str, start: usize, end: usize) -> Vec<Box<str>>;
+    fn get_exon_ids_overlapping_region(&self, chromosome: &str, start: usize, end: usize) -> Vec<Box<str>>;
     fn get_gene(&self, gene_id: &str) -> Option<&Gene>;
     fn get_genes(&self) -> Vec<&Gene>;
     fn get_transcript(&self, transcript_id: &str) -> Option<&Transcript>;
     fn get_transcripts(&self) -> Vec<&Transcript>;
-    fn get_exon(&self, exon_id: &str) -> Option<&Exon>;
+    fn get_exon(&self, transcript_id: &str, exon_id: &str) -> Option<&Exon>;
     fn get_exons(&self) -> Vec<&Exon>;
 }

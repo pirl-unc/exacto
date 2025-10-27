@@ -43,7 +43,6 @@ def annotate_variant_calls(
         transcript_levels: List[int],
         output_tsv_file: str,
         num_threads: int = ANNOTATE_VARS_NUM_THREADS,
-        temp_dir: str = "",
         output_type: OutputType = OutputType.FILE
 ) -> pd.DataFrame:
     df_variants = exactolibrs.annotate_variant_calls(
@@ -58,7 +57,6 @@ def annotate_variant_calls(
         transcript_levels=transcript_levels,
         output_tsv_file=output_tsv_file,
         num_threads=num_threads,
-        temp_dir=temp_dir,
         output_type=str(output_type)
     )
     return df_variants.to_pandas()
@@ -235,7 +233,7 @@ def identify_rna_variants(
         num_threads: int = CALL_RNA_VARS_NUM_THREADS,
         temp_dir: str = "",
         output_type: OutputType = OutputType.FILE
-) -> Tuple[pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame,pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Identify RNA variants.
 
@@ -270,9 +268,10 @@ def identify_rna_variants(
         Pandas DataFrame of reference transcript matches,
         Pandas DataFrame of splice junction,
         Pandas DataFrame of transcripts,
+        Pandas DataFrame of transcript structures,
         Pandas DataFrame of variants
     """
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_variant_calls = exactolibrs.identify_rna_variants(
+    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = exactolibrs.identify_rna_variants(
         bam_file=bam_file,
         bam_bai_file=bam_bai_file,
         reference_genome_fasta_file=reference_genome_fasta_file,
@@ -302,7 +301,100 @@ def identify_rna_variants(
             df_matched_reference_transcripts.to_pandas(),
             df_introns.to_pandas(),
             df_transcripts.to_pandas(),
+            df_transcript_structures.to_pandas(),
             df_variant_calls.to_pandas())
+
+
+def integrate_dna_rna_variants(
+        dna_variant_call_annotation_set_tsv_file: str,
+        rna_variant_call_set_tsv_file: str,
+        reference_gene_annotation_file: str,
+        reference_gene_annotation_source: GeneAnnotationSource,
+        reference_gene_annotation_assembly: str,
+        reference_gene_annotation_version: str,
+        output_tsv_file: str,
+        max_exon_offset: int = INTEGRATE_VARS_MAX_EXON_OFFSET,
+        max_transcript_boundary_offset: int = INTEGRATE_VARS_MAX_TRANSCRIPT_BOUNDARY_OFFSET,
+        max_intergenic_distance: int = INTEGRATE_VARS_MAX_INTERGENIC_DISTANCE,
+        num_threads: int = CALL_RNA_VARS_NUM_THREADS,
+        output_type: OutputType = OutputType.FILE
+) -> pd.DataFrame:
+    """
+    Integrate DNA and RNA variants.
+
+    Args:
+        annotated_dna_variant_callset_tsv_file      :   Annotated DNA variant callset TSV file.
+        rna_variant_callset_tsv_file                :   RNA variant callset TSV file.
+        reference_gene_annotation_file              :   Reference gene annotation TSV file.
+        reference_gene_annotation_source            :   Reference gene annotation TSV file source.
+        output_tsv_file                             :   Output TSV file.
+        max_exon_offset                             :   Maximum exon offset.
+        max_transcript_boundary_offset              :   Maximum transcript boundary offset.
+        max_intergenic_distance                     :   Maximum intergenic distance.
+        num_threads                                 :   Number of threads.
+        output_type                                 :   Output type ('file' or 'dataframe').
+
+    Returns:
+        Pandas DataFrame with the following columns:
+            'rna_variant_call_id,
+            'dna_variant_call_id',
+            'distance',
+            'rna_variant_position',
+            'dna_variant_position'
+    """
+    df_integration = exactolibrs.integrate_dna_rna_variants(
+        dna_variant_call_annotation_set_tsv_file=dna_variant_call_annotation_set_tsv_file,
+        rna_variant_call_set_tsv_file=rna_variant_call_set_tsv_file,
+        reference_gene_annotation_file=reference_gene_annotation_file,
+        reference_gene_annotation_source=str(reference_gene_annotation_source),
+        reference_gene_annotation_assembly=str(reference_gene_annotation_assembly),
+        reference_gene_annotation_version=str(reference_gene_annotation_version),
+        output_tsv_file=output_tsv_file,
+        max_exon_offset=max_exon_offset,
+        max_transcript_boundary_offset=max_transcript_boundary_offset,
+        max_intergenic_distance=max_intergenic_distance,
+        num_threads=num_threads,
+        output_type=str(output_type)
+    )
+    return df_integration.to_pandas()
+
+
+def remove_unspliced_rnas(
+        bam_file: str,
+        bam_bai_file: str,
+        fasta_file: str,
+        reference_gene_annotation_file: str,
+        reference_gene_annotation_source: GeneAnnotationSource,
+        reference_gene_annotation_assembly: str,
+        reference_gene_annotation_version: str,
+        gene_types: List[str],
+        gene_levels: List[int],
+        transcript_types: List[str],
+        transcript_levels: List[int],
+        output_bam_file: str,
+        output_bam_bai_file: str,
+        output_fasta_file: str,
+        num_threads: int,
+        min_mapping_quality: int
+):
+    exactolibrs.remove_unspliced_rnas(
+        bam_file=bam_file,
+        bam_bai_file=bam_bai_file,
+        fasta_file=fasta_file,
+        reference_gene_annotation_file=reference_gene_annotation_file,
+        reference_gene_annotation_source=str(reference_gene_annotation_source),
+        reference_gene_annotation_assembly=str(reference_gene_annotation_assembly),
+        reference_gene_annotation_version=str(reference_gene_annotation_version),
+        gene_types=gene_types,
+        gene_levels=gene_levels,
+        transcript_types=transcript_types,
+        transcript_levels=transcript_levels,
+        output_bam_file=output_bam_file,
+        output_bam_bai_file=output_bam_bai_file,
+        output_fasta_file=output_fasta_file,
+        num_threads=num_threads,
+        min_mapping_quality=min_mapping_quality
+    )
 
 
 def translate_fasta_file(
@@ -328,7 +420,7 @@ def translate_fasta_file(
         'orf_start'
         'orf_end'
     """
-    ipc_file = exactolibrs.translate_rna_fasta_file(
+    ipc_file = exactolibrs.translate_fasta_file(
         fasta_file=fasta_file,
         strategy=str(strategy),
         num_threads=num_threads,
@@ -371,7 +463,7 @@ def translate_fastq_file(
         'orf_start'
         'orf_end'
     """
-    ipc_file = exactolibrs.translate_rna_fastq_file(
+    ipc_file = exactolibrs.translate_fastq_file(
         fastq_file=fastq_file,
         strategy=str(strategy),
         num_threads=num_threads,
@@ -391,7 +483,10 @@ def translate_fastq_file(
     return df
 
 
-def translate(rna_sequence: str, strategy: TRANSLATE_STRATEGY) -> List[Tuple[str,int,int]]:
+def translate_sequence(
+        rna_sequence: str,
+        strategy: TRANSLATE_STRATEGY
+) -> List[Tuple[str,int,int]]:
     """
     Translate a RNA sequence.
 
@@ -402,11 +497,48 @@ def translate(rna_sequence: str, strategy: TRANSLATE_STRATEGY) -> List[Tuple[str
     Returns:
         Peptide sequence, ORF start, ORF end
     """
-    translations = exactolibrs.translate_rna_sequence(
+    translations = exactolibrs.translate_sequence(
         rna_sequence=rna_sequence,
-        strategy=strategy
+        strategy=str(strategy)
     )
     return translations
+
+
+def translate_structures(
+        transcript_structures_tsv_file: str,
+        rna_variant_calls_tsv_file: str,
+        integrated_variants_tsv_file: str,
+        strategy: TRANSLATE_STRATEGY,
+        output_tsv_file: str,
+        num_threads: int = TRANSLATE_NUM_THREADS,
+        output_type: OutputType = OutputType.FILE
+) -> pd.DataFrame:
+    """
+    Translate transcript structures.
+
+    Args:
+        transcript_structures_tsv_file    :   Transcript structures TSV file.
+        rna_variant_calls_tsv_file        :   RNA variant calls TSV file.
+        integrated_variants_tsv_file      :   Integrated variants TSV file.
+        strategy                          :   Translation strategy.
+        output_tsv_file                   :   Output TSV file.
+        num_threads                       :   Number of threads.
+        output_type                       :   Output type.
+
+    Returns:
+        Pandas DataFrame.
+    """
+    df_primary_structures = exactolibrs.translate_structures(
+        transcript_structures_tsv_file=transcript_structures_tsv_file,
+        rna_variant_calls_tsv_file=rna_variant_calls_tsv_file,
+        integrated_variants_tsv_file=integrated_variants_tsv_file,
+        strategy=str(strategy),
+        output_tsv_file=output_tsv_file,
+        num_threads=num_threads,
+        output_type=str(output_type)
+    )
+
+    return df_primary_structures.to_pandas()
 
 
 # def build_variation_graph(
@@ -506,81 +638,4 @@ def translate(rna_sequence: str, strategy: TRANSLATE_STRATEGY) -> List[Tuple[str
 #     # )
 #
 #
-# def integrate_dna_rna_variants(
-#         annotated_dna_variant_callset_tsv_file: str,
-#         rna_variant_callset_tsv_file: str,
-#         reference_gene_annotation_file: str,
-#         reference_gene_annotation_source: GeneAnnotationSource,
-#         output_tsv_file: str,
-#         max_exon_offset: int = INTEGRATE_VARS_MAX_EXON_OFFSET,
-#         max_transcript_boundary_offset: int = INTEGRATE_VARS_MAX_TRANSCRIPT_BOUNDARY_OFFSET,
-#         max_intergenic_distance: int = INTEGRATE_VARS_MAX_INTERGENIC_DISTANCE,
-#         num_threads: int = CALL_RNA_VARS_NUM_THREADS,
-#         temp_dir: str = "",
-#         output_type: OutputType = OutputType.FILE
-# ) -> pd.DataFrame:
-#     """
-#     Integrate DNA and RNA variants.
-#
-#     Args:
-#         annotated_dna_variant_callset_tsv_file      :   Annotated DNA variant callset TSV file.
-#         rna_variant_callset_tsv_file                :   RNA variant callset TSV file.
-#         reference_gene_annotation_file              :   Reference gene annotation TSV file.
-#         reference_gene_annotation_source            :   Reference gene annotation TSV file source.
-#         output_tsv_file                             :   Output TSV file.
-#         max_exon_offset                             :   Maximum exon offset.
-#         max_transcript_boundary_offset              :   Maximum transcript boundary offset.
-#         max_intergenic_distance                     :   Maximum intergenic distance.
-#         num_threads                                 :   Number of threads.
-#         temp_dir                                    :   Temp directory (default: TMPDIR).
-#         output_type                                 :   Output type ('file' or 'dataframe').
-#
-#     Returns:
-#         Pandas DataFrame with the following columns:
-#             'rna_variant_call_id,
-#             'dna_variant_call_id',
-#             'distance',
-#             'rna_variant_position',
-#             'dna_variant_position'
-#     """
-#     df_integration = exactolibrs.integrate_dna_rna_variants(
-#         annotated_dna_variant_callset_tsv_file=annotated_dna_variant_callset_tsv_file,
-#         rna_variant_callset_tsv_file=rna_variant_callset_tsv_file,
-#         reference_gene_annotation_file=reference_gene_annotation_file,
-#         reference_gene_annotation_source=str(reference_gene_annotation_source),
-#         output_tsv_file=output_tsv_file,
-#         max_exon_offset=max_exon_offset,
-#         max_transcript_boundary_offset=max_transcript_boundary_offset,
-#         max_intergenic_distance=max_intergenic_distance,
-#         num_threads=num_threads,
-#         temp_dir=temp_dir,
-#         output_type=str(output_type)
-#     )
-#     return df_integration.to_pandas()
-#
-#
-# def remove_unspliced_rnas(
-#         bam_file: str,
-#         fasta_file: str,
-#         reference_gene_annotation_file: str,
-#         reference_gene_annotation_source: GeneAnnotationSource,
-#         output_bam_file: str,
-#         output_fasta_file: str,
-#         output_tsv_file: str,
-#         num_threads: int,
-#         min_mapping_quality: int
-# ):
-#     if reference_gene_annotation_source == GeneAnnotationSource.GENCODE:
-#         # Get single-exon transcripts
-#         gencode = Gencode(gtf_file=gencode_gtf_file, version='', species='')
-#         exon_counts = gencode.df_exons.groupby('transcript_id')['exon_id'].nunique()
-#         single_exon_transcript_ids = exon_counts[exon_counts == 1].index
-#         df_transcripts = gencode.df_transcripts[
-#             gencode.df_transcripts['transcript_id'].isin(single_exon_transcript_ids)
-#         ]
-#         return df_transcripts
-#     else:
-#         raise Exception("Unsupported reference gene annotation source: %s" % reference_gene_annotation_source)
-#
-#
-#
+

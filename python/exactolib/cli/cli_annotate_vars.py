@@ -97,14 +97,6 @@ def add_cli_annotate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % ANNOTATE_VARS_NUM_THREADS
     )
     parser_optional.add_argument(
-        "--temp-dir",
-        dest="temp_dir",
-        type=str,
-        default="",
-        required=False,
-        help="Temp directory (default: TMPDIR)."
-    )
-    parser_required.add_argument(
         "--gene-types",
         dest="gene_types",
         type=str,
@@ -114,7 +106,7 @@ def add_cli_annotate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=False,
         help="Reference gene types to include in annotation (default: ['protein_coding'])."
     )
-    parser_required.add_argument(
+    parser_optional.add_argument(
         "--gene-levels",
         dest="gene_levels",
         type=int,
@@ -124,7 +116,7 @@ def add_cli_annotate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=False,
         help="Reference gene levels to include in annotation (default: [1,2])."
     )
-    parser_required.add_argument(
+    parser_optional.add_argument(
         "--transcript-types",
         dest="transcript_types",
         type=str,
@@ -134,7 +126,7 @@ def add_cli_annotate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=False,
         help="Reference transcript types to include in annotation (default: ['protein_coding'])."
     )
-    parser_required.add_argument(
+    parser_optional.add_argument(
         "--transcript-levels",
         dest="transcript_levels",
         type=int,
@@ -178,6 +170,5 @@ def run_cli_annotate_vars_from_parsed_args(args):
         transcript_types=args.transcript_types,
         transcript_levels=args.transcript_levels,
         output_tsv_file=args.output_tsv_file,
-        num_threads=args.num_threads,
-        temp_dir=args.temp_dir,
+        num_threads=args.num_threads
     )

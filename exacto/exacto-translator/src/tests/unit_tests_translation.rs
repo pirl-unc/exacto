@@ -5,7 +5,8 @@ use std::fs;
 use std::fs::File;
 use std::io::{BufReader,Read};
 use std::path::Path;
-
+use polars::frame::DataFrame;
+use exacto_caller::prelude::RNAVariantCallSet;
 use crate::prelude::*;
 
 
@@ -64,4 +65,31 @@ fn test_translation_1() {
     }
     assert!(found);
     assert!(translation_set.translations.len() == 200);
+}
+
+#[test]
+fn test_translation_2() {
+    let tsv_path_1 = Path::new("src/tests/data/tsv/rna-100-tumor_minimap2_mdtagged_sorted_exacto_transcript_structures.tsv");
+    let tsv_full_path_1 = fs::canonicalize(tsv_path_1).unwrap();
+    let tsv_file_1: &str = tsv_full_path_1.to_str().unwrap();
+    let tsv_path_2 = Path::new("src/tests/data/tsv/rna-100-tumor_minimap2_mdtagged_sorted_exacto_rna_variant_calls.tsv");
+    let tsv_full_path_2 = fs::canonicalize(tsv_path_2).unwrap();
+    let tsv_file_2: &str = tsv_full_path_2.to_str().unwrap();
+    let tsv_path_3 = Path::new("src/tests/data/tsv/rna-100_dna-001_integration.tsv");
+    let tsv_full_path_3 = fs::canonicalize(tsv_path_3).unwrap();
+    let tsv_file_3: &str = tsv_full_path_3.to_str().unwrap();
+
+    let df_transcript_structures = read_tsv_file(tsv_file_1);
+    let rna_variant_call_set = RNAVariantCallSet::read_tsv_file(tsv_file_2);
+    let df_integrated_variants = read_tsv_file(tsv_file_3);
+
+    let primary_structure_set = translate_transcript_structures(
+        &df_transcript_structures,
+        &rna_variant_call_set,
+        &df_integrated_variants,
+        TranslationStrategy::LongestORF,
+        1
+    );
+
+    println!("{:#?}", primary_structure_set.to_dataframe());
 }

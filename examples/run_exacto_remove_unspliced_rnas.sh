@@ -1,0 +1,11 @@
+exacto remove-unspliced-rnas \
+  --bam-file ../test/data/bam/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.bam \
+  --bam-bai-file ../test/data/bam/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.bam.bai \
+  --fasta-file ../test/data/fasta/rna-100-tumor_long-read_dna-001-tumor_long-read.fasta \
+  --reference-gene-annotation-file ../test/data/gtf/gencode.v41.annotation.chr17-18.gtf.gz \
+  --reference-gene-annotation-source gencode \
+  --reference-gene-annotation-assembly hg38 \
+  --reference-gene-annotation-version v41 \
+  --output-bam-file outputs/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.filtered.bam \
+  --output-bam-bai-file outputs/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.filtered.bam.bai \
+  --output-fasta-file outputs/rna-100-tumor_long-read_dna-001-tumor_long-read.filtered.fasta

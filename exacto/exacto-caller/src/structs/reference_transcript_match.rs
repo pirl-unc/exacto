@@ -22,9 +22,9 @@ use crate::prelude::*;
 pub struct ReferenceTranscriptMatch {
     pub reference_gene_id: Box<str>,
     pub reference_transcript_id: Box<str>,
-    pub num_overlap_bases: u32,
-    pub num_transcript_only_bases: u32,
-    pub num_reference_only_bases: u32,
+    pub num_overlap_bases: usize,
+    pub num_transcript_only_bases: usize,
+    pub num_reference_only_bases: usize,
     pub scoring_method: ReferenceTranscriptScoringMethod,
     pub score: f32
 }
@@ -59,9 +59,9 @@ impl ReferenceTranscriptMatch {
     pub fn new(
         reference_gene_id: &str,
         reference_transcript_id: &str,
-        num_overlap_bases: u32,
-        num_transcript_only_bases: u32,
-        num_reference_only_bases: u32,
+        num_overlap_bases: usize,
+        num_transcript_only_bases: usize,
+        num_reference_only_bases: usize,
         scoring_method: ReferenceTranscriptScoringMethod,
         score: f32
     ) -> Self {

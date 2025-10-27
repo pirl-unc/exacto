@@ -13,7 +13,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::common::constants::Strand;
+use crate::prelude::*;
 
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -23,11 +23,28 @@ pub struct UTR {
     pub exon_id: Box<str>,
     pub source: Box<str>,
     pub chromosome: Box<str>,
-    pub start: u32,
-    pub end: u32,
+    pub start: usize,
+    pub end: usize,
     pub strand: Strand,
     pub level: u8,
-    pub exon_number: u16
+    pub exon_number: u32
+}
+
+impl PartialEq for UTR {
+    fn eq(&self, other: &Self) -> bool {
+        if self.gene_id == other.gene_id &&
+            self.transcript_id == other.transcript_id &&
+            self.source == other.source &&
+            self.chromosome == other.chromosome &&
+            self.start == other.start &&
+            self.end == other.end &&
+            self.strand == other.strand &&
+            self.exon_number == other.exon_number {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl UTR {
@@ -37,11 +54,11 @@ impl UTR {
         exon_id: &str,
         source: &str,
         chromosome: &str,
-        start: u32,
-        end: u32,
+        start: usize,
+        end: usize,
         strand: Strand,
         level: u8,
-        exon_number: u16
+        exon_number: u32
     ) -> Self {
         Self {
             gene_id: gene_id.to_string().into_boxed_str(),
@@ -57,7 +74,7 @@ impl UTR {
         }
     }
 
-    pub fn get_size(&self) -> u32 {
+    pub fn get_size(&self) -> usize {
         self.end - self.start + 1
     }
 }

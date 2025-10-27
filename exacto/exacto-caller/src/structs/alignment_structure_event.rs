@@ -21,8 +21,8 @@ use crate::prelude::*;
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct AlignmentStructureEvent {
-    prev_read_position: u32,
-    next_read_position: u32,
+    prev_read_position: usize,
+    next_read_position: usize,
     prev_graph_operation_type: GraphOperationType,
     next_graph_operation_type: GraphOperationType,
     kind: AlignmentStructureEventKind,
@@ -55,11 +55,13 @@ impl PartialEq for AlignmentStructureEvent {
     }
 }
 
+impl Eq for AlignmentStructureEvent {}
+
 impl AlignmentStructureEvent {
     pub fn new(
         kind: AlignmentStructureEventKind,
-        prev_read_position: u32,
-        next_read_position: u32,
+        prev_read_position: usize,
+        next_read_position: usize,
         prev_graph_operation_type: GraphOperationType,
         next_graph_operation_type: GraphOperationType
     ) -> Self {
@@ -78,7 +80,7 @@ impl AlignmentStructureEvent {
         }
     }
 
-    pub fn add_reference_base(&mut self, reference_base: ReferenceBase) {
+    pub fn add_skipped_reference_base(&mut self, reference_base: ReferenceBase) {
         // Get or create the chromosome vector
         let vec: &mut Vec<ReferenceBase> = self
             .skipped_reference_bases
@@ -92,15 +94,15 @@ impl AlignmentStructureEvent {
         vec.insert(idx, reference_base);
     }
 
-    pub fn get_context(&self) -> Option<&AlignmentStructureEventContext> {
-        self.context.as_ref()
+    pub fn get_context(&self) -> &Option<AlignmentStructureEventContext> {
+        &self.context
     }
     
     pub fn get_kind(&self) -> &AlignmentStructureEventKind {
         &self.kind
     }
 
-    pub fn get_prev_read_position(&self) -> u32 {
+    pub fn get_prev_read_position(&self) -> usize {
         self.prev_read_position
     }
 
@@ -108,7 +110,7 @@ impl AlignmentStructureEvent {
         &self.prev_graph_operation_type
     }
     
-    pub fn get_next_read_position(&self) -> u32 {
+    pub fn get_next_read_position(&self) -> usize {
         self.next_read_position
     }
     
@@ -120,8 +122,8 @@ impl AlignmentStructureEvent {
         &self.skipped_reference_bases
     }
 
-    pub fn get_skipped_reference_bases_clusters(&self) -> Vec<Vec<&ReferenceBase>> {
-        let mut clusters: Vec<Vec<&ReferenceBase>> = Vec::new();
+    pub fn get_skipped_reference_bases_clusters(&self) -> Vec<Vec<ReferenceBase>> {
+        let mut clusters: Vec<Vec<ReferenceBase>> = Vec::new();
         for (chromosome_id, bases) in self.skipped_reference_bases.iter() {
             // Cluster reference bases by proximity
             let mut uf: UnionFind = UnionFind::new();
@@ -141,13 +143,19 @@ impl AlignmentStructureEvent {
                 indices.sort();
 
                 // Get the cluster bases
-                let selected: Vec<&ReferenceBase> = indices.iter()
-                    .map(|&i| bases.get(i).unwrap())
+                let selected: Vec<ReferenceBase> = indices.iter()
+                    .map(|&i| bases.get(i).unwrap().clone())
                     .collect();
 
                 clusters.push(selected);
             }
         }
+
+        // Sort
+        clusters.sort_by_key(|v| {
+            let first = v.first().unwrap();
+            (first.reference_chromosome_id, first.reference_position)
+        });
 
         clusters
     }

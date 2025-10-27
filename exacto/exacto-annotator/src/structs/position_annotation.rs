@@ -14,6 +14,7 @@
 use exacto_core::prelude::GenicRegion;
 use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 
 
 #[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
@@ -22,10 +23,10 @@ pub struct PositionAnnotation {
     pub gene_ids: HashSet<Box<str>>,
 
     /// Mapping between gene ID and transcript ID
-    pub transcript_ids: HashMap<Box<str>,HashSet<Box<str>>>,
+    pub transcript_ids: HashMap<Box<str>, HashSet<Box<str>>>,
 
     /// Mapping between transcript ID and exon ID
-    pub exon_ids: HashMap<Box<str>,Box<str>>
+    pub exon_ids: HashMap<Box<str>, Box<str>>
 }
 
 impl PositionAnnotation {
@@ -107,29 +108,32 @@ impl PositionAnnotation {
     }
 
     pub fn to_string(&self) -> String {
-        let mut parts = Vec::new();
+        let mut parts: Vec<String> = Vec::new();
 
         // Gene IDs
-        let gene_ids = self.gene_ids.iter().map(|s| s.as_ref()).collect::<Vec<_>>().join(",");
-        parts.push(gene_ids);
+        let mut gene_ids: Vec<_> = self.gene_ids.iter().map(|s| s.as_ref()).collect();
+        gene_ids.sort();
+        parts.push(gene_ids.join(","));
 
         // Transcript IDs
-        let transcripts = self.transcript_ids
+        let mut transcripts: Vec<String> = self.transcript_ids
             .iter()
             .flat_map(|(gene_id, transcript_ids)| {
                 transcript_ids.iter().map(move |tid| format!("{}-{}", gene_id, tid))
             })
-            .collect::<Vec<_>>()
-            .join(",");
-        parts.push(transcripts);
+            .collect::<Vec<_>>();
+        transcripts.sort();
+        let transcript_ids: String = transcripts.join(",");
+        parts.push(transcript_ids);
 
         // Exon IDs
-        let exons = self.exon_ids
+        let mut exons: Vec<String> = self.exon_ids
             .iter()
             .map(|(transcript_id, exon_id)| format!("{}-{}", transcript_id, exon_id))
-            .collect::<Vec<_>>()
-            .join(",");
-        parts.push(exons);
+            .collect::<Vec<_>>();
+        exons.sort();
+        let exon_ids: String = exons.join(",");
+        parts.push(exon_ids);
 
         parts.join(";")
     }

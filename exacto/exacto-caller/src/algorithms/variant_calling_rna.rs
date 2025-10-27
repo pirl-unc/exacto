@@ -25,43 +25,43 @@ use crate::log_info;
 use crate::macros::*;
 
 
-pub fn map_variant_records_to_reference_transcripts(
-    variant_records: Vec<&VariantRecord>,
-    reference_transcript_matches: Vec<&ReferenceTranscriptMatch>,
-    chromosome_names_map: &BiMap<Box<str>,u16>,
-    gene_annotator: &(impl GeneAnnotator + Sync)
-) -> HashMap<Box<str>, Vec<VariantRecord>> {
-    let mut variant_records_map: HashMap<Box<str>, Vec<VariantRecord>> = HashMap::new();
-    for variant_record in variant_records {
-        let chromosome_1 = chromosome_names_map.get_by_right(&variant_record.get_chromosome_1()).unwrap().clone();
-        let chromosome_2 = chromosome_names_map.get_by_right(&variant_record.get_chromosome_2()).unwrap().clone();
-        let position_1: isize = variant_record.get_position_1() as isize;
-        let position_2: isize = variant_record.get_position_2() as isize;
-        let mut matched: bool = false;
-        for reference_transcript_match in reference_transcript_matches.iter() {
-            let reference_transcript: &Transcript = gene_annotator.get_transcript(&reference_transcript_match.reference_transcript_id).unwrap();
-            let reference_transcript_chromosome: Box<str> = reference_transcript.chromosome.clone();
-            let reference_transcript_start: isize = reference_transcript.start as isize;
-            let reference_transcript_end: isize = reference_transcript.end as isize;
-            if (reference_transcript_chromosome == chromosome_1 && overlaps(position_1, position_1, reference_transcript_start, reference_transcript_end)) ||
-                (reference_transcript_chromosome == chromosome_2 && overlaps(position_2, position_2, reference_transcript_start, reference_transcript_end)) {
-                variant_records_map
-                    .entry(reference_transcript_match.reference_transcript_id.clone())
-                    .or_insert_with(Vec::new)
-                    .push(variant_record.clone());
-                matched = true;
-            }
-        }
-        if matched == false {
-            variant_records_map
-                .entry(GenicRegion::Intergenic.as_str().to_string().into())
-                .or_insert_with(Vec::new)
-                .push(variant_record.clone());
-        }
-    }
-
-    variant_records_map
-}
+// pub fn map_variant_records_to_reference_transcripts(
+//     variant_records: Vec<&VariantRecord>,
+//     reference_transcript_matches: Vec<&ReferenceTranscriptMatch>,
+//     chromosome_names_map: &BiMap<Box<str>,u16>,
+//     gene_annotator: &(impl GeneAnnotator + Sync)
+// ) -> HashMap<Box<str>, Vec<VariantRecord>> {
+//     let mut variant_records_map: HashMap<Box<str>, Vec<VariantRecord>> = HashMap::new();
+//     for variant_record in variant_records {
+//         let chromosome_1 = chromosome_names_map.get_by_right(&variant_record.get_chromosome_1()).unwrap().clone();
+//         let chromosome_2 = chromosome_names_map.get_by_right(&variant_record.get_chromosome_2()).unwrap().clone();
+//         let position_1: isize = variant_record.get_position_1() as isize;
+//         let position_2: isize = variant_record.get_position_2() as isize;
+//         let mut matched: bool = false;
+//         for reference_transcript_match in reference_transcript_matches.iter() {
+//             let reference_transcript: &Transcript = gene_annotator.get_transcript(&reference_transcript_match.reference_transcript_id).unwrap();
+//             let reference_transcript_chromosome: Box<str> = reference_transcript.chromosome.clone();
+//             let reference_transcript_start: isize = reference_transcript.start as isize;
+//             let reference_transcript_end: isize = reference_transcript.end as isize;
+//             if (reference_transcript_chromosome == chromosome_1 && overlaps(position_1, position_1, reference_transcript_start, reference_transcript_end)) ||
+//                 (reference_transcript_chromosome == chromosome_2 && overlaps(position_2, position_2, reference_transcript_start, reference_transcript_end)) {
+//                 variant_records_map
+//                     .entry(reference_transcript_match.reference_transcript_id.clone())
+//                     .or_insert_with(Vec::new)
+//                     .push(variant_record.clone());
+//                 matched = true;
+//             }
+//         }
+//         if matched == false {
+//             variant_records_map
+//                 .entry(GenicRegion::Intergenic.as_str().to_string().into())
+//                 .or_insert_with(Vec::new)
+//                 .push(variant_record.clone());
+//         }
+//     }
+//
+//     variant_records_map
+// }
 
 pub fn identify_variant_transcripts(
     bam_file: &str,
@@ -72,7 +72,7 @@ pub fn identify_variant_transcripts(
     reference_transcript_selection_strategy: ReferenceTranscriptSelectionStrategy,
     top_k: usize,
     threshold: f32,
-    min_mapping_quality: u32,
+    min_mapping_quality: usize,
     min_base_quality: u8,
     num_threads: usize
 ) -> TranscriptModelSet {
@@ -128,9 +128,9 @@ pub fn identify_variant_transcripts(
                     );
 
                     // Check if the maximum mapping quality score is above the minimum mapping quality
-                    let mut max_mapping_quality = 0u32;
+                    let mut max_mapping_quality = 0usize;
                     for alignment_record in alignment.get_alignment_records().iter() {
-                        let mapping_quality: u32 = alignment_record.record.mapping_quality().unwrap().get() as u32;
+                        let mapping_quality: usize = alignment_record.record.mapping_quality().unwrap().get() as usize;
                         max_mapping_quality = max_mapping_quality.max(mapping_quality);
                     }
                     if min_mapping_quality > max_mapping_quality {

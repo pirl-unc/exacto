@@ -48,7 +48,11 @@ fn test_alignment_1() {
         &records_map.get(&read_id).unwrap()
     );
 
-    assert!(alignment.get_alignment_records_count() == 1);
+    assert_eq!(alignment.get_alignment_records_count(), 1);
+    assert_eq!(alignment.get_base_quality_scores().len(), 19070);
+    assert_eq!(alignment.get_read_id(), read_id);
+    assert_eq!(alignment.get_read_length(), alignment.get_base_quality_scores().len());
+    assert_eq!(alignment.get_read_sequence().len(), alignment.get_base_quality_scores().len());
 }
 
 #[test]

@@ -108,34 +108,6 @@ pub fn find_overlap(segment_a: (isize,isize), segment_b: (isize,isize)) -> Optio
     }
 }
 
-pub fn find_overlapping_region(intervals: &[(u32, u32)], value: u32) -> Option<(u32, u32)> {
-    let is_sorted = intervals.is_sorted_by_key(|&(start, _)| start);
-    assert!(is_sorted == true, "intervals must be sorted.");
-    intervals.binary_search_by(|&(start, end)| {
-        if value < start {
-            std::cmp::Ordering::Greater
-        } else if value > end {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Equal
-        }
-    }).ok().map(|idx| intervals[idx])
-}
-
-pub fn is_overlapping(intervals: &[(u32, u32)], value: u32) -> bool {
-    let is_sorted = intervals.is_sorted_by_key(|&(start, _)| start);
-    assert!(is_sorted == true, "intervals must be sorted.");
-    intervals.binary_search_by(|&(start, end)| {
-        if value < start {
-            std::cmp::Ordering::Greater
-        } else if value > end {
-            std::cmp::Ordering::Less
-        } else {
-            std::cmp::Ordering::Equal
-        }
-    }).is_ok()
-}
-
 /// Check if two regions overlap.
 ///
 /// Parameters:
@@ -183,10 +155,10 @@ pub fn merge_regions(regions: Vec<(isize, isize)>) -> Vec<(isize,isize)> {
 }
 
 pub fn count_common_bases(
-    a: &Vec<(Box<str>, u32, u32)>,
-    b: &Vec<(Box<str>, u32, u32)>
-) -> u32 {
-    let mut intervals: Vec<(u32, u32)> = Vec::new();
+    a: &Vec<(Box<str>, usize, usize)>,
+    b: &Vec<(Box<str>, usize, usize)>
+) -> usize {
+    let mut intervals: Vec<(usize, usize)> = Vec::new();
 
     // Step 1: Filter matching chromosomes and collect overlaps
     for (chr_a, start_a, end_a) in a {
@@ -223,17 +195,17 @@ pub fn count_common_bases(
 }
 
 pub fn count_union_bases(
-    a: &Vec<(Box<str>, u32, u32)>,
-    b: &Vec<(Box<str>, u32, u32)>
-) -> u32 {
-    let mut intervals: Vec<(Box<str>, u32, u32)> = Vec::new();
+    a: &Vec<(Box<str>, usize, usize)>,
+    b: &Vec<(Box<str>, usize, usize)>
+) -> usize {
+    let mut intervals: Vec<(Box<str>, usize, usize)> = Vec::new();
     intervals.extend_from_slice(a);
     intervals.extend_from_slice(b);
 
     // Group intervals by chromosome
-    let mut unioned_len: u32 = 0;
+    let mut unioned_len: usize = 0;
     use std::collections::HashMap;
-    let mut chromosome_intervals: HashMap<Box<str>,Vec<(u32, u32)>> = HashMap::new();
+    let mut chromosome_intervals: HashMap<Box<str>,Vec<(usize, usize)>> = HashMap::new();
 
     for (chromosome, start, end) in intervals {
         chromosome_intervals
@@ -249,7 +221,7 @@ pub fn count_union_bases(
 
         // Sort and merge intervals for each chromosome
         intervals.sort_by_key(|&(start, _)| start);
-        let mut merged: Vec<(u32, u32)> = vec![intervals[0]];
+        let mut merged: Vec<(usize, usize)> = vec![intervals[0]];
 
         for &(start, end) in &intervals[1..] {
             let last = merged.last_mut().unwrap();
@@ -260,101 +232,18 @@ pub fn count_union_bases(
             }
         }
 
-        unioned_len += merged.iter().map(|(start, end)| end - start + 1).sum::<u32>();
+        unioned_len += merged.iter().map(|(start, end)| end - start + 1).sum::<usize>();
     }
 
     unioned_len
 }
 
-
-// pub fn count_non_overlapping_bases(
-//     a: &Vec<(Box<str>, u32, u32)>,
-//     b: &Vec<(Box<str>, u32, u32)>
-// ) -> (u32,u32) {
-//     let mut a_bases: HashMap<&str, HashSet<u32>> = HashMap::new();
-//     let mut b_bases: HashMap<&str, HashSet<u32>> = HashMap::new();
-//
-//     for (chromosome, start, end) in a.iter() {
-//         a_bases
-//             .entry(chromosome)
-//             .or_insert_with(HashSet::new)
-//             .extend(*start..=*end);
-//     }
-//     for (chromosome, start, end) in b.iter() {
-//         b_bases
-//             .entry(chromosome)
-//             .or_insert_with(HashSet::new)
-//             .extend(*start..=*end);
-//     }
-//
-//     let mut a_only_bases: u32 = 0;
-//     for (chromosome, a_set) in &a_bases {
-//         if let Some(b_set) = b_bases.get(chromosome) {
-//             a_only_bases += a_set.difference(b_set).count() as u32;
-//         } else {
-//             a_only_bases += a_set.len() as u32;
-//         }
-//     }
-//
-//     let mut b_only_bases = 0;
-//     for (chromosome, b_set) in &b_bases {
-//         if let Some(a_set) = a_bases.get(chromosome) {
-//             b_only_bases += b_set.difference(a_set).count() as u32;
-//         } else {
-//             b_only_bases += b_set.len() as u32;
-//         }
-//     }
-//
-//     (a_only_bases, b_only_bases)
-// }
-
-// pub fn count_non_overlapping_bases(
-//     a: &Vec<(Box<str>, u32, u32)>,
-//     b: &Vec<(Box<str>, u32, u32)>
-// ) -> (u32,u32) {
-//     let mut a_bases: HashMap<&str, HashSet<u32>> = HashMap::new();
-//     let mut b_bases: HashMap<&str, HashSet<u32>> = HashMap::new();
-// 
-//     for (chromosome, start, end) in a.iter() {
-//         a_bases
-//             .entry(chromosome)
-//             .or_insert_with(HashSet::new)
-//             .extend(*start..=*end);
-//     }
-//     for (chromosome, start, end) in b.iter() {
-//         b_bases
-//             .entry(chromosome)
-//             .or_insert_with(HashSet::new)
-//             .extend(*start..=*end);
-//     }
-// 
-//     let mut a_only_bases: u32 = 0;
-//     for (chromosome, a_set) in &a_bases {
-//         if let Some(b_set) = b_bases.get(chromosome) {
-//             a_only_bases += a_set.difference(b_set).count() as u32;
-//         } else {
-//             a_only_bases += a_set.len() as u32;
-//         }
-//     }
-// 
-//     let mut b_only_bases = 0;
-//     for (chromosome, b_set) in &b_bases {
-//         if let Some(a_set) = a_bases.get(chromosome) {
-//             b_only_bases += b_set.difference(a_set).count() as u32;
-//         } else {
-//             b_only_bases += b_set.len() as u32;
-//         }
-//     }
-// 
-//     (a_only_bases, b_only_bases)
-// }
-
 pub fn count_non_overlapping_bases(
-    a: &Vec<(Box<str>, u32, u32)>,
-    b: &Vec<(Box<str>, u32, u32)>
-) -> (u32, u32) {
+    a: &Vec<(Box<str>, usize, usize)>,
+    b: &Vec<(Box<str>, usize, usize)>
+) -> (usize, usize) {
     // Step 1. Determine max end per chromosome
-    let mut chromosome_max_end: HashMap<&str, u32> = HashMap::new();
+    let mut chromosome_max_end: HashMap<&str, usize> = HashMap::new();
     for (chromosome, start, end) in a.iter().chain(b.iter()) {
         let entry = chromosome_max_end
             .entry(chromosome.as_ref())
@@ -381,26 +270,26 @@ pub fn count_non_overlapping_bases(
     }
 
     // Step 3. Count unique bases
-    let mut a_only = 0u32;
+    let mut a_only = 0usize;
     for (chromosome, a_bits) in &a_map {
         match b_map.get(chromosome) {
             Some(b_bits) => {
-                a_only += (a_bits.clone() & !b_bits.clone()).count_ones() as u32;
+                a_only += (a_bits.clone() & !b_bits.clone()).count_ones() as usize;
             },
             None => {
-                a_only += a_bits.count_ones() as u32;
+                a_only += a_bits.count_ones() as usize;
             }
         }
     }
 
-    let mut b_only = 0u32;
+    let mut b_only = 0usize;
     for (chromosome, b_bits) in &b_map {
         match a_map.get(chromosome) {
             Some(a_bits) => {
-                b_only += (b_bits.clone() & !a_bits.clone()).count_ones() as u32;
+                b_only += (b_bits.clone() & !a_bits.clone()).count_ones() as usize;
             },
             None => {
-                b_only += b_bits.count_ones() as u32;
+                b_only += b_bits.count_ones() as usize;
             }
         }
     }

@@ -13,8 +13,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::structs::rna::RNA;
-use crate::structs::peptide::Peptide;
+use crate::prelude::*;
 
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -40,6 +39,10 @@ impl Translation {
             .iter()
             .max_by_key(|p| p.get_length())
             .unwrap()
+    }
+
+    pub fn get_peptides(&self) -> &Vec<Peptide> {
+        &self.peptides
     }
 
     pub fn get_peptides_count(&self) -> usize {

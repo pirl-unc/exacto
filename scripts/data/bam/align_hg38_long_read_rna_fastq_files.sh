@@ -1,4 +1,4 @@
-nexus run --nf-workflow long_read_alignment_minimap2.nf \
+nexus run --nf-workflow alignment_minimap2.nf \
   -c /Users/leework/Documents/Research/projects/project_nexus/nexus/test/data/nextflow/nextflow_test_docker.config \
   -w /Users/leework/Documents/Research/projects/project_exacto/data/processed/work/long_read_alignment_minimap2/ \
   --samples_tsv_file /Users/leework/Documents/Research/projects/project_exacto/exacto/scripts/data/bam/samples_long_read_rna_fastq_files.tsv \
@@ -7,5 +7,5 @@ nexus run --nf-workflow long_read_alignment_minimap2.nf \
   --params_minimap2 '"-ax splice:hq -uf --cs --eqx -Y -L"' \
   --output_dir /Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/bam/
 
-cp /Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/bam/*.bam /Users/leework/Documents/Research/projects/project_exacto/exacto/exacto/exacto-caller/src/tests/data/bam/
-cp /Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/bam/*.bam.bai /Users/leework/Documents/Research/projects/project_exacto/exacto/exacto/exacto-caller/src/tests/data/bam/
+#cp /Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/bam/*.bam /Users/leework/Documents/Research/projects/project_exacto/exacto/exacto/exacto-caller/src/tests/data/bam/
+#cp /Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/bam/*.bam.bai /Users/leework/Documents/Research/projects/project_exacto/exacto/exacto/exacto-caller/src/tests/data/bam/

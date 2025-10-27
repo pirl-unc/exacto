@@ -75,6 +75,21 @@ pub static START_CODONS: Lazy<HashSet<Box<str>>> = Lazy::new(|| {
         .collect()
 });
 
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum AnalyteType {
+    DNA,
+    RNA
+}
+
+impl AnalyteType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AnalyteType::DNA => "dna",
+            AnalyteType::RNA => "rna"
+        }
+    }
+}
+
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
 pub enum CSTagKind {
@@ -231,7 +246,8 @@ impl FromStr for Nucleotide {
 pub enum Strand {
     Forward,
     Reverse,
-    Both
+    Both,
+    Unknown
 }
 
 impl Strand {
@@ -239,7 +255,8 @@ impl Strand {
         match self {
             Strand::Forward => "+",
             Strand::Reverse => "-",
-            Strand::Both => "*"
+            Strand::Both => "*",
+            Strand::Unknown => ""
         }
     }
 }
@@ -252,6 +269,7 @@ impl FromStr for Strand {
             "+" => Ok(Strand::Forward),
             "-" => Ok(Strand::Reverse),
             "*" => Ok(Strand::Both),
+            "" => Ok(Strand::Unknown),
             _ => Err(()),
         }
     }

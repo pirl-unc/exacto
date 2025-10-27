@@ -23,9 +23,19 @@ use std::sync::Arc;
 use crate::prelude::*;
 
 
+/// Annotates a genomic position.
+///
+/// # Arguments
+/// * `chromosome_name` - Chromosome name.
+/// * `position` - Position.
+/// * `gene_annotator` - A reference to an object implementing the `GeneAnnotator` trait, which provides
+///   methods for querying gene and transcript annotations.
+///
+/// # Returns
+/// * `PositionAnnotation` object.
 pub fn annotate_position(
     chromosome_name: &str,
-    position: u32,
+    position: usize,
     gene_annotator: &(impl GeneAnnotator + Sync)
 ) -> PositionAnnotation {
     let gene_ids: Vec<Box<str>> = gene_annotator.get_gene_ids_at_locus(&*chromosome_name, position);
@@ -33,7 +43,7 @@ pub fn annotate_position(
     let mut exon_ids: HashMap<Box<str>,Box<str>> = HashMap::new();
 
     if !gene_ids.is_empty() {
-        let pos_isize = position as isize;
+        let pos_isize: isize = position as isize;
         for gene_id in gene_ids.iter() {
             if let Some(gene) = gene_annotator.get_gene(&*gene_id) {
                 for transcript_id in gene.get_transcript_ids() {
@@ -45,7 +55,7 @@ pub fn annotate_position(
                                 .insert(transcript_id.clone());
                         }
                         for exon_id in transcript.get_exon_ids() {
-                            if let Some(exon) = gene_annotator.get_exon(&*exon_id) {
+                            if let Some(exon) = gene_annotator.get_exon(&*transcript_id, &*exon_id) {
                                 if overlaps(pos_isize, pos_isize, exon.start as isize, exon.end as isize) {
                                     transcript_ids
                                         .entry(gene_id.clone())
@@ -89,8 +99,7 @@ pub fn annotate_position(
 /// Annotate variant calls.
 ///
 /// # Arguments
-///
-/// * `df_variant_calls` - A reference to a `DataFrame` with the following columns: 
+/// * `df_variant_calls` - A reference to a `DataFrame` with the following columns:
 ///     - `variant_call_id`
 ///     - `chromosome_1` 
 ///     - `position_1`
@@ -102,18 +111,21 @@ pub fn annotate_position(
 ///   methods for querying gene and transcript annotations.
 /// * `num_threads` - The number of threads to use for parallel annotation. Useful for improving performance
 ///   on large datasets.
+///
+/// # Returns
+/// * `VariantCallAnnotationSet` object.
 pub fn annotate_variant_calls(
     df_variant_calls: &DataFrame,
     gene_annotator: &(impl GeneAnnotator + Sync),
     num_threads: usize
 ) -> VariantCallAnnotationSet {
-    let variant_call_id_col = df_variant_calls.column("variant_call_id").unwrap().i64().unwrap();
-    let chromosome_1_col = df_variant_calls.column("chromosome_1").unwrap().str().unwrap();
-    let position_1_col = df_variant_calls.column("position_1").unwrap().i64().unwrap();
-    let chromosome_2_col = df_variant_calls.column("chromosome_2").unwrap().str().unwrap();
-    let position_2_col = df_variant_calls.column("position_2").unwrap().i64().unwrap();
-    let variant_type_col = df_variant_calls.column("variant_type").unwrap().str().unwrap();
-    let variant_sequence_col = df_variant_calls.column("variant_sequence").unwrap().str().unwrap();
+    let col_variant_call_id = df_variant_calls.column("variant_call_id").unwrap().i64().unwrap();
+    let col_chromosome_1 = df_variant_calls.column("chromosome_1").unwrap().str().unwrap();
+    let col_position_1 = df_variant_calls.column("position_1").unwrap().i64().unwrap();
+    let col_chromosome_2 = df_variant_calls.column("chromosome_2").unwrap().str().unwrap();
+    let col_position_2 = df_variant_calls.column("position_2").unwrap().i64().unwrap();
+    let col_variant_type = df_variant_calls.column("variant_type").unwrap().str().unwrap();
+    let col_variant_sequence = df_variant_calls.column("variant_sequence").unwrap().str().unwrap();
 
     let thread_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
@@ -132,11 +144,11 @@ pub fn annotate_variant_calls(
         (0..df_variant_calls.height())
             .into_par_iter()
             .map(|i| {
-                let variant_call_id: usize = variant_call_id_col.get(i).unwrap() as usize;
+                let variant_call_id: usize = col_variant_call_id.get(i).unwrap() as usize;
                 
                 // Position 1
-                let position_1: u32 = position_1_col.get(i).unwrap() as u32;
-                let chromosome_1: &str = chromosome_1_col.get(i).unwrap();
+                let position_1: usize = col_position_1.get(i).unwrap() as usize;
+                let chromosome_1: &str = col_chromosome_1.get(i).unwrap();
                 let position_annotation_1: PositionAnnotation = annotate_position(
                     chromosome_1,
                     position_1,
@@ -144,16 +156,16 @@ pub fn annotate_variant_calls(
                 );
 
                 // Position 2
-                let position_2: u32 = position_2_col.get(i).unwrap() as u32;
-                let chromosome_2: &str = chromosome_2_col.get(i).unwrap();
+                let position_2: usize = col_position_2.get(i).unwrap() as usize;
+                let chromosome_2: &str = col_chromosome_2.get(i).unwrap();
                 let position_annotation_2: PositionAnnotation = annotate_position(
                     chromosome_2,
                     position_2,
                     gene_annotator
                 );
 
-                let variant_type: VariantType = VariantType::from_str(variant_type_col.get(i).unwrap()).unwrap();
-                let variant_sequence: &str = variant_sequence_col.get(i).unwrap();
+                let variant_type: VariantType = VariantType::from_str(col_variant_type.get(i).unwrap()).unwrap();
+                let variant_sequence: &str = col_variant_sequence.get(i).unwrap();
 
                 pb.inc(1);
 

@@ -77,7 +77,7 @@ fn test_variant_calling_2() {
         &vec![record.clone()]
     );
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
-    let variant_records: Vec<VariantRecord> = alignment_structure.identify_dna_variant_records(30, 30);
+    let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(30, 30, AnalyteType::DNA);
     assert!(variant_records.len() == 1);
     let variant_calls: Vec<VariantCall> = cluster_variant_records(
         variant_records.iter().map(|record| Arc::new(record.clone())).collect(),
@@ -307,9 +307,10 @@ fn test_variant_calling_4() {
         &records_map.get(&read_id).unwrap()
     );
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
-    let variant_records: Vec<VariantRecord> = alignment_structure.identify_dna_variant_records(
+    let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(
         30,
-        30
+        30,
+        AnalyteType::DNA
     );
     assert!(variant_records.len() == 1);
     let variant_calls: Vec<VariantCall> = cluster_variant_records(
@@ -341,7 +342,7 @@ fn test_variant_calling_5() {
         VariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         0,
         1,
         go_1
@@ -397,7 +398,7 @@ fn test_variant_calling_6() {
         VariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         0,
         1,
         go_1
@@ -453,7 +454,7 @@ fn test_variant_calling_7() {
         VariantType::Deletion
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         0,
         0,
         go_1
@@ -509,7 +510,7 @@ fn test_variant_calling_8() {
         VariantType::Translocation
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         100,
         100,
         go_1
@@ -565,7 +566,7 @@ fn test_variant_calling_9() {
         VariantType::Translocation
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         100,
         100,
         go_1
@@ -622,7 +623,7 @@ fn test_variant_calling_10() {
         VariantType::Deletion
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         100,
         100,
         go_1
@@ -679,7 +680,7 @@ fn test_variant_calling_11() {
         VariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         31,
         60,
         go_1
@@ -736,7 +737,7 @@ fn test_variant_calling_12() {
         VariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         61,
         90,
         go_1
@@ -793,7 +794,7 @@ fn test_variant_calling_13() {
         VariantType::Insertion
     );
     let a: VariantRecord = VariantRecord::new(
-        2,
+        1,
         31,
         60,
         go_1
@@ -870,7 +871,7 @@ fn test_variant_calling_14() {
         VariantType::Insertion
     );
     let b: VariantRecord = VariantRecord::new(
-        1,
+        2,
         6,
         10,
         go_2
@@ -924,7 +925,7 @@ fn test_variant_calling_15() {
         VariantType::Deletion
     );
     let b: VariantRecord = VariantRecord::new(
-        1,
+        2,
         10,
         10,
         go_2
@@ -1018,4 +1019,76 @@ fn test_variant_calling_16() {
         false
     );
     assert!(variant_record_clusters.len() == 1);
+}
+
+#[test]
+fn test_variant_calling_17() {
+    let mut a: Vec<VariantRecord> = Vec::new();
+    let mut b: Vec<VariantRecord> = Vec::new();
+
+    // DEL:chr1:1010001-1020000
+    let go_a1: GraphOperation = GraphOperation::new(
+        0,
+        1010000,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        1020001,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "".into(),
+        VariantType::Deletion
+    );
+    let vr_a1: VariantRecord = VariantRecord::new(
+        1,
+        0,
+        1,
+        go_a1
+    );
+    a.push(vr_a1);
+
+    // DEL:chr1:1005001-1020000
+    let go_b1: GraphOperation = GraphOperation::new(
+        0,
+        1005000,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        1020001,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "".into(),
+        VariantType::Deletion
+    );
+    let vr_b1: VariantRecord = VariantRecord::new(
+        2,
+        2,
+        3,
+        go_b1
+    );
+    b.push(vr_b1);
+
+    let a_ref: Vec<Arc<VariantRecord>> = a
+        .iter()
+        .map(|record| Arc::new(record.clone()))
+        .collect();
+    let b_ref: Vec<Arc<VariantRecord>> = b
+        .iter()
+        .map(|record| Arc::new(record.clone()))
+        .collect();
+    let a_only: Vec<Arc<VariantRecord>> = diff_variant_records(
+        a_ref,
+        b_ref,
+        100_000,
+        1,
+        0.5f32,
+        0.5f32,
+        2000,
+        1000,
+        1000,
+        true,
+        false
+    );
+
+    assert_eq!(a_only.is_empty(), true);
 }

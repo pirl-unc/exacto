@@ -25,21 +25,8 @@ use crate::prelude::*;
 use crate::log_info;
 
 
-pub fn capture_memory_usage(message: &str) {
-    let mut sys = System::new_all();
-    sys.refresh_all();
-    let pid = sysinfo::get_current_pid().unwrap();
-    if let Some(process) = sys.process(pid) {
-        let memory_usage = process.memory();
-        let memory_usage_gb = memory_usage as f64 / (1024.0 * 1024.0 * 1024.0);
-        log_info!("{}: {:.2} GB", message, memory_usage_gb);
-    } else {
-        log_info!("Could not get process memory usage");
-    }
-}
-
-fn calculate_max_distance(size: f32, tau: u32, max_distance: u32) -> u32 {
-    (max_distance as f32 * (1.0 - f32::exp(-size / tau as f32))).ceil() as u32
+fn calculate_max_distance(size: f32, tau: usize, max_distance: usize) -> usize {
+    (max_distance as f32 * (1.0 - f32::exp(-size / tau as f32))).ceil() as usize
 }
 
 /// Cluster variant records.
@@ -68,9 +55,9 @@ pub fn cluster_variant_records(
     num_threads: usize,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
-    max_intrachromosomal_distance_tau: u32,
-    max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32,
+    max_intrachromosomal_distance_tau: usize,
+    max_intrachromosomal_distance: usize,
+    max_interchromosomal_distance: usize,
     stranded: bool
 ) -> Vec<VariantCall> {
     // Step 1. Split variant records
@@ -168,13 +155,13 @@ pub fn cluster_variant_records(
 pub fn diff_variant_records(
     a: Vec<Arc<VariantRecord>>,
     b: Vec<Arc<VariantRecord>>,
-    bin_size: u32,
+    bin_size: usize,
     num_threads: usize,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
-    max_intrachromosomal_distance_tau: u32,
-    max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32,
+    max_intrachromosomal_distance_tau: usize,
+    max_intrachromosomal_distance: usize,
+    max_interchromosomal_distance: usize,
     apply_infinite_sites_assumption: bool,
     stranded: bool
 ) -> Vec<Arc<VariantRecord>> {
@@ -184,10 +171,9 @@ pub fn diff_variant_records(
 
     // Step 1. Create indices
     log_info!("\tCreating indices");
-    capture_memory_usage("\tBefore creating indices");
-    let mut position_snv_map: HashSet<(u16,u32)> = HashSet::new();
-    let mut position_1_map: HashMap<(u16, u32, VariantType),BTreeMap<u32,HashSet<Arc<GraphOperation>>>> = HashMap::new();
-    let mut position_2_map: HashMap<(u16, u32, VariantType),BTreeMap<u32,HashSet<Arc<GraphOperation>>>> = HashMap::new();
+    let mut position_snv_map: HashSet<(u16,usize)> = HashSet::new();
+    let mut position_1_map: HashMap<(u16, usize, VariantType),BTreeMap<usize,HashSet<Arc<GraphOperation>>>> = HashMap::new();
+    let mut position_2_map: HashMap<(u16, usize, VariantType),BTreeMap<usize,HashSet<Arc<GraphOperation>>>> = HashMap::new();
     for variant_record in b.iter() {
         let variant_type: VariantType = variant_record.get_variant_type().clone();
         if variant_type == VariantType::SingleNucleotideVariant {
@@ -195,10 +181,10 @@ pub fn diff_variant_records(
         } else {
             let chr1: u16 = variant_record.get_chromosome_1();
             let chr2: u16 = variant_record.get_chromosome_2();
-            let pos1: u32 = variant_record.get_position_1();
-            let pos2: u32 = variant_record.get_position_2();
-            let zipcode1: u32 = pos1 / bin_size;
-            let zipcode2: u32 = pos2 / bin_size;
+            let pos1: usize = variant_record.get_position_1();
+            let pos2: usize = variant_record.get_position_2();
+            let zipcode1: usize = pos1 / bin_size;
+            let zipcode2: usize = pos2 / bin_size;
             position_1_map
                 .entry((chr1,zipcode1,variant_type.clone()))
                 .or_insert_with(BTreeMap::new)
@@ -213,12 +199,10 @@ pub fn diff_variant_records(
                 .insert(Arc::new(variant_record.graph_operation.clone()));
         }
     }
-    capture_memory_usage("\tAfter creating indices");
-    log_info!("\t{} SNVs", position_snv_map.len());
 
     // Step 2. Identify differences
     log_info!("\tDiffing against interval trees");
-    let max_distance: u32 = max(max_intrachromosomal_distance, max_interchromosomal_distance);
+    let max_distance: usize = max(max_intrachromosomal_distance, max_interchromosomal_distance);
     let chunk_size = (a.len() + num_threads - 1) / num_threads;
     let thread_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
@@ -332,11 +316,16 @@ pub fn is_clusterable(
     b: &VariantRecord,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
-    max_intrachromosomal_distance_tau: u32,
-    max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32,
+    max_intrachromosomal_distance_tau: usize,
+    max_intrachromosomal_distance: usize,
+    max_interchromosomal_distance: usize,
     stranded: bool
 ) -> bool {
+    // Records from the same read ID cannot be clustered
+    if a.get_read_id() == b.get_read_id() {
+        return false;
+    }
+
     // Chromosomes 1 and 2 must be the same
     if a.get_chromosome_1() != b.get_chromosome_1() || a.get_chromosome_2() != b.get_chromosome_2() {
         return false;
@@ -350,6 +339,33 @@ pub fn is_clusterable(
     // Orientations must be the same
     if a.get_operation_1() != b.get_operation_1() || a.get_operation_2() != b.get_operation_2() {
         return false;
+    }
+
+    // Strand pairing must be the same
+    match (a.get_strand_1(), a.get_strand_2()) {
+        (Strand::Forward, Strand::Forward) => {
+            if b.get_strand_1() != b.get_strand_2() {
+                return false;
+            }
+        },
+        (Strand::Forward, Strand::Reverse) => {
+            if b.get_strand_1() == b.get_strand_2() {
+                return false;
+            }
+        },
+        (Strand::Reverse, Strand::Forward) => {
+            if b.get_strand_1() == b.get_strand_2() {
+                return false;
+            }
+        },
+        (Strand::Reverse, Strand::Reverse) => {
+            if b.get_strand_1() != b.get_strand_2() {
+                return false;
+            }
+        },
+        _ => {
+            panic!("Invalid strand combination: {} and {}", a.get_strand_1().as_str(), a.get_strand_2().as_str());
+        }
     }
 
     // The normalized edit distance must be within the allowed limit if they are both insertions
@@ -366,18 +382,18 @@ pub fn is_clusterable(
 
     // The breakpoint distances must be close where proximity is a function of the variant size
     let variant_size = f32::max(a.get_variant_size() as f32, b.get_variant_size() as f32);
-    let max_distance: u32;
+    let max_distance: usize;
     if a.get_chromosome_1() == b.get_chromosome_2() {
         if variant_size == 1f32 {
             max_distance = 0;
         } else {
-            max_distance = (max_intrachromosomal_distance as f32 * (1f32 - f32::exp(-1f32 * (variant_size / max_intrachromosomal_distance_tau as f32)))).ceil() as u32;
+            max_distance = (max_intrachromosomal_distance as f32 * (1f32 - f32::exp(-1f32 * (variant_size / max_intrachromosomal_distance_tau as f32)))).ceil() as usize;
         }
     } else {
         max_distance = max_interchromosomal_distance;
     }
-    let distance_1: u32 = (a.get_position_1() as f32 - b.get_position_1() as f32).abs() as u32;
-    let distance_2: u32 = (a.get_position_2() as f32 - b.get_position_2() as f32).abs() as u32;
+    let distance_1: usize = (a.get_position_1() as f32 - b.get_position_1() as f32).abs() as usize;
+    let distance_2: usize = (a.get_position_2() as f32 - b.get_position_2() as f32).abs() as usize;
     if distance_1 > max_distance || distance_2 > max_distance {
         return false;
     }
@@ -432,9 +448,9 @@ pub fn is_different(
     b: &GraphOperation,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
-    max_intrachromosomal_distance_tau: u32,
-    max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32,
+    max_intrachromosomal_distance_tau: usize,
+    max_intrachromosomal_distance: usize,
+    max_interchromosomal_distance: usize,
     apply_infinite_sites_assumption: bool,
     stranded: bool
 ) -> bool {
@@ -481,7 +497,7 @@ pub fn is_different(
         }
     }
 
-    let max_distance: u32 = calculate_max_distance(max(size_a, size_b) as f32, max_intrachromosomal_distance_tau, max_intrachromosomal_distance);
+    let max_distance: usize = calculate_max_distance(max(size_a, size_b) as f32, max_intrachromosomal_distance_tau, max_intrachromosomal_distance);
 
     // Insertion
     if a.get_variant_type().clone() == VariantType::Insertion {
@@ -578,16 +594,19 @@ pub fn sweep_clusters(
     variant_records: Vec<Arc<VariantRecord>>,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
-    max_intrachromosomal_distance_tau: u32,
-    max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32,
+    max_intrachromosomal_distance_tau: usize,
+    max_intrachromosomal_distance: usize,
+    max_interchromosomal_distance: usize,
     num_threads: usize,
     stranded: bool
 ) -> Vec<VariantRecordCluster> {
     // Step 1. Build a binary search tree
-    let mut bst: BTreeMap<usize,Arc<VariantRecord>> = BTreeMap::new();
+    let mut bst: BTreeMap<usize, Vec<Arc<VariantRecord>>> = BTreeMap::new();
     for variant_record in variant_records.iter() {
-        bst.insert(variant_record.get_position_1() as usize, Arc::clone(variant_record));
+        let key = variant_record.get_position_1() as usize;
+        bst.entry(key)
+            .or_insert_with(Vec::new)
+            .push(Arc::clone(variant_record));
     }
 
     // Step 2. Ensure all records are on the same chromosomes
@@ -599,27 +618,28 @@ pub fn sweep_clusters(
     }
 
     // Step 3. Assign a unique ID to each VariantRecord
-    let mut variant_records_map: BiMap<Arc<VariantRecord>,usize> = BiMap::new();
+    let mut variant_records_map: BiMap<Arc<VariantRecord>, usize> = BiMap::new();
     for (id, variant_record) in variant_records.iter().enumerate() {
         variant_records_map.insert(Arc::clone(variant_record), id);
     }
 
     // Step 4. Identify clusterable pairs
-    let max_distance: u32 = max(max_intrachromosomal_distance, max_interchromosomal_distance);
+    let max_distance: usize = max(max_intrachromosomal_distance, max_interchromosomal_distance);
     let thread_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build()
         .unwrap();
-    let pairs: HashSet<(usize,usize)> = thread_pool.install(|| {
+    let pairs: HashSet<(usize, usize)> = thread_pool.install(|| {
         variant_records
             .par_iter()
             .flat_map(|variant_record_1| {
                 let min_position: usize = variant_record_1.get_position_1().saturating_sub(max_distance) as usize;
                 let max_position: usize = (variant_record_1.get_position_1() + max_distance) as usize;
-                let variant_records_: Vec<Arc<VariantRecord>> = bst.range(min_position..=max_position)
-                    .map(|(_, variant_record)| Arc::clone(variant_record))
+                let variant_records_: Vec<Arc<VariantRecord>> = bst
+                    .range(min_position..=max_position)
+                    .flat_map(|(_, variant_records)| variant_records.iter().cloned())
                     .collect();
-                let mut curr_pairs: HashSet<(usize,usize)> = HashSet::new();
+                let mut curr_pairs: HashSet<(usize, usize)> = HashSet::new();
                 for variant_record_2 in variant_records_.iter() {
                     if is_clusterable(
                         variant_record_1,
@@ -679,10 +699,10 @@ pub fn sweep_clusters(
         let mut cluster = VariantRecordCluster::new(
             chromosome_1,
             chromosome_2,
-            min_position_1 as u32,
-            max_position_1 as u32,
-            min_position_2 as u32,
-            max_position_2 as u32,
+            min_position_1 as usize,
+            max_position_1 as usize,
+            min_position_2 as usize,
+            max_position_2 as usize,
         );
         for variant_record in curr_variant_records.iter() {
             cluster.add_variant_record(Arc::clone(variant_record));

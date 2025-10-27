@@ -68,9 +68,9 @@ impl ReferenceTranscriptSequence {
     /// Get introns (reference position, reference position).
     ///
     /// # Returns
-    /// A vector of `(u16, u32, u32)` tuples representing intron positions (chromosome ID, start, end).
-    pub fn get_introns(&self) -> Vec<(u16, u32, u32)> {
-        let mut introns: Vec<(u16, u32, u32)> = Vec::new();
+    /// A vector of `(u16, usize, usize)` tuples representing intron positions (chromosome ID, start, end).
+    pub fn get_introns(&self) -> Vec<(u16, usize, usize)> {
+        let mut introns: Vec<(u16, usize, usize)> = Vec::new();
         for i in 0..(self.bases.len() - 1) {
             let curr_base: &ReferenceBase = self.get_base(i);
             let next_base: &ReferenceBase = self.get_base(i + 1);
@@ -94,8 +94,8 @@ impl ReferenceTranscriptSequence {
         &*self.reference_transcript_id
     }
     
-    pub fn get_transcript_end(&self) -> u32 {
-        let mut end: u32 = 0;
+    pub fn get_transcript_end(&self) -> usize {
+        let mut end: usize = 0;
         for base in self.bases.iter() {
             if base.reference_position > end {
                 end = base.reference_position
@@ -104,8 +104,8 @@ impl ReferenceTranscriptSequence {
         end
     }
 
-    pub fn get_transcript_start(&self) -> u32 {
-        let mut start: u32 = u32::MAX;
+    pub fn get_transcript_start(&self) -> usize {
+        let mut start: usize = usize::MAX;
         for base in self.bases.iter() {
             if base.reference_position < start {
                 start = base.reference_position
@@ -158,7 +158,10 @@ impl ReferenceTranscriptSequence {
                         reference_chromosome_id,
                         i,
                         nucleotide,
-                        exon.strand.clone()
+                        exon.strand.clone(),
+                        Some(exon.gene_id.clone()),
+                        Some(exon.transcript_id.clone()),
+                        Some(exon.exon_id.clone())
                     );
                     reference_transcript_sequence.push(reference_base);
                 }
@@ -176,7 +179,10 @@ impl ReferenceTranscriptSequence {
                         reference_chromosome_id,
                         i,
                         nucleotide,
-                        exon.strand.clone()
+                        exon.strand.clone(),
+                        Some(exon.gene_id.clone()),
+                        Some(exon.transcript_id.clone()),
+                        Some(exon.exon_id.clone())
                     );
                     reference_transcript_sequence.push(reference_base);
                 }

@@ -17,6 +17,38 @@ use std::str::FromStr;
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum FrameshiftState {
+    InFrame,
+    FrameShifted
+}
+
+impl FrameshiftState {
+    pub fn as_str(&self) -> &str {
+        match self {
+            FrameshiftState::InFrame => "inframe",
+            FrameshiftState::FrameShifted => "frameshifted"
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum PrimaryStructureRecordType {
+    Base,
+    Event
+}
+
+impl PrimaryStructureRecordType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            PrimaryStructureRecordType::Base => "base",
+            PrimaryStructureRecordType::Event => "event"
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
 pub enum TranslationStrategy {
     AllORFs,
     LongestORF

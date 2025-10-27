@@ -11,8 +11,9 @@
 // limitations under the License.
 
 
-use exacto_caller::prelude::VariantType;
+use exacto_caller::prelude::*;
 use serde::{Serialize, Deserialize};
+use std::hash::Hash;
 
 use crate::prelude::*;
 
@@ -21,22 +22,40 @@ use crate::prelude::*;
 pub struct VariantCallAnnotation {
     pub variant_call_id: usize,
     pub chromosome_1: Box<str>,
-    pub position_1: u32,
+    pub position_1: usize,
     pub chromosome_2: Box<str>,
-    pub position_2: u32,
+    pub position_2: usize,
     pub variant_type: VariantType,
     pub variant_sequence: Box<str>,
     pub position_1_annotation: PositionAnnotation,
     pub position_2_annotation: PositionAnnotation
 }
 
+impl PartialEq for VariantCallAnnotation {
+    fn eq(&self, other: &Self) -> bool {
+        if self.variant_call_id == other.variant_call_id &&
+            self.chromosome_1 == other.chromosome_1 &&
+            self.position_1 == other.position_1 &&
+            self.chromosome_2 == other.chromosome_2 &&
+            self.position_2 == other.position_2 &&
+            self.variant_type == other.variant_type &&
+            self.variant_sequence == other.variant_sequence &&
+            self.position_1_annotation == other.position_1_annotation &&
+            self.position_2_annotation == other.position_2_annotation {
+                true
+        } else {
+            false
+        }
+    }
+}
+
 impl VariantCallAnnotation {
     pub fn new(
         variant_call_id: usize,
         chromosome_1: &str,
-        position_1: u32,
+        position_1: usize,
         chromosome_2: &str,
-        position_2: u32,
+        position_2: usize,
         variant_type: VariantType,
         variant_sequence: &str,
         position_1_annotation: PositionAnnotation,

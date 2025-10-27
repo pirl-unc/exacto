@@ -189,7 +189,7 @@ fn test_bam_get_alignment_end_position() {
     );
     let read_id: usize = *read_names_map.get_by_left("m64012_325382_158010/1/ccs").unwrap();
     let record: &bam::Record = records.get(&read_id).unwrap().get(0).unwrap();
-    let alignment_end: u32 = get_alignment_end_position(record);
+    let alignment_end: usize = get_alignment_end_position(record);
     assert!(alignment_end == 7687490);
 }
 
@@ -210,7 +210,7 @@ fn test_bam_get_alignment_mapping_quality() {
     );
     let read_id: usize = *read_names_map.get_by_left("m64012_325382_158010/1/ccs").unwrap();
     let record: &bam::Record = records.get(&read_id).unwrap().get(0).unwrap();
-    let mapping_quality: u32 = get_alignment_mapping_quality(record);
+    let mapping_quality: usize = get_alignment_mapping_quality(record);
     assert!(mapping_quality == 60);
 }
 
@@ -252,7 +252,7 @@ fn test_bam_get_alignment_start_position() {
     );
     let read_id: usize = *read_names_map.get_by_left("m64012_325382_158010/1/ccs").unwrap();
     let record: &bam::Record = records.get(&read_id).unwrap().get(0).unwrap();
-    let alignment_start: u32 = get_alignment_start_position(record);
+    let alignment_start: usize = get_alignment_start_position(record);
     assert!(alignment_start == 7668421);
 }
 

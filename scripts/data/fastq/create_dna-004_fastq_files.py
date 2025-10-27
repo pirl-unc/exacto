@@ -17,7 +17,7 @@ if __name__ == "__main__":
     length = end - start + 1
     sequence_normal = str(fasta.fetch(chromosome, start - 1, end))
 
-    # Step 3. Create a somatic version (7670500-7680500)
+    # Step 3. Create a somatic inversion (7670500-7680500)
     sequence_tumor = str(fasta.fetch(chromosome, start - 1, 7670500)) + reverse_complement(str(fasta.fetch(chromosome, 7670500, 7680500))) + str(fasta.fetch(chromosome, 7680500, end))
 
     # Step 4. Create FASTQ files

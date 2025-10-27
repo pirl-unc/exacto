@@ -1,6 +1,7 @@
 use bimap::BiMap;
 use exacto_core::prelude::*;
 use noodles_bam as bam;
+use polars::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
@@ -1588,20 +1589,20 @@ fn test_transcript_model_12() {
 
     let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000254719.10".into()]).unwrap();
 
-    assert_eq!(variant_records.len(), 16);
+    assert_eq!(variant_records.len(), 15);
+    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
+    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
+    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 1830005);
+    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 1830126);
+    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Skip);
+    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Skip);
+    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::ExonTruncation);
     assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 1842801);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 1842802);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::IntronRetention);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 1842804);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 1844684);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::CircularRNA);
-    assert_eq!(variant_records.get(2).unwrap().get_standardized_sequence(), "AGG");
+    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 1842804);
+    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 1844684);
+    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Upstream);
+    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Downstream);
+    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::CircularRNA);
+    assert_eq!(variant_records.get(1).unwrap().get_standardized_sequence(), "AGG");
 }

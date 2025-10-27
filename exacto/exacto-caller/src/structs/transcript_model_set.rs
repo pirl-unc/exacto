@@ -17,7 +17,7 @@ use rayon::iter::ParallelIterator;
 use rayon::prelude::ParallelSlice;
 use rayon::ThreadPoolBuilder;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashSet};
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 
 use crate::prelude::*;
@@ -58,14 +58,14 @@ impl TranscriptModelSet {
             "self.read_names_map is empty."
         );
 
-        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut transcript_model_id_values: Vec<String> = Vec::new();
         let mut chromosome_values: Vec<String> = Vec::new();
-        let mut start_values: Vec<u32> = Vec::new();
-        let mut end_values: Vec<u32> = Vec::new();
+        let mut start_values: Vec<u64> = Vec::new();
+        let mut end_values: Vec<u64> = Vec::new();
         let mut exon_number_values: Vec<u32> = Vec::new();
         let mut strand_values: Vec<String> = Vec::new();
         let mut read_names_values: Vec<String> = Vec::new();
-        let mut read_names_count_values: Vec<u32> = Vec::new();
+        let mut read_names_count_values: Vec<u64> = Vec::new();
         for transcript_model in self.transcript_models.iter() {
             let read_name: String = self.read_names_map
                 .get_by_right(&transcript_model.get_read_id())
@@ -73,10 +73,10 @@ impl TranscriptModelSet {
                 .to_string();
             for exon in transcript_model.get_exons().iter() {
                 let chromosome: Box<str> = self.chromosome_names_map.get_by_right(&exon.reference_chromosome_id).unwrap().clone();
-                transcript_id_values.push(transcript_model.get_id().to_string());
+                transcript_model_id_values.push(transcript_model.get_id().to_string());
                 chromosome_values.push(chromosome.to_string());
-                start_values.push(exon.reference_start);
-                end_values.push(exon.reference_end);
+                start_values.push(exon.reference_start as u64);
+                end_values.push(exon.reference_end as u64);
                 exon_number_values.push(exon.exon_number as u32);
                 strand_values.push(exon.reference_strand.as_str().to_string());
                 read_names_values.push(read_name.clone());
@@ -85,7 +85,7 @@ impl TranscriptModelSet {
         }
 
         DataFrame::new(vec![
-            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("transcript_model_id".into(), transcript_model_id_values)),
             Column::from(Series::new("chromosome".into(), chromosome_values)),
             Column::from(Series::new("start".into(), start_values)),
             Column::from(Series::new("end".into(), end_values)),
@@ -117,17 +117,17 @@ impl TranscriptModelSet {
     }
 
     pub fn get_reference_transcript_matches_dataframe(&self) -> DataFrame {
-        let mut transcript_id_values: Vec<String> = Vec::new();
-        let mut reference_transcript_id_values: Vec<String> = Vec::new();
-        let mut num_overlap_bases_values: Vec<u32> = Vec::new();
-        let mut num_transcript_only_bases_values: Vec<u32> = Vec::new();
-        let mut num_reference_transcript_only_bases_values: Vec<u32> = Vec::new();
+        let mut transcript_model_id_values: Vec<String> = Vec::new();
+        let mut reference_transcript_ids_values: Vec<String> = Vec::new();
+        let mut num_overlap_bases_values: Vec<u64> = Vec::new();
+        let mut num_transcript_only_bases_values: Vec<u64> = Vec::new();
+        let mut num_reference_transcript_only_bases_values: Vec<u64> = Vec::new();
         let mut score_values: Vec<f32> = Vec::new();
         let mut scoring_method_values: Vec<String> = Vec::new();
         for transcript_model in self.transcript_models.iter() {
             if transcript_model.get_reference_transcript_matches_map().is_empty() {
-                transcript_id_values.push(transcript_model.get_id().to_string());
-                reference_transcript_id_values.push("".to_string());
+                transcript_model_id_values.push(transcript_model.get_id().to_string());
+                reference_transcript_ids_values.push("".to_string());
                 num_overlap_bases_values.push(0);
                 num_transcript_only_bases_values.push(0);
                 num_reference_transcript_only_bases_values.push(0);
@@ -135,11 +135,11 @@ impl TranscriptModelSet {
                 scoring_method_values.push("".to_string());
             } else {
                 for (reference_transcript_id, reference_transcript_match) in transcript_model.get_reference_transcript_matches_map().iter() {
-                    transcript_id_values.push(transcript_model.get_id().to_string());
-                    reference_transcript_id_values.push(reference_transcript_match.reference_transcript_id.to_string());
-                    num_overlap_bases_values.push(reference_transcript_match.num_overlap_bases);
-                    num_transcript_only_bases_values.push(reference_transcript_match.num_transcript_only_bases);
-                    num_reference_transcript_only_bases_values.push(reference_transcript_match.num_reference_only_bases);
+                    transcript_model_id_values.push(transcript_model.get_id().to_string());
+                    reference_transcript_ids_values.push(reference_transcript_match.reference_transcript_id.to_string());
+                    num_overlap_bases_values.push(reference_transcript_match.num_overlap_bases as u64);
+                    num_transcript_only_bases_values.push(reference_transcript_match.num_transcript_only_bases as u64);
+                    num_reference_transcript_only_bases_values.push(reference_transcript_match.num_reference_only_bases as u64);
                     score_values.push(reference_transcript_match.score);
                     scoring_method_values.push(reference_transcript_match.scoring_method.as_str().to_string());
                 }
@@ -147,8 +147,8 @@ impl TranscriptModelSet {
         }
 
         DataFrame::new(vec![
-            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
-            Column::from(Series::new("reference_transcript_id".into(), reference_transcript_id_values)),
+            Column::from(Series::new("transcript_model_id".into(), transcript_model_id_values)),
+            Column::from(Series::new("reference_transcript_ids".into(), reference_transcript_ids_values)),
             Column::from(Series::new("num_overlap_bases".into(), num_overlap_bases_values)),
             Column::from(Series::new("num_transcript_only_bases".into(), num_transcript_only_bases_values)),
             Column::from(Series::new("num_reference_transcript_only_bases".into(), num_reference_transcript_only_bases_values)),
@@ -187,16 +187,16 @@ impl TranscriptModelSet {
         );
 
         // DataFrame of read names
-        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut transcript_model_id_values: Vec<String> = Vec::new();
         let mut read_name_values: Vec<String> = Vec::new();
         for transcript_model in self.transcript_models.iter() {
             let read_name: Box<str> = self.read_names_map.get_by_right(&transcript_model.get_read_id()).unwrap().clone();
-            transcript_id_values.push(transcript_model.get_id().to_string());
+            transcript_model_id_values.push(transcript_model.get_id().to_string());
             read_name_values.push(read_name.to_string());
         }
 
         DataFrame::new(vec![
-            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("transcript_model_id".into(), transcript_model_id_values)),
             Column::from(Series::new("read_name".into(), read_name_values))
         ]).unwrap()
     }
@@ -215,14 +215,14 @@ impl TranscriptModelSet {
             "self.read_names_map is empty."
         );
 
-        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut transcript_model_id_values: Vec<String> = Vec::new();
         let mut chromosome_values: Vec<String> = Vec::new();
-        let mut start_values: Vec<u32> = Vec::new();
-        let mut end_values: Vec<u32> = Vec::new();
+        let mut start_values: Vec<u64> = Vec::new();
+        let mut end_values: Vec<u64> = Vec::new();
         let mut intron_number_values: Vec<u32> = Vec::new();
         let mut strand_values: Vec<String> = Vec::new();
         let mut read_names_values: Vec<String> = Vec::new();
-        let mut read_names_count_values: Vec<u32> = Vec::new();
+        let mut read_names_count_values: Vec<u64> = Vec::new();
         for transcript_model in self.transcript_models.iter() {
             let read_name: String = self.read_names_map
                 .get_by_right(&transcript_model.get_read_id())
@@ -230,10 +230,10 @@ impl TranscriptModelSet {
                 .to_string();
             for intron in transcript_model.get_introns().iter() {
                 let chromosome: Box<str> = self.chromosome_names_map.get_by_right(&intron.reference_chromosome_id).unwrap().clone();
-                transcript_id_values.push(transcript_model.get_id().to_string());
+                transcript_model_id_values.push(transcript_model.get_id().to_string());
                 chromosome_values.push(chromosome.to_string());
-                start_values.push(intron.reference_start);
-                end_values.push(intron.reference_end);
+                start_values.push(intron.reference_start as u64);
+                end_values.push(intron.reference_end as u64);
                 intron_number_values.push(intron.intron_number as u32);
                 strand_values.push(intron.reference_strand.as_str().to_string());
                 read_names_values.push(read_name.clone());
@@ -242,7 +242,7 @@ impl TranscriptModelSet {
         }
 
         DataFrame::new(vec![
-            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("transcript_model_id".into(), transcript_model_id_values)),
             Column::from(Series::new("chromosome".into(), chromosome_values)),
             Column::from(Series::new("start".into(), start_values)),
             Column::from(Series::new("end".into(), end_values)),
@@ -258,18 +258,14 @@ impl TranscriptModelSet {
             !self.chromosome_names_map.is_empty(),
             "self.chromosome_names_map is empty."
         );
-        assert!(
-            !self.read_names_map.is_empty(),
-            "self.read_names_map is empty."
-        );
 
-        let mut transcript_id_values: Vec<String> = Vec::new();
+        let mut transcript_model_id_values: Vec<u64> = Vec::new();
         let mut start_chromosome_values: Vec<String> = Vec::new();
-        let mut start_values: Vec<u32> = Vec::new();
+        let mut start_values: Vec<u64> = Vec::new();
         let mut end_chromosome_values: Vec<String> = Vec::new();
-        let mut end_values: Vec<u32> = Vec::new();
-        let mut num_exons_values: Vec<String> = Vec::new();
-        let mut num_intron_values: Vec<String> = Vec::new();
+        let mut end_values: Vec<u64> = Vec::new();
+        let mut num_exons_values: Vec<u32> = Vec::new();
+        let mut num_intron_values: Vec<u32> = Vec::new();
 
         for transcript_model in self.transcript_models.iter() {
             let (start_chromosome_id,start) = transcript_model.get_reference_start_position();
@@ -278,23 +274,90 @@ impl TranscriptModelSet {
             let end_chromosome_name = self.chromosome_names_map.get_by_right(&end_chromosome_id).unwrap().clone();
             let num_exons: usize = transcript_model.get_exons().len();
             let num_introns: usize = transcript_model.get_introns().len();
-            transcript_id_values.push(transcript_model.get_id().to_string());
+            transcript_model_id_values.push(transcript_model.get_id() as u64);
             start_chromosome_values.push(start_chromosome_name.to_string());
-            start_values.push(start);
+            start_values.push(start as u64);
             end_chromosome_values.push(end_chromosome_name.to_string());
-            end_values.push(end);
-            num_exons_values.push(num_exons.to_string());
-            num_intron_values.push(num_introns.to_string());
+            end_values.push(end as u64);
+            num_exons_values.push(num_exons as u32);
+            num_intron_values.push(num_introns as u32);
         }
 
         DataFrame::new(vec![
-            Column::from(Series::new("transcript_id".into(), transcript_id_values)),
+            Column::from(Series::new("transcript_model_id".into(), transcript_model_id_values)),
             Column::from(Series::new("start_chromosome".into(), start_chromosome_values)),
             Column::from(Series::new("start".into(), start_values)),
             Column::from(Series::new("end_chromosome".into(), end_chromosome_values)),
             Column::from(Series::new("end".into(), end_values)),
             Column::from(Series::new("num_exons".into(), num_exons_values)),
             Column::from(Series::new("num_introns".into(), num_intron_values))
+        ]).unwrap()
+    }
+
+    pub fn get_transcript_structures_dataframe(&self) -> DataFrame {
+        assert!(
+            !self.chromosome_names_map.is_empty(),
+            "self.chromosome_names_map is empty."
+        );
+
+        let mut merged_map: HashMap<Box<str>, Vec<AnyValue>> = HashMap::new();
+        merged_map.insert("transcript_model_id".into(), Vec::new());
+        merged_map.insert("reference_transcript_ids".into(), Vec::new());
+
+        for transcript_model in self.transcript_models.iter() {
+            for (reference_transcript_ids, alignment_structure) in transcript_model.get_contextualized_structures_map().iter() {
+                let alignment_structure_record: HashMap<Box<str>, Vec<AnyValue>> = alignment_structure.to_record(&self.chromosome_names_map);
+                let mut length: usize = 0;
+                for (key, values) in alignment_structure_record.iter() {
+                    merged_map
+                        .entry(key.clone())
+                        .or_default()
+                        .extend(values.clone());
+                    length = values.len();
+                }
+                let transcript_model_ids: Vec<AnyValue> = vec![AnyValue::UInt64(transcript_model.get_id() as u64); length];
+                let reference_transcript_ids_string: String = reference_transcript_ids
+                    .iter()
+                    .map(|s| s.as_ref())
+                    .collect::<Vec<&str>>()
+                    .join(",");
+                let reference_transcript_ids: Vec<AnyValue> = vec![AnyValue::StringOwned(reference_transcript_ids_string.as_str().into()); length];
+                merged_map
+                    .entry("transcript_model_id".into())
+                    .or_default()
+                    .extend(transcript_model_ids);
+                merged_map
+                    .entry("reference_transcript_ids".into())
+                    .or_default()
+                    .extend(reference_transcript_ids);
+            }
+        }
+
+        DataFrame::new(vec![
+            Column::from(Series::new("transcript_model_id".into(), merged_map.get("transcript_model_id").unwrap())),
+            Column::from(Series::new("reference_transcript_ids".into(), merged_map.get("reference_transcript_ids").unwrap())),
+            Column::from(Series::new("transcript_structure_index".into(), merged_map.get("index").unwrap())),
+            Column::from(Series::new("read_start".into(), merged_map.get("read_start").unwrap())),
+            Column::from(Series::new("read_end".into(), merged_map.get("read_end").unwrap())),
+            Column::from(Series::new("sequence".into(), merged_map.get("sequence").unwrap())),
+            Column::from(Series::new("type".into(), merged_map.get("type").unwrap())),
+            Column::from(Series::new("kind".into(), merged_map.get("kind").unwrap())),
+            Column::from(Series::new("context".into(), merged_map.get("context").unwrap())),
+            Column::from(Series::new("chromosome_1".into(), merged_map.get("chromosome_1").unwrap())),
+            Column::from(Series::new("position_1".into(), merged_map.get("position_1").unwrap())),
+            Column::from(Series::new("operation_1".into(), merged_map.get("operation_1").unwrap())),
+            Column::from(Series::new("strand_1".into(), merged_map.get("strand_1").unwrap())),
+            Column::from(Series::new("chromosome_2".into(), merged_map.get("chromosome_2").unwrap())),
+            Column::from(Series::new("position_2".into(), merged_map.get("position_2").unwrap())),
+            Column::from(Series::new("operation_2".into(), merged_map.get("operation_2").unwrap())),
+            Column::from(Series::new("strand_2".into(), merged_map.get("strand_2").unwrap())),
+            Column::from(Series::new("gene_id_1".into(), merged_map.get("gene_id_1").unwrap())),
+            Column::from(Series::new("transcript_id_1".into(), merged_map.get("transcript_id_1").unwrap())),
+            Column::from(Series::new("exon_id_1".into(), merged_map.get("exon_id_1").unwrap())),
+            Column::from(Series::new("gene_id_2".into(), merged_map.get("gene_id_2").unwrap())),
+            Column::from(Series::new("transcript_id_2".into(), merged_map.get("transcript_id_2").unwrap())),
+            Column::from(Series::new("exon_id_2".into(), merged_map.get("exon_id_2").unwrap())),
+            Column::from(Series::new("skipped".into(), merged_map.get("skipped").unwrap()))
         ]).unwrap()
     }
 
@@ -314,7 +377,7 @@ impl TranscriptModelSet {
             .build()
             .unwrap();
 
-        // Transcript ID, reference transcript ID, VariantCall
+        // Vector of tuples (transcript model ID, reference transcript IDs, VariantCall)
         let mut variant_calls_list: Vec<(usize, Vec<Box<str>>, VariantCall)> = Vec::new();
 
         // Get variant calls
@@ -324,7 +387,6 @@ impl TranscriptModelSet {
                 for variant_record in variant_records.iter() {
                     let mut variant_call: VariantCall = VariantCall::new(variant_call_id);
                     variant_call.add_variant_record(variant_record.clone());
-                    variant_call_id += 1;
                     variant_calls_list.push(
                         (
                             transcript_model.get_id(),
@@ -332,6 +394,7 @@ impl TranscriptModelSet {
                             variant_call
                         )
                     );
+                    variant_call_id += 1;
                 }
             }
         }
@@ -341,44 +404,39 @@ impl TranscriptModelSet {
             variant_calls_list
                 .par_chunks(chunk_size)
                 .flat_map_iter(|chunk| {
-                    chunk.iter().map(|(transcript_id, reference_transcript_ids, variant_call)| {
+                    chunk.iter().map(|(transcript_model_id, reference_transcript_ids, variant_call)| {
                         let reference_transcript_ids_string: String = reference_transcript_ids.iter()
                             .map(|s| s.as_ref()) // &Box<str> -> &str
                             .collect::<Vec<&str>>()
                             .join(",");
-                        let (consensus_record, consensus_read_names) = variant_call.get_named_consensus_record(&self.read_names_map);
+                        let variant_record: &VariantRecord = variant_call.variant_records.iter().next().unwrap();
+                        let read_name: String = self.read_names_map.get_by_right(&variant_record.get_read_id()).unwrap().to_string();
                         let chromosome_1: &str = &*self
                             .chromosome_names_map
-                            .get_by_right(&consensus_record.get_chromosome_1())
+                            .get_by_right(&variant_record.get_chromosome_1())
                             .unwrap();
                         let chromosome_2: &str = &*self
                             .chromosome_names_map
-                            .get_by_right(&consensus_record.get_chromosome_2())
+                            .get_by_right(&variant_record.get_chromosome_2())
                             .unwrap();
-                        let read_names: Vec<&str> = variant_call
-                            .get_read_ids()
-                            .iter()
-                            .map(|read_id| &**self.read_names_map.get_by_right(read_id).unwrap())
-                            .collect();
                         (
-                            variant_call.id.to_string(),
-                            *transcript_id as u32,
+                            variant_call.id as u64,
+                            *transcript_model_id as u64,
                             reference_transcript_ids_string,
                             chromosome_1,
-                            consensus_record.get_graph_operation().get_position_1() as u32,
-                            consensus_record.get_graph_operation().get_strand_1().as_str(),
-                            consensus_record.get_graph_operation().get_operation_type_1().as_str(),
+                            variant_record.get_graph_operation().get_position_1() as u64,
+                            variant_record.get_graph_operation().get_strand_1().as_str(),
+                            variant_record.get_graph_operation().get_operation_type_1().as_str(),
                             chromosome_2,
-                            consensus_record.get_graph_operation().get_position_2(),
-                            consensus_record.get_graph_operation().get_strand_2().as_str(),
-                            consensus_record.get_graph_operation().get_operation_type_2().as_str(),
-                            consensus_record.get_variant_size() as i64,
-                            consensus_record.get_variant_type().as_str().to_string(),
-                            consensus_record.get_graph_operation().get_standardized_sequence(),
-                            consensus_read_names.join(","),
-                            consensus_read_names.len() as u32,
-                            read_names.join(","),
-                            read_names.len() as u32,
+                            variant_record.get_graph_operation().get_position_2() as u64,
+                            variant_record.get_graph_operation().get_strand_2().as_str(),
+                            variant_record.get_graph_operation().get_operation_type_2().as_str(),
+                            variant_record.get_variant_size() as i64,
+                            variant_record.get_variant_type().as_str().to_string(),
+                            variant_record.get_graph_operation().get_standardized_sequence(),
+                            read_name,
+                            variant_record.get_read_position_1() as u64,
+                            variant_record.get_read_position_2() as u64
                         )
                     })
                 })
@@ -387,7 +445,7 @@ impl TranscriptModelSet {
 
         DataFrame::new(vec![
             Column::from(Series::new("variant_call_id".into(), rows.iter().map(|r| r.0.clone()).collect::<Vec<_>>())),
-            Column::from(Series::new("transcript_id".into(), rows.iter().map(|r| r.1).collect::<Vec<_>>())),
+            Column::from(Series::new("transcript_model_id".into(), rows.iter().map(|r| r.1).collect::<Vec<_>>())),
             Column::from(Series::new("reference_transcript_ids".into(), rows.iter().map(|r| r.2.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("chromosome_1".into(), rows.iter().map(|r| r.3).collect::<Vec<_>>())),
             Column::from(Series::new("position_1".into(), rows.iter().map(|r| r.4).collect::<Vec<_>>())),
@@ -401,9 +459,9 @@ impl TranscriptModelSet {
             Column::from(Series::new("variant_type".into(), rows.iter().map(|r| r.12.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("variant_sequence".into(), rows.iter().map(|r| r.13.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("consensus_read_names".into(), rows.iter().map(|r| r.14.clone()).collect::<Vec<_>>())),
-            Column::from(Series::new("consensus_read_names_count".into(), rows.iter().map(|r| r.15).collect::<Vec<_>>())),
-            Column::from(Series::new("read_names".into(), rows.iter().map(|r| r.16.clone()).collect::<Vec<_>>())),
-            Column::from(Series::new("read_names_count".into(), rows.iter().map(|r| r.17).collect::<Vec<_>>()))
+            Column::from(Series::new("read_start".into(), rows.iter().map(|r| r.15.clone()).collect::<Vec<_>>())),
+            Column::from(Series::new("read_end".into(), rows.iter().map(|r| r.16.clone()).collect::<Vec<_>>()))
+
         ]).unwrap()
     }
 
@@ -425,12 +483,12 @@ impl TranscriptModelSet {
                 for variant_record in variant_records.iter() {
                     let mut variant_call: VariantCall = VariantCall::new(variant_call_id);
                     variant_call.add_variant_record(variant_record.clone());
-                    variant_call_id += 1;
                     rna_variant_call_set.add_variant_call(
                         transcript_model.get_id(),
                         reference_transcript_ids.clone(),
                         variant_call
                     );
+                    variant_call_id += 1;
                 }
             }
         }
@@ -475,6 +533,7 @@ impl TranscriptModelSet {
         let read_names_tsv_file: String = make_path("transcripts_read_support");
         let introns_tsv_file: String = make_path("introns");
         let transcripts_tsv_file: String = make_path("transcripts");
+        let transcript_structures_tsv_file: String = make_path("transcript_structures");
         let variant_calls_tsv_file: String = make_path("rna_variant_calls");
 
         // Step 2. Get all DataFrames to output
@@ -484,6 +543,7 @@ impl TranscriptModelSet {
         let mut df_matched_reference_transcripts: DataFrame = self.get_reference_transcript_matches_dataframe();
         let mut df_introns: DataFrame = self.get_introns_dataframe();
         let mut df_transcripts: DataFrame = self.get_transcripts_dataframe();
+        let mut df_transcript_structures: DataFrame = self.get_transcript_structures_dataframe();
         let mut df_variant_calls: DataFrame = self.get_variant_calls_dataframe(1);
 
         // Step 3. Write to TSV files
@@ -501,6 +561,7 @@ impl TranscriptModelSet {
         write_df_to_tsv(&mut df_matched_reference_transcripts, matched_reference_transcripts_tsv_file.as_str());
         write_df_to_tsv(&mut df_introns, introns_tsv_file.as_str());
         write_df_to_tsv(&mut df_transcripts, transcripts_tsv_file.as_str());
+        write_df_to_tsv(&mut df_transcript_structures, transcript_structures_tsv_file.as_str());
         write_df_to_tsv(&mut df_variant_calls, variant_calls_tsv_file.as_str());
     }
 }

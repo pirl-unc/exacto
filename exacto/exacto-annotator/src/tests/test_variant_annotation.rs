@@ -1,6 +1,7 @@
 use exacto_core::prelude::*;
 use polars::prelude::*;
 use std::fs;
+use std::fs::File;
 use std::path::Path;
 
 use crate::prelude::*;
@@ -32,12 +33,21 @@ fn test_variant_annotation_1() {
         "v41"
     );
 
-    let variant_call_annotation_set = annotate_variant_calls(
+    let variant_call_annotation_set: VariantCallAnnotationSet = annotate_variant_calls(
         &df_variant_calls,
         &gene_annotator,
         1
     );
-    
+
+    let mut df = variant_call_annotation_set.to_dataframe();
+
+    let mut file = File::create("//Users/leework/Desktop/temp/20251017/dna-001-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants_annotated.tsv").unwrap();
+    CsvWriter::new(&mut file)
+        .include_header(true)
+        .with_separator(b'\t')
+        .finish(&mut df)
+        .unwrap();
+
     assert_eq!(variant_call_annotation_set.annotations.get(&1usize).unwrap().position_1_annotation.genic_region, GenicRegion::Exonic);
     assert_eq!(variant_call_annotation_set.annotations.get(&1usize).unwrap().position_2_annotation.genic_region, GenicRegion::Exonic);
     assert_eq!(variant_call_annotation_set.annotations.get(&1usize).unwrap().position_1_annotation.gene_ids.contains("ENSG00000141510.18"), true);

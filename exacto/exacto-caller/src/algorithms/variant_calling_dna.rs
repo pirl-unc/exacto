@@ -53,13 +53,13 @@ pub fn identify_dna_variants(
     bam_file: &str,
     bam_bai_file: &str,
     min_reads: usize,
-    min_mapping_quality: u32,
+    min_mapping_quality: usize,
     min_base_quality: u8,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
-    max_intrachromosomal_distance_tau: u32,
-    max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32,
+    max_intrachromosomal_distance_tau: usize,
+    max_intrachromosomal_distance: usize,
+    max_interchromosomal_distance: usize,
     num_threads: usize,
     chromosomes: Vec<&str>,
     temp_dir: &str
@@ -138,7 +138,7 @@ pub fn identify_dna_variants(
                 records_map
                     .par_iter()
                     .map(|(read_id, records)| {
-                        let read_sequence: Box<str> =  get_fastx_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
+                        let read_sequence: Box<str> = get_fastx_read_sequence(records.iter().collect::<Vec<_>>().as_slice());
                         let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records.iter().collect::<Vec<_>>().as_slice());
                         let alignment: Alignment = Alignment::new(
                             *read_id,
@@ -148,9 +148,10 @@ pub fn identify_dna_variants(
                         );
                         let variant_records: Vec<VariantRecord> = alignment
                             .get_alignment_structure()
-                            .identify_dna_variant_records(
+                            .identify_variant_records(
                             min_mapping_quality,
-                            min_base_quality
+                            min_base_quality,
+                            AnalyteType::DNA
                         );
                         variant_records
                     })
@@ -304,13 +305,13 @@ pub fn identify_case_specific_dna_variants(
     control_bam_files: Vec<&str>,
     control_bam_bai_files: Vec<&str>,
     min_reads: usize,
-    min_mapping_quality: u32,
+    min_mapping_quality: usize,
     min_base_quality: u8,
     min_size_proportion: f32,
     max_ins_norm_edit_distance: f32,
-    max_intrachromosomal_distance_tau: u32,
-    max_intrachromosomal_distance: u32,
-    max_interchromosomal_distance: u32,
+    max_intrachromosomal_distance_tau: usize,
+    max_intrachromosomal_distance: usize,
+    max_interchromosomal_distance: usize,
     apply_infinite_sites_assumption: bool,
     num_threads: usize,
     chromosomes: Vec<&str>,
@@ -378,9 +379,9 @@ pub fn identify_case_specific_dna_variants(
         .num_threads(num_threads)
         .build()
         .unwrap();
-    let mut max_distance: u32 = max(max_intrachromosomal_distance_tau, max_intrachromosomal_distance);
+    let mut max_distance: usize = max(max_intrachromosomal_distance_tau, max_intrachromosomal_distance);
     max_distance = max(max_distance, max_interchromosomal_distance);
-    let bin_size: u32 = 10_u32.pow((max_distance as f32).log10().floor() as u32 + 1);
+    let bin_size: usize = 10_usize.pow((max_distance as f32).log10().floor() as u32 + 1);
     let pb = Arc::new(ProgressBar::new(chromosomes.len() as u64));
     pb.set_style(
         ProgressStyle::default_bar()
@@ -423,9 +424,10 @@ pub fn identify_case_specific_dna_variants(
                     );
                     let variant_records: Vec<VariantRecord> = alignment
                         .get_alignment_structure()
-                        .identify_dna_variant_records(
+                        .identify_variant_records(
                         min_mapping_quality,
-                        min_base_quality
+                        min_base_quality,
+                        AnalyteType::DNA
                     );
                     variant_records
                 })
@@ -508,9 +510,10 @@ pub fn identify_case_specific_dna_variants(
                             );
                             let variant_records: Vec<VariantRecord> = alignment
                                 .get_alignment_structure()
-                                .identify_dna_variant_records(
+                                .identify_variant_records(
                                 min_mapping_quality,
-                                min_base_quality
+                                min_base_quality,
+                                AnalyteType::DNA
                             );
                             variant_records
                         })

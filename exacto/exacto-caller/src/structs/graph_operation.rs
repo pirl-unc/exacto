@@ -22,11 +22,11 @@ use crate::prelude::*;
 #[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
 pub struct GraphOperation {
     chromosome_1: u16,
-    position_1: u32,
+    position_1: usize,
     strand_1: Strand,
     operation_type_1: GraphOperationType,
     chromosome_2: u16,
-    position_2: u32,
+    position_2: usize,
     strand_2: Strand,
     operation_type_2: GraphOperationType,
     sequence: Box<str>,
@@ -52,17 +52,17 @@ impl Hash for GraphOperation {
 impl GraphOperation {
     pub fn new(
         chromosome_1: u16,
-        position_1: u32,
+        position_1: usize,
         strand_1: Strand,
         operation_type_1: GraphOperationType,
         chromosome_2: u16,
-        position_2: u32,
+        position_2: usize,
         strand_2: Strand,
         operation_type_2: GraphOperationType,
         sequence: Box<str>,
         variant_type: VariantType
     ) -> Self {
-        let unstandardized = Self {
+        let unstandardized: GraphOperation = Self {
             chromosome_1,
             position_1,
             strand_1,
@@ -137,11 +137,11 @@ impl GraphOperation {
         self.chromosome_2
     }
     
-    pub fn get_position_1(&self) -> u32 {
+    pub fn get_position_1(&self) -> usize {
         self.position_1
     }
     
-    pub fn get_position_2(&self) -> u32 {
+    pub fn get_position_2(&self) -> usize {
         self.position_2
     }
     
@@ -223,10 +223,10 @@ impl GraphOperation {
     }
 }
 
-/// Helper functions
+/// Helper methods
 impl GraphOperation {
     fn standardize(op: GraphOperation) -> GraphOperation {
-        let should_swap = if op.chromosome_1 != op.chromosome_2 {
+        let should_swap: bool = if op.chromosome_1 != op.chromosome_2 {
             op.chromosome_1 > op.chromosome_2
         } else {
             op.position_1 > op.position_2

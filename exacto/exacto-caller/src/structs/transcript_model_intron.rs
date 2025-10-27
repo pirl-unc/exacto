@@ -20,18 +20,18 @@ use std::hash::{Hash, Hasher};
 #[derive(Debug,Serialize,Deserialize)]
 pub struct TranscriptModelIntron {
     pub reference_chromosome_id: u16,
-    pub reference_start: u32,
-    pub reference_end: u32,
+    pub reference_start: usize,
+    pub reference_end: usize,
     pub reference_strand: Strand,
     pub intron_number: u16,
     pub donor_splice_site_signal: Box<str>,
     pub acceptor_splice_site_signal: Box<str>,
     
     /// Read position immediately before the intron starts (towards 5')
-    pub exon_5p_flank_read_position: u32,
+    pub exon_5p_flank_read_position: usize,
     
     /// Read position immediately after the intron ends (towards 3')
-    pub exon_3p_flank_read_position: u32
+    pub exon_3p_flank_read_position: usize
 }
 
 impl PartialEq for TranscriptModelIntron {
@@ -67,14 +67,14 @@ impl Hash for TranscriptModelIntron {
 impl TranscriptModelIntron {
     pub fn new(
         reference_chromosome_id: u16,
-        reference_start: u32,
-        reference_end: u32,
+        reference_start: usize,
+        reference_end: usize,
         reference_strand: Strand,
         intron_number: u16,
         donor_splice_site_signal: &str,
         acceptor_splice_site_signal: &str,
-        exon_5p_flank_read_position: u32,
-        exon_3p_flank_read_position: u32
+        exon_5p_flank_read_position: usize,
+        exon_3p_flank_read_position: usize
     ) -> Self {
         assert_eq!(
             exon_5p_flank_read_position, exon_3p_flank_read_position - 1,

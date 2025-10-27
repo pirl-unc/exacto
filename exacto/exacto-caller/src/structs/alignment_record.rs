@@ -14,14 +14,16 @@
 use exacto_core::prelude::*;
 use noodles_bam as bam;
 
+use crate::prelude::TranscriptModel;
+
 
 #[derive(Debug)]
 pub struct AlignmentRecord {
     /// Read sequence start position
-    pub read_start: u32,
+    pub read_start: usize,
     
     /// Read sequence end position
-    pub read_end: u32,
+    pub read_end: usize,
 
     /// Reference strand
     pub reference_strand: Strand,
@@ -29,10 +31,18 @@ pub struct AlignmentRecord {
     pub record: bam::Record
 }
 
+impl PartialEq for AlignmentRecord {
+    fn eq(&self, other: &Self) -> bool {
+        self.read_start == other.read_start &&
+            self.read_end == other.read_end &&
+            self.record == other.record
+    }
+}
+
 impl AlignmentRecord {
     pub fn new(
-        read_start: u32,
-        read_end: u32,
+        read_start: usize,
+        read_end: usize,
         reference_strand: Strand,
         record: bam::Record
     ) -> Self {

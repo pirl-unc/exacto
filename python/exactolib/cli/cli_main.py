@@ -24,7 +24,9 @@ from .cli_call_rna_vars import *
 from .cli_call_peptide_vars import *
 from .cli_diff_kmers import *
 from .cli_integrate_vars import *
-from .cli_translate import *
+from .cli_remove_unspliced_rnas import *
+from .cli_translate_seqs import *
+from .cli_translate_structs import *
 from ..logging import get_logger
 
 
@@ -54,10 +56,13 @@ def init_arg_parser():
 def run():
     # Step 1. Initialize argument parser
     arg_parser, sub_parsers = init_arg_parser()
-    sub_parsers = add_cli_annotate_vars_arg_parser(sub_parsers=sub_parsers)         # annotate-vars
-    sub_parsers = add_cli_call_dna_vars_arg_parser(sub_parsers=sub_parsers)         # call-dna-vars
-    sub_parsers = add_cli_call_rna_vars_arg_parser(sub_parsers=sub_parsers)         # call-rna-vars
-    sub_parsers = add_cli_translate_vars_arg_parser(sub_parsers=sub_parsers)        # translate
+    sub_parsers = add_cli_annotate_vars_arg_parser(sub_parsers=sub_parsers)             # annotate-vars
+    sub_parsers = add_cli_call_dna_vars_arg_parser(sub_parsers=sub_parsers)             # call-dna-vars
+    sub_parsers = add_cli_call_rna_vars_arg_parser(sub_parsers=sub_parsers)             # call-rna-vars
+    sub_parsers = add_cli_integrate_vars_arg_parser(sub_parsers=sub_parsers)            # integrate-vars
+    sub_parsers = add_cli_remove_unspliced_rnas_arg_parser(sub_parsers=sub_parsers)     # remove-unspliced-rnas
+    sub_parsers = add_cli_translate_seqs_arg_parser(sub_parsers=sub_parsers)            # translate-seqs
+    sub_parsers = add_cli_translate_structs_arg_parser(sub_parsers=sub_parsers)         # translate-structs
 
     # sub_parsers = add_cli_build_var_graph_arg_parser(sub_parsers=sub_parsers)       # build-var-graph
     # sub_parsers = add_cli_call_peptide_vars_arg_parser(sub_parsers=sub_parsers)     # call-peptide-vars
@@ -72,8 +77,14 @@ def run():
         run_cli_call_dna_vars_from_parsed_args(args=args)
     elif args.which == 'call-rna-vars':
         run_cli_call_rna_vars_from_parsed_args(args=args)
-    elif args.which == 'translate':
-        run_cli_translate_vars_from_parsed_args(args=args)
+    elif args.which == 'integrate-vars':
+        run_cli_integrate_vars_from_parsed_args(args=args)
+    elif args.which == 'remove-unspliced-rnas':
+        run_cli_remove_unspliced_rnas_from_parsed_args(args=args)
+    elif args.which == 'translate-seqs':
+        run_cli_translate_seqs_from_parsed_args(args=args)
+    elif args.which == 'translate-structs':
+        run_cli_translate_structs_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)
 

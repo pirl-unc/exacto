@@ -1,6 +1,6 @@
 [package]
 name = "exacto"
-version = "0.4.4"
+version = "0.4.5"
 edition = "2021"
 authors = ["Jin Seok Lee <ajslee@unc.edu>"]
 rust-version.workspace = true
@@ -11,10 +11,10 @@ documentation = "https://docs.rs/exacto"
 license = "MIT"
 
 [dependencies]
-exacto-annotator = { path = "../exacto-annotator", version = "0.4.4" }
-exacto-caller = { path = "../exacto-caller", version = "0.4.4" }
-exacto-core = { path = "../exacto-core", version = "0.4.4" }
-exacto-graph = { path = "../exacto-graph", version = "0.4.4" }
-exacto-qc = { path = "../exacto-qc", version = "0.4.4" }
-exacto-integrator = { path = "../exacto-integrator", version = "0.4.4" }
-exacto-translator = { path = "../exacto-translator", version = "0.4.4" }
+exacto-annotator = { path = "../exacto-annotator", version = "0.4.5" }
+exacto-caller = { path = "../exacto-caller", version = "0.4.5" }
+exacto-core = { path = "../exacto-core", version = "0.4.5" }
+exacto-graph = { path = "../exacto-graph", version = "0.4.5" }
+exacto-qc = { path = "../exacto-qc", version = "0.4.5" }
+exacto-integrator = { path = "../exacto-integrator", version = "0.4.5" }
+exacto-translator = { path = "../exacto-translator", version = "0.4.5" }

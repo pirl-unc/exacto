@@ -24,12 +24,12 @@ use crate::prelude::*;
 
 #[derive(Debug)]
 pub struct Gencode {
-    pub assembly: Box<str>,
-    pub version: Box<str>,
-    pub genes: HashMap<Box<str>,Gene>,                                      // key = gene ID
-    pub transcript_gene_ids: HashMap<Box<str>,Box<str>>,                    // key = transcript ID, value = gene ID
-    pub exon_transcript_ids: HashMap<Box<str>,Box<str>>,                    // key = exon ID, value = transcript ID
-    pub gene_itrees_map: HashMap<Box<str>,IntervalTree<Box<str>>>,          // key = chromosome, interval tree has gene IDs
+    assembly: Box<str>,
+    version: Box<str>,
+    genes: HashMap<Box<str>, Gene>,                                 // key = gene ID
+    transcript_gene_ids: HashMap<Box<str>, Box<str>>,               // key = transcript ID, value = gene ID
+    exon_transcript_ids: HashMap<Box<str>, HashSet<Box<str>>>,      // key = exon ID, value = transcript IDs
+    gene_itrees_map: HashMap<Box<str>, IntervalTree<Box<str>>>      // key = chromosome, interval tree has gene IDs
 }
 
 impl Gencode {
@@ -65,8 +65,8 @@ impl Gencode {
         }
         // Step 1. Prepare data structures
         let mut genes: HashMap<Box<str>,Gene> = HashMap::new();
-        let mut transcript_gene_ids: HashMap<Box<str>,Box<str>> = HashMap::new();
-        let mut exon_transcript_ids: HashMap<Box<str>,Box<str>> = HashMap::new();
+        let mut transcript_gene_ids: HashMap<Box<str> ,Box<str>> = HashMap::new();
+        let mut exon_transcript_ids: HashMap<Box<str>, HashSet<Box<str>>> = HashMap::new();
 
         // Step 2. Load genes
         let file = File::open(gtf_file).expect("Unable to reopen GTF file");
@@ -91,8 +91,8 @@ impl Gencode {
 
             let seq_name: &str = fields[0];
             let source: &str = fields[1];
-            let start: u32 = fields[3].parse::<u32>().unwrap_or(0);
-            let end: u32 = fields[4].parse::<u32>().unwrap_or(0);
+            let start: usize = fields[3].parse::<usize>().unwrap_or(0);
+            let end: usize = fields[4].parse::<usize>().unwrap_or(0);
             let strand: Strand = Strand::from_str(fields[6]).unwrap();
 
             let attrs: &str = fields[8];
@@ -147,8 +147,8 @@ impl Gencode {
 
             let seq_name: &str = fields[0];
             let source: &str = fields[1];
-            let start: u32 = fields[3].parse::<u32>().unwrap_or(0);
-            let end: u32 = fields[4].parse::<u32>().unwrap_or(0);
+            let start: usize = fields[3].parse::<usize>().unwrap_or(0);
+            let end: usize = fields[4].parse::<usize>().unwrap_or(0);
             let strand: Strand = Strand::from_str(fields[6]).unwrap();
 
             let attrs: &str = fields[8];
@@ -215,8 +215,8 @@ impl Gencode {
 
             let seq_name: &str = fields[0];
             let source: &str = fields[1];
-            let start: u32 = fields[3].parse::<u32>().unwrap_or(0);
-            let end: u32 = fields[4].parse::<u32>().unwrap_or(0);
+            let start: usize = fields[3].parse::<usize>().unwrap_or(0);
+            let end: usize = fields[4].parse::<usize>().unwrap_or(0);
             let strand: Strand = Strand::from_str(fields[6]).unwrap();
 
             let attrs: &str = fields[8];
@@ -224,7 +224,7 @@ impl Gencode {
             let transcript_id: &str = extract_attr(attrs, "transcript_id").unwrap_or("");
             let exon_id: &str = extract_attr(attrs, "exon_id").unwrap_or("");
             let level: u8 = extract_attr(attrs, "level").and_then(|s| s.parse::<u8>().ok()).unwrap_or(0);
-            let exon_number = extract_attr(attrs, "exon_number").and_then(|s| s.parse::<u16>().ok()).unwrap_or(0);
+            let exon_number: u32 = extract_attr(attrs, "exon_number").and_then(|s| s.parse::<u32>().ok()).unwrap_or(0);
 
             if genes.contains_key(gene_id) == false {
                 continue;
@@ -251,7 +251,10 @@ impl Gencode {
                     genes.get_mut(gene_id).unwrap()
                         .get_mut_transcript(transcript_id).unwrap()
                         .add_exon(exon);
-                    exon_transcript_ids.insert(exon_id.into(), transcript_id.into());
+                    exon_transcript_ids
+                        .entry(exon_id.into())
+                        .or_insert_with(HashSet::new)
+                        .insert(transcript_id.into());
                 },
                 "UTR" => {
                     let utr = UTR::new(
@@ -373,7 +376,7 @@ impl GeneAnnotator for Gencode {
         &*self.version
     }
 
-    fn get_gene_ids_at_locus(&self, chromosome: &str, position: u32) -> Vec<Box<str>> {
+    fn get_gene_ids_at_locus(&self, chromosome: &str, position: usize) -> Vec<Box<str>> {
         if let Some(itree) = self.gene_itrees_map.get(chromosome) {
             let results: Vec<&Box<str>> = itree.overlaps(position as isize, position as isize);
             if results.is_empty() {
@@ -389,8 +392,8 @@ impl GeneAnnotator for Gencode {
     fn get_gene_ids_overlapping_region(
         &self,
         chromosome: &str,
-        start: u32,
-        end: u32
+        start: usize,
+        end: usize
     ) -> Vec<Box<str>> {
         if let Some(itree) = self.gene_itrees_map.get(chromosome) {
             let results: Vec<&Box<str>> = itree.overlaps(start as isize, end as isize);
@@ -404,7 +407,7 @@ impl GeneAnnotator for Gencode {
         }
     }
 
-    fn get_transcript_ids_overlapping_region(&self, chromosome: &str, start: u32, end: u32) -> Vec<Box<str>> {
+    fn get_transcript_ids_overlapping_region(&self, chromosome: &str, start: usize, end: usize) -> Vec<Box<str>> {
         let mut transcript_ids: Vec<Box<str>> = Vec::new();
         let gene_ids: Vec<Box<str>> = self.get_gene_ids_overlapping_region(chromosome, start, end);
         let start_: isize = start as isize;
@@ -422,7 +425,7 @@ impl GeneAnnotator for Gencode {
         transcript_ids
     }
 
-    fn get_exon_ids_overlapping_region(&self, chromosome: &str, start: u32, end: u32) -> Vec<Box<str>> {
+    fn get_exon_ids_overlapping_region(&self, chromosome: &str, start: usize, end: usize) -> Vec<Box<str>> {
         let mut exon_ids: Vec<Box<str>> = Vec::new();
         let transcript_ids: Vec<Box<str>> = self.get_transcript_ids_overlapping_region(chromosome, start, end);
         let start_: isize = start as isize;
@@ -467,8 +470,7 @@ impl GeneAnnotator for Gencode {
         transcripts
     }
 
-    fn get_exon(&self, exon_id: &str) -> Option<&Exon> {
-        let transcript_id = self.exon_transcript_ids.get(exon_id).unwrap();
+    fn get_exon(&self, transcript_id: &str, exon_id: &str) -> Option<&Exon> {
         let gene_id = self.transcript_gene_ids.get(transcript_id).unwrap();
         self.genes.get(gene_id).unwrap().transcripts.get(transcript_id).unwrap().exons.get(exon_id)
     }

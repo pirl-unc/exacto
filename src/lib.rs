@@ -21,10 +21,12 @@ use functions::annotate_variant_calls::*;
 use functions::identify_case_specific_dna_variants::*;
 use functions::identify_dna_variants::*;
 use functions::identify_rna_variants::*;
-use functions::translate_rna_fasta_file::*;
-use functions::translate_rna_fastq_file::*;
-use functions::translate_rna_sequence::*;
-
+use functions::integrate_dna_rna_variants::*;
+use functions::remove_unspliced_rnas::*;
+use functions::translate_fasta_file::*;
+use functions::translate_fastq_file::*;
+use functions::translate_sequence::*;
+use functions::translate_structures::*;
 
 
 // extern crate chrono;
@@ -75,9 +77,12 @@ fn exactolibrs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(identify_case_specific_dna_variants, m)?)?;
     m.add_function(wrap_pyfunction!(identify_dna_variants, m)?)?;
     m.add_function(wrap_pyfunction!(identify_rna_variants, m)?)?;
-    m.add_function(wrap_pyfunction!(translate_rna_fasta_file, m)?)?;
-    m.add_function(wrap_pyfunction!(translate_rna_fastq_file, m)?)?;
-    m.add_function(wrap_pyfunction!(translate_rna_sequence, m)?)?;
+    m.add_function(wrap_pyfunction!(integrate_dna_rna_variants, m)?)?;
+    m.add_function(wrap_pyfunction!(remove_unspliced_rnas, m)?)?;
+    m.add_function(wrap_pyfunction!(translate_fasta_file, m)?)?;
+    m.add_function(wrap_pyfunction!(translate_fastq_file, m)?)?;
+    m.add_function(wrap_pyfunction!(translate_sequence, m)?)?;
+    m.add_function(wrap_pyfunction!(translate_structures, m)?)?;
 
 //     m.add_function(wrap_pyfunction!(build_variation_graph, m)?)?;
 //     m.add_function(wrap_pyfunction!(integrate_dna_rna_variants, m)?)?;

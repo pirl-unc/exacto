@@ -1,12 +1,12 @@
 [package]
 name = "exacto-graph"
-version = "0.4.4"
+version = "0.4.5"
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-exacto-core = { path = "../exacto-core", version = "0.4.4" }
+exacto-core = { path = "../exacto-core", version = "0.4.5" }
 polars = { version = "0.45.0", features = ["csv","decompress","json","lazy","parquet","serde"] }
 serde = { version = "1.0.210", features = ["derive"] }
 

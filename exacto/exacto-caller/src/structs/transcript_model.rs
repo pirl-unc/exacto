@@ -29,8 +29,10 @@ pub struct TranscriptModel {
     /// Initial alignment structure.
     alignment_structure: AlignmentStructure,
 
+    /// Exons of the initial alignment structure.
     exons: Vec<TranscriptModelExon>,
 
+    /// Introns of the initial alignment structure.
     introns: Vec<TranscriptModelIntron>,
 
     /// A map between reference transcript IDs and contextualized AlignmentStructure object.
@@ -113,7 +115,7 @@ impl TranscriptModel {
         self.alignment_structure.get_read_id()
     }
 
-    pub fn get_reference_end_position(&self) -> (u16, u32) {
+    pub fn get_reference_end_position(&self) -> (u16, usize) {
         let last_exon_strand = self.exons.last().unwrap().reference_strand.clone();
         if last_exon_strand == Strand::Forward {
             (self.exons.last().unwrap().reference_chromosome_id, self.exons.first().unwrap().reference_end)
@@ -126,7 +128,7 @@ impl TranscriptModel {
         &self.reference_transcript_matches_map
     }
 
-    pub fn get_reference_start_position(&self) -> (u16, u32) {
+    pub fn get_reference_start_position(&self) -> (u16, usize) {
         let first_exon_strand = self.exons.first().unwrap().reference_strand.clone();
         if first_exon_strand == Strand::Forward {
             (self.exons.first().unwrap().reference_chromosome_id, self.exons.first().unwrap().reference_start)
@@ -144,7 +146,7 @@ impl TranscriptModel {
         reference_transcript_matches: &Vec<ReferenceTranscriptMatch>,
         gene_annotator: &(impl GeneAnnotator + Sync),
         reference_genome_fasta_file: &str,
-        min_mapping_quality: u32,
+        min_mapping_quality: usize,
         min_base_quality: u8
     ) -> &HashMap<Vec<Box<str>>, Vec<VariantRecord>> {
         self.variant_records_map.clear();
@@ -190,10 +192,10 @@ impl TranscriptModel {
                 &self.chromosome_names_map
             );
 
-            let variant_records: Vec<VariantRecord> = alignment_structure.identify_rna_variant_records(
+            let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(
                 min_mapping_quality,
                 min_base_quality,
-                gene_annotator
+                AnalyteType::RNA
             );
 
             self.contextualized_alignment_structures_map.insert(
@@ -234,10 +236,10 @@ impl TranscriptModel {
                     gene_annotator,
                     &self.chromosome_names_map
                 );
-                let variant_records: Vec<VariantRecord> = alignment_structure.identify_rna_variant_records(
+                let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(
                     min_mapping_quality,
-                    min_base_quality,
-                    gene_annotator,
+                    min_base_quality, 
+                    AnalyteType::RNA
                 );
                 self.contextualized_alignment_structures_map.insert(
                     reference_transcript_ids.clone(),

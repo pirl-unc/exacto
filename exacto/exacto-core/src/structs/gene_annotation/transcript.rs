@@ -24,15 +24,15 @@ pub struct Transcript {
     pub transcript_id: Box<str>,
     pub source: Box<str>,
     pub chromosome: Box<str>,
-    pub start: u32,
-    pub end: u32,
+    pub start: usize,
+    pub end: usize,
     pub strand: Strand,
     pub level: u8,
     pub transcript_name: Box<str>,
     pub transcript_type: Box<str>,
     pub transcript_support_level: Box<str>,
-    pub exons: HashMap<Box<str>,Exon>,      // key = exon ID
-    pub utrs: HashMap<Box<str>,UTR>,        // key = exon ID
+    pub exons: HashMap<Box<str>, Exon>,      // key = exon ID
+    pub utrs: HashMap<Box<str>, UTR>,        // key = exon ID
     pub start_codons: Vec<StartCodon>,
     pub stop_codons: Vec<StopCodon>,
     pub coding_sequences: Vec<CDS>
@@ -54,32 +54,14 @@ impl PartialEq for Transcript {
     }
 }
 
-impl Eq for Transcript {}
-
-impl Hash for Transcript {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.gene_id.hash(state);
-        self.transcript_id.hash(state);
-        self.source.hash(state);
-        self.chromosome.hash(state);
-        self.start.hash(state);
-        self.end.hash(state);
-        self.strand.hash(state);
-        self.level.hash(state);
-        self.transcript_name.hash(state);
-        self.transcript_type.hash(state);
-        self.transcript_support_level.hash(state);
-    }
-}
-
 impl Transcript {
     pub fn new(
         gene_id: &str,
         transcript_id: &str,
         source: &str,
         chromosome: &str,
-        start: u32,
-        end: u32,
+        start: usize,
+        end: usize,
         strand: Strand,
         level: u8,
         transcript_name: &str,
@@ -129,6 +111,15 @@ impl Transcript {
     pub fn get_exon(&self, exon_id: &str) -> Option<&Exon> {
         self.exons.get(exon_id)
     }
+    
+    pub fn get_exon_by_number(&self, exon_number: u32) -> Option<&Exon> {
+        for exon in self.exons.values() {
+            if exon.exon_number == exon_number {
+                return Some(exon);
+            }
+        }
+        None
+    }
 
     pub fn get_sorted_exons(&self) -> Vec<&Exon> {
         let mut exons: Vec<&Exon> = self.exons.values().collect();
@@ -138,14 +129,14 @@ impl Transcript {
 
     pub fn get_introns(&self) -> Vec<Intron> {
         let mut introns: Vec<Intron> = Vec::new();
-        let mut intron_number: u16 = 1;
+        let mut intron_number: u32 = 1;
         if self.strand == Strand::Forward {
-            let mut intron_start: u32 = 0;
+            let mut intron_start: usize = 0;
             for exon in self.get_sorted_exons() {
                 if exon.exon_number == 1 {
                     intron_start = exon.end + 1;
                 } else {
-                    let intron_end: u32 = exon.start - 1;
+                    let intron_end: usize = exon.start - 1;
                     let intron: Intron = Intron::new(
                         &*self.gene_id,
                         &*self.transcript_id,
@@ -162,12 +153,12 @@ impl Transcript {
                 }
             }
         } else {
-            let mut intron_end: u32 = 0;
+            let mut intron_end: usize = 0;
             for exon in self.get_sorted_exons() {
                 if exon.exon_number == 1 {
                     intron_end = exon.start - 1;
                 } else {
-                    let intron_start: u32 = exon.end + 1;
+                    let intron_start: usize = exon.end + 1;
                     let intron: Intron = Intron::new(
                         &*self.gene_id,
                         &*self.transcript_id,
@@ -192,7 +183,7 @@ impl Transcript {
         self.exons.keys().cloned().collect()
     }
 
-    pub fn get_size(&self) -> u32 {
+    pub fn get_size(&self) -> usize {
         self.end - self.start + 1
     }
 
@@ -233,7 +224,7 @@ impl Transcript {
     ///     - For `Intronic`, returns `Some((exon_5p, exon_3p))` indicating the flanking exons, 
     ///       ordered according to the transcript's strand (5' to 3').
     ///     - For `Intergenic`, returns `None`.
-    pub fn locate_position(&self, position: u32) -> (GenicRegion, Option<(Exon, Exon)>) {
+    pub fn locate_position(&self, position: usize) -> (GenicRegion, Option<(Exon, Exon)>) {
         let mut sorted_exons: Vec<&Exon> = self.exons.values().collect();
         sorted_exons.sort_by_key(|e| e.exon_number);
         for i in 0..sorted_exons.len() {
@@ -266,19 +257,19 @@ impl Transcript {
     pub fn vectorize_exons(
         &self,
         chromosome: Box<str>,
-        start: u32,
-        end: u32,
+        start: usize,
+        end: usize,
         aligned_value: i8,
         unaligned_value: i8
     ) -> Vec<i8> {
-        let v_size: usize = (end - start + 1) as usize;
+        let v_size: usize = end - start + 1;
         let mut v: Vec<i8> = vec![unaligned_value; v_size];
         for exon in self.exons.values() {
             if chromosome == exon.chromosome {
                 match find_overlap((exon.start as isize, exon.end as isize), (start as isize, end as isize)) {
                     Some((x,y)) => {
                         for pos in x..=y {
-                            let i = (pos as usize) - (start as usize);
+                            let i = (pos as usize) - start;
                             v[i] = aligned_value;
                         }
                     }

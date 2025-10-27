@@ -5,6 +5,7 @@ use polars::prelude::*;
 use std::fs;
 use std::fs::File;
 use std::path::Path;
+use tempfile::NamedTempFile;
 
 use crate::prelude::*;
 
@@ -46,6 +47,12 @@ fn test_variant_calling_rna_1() {
         1
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
+
+    let file: NamedTempFile = NamedTempFile::new().unwrap();
+    rna_variant_callset.to_tsv_file(file.path().to_str().unwrap(), 1);
+    let rna_variant_callset_2: RNAVariantCallSet = RNAVariantCallSet::read_tsv_file(file.path().to_str().unwrap());
+    assert_eq!(rna_variant_callset.to_dataframe(1), rna_variant_callset_2.to_dataframe(1));
+
     let variant_record: &VariantRecord = rna_variant_callset
         .get_variant_calls_for_transcript_model_id(1)
         .get(&vec!["ENST00000269305.9".into()])

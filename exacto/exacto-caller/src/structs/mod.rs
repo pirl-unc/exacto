@@ -3,6 +3,7 @@ pub mod alignment_structure_base;
 pub mod alignment_structure_event;
 pub mod alignment_record;
 pub mod alignment_structure;
+pub mod alignment_structure_record;
 pub mod mutant_peptide;
 pub mod mutant_peptides_set;
 pub mod reference_transcript_match;

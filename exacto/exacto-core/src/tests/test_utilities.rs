@@ -118,7 +118,7 @@ fn test_merge_regions_3() {
 fn test_count_common_bases_1() {
     let a = vec![("chr1".into(), 1, 100),("chr1".into(),201,300)];
     let b = vec![("chr1".into(), 1, 50),("chr1".into(),201,250)];
-    let unioned_bases: u32 = count_common_bases(&a,&b);
+    let unioned_bases: usize = count_common_bases(&a,&b);
     assert_eq!(unioned_bases, 100);
 }
 
@@ -126,7 +126,7 @@ fn test_count_common_bases_1() {
 fn test_count_common_bases_2() {
     let a = vec![("chr1".into(), 1, 100),("chr1".into(),201,300)];
     let b = vec![("chr1".into(), 201, 250),("chr1".into(),291,300)];
-    let num_common_bases: u32 = count_common_bases(&a,&b);
+    let num_common_bases: usize = count_common_bases(&a,&b);
     assert_eq!(num_common_bases, 60);
 }
 
@@ -134,7 +134,7 @@ fn test_count_common_bases_2() {
 fn test_count_union_bases_1() {
     let a = vec![("chr1".into(), 1, 100),("chr1".into(),201,300)];
     let b = vec![("chr1".into(), 250, 300),("chr1".into(),401,500)];
-    let num_unioned_bases: u32 = count_union_bases(&a,&b);
+    let num_unioned_bases: usize = count_union_bases(&a,&b);
     assert_eq!(num_unioned_bases, 300);
 }
 
@@ -142,7 +142,7 @@ fn test_count_union_bases_1() {
 fn test_count_union_bases_2() {
     let a = vec![("chr1".into(), 1, 100),("chr1".into(),201,300)];
     let b = vec![("chr2".into(), 1, 100),("chr1".into(),401,500)];
-    let num_unioned_bases: u32 = count_union_bases(&a,&b);
+    let num_unioned_bases: usize = count_union_bases(&a,&b);
     assert_eq!(num_unioned_bases, 400);
 }
 
@@ -158,6 +158,6 @@ fn test_count_non_overlapping_bases_1() {
     ];
 
     let (num_a_only_bases, num_b_only_bases) = count_non_overlapping_bases(&a, &b);
-    let num_non_overlapping_bases: u32 = num_a_only_bases + num_b_only_bases;
+    let num_non_overlapping_bases: usize = num_a_only_bases + num_b_only_bases;
     assert_eq!(num_non_overlapping_bases, 19);
 }

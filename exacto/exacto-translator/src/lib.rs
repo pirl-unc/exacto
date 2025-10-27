@@ -1,3 +1,5 @@
+extern crate exacto_annotator;
+extern crate exacto_caller;
 extern crate exacto_core;
 extern crate flate2;
 extern crate noodles_fastq;
