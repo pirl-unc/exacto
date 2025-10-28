@@ -37,6 +37,7 @@ pub fn translate_structures(
     integrated_variants_tsv_file: String,
     strategy: String,
     output_tsv_file: String,
+    output_fasta_file: String,
     num_threads: usize,
     output_type: String
 ) -> PyResult<PyDataFrame> {
@@ -60,6 +61,7 @@ pub fn translate_structures(
         },
         "file" => {
             primary_structure_set.to_tsv_file(output_tsv_file.as_str());
+            primary_structure_set.to_fasta_file(output_fasta_file.as_str());
             Ok((PyDataFrame(DataFrame::new(vec![]).unwrap())))
         },
         other => {

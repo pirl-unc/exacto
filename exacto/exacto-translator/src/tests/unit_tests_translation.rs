@@ -1,3 +1,4 @@
+use exacto_caller::prelude::*;
 use exacto_core::prelude::*;
 use flate2::read::GzDecoder;
 use noodles_fastq as fastq;
@@ -5,8 +6,8 @@ use std::fs;
 use std::fs::File;
 use std::io::{BufReader,Read};
 use std::path::Path;
-use polars::frame::DataFrame;
-use exacto_caller::prelude::RNAVariantCallSet;
+use tempfile::NamedTempFile;
+
 use crate::prelude::*;
 
 
@@ -91,5 +92,11 @@ fn test_translation_2() {
         1
     );
 
-    println!("{:#?}", primary_structure_set.to_dataframe());
+    assert!(primary_structure_set.primary_structures.len() == 6);
+
+    let output_fasta_file: NamedTempFile = NamedTempFile::new().unwrap();
+    let output_tsv_file: NamedTempFile = NamedTempFile::new().unwrap();
+
+    primary_structure_set.to_fasta_file(output_fasta_file.path().to_str().unwrap());
+    primary_structure_set.to_tsv_file(output_tsv_file.path().to_str().unwrap());
 }

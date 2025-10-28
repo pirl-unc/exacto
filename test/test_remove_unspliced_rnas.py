@@ -1,7 +1,5 @@
 import tempfile
-
 import pysam
-
 from .data import get_data_path
 from exactolib.constants import GeneAnnotationSource
 from exactolib.main import remove_unspliced_rnas
@@ -32,4 +30,5 @@ def test_remove_unspliced_rnas_1():
     )
 
     fasta = pysam.FastaFile(output_fasta_file)
+
     assert fasta.nreferences == 2

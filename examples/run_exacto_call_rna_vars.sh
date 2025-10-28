@@ -6,7 +6,7 @@ exacto call-rna-vars \
   --reference-gene-annotation-source gencode \
   --reference-gene-annotation-assembly hg38 \
   --reference-gene-annotation-version v41 \
-  --output-dir outputs/ \
+  --output-dir outputs/rna-100-tumor-minimap2_mdtagged_sorted_bam_exacto_call_rna_vars_outputs/ \
   --output-prefix rna-100-tumor_minimap2_mdtagged_sorted \
   --reference-transcript-scoring-method cosine_similarity \
   --reference-transcript-selection-strategy top_k \

@@ -79,6 +79,13 @@ def add_cli_translate_structs_arg_parser(sub_parsers) -> argparse._SubParsersAct
         required=True,
         help="Output TSV file."
     )
+    parser_required.add_argument(
+        "--output-fasta-file",
+        dest="output_fasta_file",
+        type=str,
+        required=True,
+        help="Output FASTA file."
+    )
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
@@ -114,5 +121,6 @@ def run_cli_translate_structs_from_parsed_args(args) -> None:
         integrated_variants_tsv_file=args.integrated_variants_tsv_file,
         strategy=TranslationStrategy(args.strategy),
         output_tsv_file=args.output_tsv_file,
+        output_fasta_file=args.output_fasta_file,
         num_threads=args.num_threads
     )

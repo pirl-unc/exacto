@@ -1,0 +1,2 @@
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence	consensus_read_names	consensus_read_names_count	read_names	read_names_count
+1	chr17	7674225	-	D	chr17	7674226	-	U	30	INS	ACGTACGTGGTATGCATGCTGAGACTGAGG	m64012_413665_732367/1/ccs,m64012_382982_262550/2/ccs,m64012_202369_785869/3/ccs	3	m64012_413665_732367/1/ccs,m64012_382982_262550/2/ccs,m64012_202369_785869/3/ccs	3

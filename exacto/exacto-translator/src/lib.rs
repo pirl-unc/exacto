@@ -5,6 +5,7 @@ extern crate flate2;
 extern crate noodles_fastq;
 extern crate rayon;
 extern crate serde;
+extern crate tempfile;
 
 #[cfg(test)]
 mod tests;

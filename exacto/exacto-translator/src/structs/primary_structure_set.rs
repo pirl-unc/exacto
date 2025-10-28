@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use polars::prelude::*;
 use serde::{Deserialize,Serialize};
-
+use exacto_core::prelude::write_fasta_file;
 use crate::prelude::*;
 
 
@@ -84,6 +84,24 @@ impl PrimaryStructureSet {
             .with_separator(b'\t')
             .finish(&mut df)
             .unwrap();
+    }
+
+    pub fn to_fasta_file(&self, output_file: &str) {
+        let mut peptide_id: u64 = 1;
+        let mut sequences: Vec<(Box<str>, Box<str>)> = Vec::new();
+        for primary_structure in self.primary_structures.iter() {
+            let mut sequence: String = String::new();
+            for record in primary_structure.records.iter() {
+                if *record.get_record_type() == PrimaryStructureRecordType::Base {
+                    if record.get_codon_index().unwrap() == 0 {
+                        sequence.push_str(record.get_amino_acid().as_ref().unwrap());
+                    }
+                }
+            }
+            sequences.push((peptide_id.to_string().into(), sequence.into()));
+            peptide_id += 1;
+        }
+        write_fasta_file(&sequences, output_file);
     }
 }
 

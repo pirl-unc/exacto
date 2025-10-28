@@ -21,3 +21,204 @@ def test_annotate_variants_1():
     assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
     assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
 
+
+def test_annotate_variants_2():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-002-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
+
+
+def test_annotate_variants_3():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-003-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
+
+
+def test_annotate_variants_4():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-004-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'intronic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'intronic'
+
+
+def test_annotate_variants_5():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-005-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
+
+
+def test_annotate_variants_6():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-006-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'intronic'
+
+
+def test_annotate_variants_7():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-007-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'intronic'
+
+
+def test_annotate_variants_8():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-008-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
+
+
+def test_annotate_variants_9():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-009-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_1_genic_region'].values[1] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[1] == 'exonic'
+    assert df_annotated['position_1_genic_region'].values[2] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[2] == 'exonic'
+
+
+def test_annotate_variants_10():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-010-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_1_genic_region'].values[1] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[1] == 'exonic'
+    assert df_annotated['position_1_genic_region'].values[2] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[2] == 'exonic'
+    assert df_annotated['position_1_genic_region'].values[3] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[3] == 'exonic'
+
+
+def test_annotate_variants_11():
+    df_annotated = annotate_variant_calls(
+        tsv_file=get_data_path(name='tsv/variant_callset/dna-011-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='gtf/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        gene_types=['protein_coding'],
+        gene_levels=[1,2],
+        transcript_types=['protein_coding'],
+        transcript_levels=[1,2],
+        output_tsv_file='',
+        output_type=OutputType.DATAFRAME
+    )
+
+    assert df_annotated['position_1_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[0] == 'exonic'
+    assert df_annotated['position_1_genic_region'].values[1] == 'exonic'
+    assert df_annotated['position_2_genic_region'].values[1] == 'exonic'

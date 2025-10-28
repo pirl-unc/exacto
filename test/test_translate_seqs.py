@@ -1,10 +1,9 @@
-from exactolib.constants import TranslationStrategy
-
 from .data import get_data_path
+from exactolib.constants import TranslationStrategy
 from exactolib.main import translate_fastq_file
 
 
-def test_translate_1():
+def test_translate_seqs_1():
     df_peptides = translate_fastq_file(
         fastq_file=get_data_path(name='fastq/rna-100-tumor_long-read.fastq.gz'),
         temp_dir='',

@@ -165,7 +165,7 @@ pub fn annotate_variant_calls(
                 );
 
                 let variant_type: VariantType = VariantType::from_str(col_variant_type.get(i).unwrap()).unwrap();
-                let variant_sequence: &str = col_variant_sequence.get(i).unwrap();
+                let variant_sequence: &str = col_variant_sequence.get(i).unwrap_or("");
 
                 pb.inc(1);
 

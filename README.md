@@ -29,28 +29,14 @@ https://hub.docker.com/r/ajslee/exacto
 conda create -n exacto python=3.10
 conda activate exacto
 pip install pysam==0.23.0
-conda install -c conda-forge rust==1.86.0
+conda install -c conda-forge rust==1.88.0
 conda install -c anaconda pandas==2.2.3
 conda install -c conda-forge polars==1.26.0
 conda install -c conda-forge pyarrow==19.0.1
 pip install exacto-<version>.tar.gz --verbose
 ```
 
-## 04. Usage
-
-| Command                 | Description                                     |
-|-------------------------|-------------------------------------------------|
-| `annotate-vars`         | Annotate variants                               | 
-| `call-dna-vars`         | Perform somatic or germline DNA variant calling |
-| `call-rna-vars`         | Perform RNA variant calling                     |
-| `integrate-vars`        | Integrate DNA and RNA variants                  |
-| `remove-unspliced-rnas` | Removed unspliced RNAs                          |
-| `translate-seqs`        | Translate transcript sequences                  |
-| `translate-structs`     | Translate transcript structures                 |
-
-Example scripts for running Exacto can be found [here](https://github.com/pirl-unc/exacto/tree/main/examples).
-
-## 05. Mutant Peptide Prediction Pipeline
+## 04. Mutant Proteoform Prediction Pipeline
 
 Align tumor and normal DNA reads to a reference genome:
 
@@ -99,7 +85,7 @@ Align the assembled tumor transcriptome to a reference genome using [Minimap2](h
 ```
 minimap2 \
     -ax splice:hq -uf --cs --eqx -Y -L --secondary=no \
-    reference_genome.fasta tumor_rna.fastq.gz \
+    reference_genome.fasta tumor_rna.fasta \
 | samtools view -b - \
 | samtools sort -o tumor_transcriptome_assembly.sorted.bam
 ```
@@ -156,10 +142,46 @@ exacto translate-structs \
     --rna-variant-calls-tsv-file rna_variants_outputs/tumor_exacto_rna_variant_calls.tsv \
     --integrated-variants-tsv-file tumor_dna_rna_variants_integrated.tsv \
     --strategy longest_orf \
-    --output-tsv-file tumor_primary_structures.tsv
+    --output-tsv-file tumor_primary_structures.tsv \
+    --output-fasta-file tumor_primary_structures.fasta
 ```
 
-### Case-specific DNA Variant Calling
+## 05. Available Commands
+
+| Command                                         | Description                                     |
+|-------------------------------------------------|-------------------------------------------------|
+| [annotate-vars](#annotate-vars)                 | Annotate variants                               | 
+| [call-dna-vars](#call-dna-vars)                 | Perform somatic or germline DNA variant calling |
+| [call-rna-vars](#call-rna-vars)                 | Perform RNA variant calling                     |
+| [integrate-vars](#integrate-vars)               | Integrate DNA and RNA variants                  |
+| [remove-unspliced-rnas](#remove-unspliced-rnas) | Removed unspliced RNAs                          |
+| [translate-seqs](#translate-seqs)               | Translate transcript sequences                  |
+| [translate-structs](#translate-structs)         | Translate transcript structures                 |
+
+Example scripts for running Exacto can be found [here](https://github.com/pirl-unc/exacto/tree/main/examples).
+
+### annotate-vars
+
+Annotate DNA or RNA variants.
+
+```
+exacto annotate-vars \
+    --tsv-file TSV_FILE \
+    --reference-gene-annotation-file REFERENCE_GENE_ANNOTATION_FILE \
+    --reference-gene-annotation-source REFERENCE_GENE_ANNOTATION_SOURCE \
+    --reference-gene-annotation-assembly REFERENCE_GENE_ANNOTATION_ASSEMBLY \
+    --reference-gene-annotation-version REFERENCE_GENE_ANNOTATION_VERSION \
+    --output-tsv-file OUTPUT_TSV_FILE \
+    [--num-threads NUM_THREADS] \
+    [--gene-types GENE_TYPES [GENE_TYPES ...]] \
+    [--gene-levels GENE_LEVELS [GENE_LEVELS ...]] \
+    [--transcript-types TRANSCRIPT_TYPES [TRANSCRIPT_TYPES ...]] \
+    [--transcript-levels TRANSCRIPT_LEVELS [TRANSCRIPT_LEVELS ...]]
+```
+
+### call-dna-vars
+
+#### Case-specific DNA Variant Calling
 
 Identify case-specific (e.g. somatic) DNA variants in a case (e.g. tumor) long-read DNA BAM file against a set of control (e.g. matched normal) long-read DNA BAM files:
 
@@ -186,7 +208,7 @@ exacto call-dna-vars [-h]
     [--temp-dir TEMP_DIR]
 ```
 
-### DNA Variant Calling
+#### DNA Variant Calling
 
 Identify all (e.g. germline) DNA variants in a long-read DNA BAM file:
 
@@ -211,7 +233,7 @@ exacto call-dna-vars [-h]
     [--temp-dir TEMP_DIR]
 ```
 
-### RNA Variant Calling
+### call-rna-vars
 
 Identify RNA variants in a long-read assembled transcripts BAM file:
 
@@ -240,7 +262,7 @@ exacto call-rna-vars [-h]
     [--transcript-levels TRANSCRIPT_LEVELS [TRANSCRIPT_LEVELS ...]]
 ```
 
-### DNA and RNA Variant Integration
+### integrate-vars
 
 Integrate DNA and RNA variants based on genomic coordinates.
 
@@ -259,7 +281,7 @@ exacto integrate-vars [-h]
     [--max-intergenic-distance MAX_INTERGENIC_DISTANCE]
 ```
 
-### Unspliced Transcript Removal
+### remove-unspliced-rnas
 
 Remove unspliced (nascent) RNAs in a transcriptome assembly. 
 Note that assembled transcripts whose alignments overlap with any single-exon reference transcript will be retained.
@@ -284,7 +306,7 @@ exacto remove-unspliced-rnas [-h]
     [--transcript-levels TRANSCRIPT_LEVELS [TRANSCRIPT_LEVELS ...]]
 ```
 
-### Transcript Sequence Translation
+### translate-seqs
 
 Translate transcript sequences to peptide sequences.
 
@@ -299,7 +321,7 @@ exacto translate-seqs [-h]
     [--gzip GZIP]
 ```
 
-### Transcript Structure Translation
+### translate-structs
 
 Translate transcript structures to primary structures.
 
@@ -310,6 +332,7 @@ exacto translate-structs [-h]
     --integrated-variants-tsv-file INTEGRATED_VARIANTS_TSV_FILE 
     --strategy {longest_orf,all_orfs} 
     --output-tsv-file OUTPUT_TSV_FILE
+    --output-fasta-file OUTPUT_FASTA_FILE
     [--num-threads NUM_THREADS]
 ```
 

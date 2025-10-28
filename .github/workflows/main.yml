@@ -42,13 +42,19 @@ jobs:
         # Install exacto
         pip install . --verbose
 
+    - name: Run rust unit tests
+      shell: bash -l {0}
+      run: |
+        cd exacto/
+        cargo test -- --nocapture
+
     - name: Run linter
       shell: bash -l {0}
       run: |
         chmod +x lint.sh
         bash lint.sh
 
-    - name: Run unit tests
+    - name: Run python unit tests
       shell: bash -l {0}
       run: |
         chmod +x unittest.sh

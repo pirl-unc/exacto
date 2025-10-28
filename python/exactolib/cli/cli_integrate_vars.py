@@ -152,7 +152,7 @@ def run_cli_integrate_vars_from_parsed_args(args) -> None:
                     max_intergenic_distance
                     temp_dir
     """
-    integrate_dna_rna_variants(
+    integrate_variants(
         dna_variant_call_annotation_set_tsv_file=args.annotated_dna_vars_tsv_file,
         rna_variant_call_set_tsv_file=args.rna_vars_tsv_file,
         reference_gene_annotation_file=args.reference_gene_annotation_file,

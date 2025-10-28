@@ -305,7 +305,7 @@ def identify_rna_variants(
             df_variant_calls.to_pandas())
 
 
-def integrate_dna_rna_variants(
+def integrate_variants(
         dna_variant_call_annotation_set_tsv_file: str,
         rna_variant_call_set_tsv_file: str,
         reference_gene_annotation_file: str,
@@ -510,6 +510,7 @@ def translate_structures(
         integrated_variants_tsv_file: str,
         strategy: TRANSLATE_STRATEGY,
         output_tsv_file: str,
+        output_fasta_file: str,
         num_threads: int = TRANSLATE_NUM_THREADS,
         output_type: OutputType = OutputType.FILE
 ) -> pd.DataFrame:
@@ -522,6 +523,7 @@ def translate_structures(
         integrated_variants_tsv_file      :   Integrated variants TSV file.
         strategy                          :   Translation strategy.
         output_tsv_file                   :   Output TSV file.
+        output_fasta_file                 :   Output FASTA file.
         num_threads                       :   Number of threads.
         output_type                       :   Output type.
 
@@ -534,6 +536,7 @@ def translate_structures(
         integrated_variants_tsv_file=integrated_variants_tsv_file,
         strategy=str(strategy),
         output_tsv_file=output_tsv_file,
+        output_fasta_file=output_fasta_file,
         num_threads=num_threads,
         output_type=str(output_type)
     )
