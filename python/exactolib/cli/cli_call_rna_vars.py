@@ -119,6 +119,14 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
              % CALL_RNA_VARS_NUM_THREADS
     )
     parser_optional.add_argument(
+        "--chunk-size",
+        dest="chunk_size",
+        type=int,
+        default=CALL_RNA_VARS_CHUNK_SIZE,
+        required=False,
+        help="Chunk size for variant calling (default: %i)." % CALL_RNA_VARS_CHUNK_SIZE
+    )
+    parser_optional.add_argument(
         "--min-mapping-quality",
         dest="min_mapping_quality",
         type=int,
@@ -180,46 +188,6 @@ def add_cli_call_rna_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         required=False,
         help="Temp directory (default: TMPDIR)."
     )
-    parser_required.add_argument(
-        "--gene-types",
-        dest="gene_types",
-        type=str,
-        nargs="+",
-        default=['protein_coding'],
-        action="extend",
-        required=False,
-        help="Reference gene types to include in annotation (default: ['protein_coding'])."
-    )
-    parser_required.add_argument(
-        "--gene-levels",
-        dest="gene_levels",
-        type=int,
-        nargs="+",
-        default=[1,2],
-        action="extend",
-        required=False,
-        help="Reference gene levels to include in annotation (default: [1,2])."
-    )
-    parser_required.add_argument(
-        "--transcript-types",
-        dest="transcript_types",
-        type=str,
-        nargs="+",
-        default=['protein_coding'],
-        action="extend",
-        required=False,
-        help="Reference transcript types to include in annotation (default: ['protein_coding'])."
-    )
-    parser_required.add_argument(
-        "--transcript-levels",
-        dest="transcript_levels",
-        type=int,
-        nargs="+",
-        default=[1,2],
-        action="extend",
-        required=False,
-        help="Reference transcript levels to include in annotation (default: [1,2])."
-    )
     parser.set_defaults(which='call-rna-vars')
     return sub_parsers
 
@@ -251,10 +219,6 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
         reference_gene_annotation_source=GeneAnnotationSource(args.reference_gene_annotation_source),
         reference_gene_annotation_assembly=args.reference_gene_annotation_assembly,
         reference_gene_annotation_version=args.reference_gene_annotation_version,
-        gene_types=args.gene_types,
-        gene_levels=args.gene_levels,
-        transcript_types=args.transcript_types,
-        transcript_levels=args.transcript_levels,
         output_dir=args.output_dir,
         output_prefix=args.output_prefix,
         reference_transcript_scoring_method=ReferenceTranscriptScoringMethod(args.reference_transcript_scoring_method),
@@ -264,5 +228,6 @@ def run_cli_call_rna_vars_from_parsed_args(args) -> None:
         min_mapping_quality=args.min_mapping_quality,
         min_average_base_quality=args.min_average_base_quality,
         num_threads=args.num_threads,
+        chunk_size=args.chunk_size,
         temp_dir=args.temp_dir
     )

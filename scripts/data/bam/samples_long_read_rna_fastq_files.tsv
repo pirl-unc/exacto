@@ -1,2 +1,2 @@
 sample_id	fastq_file
-rna-112-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-112-normal_long-read.fastq.gz
+rna-112	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/rna-112-tumor_long-read.fastq.gz

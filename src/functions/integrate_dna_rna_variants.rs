@@ -37,9 +37,9 @@ pub fn integrate_dna_rna_variants(
     reference_gene_annotation_assembly: String,
     reference_gene_annotation_version: String,
     output_tsv_file: String,
-    max_exon_offset: u32,
-    max_transcript_boundary_offset: usize,
-    max_intergenic_distance: usize,
+    max_exon_offset: u16,
+    max_transcript_boundary_offset: u32,
+    max_intergenic_distance: u32,
     num_threads: usize,
     output_type: String
 ) -> PyResult<PyDataFrame> {

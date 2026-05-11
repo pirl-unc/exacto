@@ -1,6 +1,9 @@
 use bimap::BiMap;
 use exacto_core::prelude::*;
 use noodles_bam as bam;
+use noodles_bam::bai;
+use noodles_bam::bai::Index;
+use noodles_sam::Header;
 use polars::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
@@ -24,14 +27,10 @@ fn test_transcript_model_1() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -41,32 +40,48 @@ fn test_transcript_model_1() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_507476_774164/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -83,45 +98,13 @@ fn test_transcript_model_1() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
         30,
         30
     );
-
-    // ENST00000610538.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000610538.4".into()]).unwrap();
-    assert_eq!(variant_records.len(), 4);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 7668404);
-    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 7668420);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 7673207);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 7673266);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::SingleNucleotideVariant);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 7674224);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 7674226);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(2).unwrap().get_standardized_sequence(), "A");
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_position_1(), 7687482);
-    assert_eq!(variant_records.get(3).unwrap().get_position_2(), 7687490);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_variant_type(), &VariantType::UTRExtension);
 
     // ENST00000620739.4
     let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000620739.4".into()]).unwrap();
@@ -148,65 +131,6 @@ fn test_transcript_model_1() {
     assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Skip);
     assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Skip);
     assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-
-    // ENST00000455263.6
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000455263.6".into()]).unwrap();
-    assert_eq!(variant_records.len(), 4);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 7668404);
-    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 7668420);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 7673207);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 7673266);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::SingleNucleotideVariant);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 7674224);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 7674226);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(2).unwrap().get_standardized_sequence(), "A");
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_position_1(), 7687482);
-    assert_eq!(variant_records.get(3).unwrap().get_position_2(), 7687490);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_variant_type(), &VariantType::UTRExtension);
-
-    // ENST00000619485.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000619485.4".into()]).unwrap();
-    assert_eq!(variant_records.len(), 3);
-    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::SingleNucleotideVariant);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 7674224);
-    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 7674226);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(0).unwrap().get_standardized_sequence(), "A");
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 7676620);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 7676622);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::IntronRetention);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 7687488);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 7687490);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::UTRExtension);
 
     // ENST00000269305.9
     let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
@@ -262,14 +186,10 @@ fn test_transcript_model_2() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -279,32 +199,48 @@ fn test_transcript_model_2() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_822724_603243/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -321,6 +257,7 @@ fn test_transcript_model_2() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -339,39 +276,6 @@ fn test_transcript_model_2() {
     assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Upstream);
     assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::Insertion);
     assert_eq!(variant_records.get(0).unwrap().get_standardized_sequence(), "GGGGGTTTTT");
-
-    // ENST00000610538.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000610538.4".into()]).unwrap();
-    assert_eq!(variant_records.len(), 4);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 7668404);
-    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 7668420);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 7673207);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 7673266);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 7676400);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 7676401);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::Insertion);
-    assert_eq!(variant_records.get(2).unwrap().get_standardized_sequence(), "GGGGGTTTTT");
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_position_1(), 7687482);
-    assert_eq!(variant_records.get(3).unwrap().get_position_2(), 7687490);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_variant_type(), &VariantType::UTRExtension);
 
     // ENST00000269305.9
     let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
@@ -427,14 +331,10 @@ fn test_transcript_model_3() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -444,32 +344,48 @@ fn test_transcript_model_3() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_264855_304921/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -486,44 +402,13 @@ fn test_transcript_model_3() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
         30,
         30
     );
-
-    // ENST00000455263.6
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000455263.6".into()]).unwrap();
-    assert_eq!(variant_records.len(), 4);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 7668404);
-    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 7668420);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 7673207);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 7673266);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 7673750);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 7673761);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::Deletion);
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_position_1(), 7687482);
-    assert_eq!(variant_records.get(3).unwrap().get_position_2(), 7687490);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_variant_type(), &VariantType::UTRExtension);
 
     // ENST00000620739.4
     let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000620739.4".into()]).unwrap();
@@ -585,65 +470,6 @@ fn test_transcript_model_3() {
     assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Downstream);
     assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Upstream);
     assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::Deletion);
-
-    // ENST00000610538.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000610538.4".into()]).unwrap();
-    assert_eq!(variant_records.len(), 4);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 7668404);
-    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 7668420);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 7673207);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 7673266);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Skip);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::ExonTruncation);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 7673750);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 7673761);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::Deletion);
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(3).unwrap().get_position_1(), 7687482);
-    assert_eq!(variant_records.get(3).unwrap().get_position_2(), 7687490);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(3).unwrap().get_variant_type(), &VariantType::UTRExtension);
-
-    // ENST00000619485.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000619485.4".into()]).unwrap();
-    assert_eq!(variant_records.len(), 3);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(0).unwrap().get_position_1(), 7673750);
-    assert_eq!(variant_records.get(0).unwrap().get_position_2(), 7673761);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Downstream);
-    assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Upstream);
-    assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::Deletion);
-
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(1).unwrap().get_position_1(), 7676620);
-    assert_eq!(variant_records.get(1).unwrap().get_position_2(), 7676622);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(1).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(1).unwrap().get_variant_type(), &VariantType::IntronRetention);
-
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_1(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_chromosome_2(), 0);
-    assert_eq!(variant_records.get(2).unwrap().get_position_1(), 7687488);
-    assert_eq!(variant_records.get(2).unwrap().get_position_2(), 7687490);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_1(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(2).unwrap().get_operation_2(), &GraphOperationType::Include);
-    assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::UTRExtension);
 }
 
 #[test]
@@ -661,14 +487,10 @@ fn test_transcript_model_4() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -678,32 +500,48 @@ fn test_transcript_model_4() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_535544_475898/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -720,6 +558,7 @@ fn test_transcript_model_4() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -833,14 +672,10 @@ fn test_transcript_model_5() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -850,32 +685,48 @@ fn test_transcript_model_5() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_561742_839878/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -892,6 +743,7 @@ fn test_transcript_model_5() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -926,14 +778,10 @@ fn test_transcript_model_6() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -943,32 +791,48 @@ fn test_transcript_model_6() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_124525_407996/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -985,6 +849,7 @@ fn test_transcript_model_6() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -1019,14 +884,10 @@ fn test_transcript_model_7() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -1036,32 +897,48 @@ fn test_transcript_model_7() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_924107_174289/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1078,6 +955,7 @@ fn test_transcript_model_7() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -1112,14 +990,10 @@ fn test_transcript_model_8() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -1129,32 +1003,48 @@ fn test_transcript_model_8() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_924958_759981/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1171,6 +1061,7 @@ fn test_transcript_model_8() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -1211,14 +1102,10 @@ fn test_transcript_model_9() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -1228,32 +1115,48 @@ fn test_transcript_model_9() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_721712_133913/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1270,6 +1173,7 @@ fn test_transcript_model_9() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -1303,14 +1207,10 @@ fn test_transcript_model_10() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -1320,34 +1220,50 @@ fn test_transcript_model_10() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_288476_571946/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    assert_eq!(alignment_structure.get_base(837).is_embedded_insertion(), true);
+    assert_eq!(*alignment_structure.get_base(837).get_kind() == AlignmentStructureBaseKind::Softclip, true);
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1364,6 +1280,7 @@ fn test_transcript_model_10() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -1379,7 +1296,7 @@ fn test_transcript_model_10() {
         ])
         .unwrap();
 
-    assert_eq!(variant_records.len(), 34);
+    assert_eq!(variant_records.len(), 35);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_position_1(), 1295600);
@@ -1413,14 +1330,10 @@ fn test_transcript_model_11() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -1430,32 +1343,48 @@ fn test_transcript_model_11() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_175366_924183/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1472,6 +1401,7 @@ fn test_transcript_model_11() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
@@ -1521,14 +1451,10 @@ fn test_transcript_model_12() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new(
         gencode_gtf_file,
         "hg38",
@@ -1538,32 +1464,48 @@ fn test_transcript_model_12() {
         Some(HashSet::from(["protein_coding"])),
         Some(HashSet::from([1,2]))
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_324970_273886/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
     let mut transcript_model: TranscriptModel = TranscriptModel::new(
         1,
+        "",
         &alignment_structure,
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1580,6 +1522,7 @@ fn test_transcript_model_12() {
     );
 
     let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
+        "",
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,

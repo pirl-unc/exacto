@@ -1,2 +1,2 @@
-variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence	consensus_read_names	consensus_read_names_count	read_names	read_names_count
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence	consensus_read_names	consensus_read_names_count	read_names	read_names_count
 1	chr17	4637155	+	D	chr17	7674880	+	U	3037724	BND	ATATACGAGCGTACGTGACTGGTACGTTA	m64012_114794_165957/3/ccs,m64012_283345_480209/1/ccs,m64012_785796_448978/2/ccs	3	m64012_114794_165957/3/ccs,m64012_283345_480209/1/ccs,m64012_785796_448978/2/ccs	3

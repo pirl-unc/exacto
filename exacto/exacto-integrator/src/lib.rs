@@ -11,4 +11,4 @@ mod tests;
 pub mod algorithms;
 pub mod structs;
 pub mod prelude;
-mod common;
+pub mod common;

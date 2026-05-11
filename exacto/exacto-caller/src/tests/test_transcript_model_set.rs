@@ -43,7 +43,9 @@ fn test_transcript_model_set_1() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -54,7 +56,7 @@ fn test_transcript_model_set_1() {
         .str()
         .unwrap()
         .equal("ENST00000269305.9");
-    let df_transcript_structures_filtered: DataFrame = df_transcript_structures.filter(&mask).unwrap();
+    let mut df_transcript_structures_filtered: DataFrame = df_transcript_structures.filter(&mask).unwrap();
 
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-100-tumor_transcript_structure_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
@@ -67,7 +69,7 @@ fn test_transcript_model_set_1() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -151,7 +153,9 @@ fn test_transcript_model_set_2() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -175,7 +179,7 @@ fn test_transcript_model_set_2() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -259,7 +263,9 @@ fn test_transcript_model_set_3() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -283,7 +289,7 @@ fn test_transcript_model_set_3() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -367,7 +373,9 @@ fn test_transcript_model_set_4() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -391,7 +399,7 @@ fn test_transcript_model_set_4() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -475,7 +483,9 @@ fn test_transcript_model_set_5() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -499,7 +509,7 @@ fn test_transcript_model_set_5() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -583,7 +593,9 @@ fn test_transcript_model_set_6() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -607,7 +619,7 @@ fn test_transcript_model_set_6() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -691,7 +703,9 @@ fn test_transcript_model_set_7() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -715,7 +729,7 @@ fn test_transcript_model_set_7() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -799,7 +813,9 @@ fn test_transcript_model_set_8() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -823,7 +839,7 @@ fn test_transcript_model_set_8() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -907,7 +923,9 @@ fn test_transcript_model_set_9() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -931,7 +949,7 @@ fn test_transcript_model_set_9() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -1015,7 +1033,9 @@ fn test_transcript_model_set_10() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -1026,7 +1046,7 @@ fn test_transcript_model_set_10() {
         .str()
         .unwrap()
         .equal("ENST00000263087.9,ENST00000570791.5,ENST00000333813.4");
-    let df_transcript_structures_filtered = df_transcript_structures.filter(&mask).unwrap();
+    let mut df_transcript_structures_filtered = df_transcript_structures.filter(&mask).unwrap();
 
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-109-tumor_transcript_structure_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
@@ -1039,7 +1059,7 @@ fn test_transcript_model_set_10() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -1123,7 +1143,9 @@ fn test_transcript_model_set_11() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -1147,7 +1169,7 @@ fn test_transcript_model_set_11() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();
@@ -1231,7 +1253,9 @@ fn test_transcript_model_set_12() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
 
     // Compare against the ground truth
@@ -1255,7 +1279,7 @@ fn test_transcript_model_set_12() {
         let index: u32 = record[2].parse::<u32>().expect("Failed to convert &str to usize");
         let start: u32 = record[3].parse::<u32>().expect("Failed to convert &str to usize");
         let end: u32 = record[4].parse::<u32>().expect("Failed to convert &str to usize");
-        let sequence: String = record[5].to_string();
+        let sequence: String = record[5].to_string().to_uppercase();
         let record_type: String = record[6].to_string();
         let kind: String = record[7].to_string();
         let context: String = record[8].to_string();

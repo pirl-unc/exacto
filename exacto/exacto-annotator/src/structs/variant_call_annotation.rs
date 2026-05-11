@@ -13,7 +13,6 @@
 
 use exacto_caller::prelude::*;
 use serde::{Serialize, Deserialize};
-use std::hash::Hash;
 
 use crate::prelude::*;
 
@@ -22,9 +21,9 @@ use crate::prelude::*;
 pub struct VariantCallAnnotation {
     pub variant_call_id: usize,
     pub chromosome_1: Box<str>,
-    pub position_1: usize,
+    pub position_1: u32,
     pub chromosome_2: Box<str>,
-    pub position_2: usize,
+    pub position_2: u32,
     pub variant_type: VariantType,
     pub variant_sequence: Box<str>,
     pub position_1_annotation: PositionAnnotation,
@@ -53,9 +52,9 @@ impl VariantCallAnnotation {
     pub fn new(
         variant_call_id: usize,
         chromosome_1: &str,
-        position_1: usize,
+        position_1: u32,
         chromosome_2: &str,
-        position_2: usize,
+        position_2: u32,
         variant_type: VariantType,
         variant_sequence: &str,
         position_1_annotation: PositionAnnotation,

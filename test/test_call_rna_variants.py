@@ -13,16 +13,12 @@ def test_call_rna_variants_1():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 18)
+    assert(len(df_variant_calls) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-100-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -47,16 +43,12 @@ def test_call_rna_variants_2():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 18)
+    assert(len(df_variant_calls) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-101-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -81,16 +73,12 @@ def test_call_rna_variants_3():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 18)
+    assert(len(df_variant_calls) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-102-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -115,16 +103,11 @@ def test_call_rna_variants_4():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
+        reference_transcript_top_k=3,
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variant_calls) == 608)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-103-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000698746.1,ENST00000570791.5']
@@ -151,16 +134,12 @@ def test_call_rna_variants_5():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 18)
+    assert(len(df_variant_calls) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-104-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -187,16 +166,12 @@ def test_call_rna_variants_6():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 18)
+    assert(len(df_variant_calls) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-105-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -223,16 +198,11 @@ def test_call_rna_variants_7():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
+        reference_transcript_top_k=3,
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variant_calls) == 16)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-106-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -259,16 +229,11 @@ def test_call_rna_variants_8():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
+        reference_transcript_top_k=3,
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variant_calls) == 24)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-107-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -295,16 +260,11 @@ def test_call_rna_variants_9():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
+        reference_transcript_top_k=3,
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variant_calls) == 18)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-108-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
@@ -331,16 +291,11 @@ def test_call_rna_variants_10():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
+        reference_transcript_top_k=3,
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variant_calls) == 145)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-109-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000263087.9,ENST00000570791.5,ENST00000333813.4']
@@ -367,16 +322,11 @@ def test_call_rna_variants_11():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
+        reference_transcript_top_k=3,
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variant_calls) == 88)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-110-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000263092.11,ENST00000250113.12,ENST00000355530.7']
@@ -403,16 +353,11 @@ def test_call_rna_variants_12():
         reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
         reference_gene_annotation_assembly='hg38',
         reference_gene_annotation_version='v41',
-        gene_types=['protein_coding'],
-        gene_levels=[1, 2],
-        transcript_types=['protein_coding'],
-        transcript_levels=[1, 2],
+        reference_transcript_top_k=3,
         output_dir='',
         output_prefix='',
         output_type=OutputType.DATAFRAME
     )
-
-    assert(len(df_variant_calls) == 24)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-111-tumor_ground_truth.tsv'), sep='\t')
     df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000254719.10']

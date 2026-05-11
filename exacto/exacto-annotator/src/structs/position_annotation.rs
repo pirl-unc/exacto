@@ -14,7 +14,7 @@
 use exacto_core::prelude::GenicRegion;
 use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
+use std::hash::Hasher;
 
 
 #[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]

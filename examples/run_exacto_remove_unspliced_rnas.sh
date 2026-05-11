@@ -1,3 +1,5 @@
+mkdir -p outputs/remove-unspliced-rnas/
+
 exacto remove-unspliced-rnas \
   --bam-file ../test/data/bam/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.bam \
   --bam-bai-file ../test/data/bam/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.bam.bai \
@@ -6,6 +8,6 @@ exacto remove-unspliced-rnas \
   --reference-gene-annotation-source gencode \
   --reference-gene-annotation-assembly hg38 \
   --reference-gene-annotation-version v41 \
-  --output-bam-file outputs/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.filtered.bam \
-  --output-bam-bai-file outputs/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.filtered.bam.bai \
-  --output-fasta-file outputs/rna-100-tumor_long-read_dna-001-tumor_long-read.filtered.fasta
+  --output-bam-file outputs/remove-unspliced-rnas/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.filtered.bam \
+  --output-bam-bai-file outputs/remove-unspliced-rnas/rna-100-tumor_minimap2_mdtagged_sorted_dna-001-tumor_minimap2_mdtagged_sorted.filtered.bam.bai \
+  --output-fasta-file outputs/remove-unspliced-rnas/rna-100-tumor_long-read_dna-001-tumor_long-read.filtered.fasta

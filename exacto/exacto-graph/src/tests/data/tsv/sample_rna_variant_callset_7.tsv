@@ -1,0 +1,8 @@
+transcript_model_id	reference_transcript_ids	index	chromosome_1	position_1	operation_1	strand_1	chromosome_2	position_2	operation_2	strand_2	sequence	variant_type	num_cycles
+1	"t1,t3"	0	chrA	1	I	+	chrA	5	I	+			
+1	"t1,t3"	1	chrA	5	D	+	chrA	11	U	+			
+1	"t1,t3"	2	chrA	11	I	+	chrA	14	I	+			
+1	"t1,t3"	3	chrA	14	D	+	chrB	12	D	-		FUS	
+1	"t1,t3"	4	chrB	11	I	+	chrB	12	I	-			
+1	"t1,t3"	5	chrB	5	D	-	chrB	11	U	-			
+1	"t1,t3"	6	chrB	1	I	-	chrB	5	I	-			

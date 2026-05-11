@@ -10,6 +10,7 @@ pub mod reference_transcript_match;
 pub mod reference_base;
 pub mod reference_transcript_sequence;
 pub mod graph_operation;
+pub mod graph_operation_view;
 pub mod transcript_model;
 pub mod transcript_model_exon;
 pub mod transcript_model_intron;

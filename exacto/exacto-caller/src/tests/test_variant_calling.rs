@@ -1,13 +1,422 @@
-use bimap::BiMap;
 use exacto_core::prelude::*;
 use noodles_bam as bam;
+use noodles_bam::bai;
+use noodles_bam::bai::Index;
+use noodles_sam::Header;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
+use bimap::BiMap;
 
 use crate::prelude::*;
 
+
+#[test]
+fn test_compute_min_read_support_1() {
+    let (min_read_support, f1, recall, fpr, precision) = compute_min_read_support(
+        28,
+        0.5f64,
+        1e-3,
+        1e-2,
+        0.99f64,
+        1e-6f64
+    );
+    assert_eq!(min_read_support, 6);
+
+    let (min_read_support, f1, recall, fpr, precision) = compute_min_read_support(
+        30,
+        0.5f64,
+        1e-3,
+        1e-2,
+        0.99f64,
+        1e-6f64
+    );
+    assert_eq!(min_read_support, 6);
+
+    let (min_read_support, f1, recall, fpr, precision) = compute_min_read_support(
+        60,
+        0.25f64,
+        1e-6,
+        1e-2,
+        0.99f64,
+        1e-6f64
+    );
+    assert_eq!(min_read_support, 9);
+}
+
+#[test]
+fn test_compute_min_read_support_index_1() {
+    let min_read_support_index: Vec<Vec<u32>> = compute_min_read_support_index(
+        60u64,
+        30u32,
+        0.5f64,
+        0.001f64,
+        0.01f64,
+        0.02f64,
+        0.99f64,
+        1e-6f64
+    );
+    assert_eq!(min_read_support_index[0][29], 6);
+}
+
+#[test]
+fn test_compute_min_read_support_index_2() {
+    let min_read_support_index: Vec<Vec<u32>> = compute_min_read_support_index(
+        60u64,
+        30u32,
+        0.5f64,
+        0.001f64,
+        0.01f64,
+        0.02f64,
+        0.99f64,
+        1e-6f64
+    );
+    assert_eq!(min_read_support_index[4][29], 11);
+}
+
+#[test]
+fn test_compute_min_read_support_index_3() {
+    let min_read_support_index: Vec<Vec<u32>> = compute_min_read_support_index(
+        60u64,
+        30u32,
+        0.5f64,
+        0.001f64,
+        0.01f64,
+        0.02f64,
+        0.99f64,
+        1e-6f64
+    );
+    assert_eq!(min_read_support_index[5][29], 13);
+}
+
+#[test]
+fn test_compute_min_read_support_index_4() {
+    let min_read_support_index: Vec<Vec<u32>> = compute_min_read_support_index(
+        60u64,
+        30u32,
+        0.5f64,
+        0.001f64,
+        0.01f64,
+        0.02f64,
+        0.99f64,
+        1e-6f64
+    );
+    assert_eq!(min_read_support_index[6][29], 14);
+}
+
+#[test]
+fn test_get_variant_position_total_depth() {
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let depths_map = get_bam_depths_map(bam_file, 2);
+    let total_depth: u32 = get_variant_position_total_depth(
+        &depths_map,
+        "chr17",
+        7_674_224,
+        &GraphOperationType::Downstream,
+        "chr17",
+        7_674_226,
+        &GraphOperationType::Upstream,
+        "A"
+    );
+
+    assert!(total_depth == 6);
+}
+
+#[test]
+fn test_has_strand_bias() {
+    let strand_bias_exists: bool = has_strand_bias(
+        0,
+        8,
+        12,
+        13,
+        0.05
+    );
+    assert_eq!(strand_bias_exists, true);
+}
+
+#[test]
+fn test_is_repeat_indel_1() {
+    let go: GraphOperation = GraphOperation::new(
+        0,
+        3_829_837,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        3_829_841,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "".into(),
+        VariantType::Deletion
+    );
+    let vr: VariantRecord = VariantRecord::new(
+        1,
+        101,
+        102,
+        go
+    );
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let fasta_map: FastaMap = FastaMap::new(fasta_file);
+
+    let (is_repeat, size) = is_repeat_indel(
+        &vr,
+        &chromosome_names_map,
+        &fasta_map
+    );
+
+    assert_eq!(is_repeat, true);
+    assert_eq!(size, 5);
+}
+
+#[test]
+fn test_is_repeat_indel_2() {
+    let go: GraphOperation = GraphOperation::new(
+        0,
+        3_829_837,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        3_829_838,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "AAAA".into(),
+        VariantType::Insertion
+    );
+    let vr: VariantRecord = VariantRecord::new(
+        1,
+        101,
+        104,
+        go
+    );
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let fasta_map: FastaMap = FastaMap::new(fasta_file);
+
+    let (is_repeat, size) = is_repeat_indel(
+        &vr,
+        &chromosome_names_map,
+        &fasta_map
+    );
+
+    assert_eq!(is_repeat, true);
+    assert_eq!(size, 9);
+}
+
+#[test]
+fn test_is_repeat_indel_3() {
+    let go: GraphOperation = GraphOperation::new(
+        0,
+        4_329_639,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        4_329_640,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "AT".into(),
+        VariantType::Insertion
+    );
+    let vr: VariantRecord = VariantRecord::new(
+        1,
+        101,
+        102,
+        go
+    );
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let fasta_map: FastaMap = FastaMap::new(fasta_file);
+
+    let (is_repeat, size) = is_repeat_indel(
+        &vr,
+        &chromosome_names_map,
+        &fasta_map
+    );
+
+    assert_eq!(is_repeat, true);
+    assert_eq!(size, 8);
+}
+
+#[test]
+fn test_is_repeat_indel_4() {
+    let go: GraphOperation = GraphOperation::new(
+        0,
+        4_329_640,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        4_329_641,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "TA".into(),
+        VariantType::Insertion
+    );
+    let vr: VariantRecord = VariantRecord::new(
+        1,
+        101,
+        102,
+        go
+    );
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let fasta_map: FastaMap = FastaMap::new(fasta_file);
+
+    let (is_repeat, size) = is_repeat_indel(
+        &vr,
+        &chromosome_names_map,
+        &fasta_map
+    );
+
+    assert_eq!(is_repeat, true);
+    assert_eq!(size, 6);
+}
+
+
+
+#[test]
+fn test_is_repeat_indel_5() {
+    let go: GraphOperation = GraphOperation::new(
+        0,
+        3_829_838,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        3_829_840,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "".into(),
+        VariantType::Deletion
+    );
+    let vr: VariantRecord = VariantRecord::new(
+        1,
+        101,
+        102,
+        go
+    );
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let fasta_map: FastaMap = FastaMap::new(fasta_file);
+
+    let (is_repeat, size) = is_repeat_indel(
+        &vr,
+        &chromosome_names_map,
+        &fasta_map
+    );
+
+    assert_eq!(is_repeat, true);
+    assert_eq!(size, 5);
+}
+
+#[test]
+fn test_is_repeat_indel_6() {
+    let go: GraphOperation = GraphOperation::new(
+        0,
+        3_829_836,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        3_829_838,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "".into(),
+        VariantType::Deletion
+    );
+    let vr: VariantRecord = VariantRecord::new(
+        1,
+        101,
+        102,
+        go
+    );
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let fasta_map: FastaMap = FastaMap::new(fasta_file);
+
+    let (is_repeat, size) = is_repeat_indel(
+        &vr,
+        &chromosome_names_map,
+        &fasta_map
+    );
+
+    assert_eq!(is_repeat, true);
+    assert_eq!(size, 5);
+}
+
+#[test]
+fn test_is_repeat_indel_7() {
+    let go: GraphOperation = GraphOperation::new(
+        0,
+        4_330_358,
+        Strand::Forward,
+        GraphOperationType::Downstream,
+        0,
+        4_330_361,
+        Strand::Forward,
+        GraphOperationType::Upstream,
+        "".into(),
+        VariantType::Deletion
+    );
+    let vr: VariantRecord = VariantRecord::new(
+        1,
+        101,
+        102,
+        go
+    );
+    let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let fasta_map: FastaMap = FastaMap::new(fasta_file);
+
+    let (is_repeat, size) = is_repeat_indel(
+        &vr,
+        &chromosome_names_map,
+        &fasta_map
+    );
+
+    assert_eq!(is_repeat, false);
+}
 
 #[test]
 fn test_variant_calling_1() {
@@ -49,22 +458,35 @@ fn test_variant_calling_2() {
     let bam_bai_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let depths_map: Arc<HashMap<Box<str>, Vec<u32>>> = Arc::new(get_bam_depths_map(bam_file, 2));
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
     let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
+
     let read_name: &str = "m64012_325382_158010/1/ccs";
     let read_id: usize = read_names_map.get_by_left(&read_name.to_string().into_boxed_str()).unwrap().clone();
     let record: &bam::Record = records_map.get(&read_id).unwrap().first().unwrap();
@@ -74,13 +496,15 @@ fn test_variant_calling_2() {
         read_id,
         &*read_sequence,
         &quality_scores,
-        &vec![record.clone()]
+        &vec![Arc::new(record.clone())]
     );
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
     let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(30, 30, AnalyteType::DNA);
     assert!(variant_records.len() == 1);
     let variant_calls: Vec<VariantCall> = cluster_variant_records(
         variant_records.iter().map(|record| Arc::new(record.clone())).collect(),
+        &depths_map,
+        &chromosome_names_map,
         1,
         0.5f32,
         0.5f32,
@@ -280,22 +704,35 @@ fn test_variant_calling_4() {
     let bam_bai_path = Path::new("src/tests/data/bam/dna-002-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
+    let depths_map: Arc<HashMap<Box<str>, Vec<u32>>> = Arc::new(get_bam_depths_map(bam_file, 2));
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
     let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
+
     let read_name: &str = "m64012_202369_785869/3/ccs";
     let read_id: usize = read_names_map.get_by_left(&read_name.to_string().into_boxed_str()).unwrap().clone();
     let read_sequence: Box<str> = get_primary_alignment_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
@@ -304,7 +741,7 @@ fn test_variant_calling_4() {
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
     let variant_records: Vec<VariantRecord> = alignment_structure.identify_variant_records(
@@ -315,6 +752,8 @@ fn test_variant_calling_4() {
     assert!(variant_records.len() == 1);
     let variant_calls: Vec<VariantCall> = cluster_variant_records(
         variant_records.iter().map(|record| Arc::new(record.clone())).collect(),
+        &depths_map,
+        &chromosome_names_map,
         1,
         0.5f32,
         0.5f32,
@@ -880,13 +1319,13 @@ fn test_variant_calling_14() {
     let mut variant_records: Vec<Arc<VariantRecord>> = Vec::new();
     variant_records.push(Arc::new(a));
     variant_records.push(Arc::new(b));
-    let variant_records_map: HashMap<(u16,u16),Vec<Arc<VariantRecord>>> = split_variant_records_by_chromosome(
+    let variant_records_map: HashMap<(u16, u16, VariantType, GraphOperationType, GraphOperationType), Vec<Arc<VariantRecord>>> = split_variant_records(
         variant_records,
         1
     );
 
-    assert!(variant_records_map.get(&(0,0)).unwrap().len() == 1);
-    assert!(variant_records_map.get(&(1,1)).unwrap().len() == 1);
+    assert!(variant_records_map.get(&(0,0,VariantType::Insertion, GraphOperationType::Downstream, GraphOperationType::Upstream)).unwrap().len() == 1);
+    assert!(variant_records_map.get(&(1,1,VariantType::Insertion, GraphOperationType::Downstream, GraphOperationType::Upstream)).unwrap().len() == 1);
 }
 
 #[test]
@@ -973,7 +1412,7 @@ fn test_variant_calling_15() {
 
     let variant_records: Vec<Arc<VariantRecord>> = vec![Arc::new(a), Arc::new(b), Arc::new(c), Arc::new(d)];
     let variant_record_clusters: Vec<VariantRecordCluster> = sweep_clusters(
-        variant_records,
+        &variant_records,
         0.5f32,
         0.5f32,
         2000,
@@ -1009,7 +1448,7 @@ fn test_variant_calling_16() {
     );
     let variant_records: Vec<Arc<VariantRecord>> = vec![Arc::new(a)];
     let variant_record_clusters: Vec<VariantRecordCluster> = sweep_clusters(
-        variant_records,
+        &variant_records,
         0.5f32,
         0.5f32,
         2000,

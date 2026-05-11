@@ -21,8 +21,8 @@ use crate::prelude::*;
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct AlignmentStructureEvent {
-    prev_read_position: usize,
-    next_read_position: usize,
+    prev_read_position: u32,
+    next_read_position: u32,
     prev_graph_operation_type: GraphOperationType,
     next_graph_operation_type: GraphOperationType,
     kind: AlignmentStructureEventKind,
@@ -60,8 +60,8 @@ impl Eq for AlignmentStructureEvent {}
 impl AlignmentStructureEvent {
     pub fn new(
         kind: AlignmentStructureEventKind,
-        prev_read_position: usize,
-        next_read_position: usize,
+        prev_read_position: u32,
+        next_read_position: u32,
         prev_graph_operation_type: GraphOperationType,
         next_graph_operation_type: GraphOperationType
     ) -> Self {
@@ -102,18 +102,18 @@ impl AlignmentStructureEvent {
         &self.kind
     }
 
-    pub fn get_prev_read_position(&self) -> usize {
+    pub fn get_prev_read_position(&self) -> u32 {
         self.prev_read_position
+    }
+
+    pub fn get_next_read_position(&self) -> u32 {
+        self.next_read_position
     }
 
     pub fn get_prev_graph_operation_type(&self) -> &GraphOperationType {
         &self.prev_graph_operation_type
     }
-    
-    pub fn get_next_read_position(&self) -> usize {
-        self.next_read_position
-    }
-    
+
     pub fn get_next_graph_operation_type(&self) -> &GraphOperationType {
         &self.next_graph_operation_type
     }
@@ -128,10 +128,10 @@ impl AlignmentStructureEvent {
             // Cluster reference bases by proximity
             let mut uf: UnionFind = UnionFind::new();
             for i in 0..bases.len() {
-                uf.union(i, i);
+                uf.union(i as u32, i as u32);
                 if i > 0 {
                     if bases[i].reference_position.abs_diff(bases[i - 1].reference_position) == 1 {
-                        uf.union(i - 1, i);
+                        uf.union(i as u32 - 1, i as u32);
                     }
                 }
             }
@@ -139,12 +139,12 @@ impl AlignmentStructureEvent {
             // Get the clusters
             for cluster in uf.get_clusters() {
                 // Sort the cluster
-                let mut indices: Vec<usize> = cluster.into_iter().collect();
+                let mut indices: Vec<u32> = cluster.into_iter().collect();
                 indices.sort();
 
                 // Get the cluster bases
                 let selected: Vec<ReferenceBase> = indices.iter()
-                    .map(|&i| bases.get(i).unwrap().clone())
+                    .map(|&i| bases.get(i as usize).unwrap().clone())
                     .collect();
 
                 clusters.push(selected);
@@ -153,7 +153,7 @@ impl AlignmentStructureEvent {
 
         // Sort
         clusters.sort_by_key(|v| {
-            let first = v.first().unwrap();
+            let first: &ReferenceBase = v.first().unwrap();
             (first.reference_chromosome_id, first.reference_position)
         });
 

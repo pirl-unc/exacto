@@ -8,6 +8,7 @@ extern crate log;
 extern crate noodles_bam;
 extern crate noodles_bgzf;
 extern crate noodles_fasta;
+extern crate noodles_util;
 extern crate noodles_sam;
 extern crate once_cell;
 extern crate phf;
@@ -20,7 +21,7 @@ extern crate tempfile;
 #[cfg(test)]
 mod tests;
 pub mod common;
-pub mod structs;
-pub mod traits;
+pub mod index;
+pub mod annotation;
 pub mod prelude;
 pub mod macros;

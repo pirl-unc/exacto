@@ -15,3 +15,6 @@ mod test_intron;
 mod test_start_codon;
 mod test_stop_codon;
 mod test_utr;
+mod test_tsv_gene_annotator;
+mod test_fasta_map;
+mod test_algorithms;

@@ -41,14 +41,14 @@ pub enum VarGraphNodeTypes {
 impl VarGraphNodeTypes {
     pub fn as_str(&self) -> &str {
         match self {
-            VarGraphNodeTypes::Reference => "REFERENCE",
-            VarGraphNodeTypes::Variant => "VARIANT"
+            VarGraphNodeTypes::Reference => "REF",
+            VarGraphNodeTypes::Variant => "VAR"
         }
     }
 }
 
 #[repr(u8)]
-#[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
+#[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord,Serialize,Deserialize)]
 pub enum VarGraphOrientations {
     Upstream,
     Downstream,
@@ -79,7 +79,52 @@ impl FromStr for VarGraphOrientations {
 }
 
 #[repr(u8)]
-#[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
+#[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord,Serialize,Deserialize)]
+pub enum VarGraphReferenceNodeAnnotationKeys {
+    Type
+}
+
+impl VarGraphReferenceNodeAnnotationKeys {
+    pub fn as_str(&self) -> &str {
+        match self {
+            VarGraphReferenceNodeAnnotationKeys::Type => "type"
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord,Serialize,Deserialize)]
+pub enum VarGraphReferenceNodeTypes {
+    Exonic,
+    Intronic,
+    Intergenic
+}
+
+impl VarGraphReferenceNodeTypes {
+    pub fn as_str(&self) -> &str {
+        match self {
+            VarGraphReferenceNodeTypes::Exonic => "exonic",
+            VarGraphReferenceNodeTypes::Intronic => "intronic",
+            VarGraphReferenceNodeTypes::Intergenic => "intergenic"
+        }
+    }
+}
+
+impl FromStr for VarGraphReferenceNodeTypes {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "exonic" => Ok(VarGraphReferenceNodeTypes::Exonic),
+            "intronic" => Ok(VarGraphReferenceNodeTypes::Intronic),
+            "intergenic" => Ok(VarGraphReferenceNodeTypes::Intergenic),
+            _ => Err(()),
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord,Serialize,Deserialize)]
 pub enum VarGraphStrands {
     Forward,
     Reverse
@@ -106,27 +151,45 @@ impl FromStr for VarGraphStrands {
     }
 }
 
-
 #[repr(u8)]
-#[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
-pub enum VarGraphEdgeDirections {
-    FiveToThreePrime,
-    ThreeToFivePrime
+#[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord,Serialize,Deserialize)]
+pub enum VarGraphTypes {
+    Individual,
+    Population
 }
 
-impl VarGraphEdgeDirections {
+impl VarGraphTypes {
     pub fn as_str(&self) -> &str {
         match self {
-            VarGraphEdgeDirections::FiveToThreePrime => "FIVE_TO_THREE_PRIME",
-            VarGraphEdgeDirections::ThreeToFivePrime => "THREE_TO_FIVE_PRIME"
+            VarGraphTypes::Individual => "individual",
+            VarGraphTypes::Population => "population"
+        }
+    }
+}
+
+impl FromStr for VarGraphTypes {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "individual" => Ok(VarGraphTypes::Individual),
+            "population" => Ok(VarGraphTypes::Population),
+            _ => Err(())
         }
     }
 }
 
 #[repr(u8)]
+#[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord,Serialize,Deserialize)]
+pub enum VarGraphEdgeEvent {
+    Enter(usize),
+    Back(usize),
+    Exit(usize)
+}
+
+#[repr(u8)]
 #[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
 pub enum VarGraphEdgeAttributeKeys {
-
     Direction,
     Orientation,
     Strand

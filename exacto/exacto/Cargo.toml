@@ -1,20 +1,20 @@
 [package]
 name = "exacto"
-version = "0.4.5"
+version.workspace = true
 edition = "2021"
 authors = ["Jin Seok Lee <ajslee@unc.edu>"]
 rust-version.workspace = true
 description = "Exacto"
-homepage = "https://github.com/pirl-unc/exacto/tree/main/rust"
-repository = "https://github.com/pirl-unc/exacto/tree/main/rust"
-documentation = "https://docs.rs/exacto"
-license = "MIT"
+homepage = "https://github.com/pirl-unc/exacto/tree/main/exacto"
+repository = "https://github.com/pirl-unc/exacto/tree/main/exacto"
+documentation = "https://github.com/pirl-unc/exacto"
+license.workspace = true
 
 [dependencies]
-exacto-annotator = { path = "../exacto-annotator", version = "0.4.5" }
-exacto-caller = { path = "../exacto-caller", version = "0.4.5" }
-exacto-core = { path = "../exacto-core", version = "0.4.5" }
-exacto-graph = { path = "../exacto-graph", version = "0.4.5" }
-exacto-qc = { path = "../exacto-qc", version = "0.4.5" }
-exacto-integrator = { path = "../exacto-integrator", version = "0.4.5" }
-exacto-translator = { path = "../exacto-translator", version = "0.4.5" }
+exacto-annotator = { workspace = true }
+exacto-caller = { workspace = true }
+exacto-core = { workspace = true }
+exacto-graph = { workspace = true }
+exacto-qc = { workspace = true }
+exacto-integrator = { workspace = true }
+exacto-translator = { workspace = true }

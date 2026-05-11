@@ -33,11 +33,11 @@ pub fn translate_sequence(
     py: Python,
     rna_sequence: String,
     strategy: String
-) -> PyResult<Vec<(String, usize, usize)>> {
+) -> PyResult<Vec<(String, u32, u32)>> {
     let rnas = vec![translator::RNA::new("sequence".into(), rna_sequence.into_boxed_str())];
     let translation_set: translator::TranslationSet = translator::translate_rnas(rnas, 1);
     let strategy_: translator::TranslationStrategy = translator::TranslationStrategy::from_str(strategy.as_str()).unwrap();
-    let mut translations: Vec<(String, usize, usize)> = Vec::new();
+    let mut translations: Vec<(String, u32, u32)> = Vec::new();
     for translation in translation_set.get_peptides_by_strategy(strategy_).iter() {
         for peptide in translation.peptides.iter() {
             translations.push((peptide.sequence.to_string(), peptide.orf_start, peptide.orf_end));

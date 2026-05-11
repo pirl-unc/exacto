@@ -44,7 +44,9 @@ fn test_variant_calling_rna_1() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
 
@@ -141,7 +143,9 @@ fn test_variant_calling_rna_2() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_record: &VariantRecord = rna_variant_callset
@@ -232,7 +236,9 @@ fn test_variant_calling_rna_3() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_record: &VariantRecord = rna_variant_callset
@@ -323,7 +329,9 @@ fn test_variant_calling_rna_4() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -415,7 +423,9 @@ fn test_variant_calling_rna_5() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -507,7 +517,9 @@ fn test_variant_calling_rna_6() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -599,7 +611,9 @@ fn test_variant_calling_rna_7() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -691,7 +705,9 @@ fn test_variant_calling_rna_8() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -783,7 +799,9 @@ fn test_variant_calling_rna_9() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -875,7 +893,9 @@ fn test_variant_calling_rna_10() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -967,7 +987,9 @@ fn test_variant_calling_rna_11() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -1059,7 +1081,9 @@ fn test_variant_calling_rna_12() {
         0.95f32,
         25,
         25,
-        1
+        1,
+        1_000,
+        ""
     );
     let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
     let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
@@ -1126,5 +1150,104 @@ fn test_variant_calling_rna_12() {
             .filter(col("variant_type").lt_eq(lit(variant_type.to_string())))
             .collect();
         assert!(df_variants_1.unwrap().height() == 1 || df_variants_2.unwrap().height() == 1);
+    }
+}
+
+#[test]
+fn test_variant_calling_rna_13() {
+    let bam_path = Path::new("src/tests/data/bam/rna-112-tumor_minimap2_mdtagged_sorted.bam");
+    let bam_full_path = fs::canonicalize(bam_path).unwrap();
+    let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/rna-112-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
+    let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
+    let reference_genome_fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let reference_genome_fasta_full_path = fs::canonicalize(reference_genome_fasta_path).unwrap();
+    let reference_genome_fasta_file: &str = reference_genome_fasta_full_path.to_str().unwrap();
+    let gencode_gtf_path = Path::new("src/tests/data/gtf/gencode.v41.annotation.chr17-18.gtf.gz");
+    let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
+    let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
+    let gene_annotator = Gencode::new(
+        gencode_gtf_file,
+        "hg38",
+        "v41",
+        Some(HashSet::from(["protein_coding"])),
+        Some(HashSet::from([1,2])),
+        Some(HashSet::from(["protein_coding"])),
+        Some(HashSet::from([1,2]))
+    );
+    let transcript_model_set: TranscriptModelSet = identify_variant_transcripts(
+        bam_file,
+        bam_bai_file,
+        reference_genome_fasta_file,
+        &gene_annotator,
+        ReferenceTranscriptScoringMethod::CosineSimilarity,
+        ReferenceTranscriptSelectionStrategy::TopK,
+        3,
+        0.95f32,
+        25,
+        25,
+        1,
+        1_000,
+        ""
+    );
+    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
+
+    let file: NamedTempFile = NamedTempFile::new().unwrap();
+    rna_variant_callset.to_tsv_file(file.path().to_str().unwrap(), 1);
+    let rna_variant_callset_2: RNAVariantCallSet = RNAVariantCallSet::read_tsv_file(file.path().to_str().unwrap());
+    assert_eq!(rna_variant_callset.to_dataframe(1), rna_variant_callset_2.to_dataframe(1));
+
+    let variant_record: &VariantRecord = rna_variant_callset
+        .get_variant_calls_for_transcript_model_id(1)
+        .get(&vec!["ENST00000396463.7".into()])
+        .unwrap()
+        .first()
+        .unwrap()
+        .get_consensus_record()
+        .0;
+    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    assert_eq!(*variant_record.get_variant_type(), VariantType::Insertion);
+
+    // Compare against the ground truth
+    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
+    let mask = df_variant_calls
+        .column("reference_transcript_ids")
+        .unwrap()
+        .str()
+        .unwrap()
+        .equal("ENST00000396463.7");
+    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-112-tumor_ground_truth.tsv");
+    let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
+    let file = File::open(tsv_full_path);
+    let mut reader = ReaderBuilder::new()
+        .delimiter(b'\t')
+        .from_reader(file.unwrap());
+    for result in reader.records() {
+        let record = result.unwrap();
+        let chromosome_1: String = record[1].to_string();
+        let position_1: i64 = record[2].parse::<i64>().expect("Failed to convert &str to usize");
+        let operation_1: String = record[4].to_string();
+        let chromosome_2: String = record[5].to_string();
+        let position_2: i64 = record[6].parse::<i64>().expect("Failed to convert &str to usize");
+        let operation_2: String = record[8].to_string();
+        let variant_type: String = record[10].to_string();
+        let variant_sequence: String = record[11].to_string();
+        let df_variants_: PolarsResult<DataFrame>;
+        df_variants_ = df_variant_calls_filtered
+            .clone()
+            .lazy()
+            .filter(col("chromosome_1").eq(lit(chromosome_1.to_string())))
+            .filter(col("chromosome_2").eq(lit(chromosome_2.to_string())))
+            .filter(col("operation_1").eq(lit(operation_1.to_string())))
+            .filter(col("operation_2").eq(lit(operation_2.to_string())))
+            .filter(col("position_1").gt_eq(lit(position_1 - 1)))
+            .filter(col("position_1").lt_eq(lit(position_1 + 1)))
+            .filter(col("position_2").gt_eq(lit(position_2 - 1)))
+            .filter(col("position_2").lt_eq(lit(position_2 + 1)))
+            .filter(col("variant_type").lt_eq(lit(variant_type.to_string())))
+            .collect();
+        assert!(df_variants_.unwrap().height() == 1);
     }
 }

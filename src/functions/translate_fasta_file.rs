@@ -22,7 +22,10 @@ extern crate tempfile;
 use exacto::core::prelude as core;
 use exacto::translator::prelude as translator;
 use flate2::read::GzDecoder;
-use noodles_fasta::{self as fasta, record::{Definition, Record, Sequence}};
+use noodles_fasta as fasta;
+use noodles_fasta::{fai, Record};
+use noodles_fasta::io::indexed_reader::Builder;
+use noodles_fasta::io::Reader as FastaReader;
 use polars::prelude::*;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
@@ -45,36 +48,12 @@ pub fn translate_fasta_file(
     temp_dir: String
 ) -> PyResult<String> {
     // Step 1. Read the FASTA file
-    let gzipped = core::is_gzipped(fasta_file.as_str());
-    let file = File::open(fasta_file.as_str()).expect("Unable to open FASTA file");
-    let reader: Box<dyn Read> = if gzipped {
-        Box::new(GzDecoder::new(file))
-    } else {
-        Box::new(file)
-    };
-    let buffered_reader = BufReader::new(reader);
-    let mut fasta_reader = fasta::Reader::new(buffered_reader);
     let mut rnas: Vec<translator::RNA> = Vec::new();
-    for result in fasta_reader.records() {
-        match result {
-            Ok(record) => {
-                // Convert &[u8] name to String (strict UTF-8)
-                let name_bytes = record.name();
-                let name = String::from_utf8(name_bytes.to_vec())
-                    .expect("Invalid UTF-8 in FASTA record name");
-
-                // Convert sequence to &[u8] then to String (strict UTF-8)
-                let sequence_bytes = record.sequence().as_ref(); // &[u8]
-                let sequence = String::from_utf8(sequence_bytes.to_vec())
-                    .expect("Invalid UTF-8 in FASTA sequence");
-
-                let rna = translator::RNA::new(name.into_boxed_str(), sequence.into_boxed_str());
-                rnas.push(rna);
-            },
-            Err(e) => {
-                panic!("Error reading record: {}", e);
-            }
-        }
+    let sequence_ids: Vec<(Box<str>, u32)> = core::get_fasta_sequence_ids(fasta_file.as_str());
+    for (sequence_id, length) in sequence_ids.iter() {
+        let sequence: Box<str> = core::get_fasta_sequence(&**sequence_id, 1, *length, fasta_file.as_str());
+        let rna = translator::RNA::new(sequence_id.clone(), sequence);
+        rnas.push(rna);
     }
 
     // Step 2. Translate the RNA sequences

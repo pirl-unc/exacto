@@ -1,7 +1,6 @@
 pub use crate::algorithms::reference_transcript_matching::*;
 pub use crate::algorithms::variant_calling::*;
 pub use crate::algorithms::variant_calling_dna::*;
-pub use crate::algorithms::variant_calling_peptide::*;
 pub use crate::algorithms::variant_calling_rna::*;
 pub use crate::common::constants::*;
 pub use crate::structs::alignment::Alignment;
@@ -11,6 +10,7 @@ pub use crate::structs::alignment_structure_base::AlignmentStructureBase;
 pub use crate::structs::alignment_structure_event::AlignmentStructureEvent;
 pub use crate::structs::alignment_structure_record::AlignmentStructureRecord;
 pub use crate::structs::graph_operation::GraphOperation;
+pub use crate::structs::graph_operation_view::GraphOperationView;
 pub use crate::structs::mutant_peptide::MutantPeptide;
 pub use crate::structs::mutant_peptides_set::MutantPeptidesSet;
 pub use crate::structs::reference_base::ReferenceBase;

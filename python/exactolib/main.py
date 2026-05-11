@@ -20,12 +20,12 @@ import gc
 import pandas as pd
 import polars as pl
 from exactolib import exactolibrs
-from typing import Dict, List, Optional, Tuple
-
+from typing import List, Tuple
 from .constants import *
 from .default import *
+from .index.reference import build_reference_kmer_index
 from .logging import get_logger
-from .utilities import get_chromosomes,get_kmers
+from .variant_calling.peptide import identify_peptide_variants as identify_peptide_variants_
 
 
 logger = get_logger(__name__)
@@ -62,32 +62,148 @@ def annotate_variant_calls(
     return df_variants.to_pandas()
 
 
-def identify_case_specific_dna_variants(
-        case_bam_file: str,
-        case_bam_bai_file: str,
+def build_genome_variation_graph(
+        df_variants: pl.DataFrame,
+        fasta_file: str,
+        output_fasta_file: str,
+        sequence_prefix: str,
+        remove_unknown_bases: bool,
+        only_variant_sequences: bool,
+        graph_type: str,
+        num_threads: int,
+        output_type: OutputType = OutputType.FILE,
+        verbose: bool = True
+):
+    if output_type == OutputType.DATAFRAME:
+        df_sequences = exactolibrs.build_genome_variation_graph(
+            df_variants=df_variants,
+            fasta_file=fasta_file,
+            output_fasta_file=output_fasta_file,
+            sequence_prefix=sequence_prefix,
+            remove_unknown_bases=remove_unknown_bases,
+            only_variant_sequences=only_variant_sequences,
+            graph_type=graph_type,
+            num_threads=num_threads,
+            output_type=str(output_type),
+            verbose=verbose
+        )
+        return df_sequences.to_pandas()
+    if output_type == OutputType.VECTOR:
+        sequences = exactolibrs.build_genome_variation_graph(
+            df_variants=df_variants,
+            fasta_file=fasta_file,
+            output_fasta_file=output_fasta_file,
+            sequence_prefix=sequence_prefix,
+            remove_unknown_bases=remove_unknown_bases,
+            only_variant_sequences=only_variant_sequences,
+            graph_type=graph_type,
+            num_threads=num_threads,
+            output_type=str(output_type),
+            verbose=verbose
+        )
+        return sequences
+    if output_type == OutputType.FILE:
+        exactolibrs.build_genome_variation_graph(
+            df_variants=df_variants,
+            fasta_file=fasta_file,
+            output_fasta_file=output_fasta_file,
+            sequence_prefix=sequence_prefix,
+            remove_unknown_bases=remove_unknown_bases,
+            only_variant_sequences=only_variant_sequences,
+            graph_type=graph_type,
+            num_threads=num_threads,
+            output_type=str(output_type),
+            verbose=verbose
+        )
+        return None
+
+
+def build_transcriptome_variation_graph(
+        df_transcript_structures: pl.DataFrame,
+        fasta_file: str,
+        output_fasta_file: str,
+        graph_type: str,
+        num_threads: int,
+        output_type: OutputType = OutputType.FILE,
+        batch_size: int = BUILD_TRANSCRIPTOME_VAR_GRAPH_BATCH_SIZE,
+        verbose: bool = True
+):
+    if output_type == OutputType.DATAFRAME:
+        df_sequences = exactolibrs.build_transcriptome_variation_graph(
+            df_transcript_structures=df_transcript_structures,
+            fasta_file=fasta_file,
+            output_fasta_file=output_fasta_file,
+            graph_type=graph_type,
+            num_threads=num_threads,
+            batch_size=batch_size,
+            output_type=str(output_type),
+            verbose=verbose
+        )
+        return df_sequences.to_pandas()
+    if output_type == OutputType.VECTOR:
+        sequences = exactolibrs.build_transcriptome_variation_graph(
+            df_transcript_structures=df_transcript_structures,
+            fasta_file=fasta_file,
+            output_fasta_file=output_fasta_file,
+            graph_type=graph_type,
+            num_threads=num_threads,
+            batch_size=batch_size,
+            output_type=str(output_type),
+            verbose=verbose
+        )
+        return sequences
+    if output_type == OutputType.FILE:
+        exactolibrs.build_transcriptome_variation_graph(
+            df_transcript_structures=df_transcript_structures,
+            fasta_file=fasta_file,
+            output_fasta_file=output_fasta_file,
+            graph_type=graph_type,
+            num_threads=num_threads,
+            batch_size=batch_size,
+            output_type=str(output_type),
+            verbose=verbose
+        )
+        return None
+
+
+def identify_somatic_dna_variants(
+        bam_file: str,
+        bam_bai_file: str,
         control_bam_files: List[str],
         control_bam_bai_files: List[str],
+        fasta_file: str,
         output_tsv_file: str,
-        chromosomes: Optional[List[str]] = None,
-        min_reads: int = CALL_DNA_VARS_MIN_READS,
-        min_mapping_quality: int = CALL_DNA_VARS_MIN_MAPPING_QUALITY,
-        min_average_base_quality: float = CALL_DNA_VARS_MIN_AVERAGE_BASE_QUALITY,
-        min_size_proportion: float = CALL_DNA_VARS_MIN_SIZE_PROPORTION,
-        max_ins_norm_edit_distance: float = CALL_DNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
-        max_intrachromosomal_distance_tau: int = CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
-        max_intrachromosomal_distance: int = CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
-        max_interchromosomal_distance: int = CALL_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE,
-        apply_infinite_sites_assumption: bool = True,
-        num_threads: int = CALL_DNA_VARS_NUM_THREADS,
+        regions: List[Tuple[str, int, int]],
+        min_reads: int = CALL_SOMATIC_DNA_VARS_MIN_READS,
+        min_mapping_quality: int = CALL_SOMATIC_DNA_VARS_MIN_MAPPING_QUALITY,
+        min_base_quality: float = CALL_SOMATIC_DNA_VARS_MIN_BASE_QUALITY,
+        min_total_depth: int = CALL_SOMATIC_DNA_VARS_MIN_TOTAL_DEPTH,
+        min_alt_allele_fraction: float = CALL_SOMATIC_DNA_VARS_MIN_ALT_ALLELE_FRACTION,
+        min_size_proportion: float = CALL_SOMATIC_DNA_VARS_MIN_SIZE_PROPORTION,
+        max_ins_norm_edit_distance: float = CALL_SOMATIC_DNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
+        max_intrachromosomal_distance_tau: int = CALL_SOMATIC_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
+        max_intrachromosomal_distance: int = CALL_SOMATIC_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
+        max_interchromosomal_distance: int = CALL_SOMATIC_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE,
+        max_slippage_repeat_length: int = CALL_SOMATIC_DNA_VARS_MAX_SLIPPAGE_REPEAT_LENGTH,
+        num_threads: int = CALL_SOMATIC_DNA_VARS_NUM_THREADS,
+        chunk_size: int = CALL_SOMATIC_DNA_VARS_CHUNK_SIZE,
+        max_records: int = CALL_SOMATIC_DNA_VARS_MAX_RECORDS,
+        expected_variant_allele_fraction: float = CALL_SOMATIC_DNA_VARS_EXPECTED_VARIANT_ALLELE_FRACTION,
+        expected_mutation_rate: float = CALL_SOMATIC_DNA_VARS_EXPECTED_MUTATION_RATE,
+        expected_sequencing_error: float = CALL_SOMATIC_DNA_VARS_EXPECTED_SEQUENCING_ERROR,
+        expected_slippage_probability: float = CALL_SOMATIC_DNA_VARS_EXPECTED_SLIPPAGE_PROBABILITY,
+        max_f1_fraction: float = CALL_SOMATIC_DNA_VARS_MAX_F1_FRACTION,
+        max_fpr: float = CALL_SOMATIC_DNA_VARS_MAX_FPR,
         temp_dir: str = "",
+        apply_infinite_sites_assumption: bool = True,
         output_type: OutputType = OutputType.FILE
 ):
     """
     Identify case-specific DNA variants.
 
     Args:
-        case_bam_file                       :   Case BAM file.
-        case_bam_bai_file                   :   Case BAM.BAI file.
+        bam_file                            :   Case BAM file.
+        bam_bai_file                        :   Case BAM.BAI file.
         control_bam_files                   :   List of control BAM files.
         control_bam_bai_files               :   List of control BAM.BAI files.
         output_tsv_file                     :   Output TSV file.
@@ -113,48 +229,69 @@ def identify_case_specific_dna_variants(
     Returns:
         If output_type is 'dataframe', then a Pandas DataFrame.
     """
-    if chromosomes is None:
-        chromosomes = get_chromosomes(bam_file=case_bam_file)
-    assert len(chromosomes) > 0
     assert(len(control_bam_files) > 0, 'control_bam_files cannot be empty.')
     assert(len(control_bam_files) == len(control_bam_bai_files), 'len(control_bam_files) must be equal to len(control_bam_bai_files).')
-    df_variants = exactolibrs.identify_case_specific_dna_variants(
-        case_bam_file=case_bam_file,
-        case_bam_bai_file=case_bam_bai_file,
+    df_variants = exactolibrs.identify_somatic_dna_variants(
+        bam_file=bam_file,
+        bam_bai_file=bam_bai_file,
         control_bam_files=control_bam_files,
         control_bam_bai_files=control_bam_bai_files,
+        fasta_file=fasta_file,
         output_tsv_file=output_tsv_file,
+        regions=regions,
         min_reads=min_reads,
         min_mapping_quality=min_mapping_quality,
-        min_average_base_quality=min_average_base_quality,
+        min_base_quality=min_base_quality,
+        min_total_depth=min_total_depth,
+        min_alt_allele_fraction=min_alt_allele_fraction,
         min_size_proportion=min_size_proportion,
         max_ins_norm_edit_distance=max_ins_norm_edit_distance,
         max_intrachromosomal_distance_tau=max_intrachromosomal_distance_tau,
         max_intrachromosomal_distance=max_intrachromosomal_distance,
         max_interchromosomal_distance=max_interchromosomal_distance,
-        apply_infinite_sites_assumption=apply_infinite_sites_assumption,
+        max_slippage_repeat_length=max_slippage_repeat_length,
         num_threads=num_threads,
-        chromosomes=chromosomes,
+        chunk_size=chunk_size,
+        max_records=max_records,
+        expected_variant_allele_fraction=expected_variant_allele_fraction,
+        expected_mutation_rate=expected_mutation_rate,
+        expected_sequencing_error=expected_sequencing_error,
+        expected_slippage_probability=expected_slippage_probability,
+        max_f1_fraction=max_f1_fraction,
+        max_fpr=max_fpr,
+        apply_infinite_sites_assumption=apply_infinite_sites_assumption,
         temp_dir=temp_dir,
         output_type=str(output_type)
     )
     return df_variants.to_pandas()
 
 
-def identify_dna_variants(
+def identify_germline_dna_variants(
         bam_file: str,
         bam_bai_file: str,
+        fasta_file: str,
         output_tsv_file: str,
-        chromosomes: Optional[List[str]] = None,
-        min_reads: int = CALL_DNA_VARS_MIN_READS,
-        min_mapping_quality: int = CALL_DNA_VARS_MIN_MAPPING_QUALITY,
-        min_average_base_quality: float = CALL_DNA_VARS_MIN_AVERAGE_BASE_QUALITY,
-        min_size_proportion: float = CALL_DNA_VARS_MIN_SIZE_PROPORTION,
-        max_ins_norm_edit_distance: float = CALL_DNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
-        max_intrachromosomal_distance_tau: int = CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
-        max_intrachromosomal_distance: int = CALL_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE,
-        max_interchromosomal_distance: int = CALL_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE,
-        num_threads: int = CALL_DNA_VARS_NUM_THREADS,
+        regions: List[Tuple[str,int,int]],
+        min_reads: int = CALL_GERMLINE_DNA_VARS_MIN_READS,
+        min_mapping_quality: int = CALL_GERMLINE_DNA_VARS_MIN_MAPPING_QUALITY,
+        min_base_quality: float = CALL_GERMLINE_DNA_VARS_MIN_BASE_QUALITY,
+        min_total_depth: int = CALL_GERMLINE_DNA_VARS_MIN_TOTAL_DEPTH,
+        min_alt_allele_fraction: float = CALL_GERMLINE_DNA_VARS_MIN_ALT_ALLELE_FRACTION,
+        min_size_proportion: float = CALL_GERMLINE_DNA_VARS_MIN_SIZE_PROPORTION,
+        max_ins_norm_edit_distance: float = CALL_GERMLINE_DNA_VARS_MAX_INS_NORM_EDIT_DISTANCE,
+        max_intrachromosomal_distance_tau: int = CALL_GERMLINE_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
+        max_intrachromosomal_distance: int = CALL_GERMLINE_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE,
+        max_interchromosomal_distance: int = CALL_GERMLINE_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE,
+        max_slippage_repeat_length: int = CALL_GERMLINE_DNA_VARS_MAX_SLIPPAGE_REPEAT_LENGTH,
+        num_threads: int = CALL_GERMLINE_DNA_VARS_NUM_THREADS,
+        chunk_size: int = CALL_GERMLINE_DNA_VARS_CHUNK_SIZE,
+        max_records: int = CALL_GERMLINE_DNA_VARS_MAX_RECORDS,
+        expected_variant_allele_fraction: float = CALL_GERMLINE_DNA_VARS_EXPECTED_VARIANT_ALLELE_FRACTION,
+        expected_mutation_rate: float = CALL_GERMLINE_DNA_VARS_EXPECTED_MUTATION_RATE,
+        expected_sequencing_error: float = CALL_GERMLINE_DNA_VARS_EXPECTED_SEQUENCING_ERROR,
+        expected_slippage_probability: float = CALL_GERMLINE_DNA_VARS_EXPECTED_SLIPPAGE_PROBABILITY,
+        max_f1_fraction: float = CALL_GERMLINE_DNA_VARS_MAX_F1_FRACTION,
+        max_fpr: float = CALL_GERMLINE_DNA_VARS_MAX_FPR,
         temp_dir: str = "",
         output_type: OutputType = OutputType.FILE
 ) -> pd.DataFrame:
@@ -187,23 +324,32 @@ def identify_dna_variants(
     Returns:
         If output_type is 'dataframe', then a Pandas DataFrame.
     """
-    if chromosomes is None:
-        chromosomes = get_chromosomes(bam_file=bam_file)
-    assert len(chromosomes) > 0
-    df_variants = exactolibrs.identify_dna_variants(
+    df_variants = exactolibrs.identify_germline_dna_variants(
         bam_file=bam_file,
         bam_bai_file=bam_bai_file,
+        fasta_file=fasta_file,
         output_tsv_file=output_tsv_file,
+        regions=regions,
         min_reads=min_reads,
         min_mapping_quality=min_mapping_quality,
-        min_average_base_quality=min_average_base_quality,
+        min_base_quality=min_base_quality,
+        min_total_depth=min_total_depth,
+        min_alt_allele_fraction=min_alt_allele_fraction,
         min_size_proportion=min_size_proportion,
         max_ins_norm_edit_distance=max_ins_norm_edit_distance,
         max_intrachromosomal_distance_tau=max_intrachromosomal_distance_tau,
         max_intrachromosomal_distance=max_intrachromosomal_distance,
         max_interchromosomal_distance=max_interchromosomal_distance,
+        max_slippage_repeat_length=max_slippage_repeat_length,
         num_threads=num_threads,
-        chromosomes=chromosomes,
+        chunk_size=chunk_size,
+        max_records=max_records,
+        expected_variant_allele_fraction=expected_variant_allele_fraction,
+        expected_mutation_rate=expected_mutation_rate,
+        expected_sequencing_error=expected_sequencing_error,
+        expected_slippage_probability=expected_slippage_probability,
+        max_f1_fraction=max_f1_fraction,
+        max_fpr=max_fpr,
         temp_dir=temp_dir,
         output_type=str(output_type)
     )
@@ -218,12 +364,9 @@ def identify_rna_variants(
         reference_gene_annotation_source: GeneAnnotationSource,
         reference_gene_annotation_assembly: str,
         reference_gene_annotation_version: str,
-        gene_types: List[str],
-        gene_levels: List[int],
-        transcript_types: List[str],
-        transcript_levels: List[int],
         output_dir: str,
         output_prefix: str,
+        chunk_size: int = CALL_RNA_VARS_CHUNK_SIZE,
         reference_transcript_scoring_method: ReferenceTranscriptScoringMethod = ReferenceTranscriptScoringMethod(CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SCORING_METHOD),
         reference_transcript_selection_strategy: ReferenceTranscriptSelectionStrategy = ReferenceTranscriptSelectionStrategy(CALL_RNA_VARS_REFERENCE_TRANSCRIPT_SELECTION_STRATEGY),
         reference_transcript_top_k: int = CALL_RNA_VARS_REFERENCE_TRANSCRIPT_TOP_K,
@@ -279,10 +422,6 @@ def identify_rna_variants(
         reference_gene_annotation_source=str(reference_gene_annotation_source),
         reference_gene_annotation_assembly=str(reference_gene_annotation_assembly),
         reference_gene_annotation_version=str(reference_gene_annotation_version),
-        gene_types=gene_types,
-        gene_levels=gene_levels,
-        transcript_types=transcript_types,
-        transcript_levels=transcript_levels,
         output_dir=output_dir,
         output_prefix=output_prefix,
         reference_transcript_scoring_method=str(reference_transcript_scoring_method),
@@ -293,7 +432,8 @@ def identify_rna_variants(
         min_average_base_quality=min_average_base_quality,
         num_threads=num_threads,
         temp_dir=temp_dir,
-        output_type=str(output_type)
+        output_type=str(output_type),
+        chunk_size=chunk_size
     )
     return (df_exons.to_pandas(),
             df_read_filter_status.to_pandas(),
@@ -303,6 +443,30 @@ def identify_rna_variants(
             df_transcripts.to_pandas(),
             df_transcript_structures.to_pandas(),
             df_variant_calls.to_pandas())
+
+
+def identify_peptide_variants(
+        primary_structures_tsv_file: str,
+        reference_proteome_fasta_file: str,
+        min_k: int,
+        max_k: int,
+        num_processes: int
+) -> pd.DataFrame:
+    reference_kmer_set = build_reference_kmer_index(
+        reference_fasta_file=reference_proteome_fasta_file,
+        min_k=min_k,
+        max_k=max_k,
+        num_processes=num_processes
+    )
+    df_primary_structures = pd.read_csv(primary_structures_tsv_file, sep='\t', low_memory=False, memory_map=True)
+    df_mutant_peptides = identify_peptide_variants_(
+        df_primary_structures=df_primary_structures,
+        reference_kmer_set=reference_kmer_set,
+        min_k=min_k,
+        max_k=max_k,
+        num_processes=num_processes
+    )
+    return df_mutant_peptides
 
 
 def integrate_variants(
@@ -542,103 +706,4 @@ def translate_structures(
     )
 
     return df_primary_structures.to_pandas()
-
-
-# def build_variation_graph(
-#         variants_tsv_file: str,
-#         fasta_file: str,
-#         output_fasta_file: str
-# ):
-#     exactolibrs.build_variation_graph(variants_tsv_file, fasta_file, output_fasta_file)
-#
-#
-# def diff_kmers(
-#         query_sequences: Dict[str,str],
-#         reference_sequences: Dict[str,str],
-#         min_k: int,
-#         max_k: int
-# ) -> pd.DataFrame:
-#     # Step 1. Identify all k-mers in the reference sequences
-#     reference_kmers = set()
-#     for sequence in reference_sequences.values():
-#         for k in range(min_k, max_k + 1):
-#             kmers = get_kmers(sequence=sequence, k=k)
-#             reference_kmers.update(kmers)
-#
-#     # Step 2. Identify k-mers unique to the query sequences
-#     data = {
-#         'peptide_id': [],
-#         'kmer': [],
-#         'k': []
-#     }
-#     for sequence_name,sequence in query_sequences.items():
-#         for k in range(min_k, max_k + 1):
-#             kmers = get_kmers(sequence=sequence, k=k)
-#             for kmer in kmers:
-#                 if kmer not in reference_kmers:
-#                     data['peptide_id'].append(sequence_name)
-#                     data['kmer'].append(kmer)
-#                     data['k'].append(k)
-#
-#     return pd.DataFrame(data)
-#
-#
-
-#
-#
-
-#
-# def identify_peptide_variants(
-#         fasta_file: str,
-#         rna_bam_file: str,
-#         rna_bam_bai_file: str,
-#         reference_fasta_file: str,
-#         translations_tsv_file: str,
-#         rna_variants_tsv_file: str,
-#         dna_variants_tsv_file: str,
-#         exclude_bed_file: str,
-#         min_reads: int,
-#         k: int,
-#         num_threads: int,
-#         dna_variant_padding: int,
-#         output_tsv_file: str,
-#         output_fasta_file: str,
-#         gzip: bool
-# ):
-#     """
-#     Identify peptide variants.
-#
-#     Args:
-#         fasta_file             :   Input peptides FASTA file.
-#         reference_fasta_file   :   Reference peptides FASTA file.
-#         k                      :   K-mer k size.
-#         num_threads            :   Number of threads.
-#
-#     Returns:
-#         Pandas DataFrame with the following columns:
-#         'peptide_id'
-#         'peptide_sequence'
-#         'kmer_mask'
-#     """
-#     pass
-#     # exactolibrs.identify_peptide_variants(
-#     #     fasta_file=fasta_file,
-#     #     rna_bam_file=rna_bam_file,
-#     #     rna_bam_bai_file=rna_bam_bai_file,
-#     #     reference_fasta_file=reference_fasta_file,
-#     #     translations_tsv_file=translations_tsv_file,
-#     #     rna_variants_tsv_file=rna_variants_tsv_file,
-#     #     dna_variants_tsv_file=dna_variants_tsv_file,
-#     #     exclude_bed_file=exclude_bed_file,
-#     #     min_reads=min_reads,
-#     #     k=k,
-#     #     num_threads=num_threads,
-#     #     dna_variant_padding=dna_variant_padding,
-#     #     output_tsv_file=output_tsv_file,
-#     #     output_fasta_file=output_fasta_file,
-#     #     gzip=gzip,
-#     #     output_type='file'
-#     # )
-#
-#
 

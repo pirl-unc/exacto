@@ -21,23 +21,23 @@ use crate::prelude::*;
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct AlignmentStructureRecord {
-    start: usize,                                 // read position
-    end: usize,                                   // read position
+    start: u32,                                 // read position
+    end: u32,                                   // read position
     sequence: Box<str>,
     base_quality_scores: Vec<u8>,
     record_type: AlignmentStructureRecordType,
     kind: AlignmentStructureKind,
     context: Option<AlignmentStructureContext>,
     chromosome_1: u16,
-    position_1: usize,
+    position_1: u32,
     operation_1: GraphOperationType,
     strand_1: Strand,
-    mapping_quality_1: usize,
+    mapping_quality_1: u16,
     chromosome_2: u16,
-    position_2: usize,
+    position_2: u32,
     operation_2: GraphOperationType,
     strand_2: Strand,
-    mapping_quality_2: usize,
+    mapping_quality_2: u16,
     gene_id_1: Option<Box<str>>,
     transcript_id_1: Option<Box<str>>,
     exon_id_1: Option<Box<str>>,
@@ -50,23 +50,23 @@ pub struct AlignmentStructureRecord {
 /// API methods
 impl AlignmentStructureRecord {
     pub fn new(
-        start: usize,
-        end: usize,
+        start: u32,
+        end: u32,
         sequence: &str,
         base_quality_scores: Vec<u8>,
         record_type: AlignmentStructureRecordType,
         kind: AlignmentStructureKind,
         context: Option<AlignmentStructureContext>,
         chromosome_1: u16,
-        position_1: usize,
+        position_1: u32,
         operation_1: GraphOperationType,
         strand_1: Strand,
-        mapping_quality_1: usize,
+        mapping_quality_1: u16,
         chromosome_2: u16,
-        position_2: usize,
+        position_2: u32,
         operation_2: GraphOperationType,
         strand_2: Strand,
-        mapping_quality_2: usize,
+        mapping_quality_2: u16,
         gene_id_1: Option<Box<str>>,
         transcript_id_1: Option<Box<str>>,
         exon_id_1: Option<Box<str>>,
@@ -98,20 +98,20 @@ impl AlignmentStructureRecord {
             strand_2: strand_2,
             mapping_quality_2: mapping_quality_2,
             gene_id_1: gene_id_1,
-            transcript_id_1,
-            exon_id_1,
-            gene_id_2,
-            transcript_id_2,
-            exon_id_2,
-            skipped
+            transcript_id_1: transcript_id_1,
+            exon_id_1: exon_id_1,
+            gene_id_2: gene_id_2,
+            transcript_id_2: transcript_id_2,
+            exon_id_2: exon_id_2,
+            skipped: skipped
         }
     }
     
-    pub fn get_start(&self) -> usize {
+    pub fn get_start(&self) -> u32 {
         self.start
     }
 
-    pub fn get_end(&self) -> usize {
+    pub fn get_end(&self) -> u32 {
         self.end
     }
 
@@ -139,7 +139,7 @@ impl AlignmentStructureRecord {
         self.chromosome_1
     }
 
-    pub fn get_position_1(&self) -> usize {
+    pub fn get_position_1(&self) -> u32 {
         self.position_1
     }
 
@@ -151,7 +151,7 @@ impl AlignmentStructureRecord {
         &self.strand_1
     }
 
-    pub fn get_mapping_quality_1(&self) -> usize {
+    pub fn get_mapping_quality_1(&self) -> u16 {
         self.mapping_quality_1
     }
 
@@ -159,7 +159,7 @@ impl AlignmentStructureRecord {
         self.chromosome_2
     }
 
-    pub fn get_position_2(&self) -> usize {
+    pub fn get_position_2(&self) -> u32 {
         self.position_2
     }
 
@@ -171,7 +171,7 @@ impl AlignmentStructureRecord {
         &self.strand_2
     }
 
-    pub fn get_mapping_quality_2(&self) -> usize {
+    pub fn get_mapping_quality_2(&self) -> u16 {
         self.mapping_quality_2
     }
 

@@ -1,25 +1,14 @@
 [package]
 name = "exacto-qc"
-version = "0.4.5"
+version.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-bimap = { version = "0.6.3", features = ["serde"] }
-exacto-core = { path = "../exacto-core", version = "0.4.5" }
-noodles-bam = "0.83.0"
-noodles-bgzf = "0.43.0"
-noodles-core = "0.18.0"
-noodles-fasta = "0.56.0"
-noodles-sam = "0.79.0"
-polars = { version = "0.45.0", features = ["csv","decompress","json","lazy","parquet","serde"] }
-rayon = "1.10.0"
-serde = { version = "1.0.210", features = ["derive"] }
-tempfile = "3.22.0"
-
-[profile.dev]
-opt-level = 0
-
-[profile.release]
-incremental = true
+bimap = { workspace = true }
+exacto-core = { workspace = true }
+noodles-bam = { workspace = true }
+noodles-sam = { workspace = true }
+rayon = { workspace = true }
+tempfile = { workspace = true }

@@ -1,0 +1,127 @@
+name: "CI"
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Run linter
+        run: |
+          pip install pylint==3.3.5
+          chmod +x lint.sh
+          bash lint.sh
+
+  test-rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    needs: lint
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: test-env
+          python-version: "3.10"
+          channels: conda-forge,bioconda,defaults
+          channel-priority: strict
+
+      - name: Install Rust toolchain
+        run: |
+          conda install -y rust=1.88.0
+
+      - name: Run Rust unit tests
+        run: |
+          cd exacto/
+          cargo test -- --nocapture
+
+  test-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    needs: lint
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: test-env
+          python-version: "3.10"
+          channels: conda-forge,bioconda,defaults
+          channel-priority: strict
+
+      - name: Install dependencies
+        run: |
+          conda install -y \
+            pip \
+            rust=1.88.0 \
+            pandas=2.2.3 \
+            polars=1.26.0 \
+            pyarrow=19.0.1 \
+            coveralls=4.0.1 \
+            pytest=8.3.5 \
+            pytest-cov=6.1.1
+          python -m pip install pysam==0.23.0
+          python -m pip install . --verbose
+
+      - name: Verify install
+        run: |
+          which python
+          which pip
+          python -c "import sys; print('sys.executable:', sys.executable)"
+          python -c "import pysam; print('pysam OK:', pysam.__file__)"
+          python -c "import exactolib; print('exactolib OK:', exactolib.__file__)"
+
+      - name: Run Python unit tests
+        run: |
+          chmod +x unittest.sh
+          bash unittest.sh

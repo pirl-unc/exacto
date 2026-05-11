@@ -1,23 +1,17 @@
 [package]
 name = "exacto-translator"
-version = "0.4.5"
+version.workspace = true
 license.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-exacto-annotator = { path = "../exacto-annotator", version = "0.4.5" }
-exacto-caller = { path = "../exacto-caller", version = "0.4.5" }
-exacto-core = { path = "../exacto-core", version = "0.4.5" }
-flate2 = "1.0"
-noodles-fastq = "0.16.0"
-polars = { version = "0.45.0", features = ["csv","json","lazy","parquet","serde"] }
-rayon = "1.10.0"
-serde = { version = "1.0.210", features = ["derive"] }
-tempfile = "3.6"
-
-[profile.dev]
-opt-level = 0
-
-[profile.release]
-incremental = true
+exacto-annotator = { workspace = true }
+exacto-caller = { workspace = true }
+exacto-core = { workspace = true }
+flate2 = { workspace = true }
+noodles-fastq = { workspace = true }
+polars = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+tempfile = { workspace = true }

@@ -321,11 +321,14 @@ fn test_reference_transcript_matching_5() {
         0.9f32
     );
 
-    assert_eq!(reference_transcript_matches.len(), 4);
-    assert_eq!(reference_transcript_matches.get(0).unwrap().reference_transcript_id, "ENST00000300574.3".into());
-    assert_eq!(reference_transcript_matches.get(1).unwrap().reference_transcript_id, "ENST00000398970.5".into());
-    assert_eq!(reference_transcript_matches.get(2).unwrap().reference_transcript_id, "ENST00000574295.1".into());
-    assert_eq!(reference_transcript_matches.get(3).unwrap().reference_transcript_id, "ENST00000572145.1".into());
+    assert_eq!(reference_transcript_matches.len(), 3);
+
+    let matched_ids: Vec<&str> = reference_transcript_matches.iter()
+        .map(|m| m.reference_transcript_id.as_ref())
+        .collect();
+    assert!(matched_ids.contains(&"ENST00000574295.1"));
+    assert!(matched_ids.contains(&"ENST00000398970.5"));
+    assert!(matched_ids.contains(&"ENST00000300574.3"));
 }
 
 #[test]

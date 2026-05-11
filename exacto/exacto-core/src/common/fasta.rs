@@ -18,6 +18,7 @@ use noodles_fasta::{fai, Record};
 use noodles_fasta::io::indexed_reader::Builder;
 use noodles_fasta::io::Reader as FastaReader;
 use noodles_fasta::record::{Definition, Sequence};
+use std::cell::RefCell;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -38,7 +39,7 @@ use std::process::Command;
 /// - `.fa` path: no extra tools required.
 /// - `.fa.gz` path: `samtools` must be in PATH (needed to create both .fai and .gzi correctly).
 pub fn create_fai_file<P: AsRef<Path>>(fasta_file: P) -> Result<PathBuf, Box<dyn Error>> {
-    let fasta_path = fasta_file.as_ref();
+    let fasta_path: &Path = fasta_file.as_ref();
 
     // Case 1: Uncompressed FASTA (.fa / .fasta)
     let is_gz = fasta_path
@@ -99,54 +100,60 @@ pub fn create_fai_file<P: AsRef<Path>>(fasta_file: P) -> Result<PathBuf, Box<dyn
 /// * true if an index file exists.
 /// * false otherwise.
 pub fn fasta_index_exists(fasta_file: &str) -> bool {
-    let fasta_path = Path::new(fasta_file);
-    let possible_suffixes = [
-        ".fai",
-        ".fa.fai",
-        ".fasta.fai",
-        ".fa.gz.fai",
-        ".fasta.gz.fai",
-    ];
-
-    possible_suffixes.iter().any(|suffix| {
-        let candidate = fasta_path.with_file_name(
-            format!("{}{}", fasta_path.file_name().unwrap().to_string_lossy(), suffix)
-        );
-        candidate.exists()
-    })
+    Path::new(&format!("{}.fai", fasta_file)).exists()
 }
 
 /// Fetches a sequence from a FASTA file.
 ///
 /// # Arguments
 /// * `sequence_id`: Sequence ID.
-/// * `start`: Start position.
+/// * `start`: Start position (starts from 1).
 /// * `end`: End position.
 /// * `fasta_file`: FASTA file.
 ///
 /// # Returns
 /// * Sequence.
+thread_local! {
+    static FASTA_READER_CACHE: RefCell<Option<(
+        String,
+        fasta::io::IndexedReader<fasta::io::BufReader<File>>
+    )>> = RefCell::new(None);
+}
+
 pub fn get_fasta_sequence(
     sequence_id: &str,
-    start: usize,
-    end: usize,
+    start: u32,
+    end: u32,
     fasta_file: &str
 ) -> Box<str> {
-    if fasta_index_exists(fasta_file) == false {
-        create_fai_file(fasta_file);
-    }
+    FASTA_READER_CACHE.with(|cache| {
+        let mut cache = cache.borrow_mut();
 
-    let mut fasta_reader = Builder::default()
-        .build_from_path(fasta_file)
-        .unwrap();
+        // Reuse cached reader if same file; otherwise open + index once per thread
+        let needs_new = match cache.as_ref() {
+            Some((path, _)) => path != fasta_file,
+            None => true,
+        };
+        if needs_new {
+            if !fasta_index_exists(fasta_file) {
+                create_fai_file(fasta_file).unwrap();
+            }
+            let reader = Builder::default()
+                .build_from_path(fasta_file)
+                .unwrap();
+            *cache = Some((fasta_file.to_string(), reader));
+        }
+        let reader = &mut cache.as_mut().unwrap().1;
 
-    let position_start = Position::try_from(start).unwrap();
-    let position_end = Position::try_from(end).unwrap();
-    let region = Region::new(sequence_id, position_start..=position_end);
-    let ref_record = fasta_reader.query(&region).unwrap();
-    let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
-    let sequence: &str = std::str::from_utf8(ref_sequence_bytes).expect("Failed to convert sequence to UTF-8");
-    sequence.into()
+        let position_start: Position = Position::try_from(start as usize).unwrap();
+        let position_end: Position = Position::try_from(end as usize).unwrap();
+        let region: Region = Region::new(sequence_id, position_start..=position_end);
+        let ref_record: Record = reader.query(&region).unwrap();
+        let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
+        let sequence: &str = std::str::from_utf8(ref_sequence_bytes)
+            .expect("Failed to convert sequence to UTF-8");
+        sequence.into()
+    })
 }
 
 /// Fetches all sequence IDs in a FASTA file.
@@ -156,8 +163,8 @@ pub fn get_fasta_sequence(
 ///
 /// # Returns
 /// * Vector of tuples (sequence ID, sequence length).
-pub fn get_fasta_sequence_ids(fasta_file: &str) -> Vec<(Box<str>, usize)> {
-    let file = File::open(fasta_file).expect("Failed to open FASTA file");
+pub fn get_fasta_sequence_ids(fasta_file: &str) -> Vec<(Box<str>, u32)> {
+    let file: File = File::open(fasta_file).expect("Failed to open FASTA file");
     let reader: Box<dyn Read> = if fasta_file.ends_with(".gz") {
         Box::new(MultiGzDecoder::new(file))
     } else {
@@ -174,8 +181,9 @@ pub fn get_fasta_sequence_ids(fasta_file: &str) -> Vec<(Box<str>, usize)> {
             let name: String = std::str::from_utf8(record.definition().name().as_ref())
                 .expect("Invalid UTF-8 in FASTA header")
                 .to_string();
-            let len = record.sequence().len();  // total bases for this record
-            (name.into_boxed_str(), len)
+            let len: usize = record.sequence().len();
+            assert!(len <= u32::MAX as usize, "Sequence '{}' length {} exceeds u32::MAX", name, len);
+            (name.into_boxed_str(), len as u32)
         })
         .collect()
 }
@@ -190,12 +198,10 @@ pub fn write_fasta_file(sequences: &Vec<(Box<str>, Box<str>)>, output_fasta_file
         .set_line_base_count(80)
         .build_from_path(output_fasta_file)
         .unwrap();
-
     for (name, sequence) in sequences {
         let definition: Definition = Definition::new(name.as_ref(), None);
         let record: Record = Record::new(definition, Sequence::from(sequence.as_bytes().to_owned()));
         writer.write_record(&record).unwrap();
     }
-
     create_fai_file(output_fasta_file);
 }

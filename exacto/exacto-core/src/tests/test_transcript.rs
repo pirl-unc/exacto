@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::prelude::*;
 
 
@@ -14,7 +16,8 @@ fn test_transcript_1() {
         1,
         "transcript",
         "protein_coding",
-        "1"
+        "1",
+        HashSet::new()
     );
 
     let exon_1: Exon = Exon::new(
@@ -87,7 +90,8 @@ fn test_transcript_2() {
         1,
         "transcript",
         "protein_coding",
-        "1"
+        "1",
+        HashSet::new()
     );
 
     let exon_1: Exon = Exon::new(
@@ -158,7 +162,8 @@ fn test_transcript_3() {
         1,
         "transcript",
         "protein_coding",
-        "1"
+        "1",
+        HashSet::new()
     );
 
     let exon_1: Exon = Exon::new(
@@ -251,7 +256,8 @@ fn test_transcript_4() {
         1,
         "transcript",
         "protein_coding",
-        "1"
+        "1",
+        HashSet::new()
     );
 
     let exon_1: Exon = Exon::new(

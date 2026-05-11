@@ -22,11 +22,11 @@ use crate::prelude::*;
 #[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
 pub struct GraphOperation {
     chromosome_1: u16,
-    position_1: usize,
+    position_1: u32,
     strand_1: Strand,
     operation_type_1: GraphOperationType,
     chromosome_2: u16,
-    position_2: usize,
+    position_2: u32,
     strand_2: Strand,
     operation_type_2: GraphOperationType,
     sequence: Box<str>,
@@ -42,7 +42,7 @@ impl Hash for GraphOperation {
         self.chromosome_2.hash(state);
         self.position_2.hash(state);
         self.strand_2.hash(state);
-        self.operation_type_1.hash(state);
+        self.operation_type_2.hash(state);
         self.sequence.hash(state);
         self.variant_type.hash(state);
     }
@@ -52,11 +52,11 @@ impl Hash for GraphOperation {
 impl GraphOperation {
     pub fn new(
         chromosome_1: u16,
-        position_1: usize,
+        position_1: u32,
         strand_1: Strand,
         operation_type_1: GraphOperationType,
         chromosome_2: u16,
-        position_2: usize,
+        position_2: u32,
         strand_2: Strand,
         operation_type_2: GraphOperationType,
         sequence: Box<str>,
@@ -72,7 +72,7 @@ impl GraphOperation {
             strand_2,
             operation_type_2,
             sequence,
-            variant_type,
+            variant_type
         };
         Self::standardize(unstandardized)
     }
@@ -137,11 +137,11 @@ impl GraphOperation {
         self.chromosome_2
     }
     
-    pub fn get_position_1(&self) -> usize {
+    pub fn get_position_1(&self) -> u32 {
         self.position_1
     }
     
-    pub fn get_position_2(&self) -> usize {
+    pub fn get_position_2(&self) -> u32 {
         self.position_2
     }
     
@@ -201,7 +201,7 @@ impl GraphOperation {
                 self.get_sequence_length() as isize
             },
             VariantType::IntronRetention => {
-                (self.position_2.abs_diff(self.position_1) as isize) - 1
+                (self.position_2.abs_diff(self.position_1) as isize) + 1
             },
             VariantType::MultiNucleotideVariant => {
                 self.get_sequence_length() as isize

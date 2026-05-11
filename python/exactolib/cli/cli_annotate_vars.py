@@ -18,7 +18,6 @@ and run Exacto 'annotate-vars' command.
 
 
 import argparse
-from ..constants import *
 from ..main import *
 from ..utilities import *
 

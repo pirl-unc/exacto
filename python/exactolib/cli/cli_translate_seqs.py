@@ -18,7 +18,6 @@ and run Exacto 'translate-seqs' command.
 
 
 import argparse
-from ..constants import *
 from ..main import *
 from ..utilities import *
 
@@ -69,9 +68,7 @@ def add_cli_translate_seqs_arg_parser(sub_parsers) -> argparse._SubParsersAction
         type=str,
         choices=[str(TranslationStrategy.LONGEST_ORF), str(TranslationStrategy.ALL_ORFS)],
         required=True,
-        help="Translation strategy (default: %s). Available options: '%s'." %
-             (str(TranslationStrategy.LONGEST_ORF),
-              ','.join([str(TranslationStrategy.LONGEST_ORF)]))
+        help="Translation strategy."
     )
 
     # Optional arguments
@@ -141,7 +138,7 @@ def run_cli_translate_seqs_from_parsed_args(args) -> None:
 
         # Step 1. Translate
         if args.fasta_file:
-            logger.info("%i reads in total in the FASTQ file." % count_reads_in_fastx_file(fastx_file=args.fasta_file))
+            logger.info("%i reads in total in the FASTA file." % count_reads_in_fastx_file(fastx_file=args.fasta_file))
             df_translations = translate_fasta_file(
                 fasta_file=args.fasta_file,
                 strategy=TranslationStrategy(args.strategy),

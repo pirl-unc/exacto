@@ -1,9 +1,13 @@
 use bimap::BiMap;
 use exacto_core::prelude::*;
 use noodles_bam as bam;
+use noodles_bam::bai;
+use noodles_bam::bai::Index;
+use noodles_sam::Header;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::prelude::*;
 
@@ -17,35 +21,43 @@ fn test_alignment_structure_1() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_325382_158010/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut found: bool = false;
@@ -68,35 +80,43 @@ fn test_alignment_structure_2() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_382982_262550/2/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut found: bool = false;
@@ -119,35 +139,43 @@ fn test_alignment_structure_3() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_478275_464661/2/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut found: bool = false;
@@ -170,35 +198,43 @@ fn test_alignment_structure_4() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_767230_904257/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut num_breakpoint: usize = 0;
@@ -221,35 +257,43 @@ fn test_alignment_structure_5() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_283345_480209/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
@@ -283,35 +327,43 @@ fn test_alignment_structure_6() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_825713_352116/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut num_breakpoints: usize = 0;
@@ -334,35 +386,43 @@ fn test_alignment_structure_7() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_291012_248279/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut num_breakpoints: usize = 0;
@@ -388,36 +448,44 @@ fn test_alignment_structure_8() {
     let reference_genome_fasta_full_path = fs::canonicalize(reference_genome_fasta_path).unwrap();
     let reference_genome_fasta_file: &str = reference_genome_fasta_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>, usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
     let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_507476_774164/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut num_mismatch: usize = 0;
@@ -429,7 +497,7 @@ fn test_alignment_structure_8() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -453,36 +521,44 @@ fn test_alignment_structure_9() {
     let reference_genome_fasta_full_path = fs::canonicalize(reference_genome_fasta_path).unwrap();
     let reference_genome_fasta_file: &str = reference_genome_fasta_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_822724_603243/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut num_insertion: usize = 0;
@@ -494,7 +570,7 @@ fn test_alignment_structure_9() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -518,41 +594,49 @@ fn test_alignment_structure_10() {
     let reference_genome_fasta_full_path = fs::canonicalize(reference_genome_fasta_path).unwrap();
     let reference_genome_fasta_file: &str = reference_genome_fasta_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
 
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
-        1
+        2
     );
 
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
-        bam_file,
-        bam_bai_file,
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_264855_304921/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -586,44 +670,55 @@ fn test_alignment_structure_11() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_535544_475898/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -637,6 +732,7 @@ fn test_alignment_structure_11() {
     );
 
     alignment_structure.contextualize(
+        "",
         &vec![&reference_transcript_sequence],
         &gene_annotator,
         &chromosome_names_map
@@ -693,44 +789,55 @@ fn test_alignment_structure_12() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_561742_839878/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -743,6 +850,7 @@ fn test_alignment_structure_12() {
         reference_genome_fasta_file
     );
     alignment_structure.contextualize(
+        "",
         &vec![&reference_transcript_sequence],
         &gene_annotator,
         &chromosome_names_map
@@ -788,44 +896,55 @@ fn test_alignment_structure_13() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_124525_407996/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -838,6 +957,7 @@ fn test_alignment_structure_13() {
         reference_genome_fasta_file
     );
     alignment_structure.contextualize(
+        "",
         &vec![&reference_transcript_sequence],
         &gene_annotator,
         &chromosome_names_map
@@ -883,44 +1003,55 @@ fn test_alignment_structure_14() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_924107_174289/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -933,6 +1064,7 @@ fn test_alignment_structure_14() {
         reference_genome_fasta_file
     );
     alignment_structure.contextualize(
+        "",
         &vec![&reference_transcript_sequence],
         &gene_annotator,
         &chromosome_names_map
@@ -978,44 +1110,55 @@ fn test_alignment_structure_15() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_924958_759981/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1028,6 +1171,7 @@ fn test_alignment_structure_15() {
         reference_genome_fasta_file
     );
     alignment_structure.contextualize(
+        "",
         &vec![&reference_transcript_sequence],
         &gene_annotator,
         &chromosome_names_map
@@ -1069,44 +1213,55 @@ fn test_alignment_structure_16() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_721712_133913/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1119,6 +1274,7 @@ fn test_alignment_structure_16() {
         reference_genome_fasta_file
     );
     alignment_structure.contextualize(
+        "",
         &vec![&reference_transcript_sequence],
         &gene_annotator,
         &chromosome_names_map
@@ -1160,44 +1316,55 @@ fn test_alignment_structure_17() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_288476_571946/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1222,6 +1389,7 @@ fn test_alignment_structure_17() {
         reference_genome_fasta_file
     );
     alignment_structure.contextualize(
+        "",
         &vec![
             &reference_transcript_sequence_1,
             &reference_transcript_sequence_2,
@@ -1249,7 +1417,7 @@ fn test_alignment_structure_17() {
     assert_eq!(exons.len(), 19);
     assert_eq!(introns.len(), 16);
 
-    assert_eq!(variant_records.len(), 34);
+    assert_eq!(variant_records.len(), 35);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_position_1(), 1295600);
@@ -1257,7 +1425,7 @@ fn test_alignment_structure_17() {
     assert_eq!(variant_records.get(0).unwrap().get_operation_1(), &GraphOperationType::Downstream);
     assert_eq!(variant_records.get(0).unwrap().get_operation_2(), &GraphOperationType::Downstream);
     assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::FusionGene);
-    assert_eq!(variant_records.get(0).unwrap().get_sequence(), "g"); // overlapping alignment
+    assert_eq!(variant_records.get(0).unwrap().get_sequence(), "G"); // overlapping alignment
     assert_eq!(variant_records.get(29).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(29).unwrap().get_chromosome_2(), 0);
     assert_eq!(variant_records.get(29).unwrap().get_position_1(), 3761101);
@@ -1265,7 +1433,7 @@ fn test_alignment_structure_17() {
     assert_eq!(variant_records.get(29).unwrap().get_operation_1(), &GraphOperationType::Upstream);
     assert_eq!(variant_records.get(29).unwrap().get_operation_2(), &GraphOperationType::Upstream);
     assert_eq!(variant_records.get(29).unwrap().get_variant_type(), &VariantType::FusionGene);
-    assert_eq!(variant_records.get(29).unwrap().get_sequence(), "g"); // overlapping alignment
+    assert_eq!(variant_records.get(29).unwrap().get_sequence(), "G"); // overlapping alignment
 }
 
 #[test]
@@ -1283,44 +1451,56 @@ fn test_alignment_structure_18() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_175366_924183/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons();
+    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
     let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
@@ -1345,6 +1525,7 @@ fn test_alignment_structure_18() {
         reference_genome_fasta_file
     );
     alignment_structure.contextualize(
+        "",
         &vec![
             &reference_transcript_sequence_1,
             &reference_transcript_sequence_2,
@@ -1406,39 +1587,50 @@ fn test_alignment_structure_19() {
     let gencode_gtf_full_path = fs::canonicalize(gencode_gtf_path).unwrap();
     let gencode_gtf_file: &str = gencode_gtf_full_path.to_str().unwrap();
 
-    let chromosome_lengths: HashMap<Box<str>,usize> = get_chromosome_lengths(bam_file);
+    let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let end: usize = *chromosome_lengths.get("chr17").unwrap();
-    let read_names_map: BiMap<Box<str>,usize> = create_read_names_map(
-        bam_file,
-        bam_bai_file,
-        1
-    );
+    let end: u32 = *chromosome_lengths.get("chr17").unwrap();
+
     let gene_annotator = Gencode::new_with_defaults(
         gencode_gtf_file,
         "hg38",
         "v41"
     );
-    let records_map: HashMap<usize,Vec<bam::Record>> = fetch_bam_records(
+
+    let (record_positions_map, read_names_map) = index_bam_records(
         bam_file,
-        bam_bai_file,
+        2
+    );
+
+    let mut reader = bam::io::reader::Builder::default()
+        .build_from_path(bam_file)
+        .unwrap();
+    let header: Header = reader.read_header().unwrap();
+    let index: Index = bai::fs::read(bam_bai_file).unwrap();
+
+    let records_map: HashMap<usize, Vec<bam::Record>> = fetch_bam_records(
+        &mut reader,
+        &header,
+        &index,
         "chr17",
         1,
         end,
+        &record_positions_map,
         &read_names_map,
+        7,
         1
     );
 
     let read_name: &str = "m64012_324970_273886/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
-    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
-    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap().iter().collect::<Vec<_>>().as_slice());
+    let read_sequence: Box<str> = get_fastx_read_sequence(records_map.get(&read_id).unwrap());
+    let quality_scores: Vec<u8> = get_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
 
     let mut alignment: Alignment = Alignment::new(
         read_id,
         &*read_sequence,
         &quality_scores,
-        &records_map.get(&read_id).unwrap()
+        &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect()
     );
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
@@ -1451,6 +1643,7 @@ fn test_alignment_structure_19() {
     );
 
     alignment_structure.contextualize(
+        "",
         &vec![&reference_transcript_sequence],
         &gene_annotator,
         &chromosome_names_map

@@ -36,7 +36,7 @@ fn test_get_fasta_sequence_ids() {
     let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
     let fasta_file_path = fs::canonicalize(fasta_path).unwrap();
     let fasta_file: &str = fasta_file_path.to_str().unwrap();
-    let sequence_ids: Vec<(Box<str>, usize)> = get_fasta_sequence_ids(fasta_file);
+    let sequence_ids: Vec<(Box<str>, u32)> = get_fasta_sequence_ids(fasta_file);
     assert!(sequence_ids.len() == 2);
     assert!(sequence_ids[0].0 == "chr17".into());
     assert!(sequence_ids[1].0 == "chr18".into());

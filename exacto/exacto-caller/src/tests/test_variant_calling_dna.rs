@@ -4,30 +4,47 @@ use std::fs;
 use std::fs::File;
 use std::path::Path;
 use tempfile::NamedTempFile;
+
 use crate::prelude::*;
 
 
 #[test]
-fn test_variant_calling_dna_1() {
+fn test_variant_calling_germline_dna_1() {
     let bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
-    let bam_bai_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
-    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let variant_call_set: DNAVariantCallSet = identify_dna_variants(
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(
         bam_file,
         bam_bai_file,
+        fasta_file,
+        &vec![],
         3,
         25,
         25,
+        3,
+        0.05f32,
         0.5f32,
         0.5f32,
-        20000,
+        2000,
         1000,
         1000,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.5f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
         ""
     );
 
@@ -64,35 +81,52 @@ fn test_variant_calling_dna_1() {
             .filter(col("operation_2").eq(lit(operation_2.to_string())))
             .filter(col("position_1").eq(lit(position_1)))
             .filter(col("position_2").eq(lit(position_2)))
-            .filter(col("variant_sequence").str().to_uppercase().eq(lit(variant_sequence.to_uppercase())))
+            .filter(col("sequence").str().to_uppercase().eq(lit(variant_sequence.to_uppercase())))
             .collect();
         assert!(df_variants_.unwrap().height() == 1);
     }
 }
 
 #[test]
-fn test_variant_calling_dna_2() {
+fn test_variant_calling_germline_dna_2() {
     let bam_path = Path::new("src/tests/data/bam/dna-002-tumor_minimap2_mdtagged_sorted.bam");
-    let bam_bai_path = Path::new("src/tests/data/bam/dna-002-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
-    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/dna-002-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let variant_call_set: DNAVariantCallSet = identify_dna_variants(
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(
         bam_file,
         bam_bai_file,
+        fasta_file,
+        &vec![],
         3,
         25,
         25,
+        3,
+        0.05f32,
         0.5f32,
         0.5f32,
-        20000,
+        2000,
         1000,
         1000,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.5f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -123,35 +157,52 @@ fn test_variant_calling_dna_2() {
             .filter(col("operation_2").eq(lit(operation_2.to_string())))
             .filter(col("position_1").eq(lit(position_1)))
             .filter(col("position_2").eq(lit(position_2)))
-            .filter(col("variant_sequence").str().to_uppercase().eq(lit(variant_sequence.to_uppercase())))
+            .filter(col("sequence").str().to_uppercase().eq(lit(variant_sequence.to_uppercase())))
             .collect();
         assert!(df_variants_.unwrap().height() == 1);
     }
 }
 
 #[test]
-fn test_variant_calling_dna_3() {
+fn test_variant_calling_germline_dna_3() {
     let bam_path = Path::new("src/tests/data/bam/dna-003-tumor_minimap2_mdtagged_sorted.bam");
-    let bam_bai_path = Path::new("src/tests/data/bam/dna-003-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
-    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/dna-003-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let variant_call_set: DNAVariantCallSet = identify_dna_variants(
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(
         bam_file,
         bam_bai_file,
+        fasta_file,
+        &vec![],
         3,
         25,
         25,
+        3,
+        0.05f32,
         0.5f32,
         0.5f32,
-        20000,
+        2000,
         1000,
         1000,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.5f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -188,28 +239,45 @@ fn test_variant_calling_dna_3() {
 }
 
 #[test]
-fn test_variant_calling_dna_4() {
+fn test_variant_calling_germline_dna_4() {
     let bam_path = Path::new("src/tests/data/bam/dna-004-tumor_minimap2_mdtagged_sorted.bam");
-    let bam_bai_path = Path::new("src/tests/data/bam/dna-004-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
-    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/dna-004-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let variant_call_set: DNAVariantCallSet = identify_dna_variants(
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(
         bam_file,
         bam_bai_file,
+        fasta_file,
+        &vec![],
         3,
         25,
         25,
+        3,
+        0.05f32,
         0.5f32,
         0.5f32,
-        20000,
+        2000,
         1000,
         1000,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.5f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
         ""
     );
+
     assert!(variant_call_set.get_size() == 2);
 
     // Compare against the ground truth
@@ -248,28 +316,45 @@ fn test_variant_calling_dna_4() {
 }
 
 #[test]
-fn test_variant_calling_dna_5() {
+fn test_variant_calling_germline_dna_5() {
     let bam_path = Path::new("src/tests/data/bam/dna-005-tumor_minimap2_mdtagged_sorted.bam");
-    let bam_bai_path = Path::new("src/tests/data/bam/dna-005-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
-    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/dna-005-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let variant_call_set: DNAVariantCallSet = identify_dna_variants(
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(
         bam_file,
         bam_bai_file,
+        fasta_file,
+        &vec![],
         3,
         25,
         25,
+        3,
+        0.05f32,
         0.5f32,
         0.5f32,
-        20000,
+        2000,
         1000,
         1000,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.5f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -308,28 +393,45 @@ fn test_variant_calling_dna_5() {
 }
 
 #[test]
-fn test_variant_calling_dna_6() {
+fn test_variant_calling_germline_dna_6() {
     let bam_path = Path::new("src/tests/data/bam/dna-006-tumor_minimap2_mdtagged_sorted.bam");
-    let bam_bai_path = Path::new("src/tests/data/bam/dna-006-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
-    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/dna-006-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let variant_call_set: DNAVariantCallSet = identify_dna_variants(
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(
         bam_file,
         bam_bai_file,
-        1,
+        fasta_file,
+        &vec![],
+        3,
         25,
         25,
+        3,
+        0.05f32,
         0.5f32,
         0.5f32,
-        20000,
+        2000,
         1000,
         1000,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.5f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -368,28 +470,45 @@ fn test_variant_calling_dna_6() {
 }
 
 #[test]
-fn test_variant_calling_dna_7() {
+fn test_variant_calling_germline_dna_7() {
     let bam_path = Path::new("src/tests/data/bam/dna-007-tumor_minimap2_mdtagged_sorted.bam");
-    let bam_bai_path = Path::new("src/tests/data/bam/dna-007-tumor_minimap2_mdtagged_sorted.bam.bai");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
-    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
+    let bam_bai_path = Path::new("src/tests/data/bam/dna-007-tumor_minimap2_mdtagged_sorted.bam.bai");
+    let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
-    let variant_call_set: DNAVariantCallSet = identify_dna_variants(
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
+
+    let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(
         bam_file,
         bam_bai_file,
-        1,
+        fasta_file,
+        &vec![],
+        3,
         25,
         25,
+        3,
+        0.05f32,
         0.5f32,
         0.5f32,
-        20000,
+        2000,
         1000,
         1000,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.5f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -428,7 +547,7 @@ fn test_variant_calling_dna_7() {
 }
 
 #[test]
-fn test_variant_calling_dna_8() {
+fn test_variant_calling_somatic_dna_1() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-001-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-001-normal_minimap2_mdtagged_sorted.bam");
@@ -441,26 +560,43 @@ fn test_variant_calling_dna_8() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -497,7 +633,7 @@ fn test_variant_calling_dna_8() {
 }
 
 #[test]
-fn test_variant_calling_dna_9() {
+fn test_variant_calling_somatic_dna_2() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-002-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-002-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-002-normal_minimap2_mdtagged_sorted.bam");
@@ -510,26 +646,43 @@ fn test_variant_calling_dna_9() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -560,14 +713,14 @@ fn test_variant_calling_dna_9() {
             .filter(col("operation_2").eq(lit(operation_2.to_string())))
             .filter(col("position_1").eq(lit(position_1)))
             .filter(col("position_2").eq(lit(position_2)))
-            .filter(col("variant_sequence").str().to_uppercase().eq(lit(variant_sequence.to_uppercase())))
+            .filter(col("sequence").str().to_uppercase().eq(lit(variant_sequence.to_uppercase())))
             .collect();
         assert!(df_variants_.unwrap().height() == 1);
     }
 }
 
 #[test]
-fn test_variant_calling_dna_10() {
+fn test_variant_calling_somatic_dna_3() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-003-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-003-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-003-normal_minimap2_mdtagged_sorted.bam");
@@ -580,26 +733,43 @@ fn test_variant_calling_dna_10() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -636,7 +806,7 @@ fn test_variant_calling_dna_10() {
 }
 
 #[test]
-fn test_variant_calling_dna_11() {
+fn test_variant_calling_somatic_dna_4() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-004-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-004-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-004-normal_minimap2_mdtagged_sorted.bam");
@@ -649,26 +819,43 @@ fn test_variant_calling_dna_11() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
+
     assert!(variant_call_set.get_size() == 2);
 
     // Compare against the ground truth
@@ -707,7 +894,7 @@ fn test_variant_calling_dna_11() {
 }
 
 #[test]
-fn test_variant_calling_dna_12() {
+fn test_variant_calling_somatic_dna_5() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-005-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-005-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-005-normal_minimap2_mdtagged_sorted.bam");
@@ -720,26 +907,43 @@ fn test_variant_calling_dna_12() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -778,7 +982,7 @@ fn test_variant_calling_dna_12() {
 }
 
 #[test]
-fn test_variant_calling_dna_13() {
+fn test_variant_calling_somatic_dna_6() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-006-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-006-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-006-normal_minimap2_mdtagged_sorted.bam");
@@ -791,26 +995,43 @@ fn test_variant_calling_dna_13() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -849,7 +1070,7 @@ fn test_variant_calling_dna_13() {
 }
 
 #[test]
-fn test_variant_calling_dna_14() {
+fn test_variant_calling_somatic_dna_7() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-007-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-007-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-007-normal_minimap2_mdtagged_sorted.bam");
@@ -862,26 +1083,43 @@ fn test_variant_calling_dna_14() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
+
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
@@ -920,7 +1158,7 @@ fn test_variant_calling_dna_14() {
 }
 
 #[test]
-fn test_variant_calling_dna_15() {
+fn test_variant_calling_somatic_dna_8() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-008-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-008-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-008-normal_minimap2_mdtagged_sorted.bam");
@@ -933,24 +1171,40 @@ fn test_variant_calling_dna_15() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
 
@@ -992,7 +1246,7 @@ fn test_variant_calling_dna_15() {
 }
 
 #[test]
-fn test_variant_calling_dna_16() {
+fn test_variant_calling_somatic_dna_9() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-009-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-009-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-009-normal_minimap2_mdtagged_sorted.bam");
@@ -1005,24 +1259,40 @@ fn test_variant_calling_dna_16() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
 
@@ -1064,7 +1334,7 @@ fn test_variant_calling_dna_16() {
 }
 
 #[test]
-fn test_variant_calling_dna_17() {
+fn test_variant_calling_somatic_dna_10() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-010-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-010-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-010-normal_minimap2_mdtagged_sorted.bam");
@@ -1077,24 +1347,40 @@ fn test_variant_calling_dna_17() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
 
@@ -1148,7 +1434,7 @@ fn test_variant_calling_dna_17() {
 }
 
 #[test]
-fn test_variant_calling_dna_18() {
+fn test_variant_calling_somatic_dna_11() {
     let tumor_bam_path = Path::new("src/tests/data/bam/dna-011-tumor_minimap2_mdtagged_sorted.bam");
     let tumor_bam_bai_path = Path::new("src/tests/data/bam/dna-011-tumor_minimap2_mdtagged_sorted.bam.bai");
     let normal_bam_path = Path::new("src/tests/data/bam/dna-011-normal_minimap2_mdtagged_sorted.bam");
@@ -1161,24 +1447,40 @@ fn test_variant_calling_dna_18() {
     let tumor_bam_bai_file: &str = tumor_bam_bai_full_path.to_str().unwrap();
     let normal_bam_file: &str = normal_bam_full_path.to_str().unwrap();
     let normal_bam_bai_file: &str = normal_bam_bai_full_path.to_str().unwrap();
+    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
+    let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let control_bam_files: Vec<&str> = vec![normal_bam_file];
     let control_bam_bai_files: Vec<&str> = vec![normal_bam_bai_file];
-    let mut variant_call_set: DNAVariantCallSet = identify_case_specific_dna_variants(
+
+    let mut variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
         tumor_bam_file,
         tumor_bam_bai_file,
         control_bam_files,
         control_bam_bai_files,
+        fasta_file,
+        &vec![],
         3,
-        30,
         25,
-        0.5f32,
+        25,
+        3,
+        0.05f32,
+        0.05f32,
         0.5f32,
         2000,
         1000,
         1000,
-        true,
+        30,
         1,
-        vec!["chr17","chr18"],
+        10_000_000,
+        7,
+        0.05f64,
+        1e-6,
+        0.001,
+        0.002,
+        0.99f64,
+        1e-6,
+        true,
         ""
     );
 
@@ -1230,4 +1532,3 @@ fn test_variant_calling_dna_18() {
         assert!(df_variants_1.unwrap().height() == 1 || df_variants_2.unwrap().height() == 1);
     }
 }
-

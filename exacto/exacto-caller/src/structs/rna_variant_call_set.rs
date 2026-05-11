@@ -15,7 +15,7 @@ use bimap::BiMap;
 use exacto_core::prelude::*;
 use polars::prelude::*;
 use rayon::prelude::*;
-use rayon::ThreadPoolBuilder;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 use serde::{Serialize, Deserialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs::File;
@@ -49,7 +49,7 @@ pub struct RNAVariantCallSet {
     /// Nested structure for position indexing:
     /// - Outer HashMap: Maps chromosome IDs to their position index
     /// - Inner BTreeMap: Maps positions to variant call IDs
-    position_index: HashMap<u16, BTreeMap<usize, HashSet<usize>>>
+    position_index: HashMap<u16, BTreeMap<u32, HashSet<usize>>>
 }
 
 impl RNAVariantCallSet {
@@ -83,8 +83,8 @@ impl RNAVariantCallSet {
         let consensus_record = variant_call.get_consensus_record().0;
         let chromosome_1_id: u16 = consensus_record.get_chromosome_1();
         let chromosome_2_id: u16 = consensus_record.get_chromosome_2();
-        let position_1: usize = consensus_record.graph_operation.get_position_1();
-        let position_2: usize = consensus_record.graph_operation.get_position_2();
+        let position_1: u32 = consensus_record.graph_operation.get_position_1();
+        let position_2: u32 = consensus_record.graph_operation.get_position_2();
 
         // Index the variant by its first breakpoint position
         self.position_index
@@ -138,11 +138,11 @@ impl RNAVariantCallSet {
         variant_calls_map
     }
 
-    pub fn get_variant_calls_by_range(&self, chromosome_id: u16, start: usize, end: usize) -> Vec<&VariantCall> {
+    pub fn get_variant_calls_by_range(&self, chromosome_id: u16, start: u32, end: u32) -> Vec<&VariantCall> {
         let mut result_ids = HashSet::new();
 
         if let Some(position_map) = self.position_index.get(&chromosome_id) {
-            for (_pos, variant_call_ids) in position_map.range(start..=end) {
+            for (_, variant_call_ids) in position_map.range(start..=end) {
                 result_ids.extend(variant_call_ids.iter().cloned());
             }
         }
@@ -163,7 +163,7 @@ impl RNAVariantCallSet {
     pub fn read_tsv_file(tsv_file: &str) -> Self {
         let parse_options = CsvParseOptions::default()
             .with_separator(b'\t');
-        let df = CsvReadOptions::default()
+        let df: DataFrame = CsvReadOptions::default()
             .with_parse_options(parse_options)
             .with_has_header(true)
             .try_into_reader_with_file_path(Some(tsv_file.into()))
@@ -183,8 +183,13 @@ impl RNAVariantCallSet {
         let strand_2_col = df.column("strand_2").unwrap().str().unwrap();
         let operation_2_col = df.column("operation_2").unwrap().str().unwrap();
         let variant_type_col = df.column("variant_type").unwrap().str().unwrap();
-        let variant_sequence_col = df.column("variant_sequence").unwrap().str().unwrap();
-        let consensus_read_names_col = df.column("consensus_read_names").unwrap().str().unwrap();
+        let variant_sequence_col = df.column("sequence").unwrap().str().unwrap();
+        let consensus_read_names_col = df
+            .column("consensus_read_names")
+            .unwrap()
+            .cast(&DataType::String)
+            .unwrap();
+        let consensus_read_names_col = consensus_read_names_col.str().unwrap();
         let read_start_col = df.column("read_start").unwrap().i64().unwrap();
         let read_end_col = df.column("read_end").unwrap().i64().unwrap();
 
@@ -220,18 +225,18 @@ impl RNAVariantCallSet {
             let mut reference_transcript_ids: Vec<Box<str>> = reference_transcript_ids_col.get(i).unwrap().split(",").map(|s| s.into()).collect();
             reference_transcript_ids.sort();
             let chromosome_1: Box<str> = chromosome_1_col.get(i).unwrap().into();
-            let position_1: usize = position_1_col.get(i).unwrap() as usize;
+            let position_1: u32 = position_1_col.get(i).unwrap() as u32;
             let strand_1: Strand = Strand::from_str(strand_1_col.get(i).unwrap().into()).unwrap();
             let operation_1: GraphOperationType = GraphOperationType::from_str(operation_1_col.get(i).unwrap().into()).unwrap();
             let chromosome_2: Box<str> = chromosome_2_col.get(i).unwrap().into();
-            let position_2: usize = position_2_col.get(i).unwrap() as usize;
+            let position_2: u32 = position_2_col.get(i).unwrap() as u32;
             let strand_2: Strand = Strand::from_str(strand_2_col.get(i).unwrap().into()).unwrap();
             let operation_2: GraphOperationType = GraphOperationType::from_str(operation_2_col.get(i).unwrap().into()).unwrap();
             let variant_type: VariantType = VariantType::from_str(variant_type_col.get(i).unwrap()).unwrap();
             let variant_sequence: Box<str> = variant_sequence_col.get(i).unwrap().into();
             let consensus_read_names: Box<str> = consensus_read_names_col.get(i).unwrap().into();
-            let read_start: usize = read_start_col.get(i).unwrap() as usize;
-            let read_end: usize = read_end_col.get(i).unwrap() as usize;
+            let read_start: u32 = read_start_col.get(i).unwrap() as u32;
+            let read_end: u32 = read_end_col.get(i).unwrap() as u32;
 
             let sequence_operation: GraphOperation = GraphOperation::new(
                 *chromosome_names_map.get_by_left(&*chromosome_1).unwrap(),
@@ -278,7 +283,7 @@ impl RNAVariantCallSet {
             "self.read_names_map is empty."
         );
 
-        let thread_pool = ThreadPoolBuilder::new()
+        let thread_pool: ThreadPool = ThreadPoolBuilder::new()
             .num_threads(num_threads)
             .build()
             .unwrap();
@@ -344,6 +349,31 @@ impl RNAVariantCallSet {
                 .collect()
         });
 
+        if rows.is_empty() {
+            return DataFrame::new(vec![
+                Column::from(Series::new("variant_call_id".into(), Vec::<u64>::new())),
+                Column::from(Series::new("transcript_model_id".into(), Vec::<u64>::new())),
+                Column::from(Series::new("reference_transcript_ids".into(), Vec::<String>::new())),
+                Column::from(Series::new("chromosome_1".into(), Vec::<&str>::new())),
+                Column::from(Series::new("position_1".into(), Vec::<u64>::new())),
+                Column::from(Series::new("strand_1".into(), Vec::<&str>::new())),
+                Column::from(Series::new("operation_1".into(), Vec::<&str>::new())),
+                Column::from(Series::new("chromosome_2".into(), Vec::<&str>::new())),
+                Column::from(Series::new("position_2".into(), Vec::<u64>::new())),
+                Column::from(Series::new("strand_2".into(), Vec::<&str>::new())),
+                Column::from(Series::new("operation_2".into(), Vec::<&str>::new())),
+                Column::from(Series::new("variant_size".into(), Vec::<i64>::new())),
+                Column::from(Series::new("variant_type".into(), Vec::<String>::new())),
+                Column::from(Series::new("sequence".into(), Vec::<&str>::new())),
+                Column::from(Series::new("consensus_read_names".into(), Vec::<String>::new())),
+                Column::from(Series::new("consensus_read_names_count".into(), Vec::<u64>::new())),
+                Column::from(Series::new("read_names".into(), Vec::<String>::new())),
+                Column::from(Series::new("read_names_count".into(), Vec::<u64>::new())),
+                Column::from(Series::new("read_start".into(), Vec::<u64>::new())),
+                Column::from(Series::new("read_end".into(), Vec::<u64>::new()))
+            ]).unwrap();
+        }
+
         let df: DataFrame = DataFrame::new(vec![
             Column::from(Series::new("variant_call_id".into(), rows.iter().map(|r| r.0).collect::<Vec<_>>())),
             Column::from(Series::new("transcript_model_id".into(), rows.iter().map(|r| r.1).collect::<Vec<_>>())),
@@ -358,7 +388,7 @@ impl RNAVariantCallSet {
             Column::from(Series::new("operation_2".into(), rows.iter().map(|r| r.10).collect::<Vec<_>>())),
             Column::from(Series::new("variant_size".into(), rows.iter().map(|r| r.11).collect::<Vec<_>>())),
             Column::from(Series::new("variant_type".into(), rows.iter().map(|r| r.12.clone()).collect::<Vec<_>>())),
-            Column::from(Series::new("variant_sequence".into(), rows.iter().map(|r| r.13).collect::<Vec<_>>())),
+            Column::from(Series::new("sequence".into(), rows.iter().map(|r| r.13).collect::<Vec<_>>())),
             Column::from(Series::new("consensus_read_names".into(), rows.iter().map(|r| r.14.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("consensus_read_names_count".into(), rows.iter().map(|r| r.15).collect::<Vec<_>>())),
             Column::from(Series::new("read_names".into(), rows.iter().map(|r| r.16.clone()).collect::<Vec<_>>())),

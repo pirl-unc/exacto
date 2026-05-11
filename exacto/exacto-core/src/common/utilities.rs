@@ -37,15 +37,13 @@ pub fn calculate_cosine_similarity(vec1: &Vec<i8>, vec2: &Vec<i8>) -> f64 {
     }
 }
 
-pub fn calculate_l2_distance(vec1: &Vec<i8>, vec2: &Vec<i8>) -> f64 {
+pub fn calculate_l2_distance(vec1: &Vec<i8>, vec2: &Vec<i8>) -> f32 {
     assert_eq!(vec1.len(), vec2.len(), "Vectors must be the same length");
-
-    let mut sum_sq_diff = 0.0;
+    let mut sum_sq_diff: f32 = 0.0;
     for (&a, &b) in vec1.iter().zip(vec2.iter()) {
-        let diff = (a - b) as f64;
+        let diff: f32 = (a as f32) - (b as f32);
         sum_sq_diff += diff * diff;
     }
-
     sum_sq_diff.sqrt()
 }
 
@@ -62,103 +60,11 @@ pub fn capture_memory_usage(message: &str) {
     }
 }
 
-/// Clone a Box<dyn Any>
-pub fn clone_boxed_any(value: &Box<dyn Any>) -> Box<dyn Any> {
-    if let Some(int_value) = value.downcast_ref::<i32>() {
-        Box::new(int_value.clone()) as Box<dyn Any>
-    } else if let Some(isize_value) = value.downcast_ref::<isize>() {
-        Box::new(isize_value.clone()) as Box<dyn Any>
-    } else if let Some(usize_value) = value.downcast_ref::<usize>() {
-        Box::new(usize_value.clone()) as Box<dyn Any>
-    } else if let Some(usize_value) = value.downcast_ref::<u8>() {
-        Box::new(usize_value.clone()) as Box<dyn Any>
-    } else if let Some(float_value) = value.downcast_ref::<f64>() {
-        Box::new(float_value.clone()) as Box<dyn Any>
-    } else if let Some(boxed_str_value) = value.downcast_ref::<Box<str>>() {
-        Box::new(boxed_str_value.clone()) as Box<dyn Any>
-    } else if let Some(bool_value) = value.downcast_ref::<bool>() {
-        Box::new(bool_value.clone()) as Box<dyn Any>
-    } else if let Some(vec) = value.downcast_ref::<Vec<Box<str>>>() {
-        Box::new(vec.clone()) as Box<dyn Any>
-    } else {
-        panic!("Unsupported type for cloning in Box<dyn Any>");
-    }
-}
-
-/// Find overlapping regions between two regions.
-///
-/// # Parameters:
-///
-/// * `segment_a` is a tuple of (start,end).
-/// * `segment_b` is a tuple of (start,end).
-///
-/// # Returns:
-///
-/// * Option<(start,end)>.
-/// * If there is no overlapping region between the two segments, returns `None`.
-pub fn find_overlap(segment_a: (isize,isize), segment_b: (isize,isize)) -> Option<(isize,isize)> {
-    let (a_start, a_end) = segment_a;
-    let (b_start, b_end) = segment_b;
-    let overlap_start = a_start.max(b_start);
-    let overlap_end = a_end.min(b_end);
-    if overlap_start <= overlap_end {
-        Some((overlap_start, overlap_end))
-    } else {
-        None
-    }
-}
-
-/// Check if two regions overlap.
-///
-/// Parameters:
-///
-/// * `start_1` is the start of region 1.
-/// * `end_1` is the end of a region 1.
-/// * `start_2` is the start of region 2.
-/// * `end_2` is the end of region 2.
-pub fn overlaps(start_1: isize, end_1: isize, start_2: isize, end_2: isize) -> bool {
-    // De Morgan's law on checking for non-overlapping regions
-    if start_1 <= end_2 && end_1 >= start_2 {
-        true
-    } else {
-        false
-    }
-}
-
-/// Merge a list of regions.
-///
-/// # Example
-/// ```rust
-/// use exacto_core::common::utilities::merge_regions;
-///
-/// let regions = vec![(1, 5), (2, 6), (8, 10), (9, 12)];
-/// let merged = merge_regions(regions);
-/// assert_eq!(merged, vec![(1, 6), (8, 12)]);
-/// ```
-pub fn merge_regions(regions: Vec<(isize, isize)>) -> Vec<(isize,isize)> {
-    let mut regions_: Vec<(isize,isize)> = regions.clone();
-    regions_.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
-    let mut merged_regions = Vec::new();
-    let mut current_region = regions_[0];
-    for region in regions_.iter().skip(1) {
-        if region.0 <= current_region.1 + 1 {
-            // If the current region overlaps or is contiguous, extend it
-            current_region.1 = current_region.1.max(region.1);
-        } else {
-            // Otherwise, finalize the current region and start a new one
-            merged_regions.push(current_region);
-            current_region = *region;
-        }
-    }
-    merged_regions.push(current_region);
-    merged_regions
-}
-
 pub fn count_common_bases(
-    a: &Vec<(Box<str>, usize, usize)>,
-    b: &Vec<(Box<str>, usize, usize)>
-) -> usize {
-    let mut intervals: Vec<(usize, usize)> = Vec::new();
+    a: &Vec<(Box<str>, u32, u32)>,
+    b: &Vec<(Box<str>, u32, u32)>
+) -> u32 {
+    let mut intervals: Vec<(u32, u32)> = Vec::new();
 
     // Step 1: Filter matching chromosomes and collect overlaps
     for (chr_a, start_a, end_a) in a {
@@ -195,17 +101,17 @@ pub fn count_common_bases(
 }
 
 pub fn count_union_bases(
-    a: &Vec<(Box<str>, usize, usize)>,
-    b: &Vec<(Box<str>, usize, usize)>
-) -> usize {
-    let mut intervals: Vec<(Box<str>, usize, usize)> = Vec::new();
+    a: &Vec<(Box<str>, u32, u32)>,
+    b: &Vec<(Box<str>, u32, u32)>
+) -> u32 {
+    let mut intervals: Vec<(Box<str>, u32, u32)> = Vec::new();
     intervals.extend_from_slice(a);
     intervals.extend_from_slice(b);
 
     // Group intervals by chromosome
-    let mut unioned_len: usize = 0;
+    let mut unioned_len: u32 = 0;
     use std::collections::HashMap;
-    let mut chromosome_intervals: HashMap<Box<str>,Vec<(usize, usize)>> = HashMap::new();
+    let mut chromosome_intervals: HashMap<Box<str>,Vec<(u32, u32)>> = HashMap::new();
 
     for (chromosome, start, end) in intervals {
         chromosome_intervals
@@ -221,7 +127,7 @@ pub fn count_union_bases(
 
         // Sort and merge intervals for each chromosome
         intervals.sort_by_key(|&(start, _)| start);
-        let mut merged: Vec<(usize, usize)> = vec![intervals[0]];
+        let mut merged: Vec<(u32, u32)> = vec![intervals[0]];
 
         for &(start, end) in &intervals[1..] {
             let last = merged.last_mut().unwrap();
@@ -232,18 +138,18 @@ pub fn count_union_bases(
             }
         }
 
-        unioned_len += merged.iter().map(|(start, end)| end - start + 1).sum::<usize>();
+        unioned_len += merged.iter().map(|(start, end)| end - start + 1).sum::<u32>();
     }
 
     unioned_len
 }
 
 pub fn count_non_overlapping_bases(
-    a: &Vec<(Box<str>, usize, usize)>,
-    b: &Vec<(Box<str>, usize, usize)>
-) -> (usize, usize) {
+    a: &Vec<(Box<str>, u32, u32)>,
+    b: &Vec<(Box<str>, u32, u32)>
+) -> (u32, u32) {
     // Step 1. Determine max end per chromosome
-    let mut chromosome_max_end: HashMap<&str, usize> = HashMap::new();
+    let mut chromosome_max_end: HashMap<&str, u32> = HashMap::new();
     for (chromosome, start, end) in a.iter().chain(b.iter()) {
         let entry = chromosome_max_end
             .entry(chromosome.as_ref())
@@ -270,29 +176,105 @@ pub fn count_non_overlapping_bases(
     }
 
     // Step 3. Count unique bases
-    let mut a_only = 0usize;
+    let mut a_only = 0u32;
     for (chromosome, a_bits) in &a_map {
         match b_map.get(chromosome) {
             Some(b_bits) => {
-                a_only += (a_bits.clone() & !b_bits.clone()).count_ones() as usize;
+                a_only += (a_bits.clone() & !b_bits.clone()).count_ones() as u32;
             },
             None => {
-                a_only += a_bits.count_ones() as usize;
+                a_only += a_bits.count_ones() as u32;
             }
         }
     }
 
-    let mut b_only = 0usize;
+    let mut b_only = 0u32;
     for (chromosome, b_bits) in &b_map {
         match a_map.get(chromosome) {
             Some(a_bits) => {
-                b_only += (b_bits.clone() & !a_bits.clone()).count_ones() as usize;
+                b_only += (b_bits.clone() & !a_bits.clone()).count_ones() as u32;
             },
             None => {
-                b_only += b_bits.count_ones() as usize;
+                b_only += b_bits.count_ones() as u32;
             }
         }
     }
 
     (a_only, b_only)
+}
+
+/// Find overlapping regions between two regions.
+///
+/// # Parameters:
+///
+/// * `segment_a` is a tuple of (start,end).
+/// * `segment_b` is a tuple of (start,end).
+///
+/// # Returns:
+///
+/// * Option<(start,end)>.
+/// * If there is no overlapping region between the two segments, returns `None`.
+pub fn find_overlap(segment_a: (isize,isize), segment_b: (isize,isize)) -> Option<(isize,isize)> {
+    let (a_start, a_end) = segment_a;
+    let (b_start, b_end) = segment_b;
+    let overlap_start = a_start.max(b_start);
+    let overlap_end = a_end.min(b_end);
+    if overlap_start <= overlap_end {
+        Some((overlap_start, overlap_end))
+    } else {
+        None
+    }
+}
+
+pub fn interval_contains(start_1: u32, end_1: u32, start_2: u32, end_2: u32) -> bool {
+    start_1 <= start_2 && end_2 <= end_1
+}
+
+/// Merge a list of regions.
+///
+/// # Example
+/// ```rust
+/// use exacto_core::common::utilities::merge_regions;
+///
+/// let regions = vec![(1, 5), (2, 6), (8, 10), (9, 12)];
+/// let merged = merge_regions(regions);
+/// assert_eq!(merged, vec![(1, 6), (8, 12)]);
+/// ```
+pub fn merge_regions(regions: Vec<(isize, isize)>) -> Vec<(isize, isize)> {
+    let mut regions_: Vec<(isize,isize)> = regions.clone();
+    regions_.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    if regions_.is_empty() {
+        return Vec::new();
+    }
+    let mut merged_regions = Vec::new();
+    let mut current_region = regions_[0];
+    for region in regions_.iter().skip(1) {
+        if region.0 <= current_region.1 + 1 {
+            // If the current region overlaps or is contiguous, extend it
+            current_region.1 = current_region.1.max(region.1);
+        } else {
+            // Otherwise, finalize the current region and start a new one
+            merged_regions.push(current_region);
+            current_region = *region;
+        }
+    }
+    merged_regions.push(current_region);
+    merged_regions
+}
+
+/// Check if two regions overlap.
+///
+/// Parameters:
+///
+/// * `start_1` is the start of region 1.
+/// * `end_1` is the end of a region 1.
+/// * `start_2` is the start of region 2.
+/// * `end_2` is the end of region 2.
+pub fn overlaps(start_1: isize, end_1: isize, start_2: isize, end_2: isize) -> bool {
+    // De Morgan's law on checking for non-overlapping regions
+    if start_1 <= end_2 && end_1 >= start_2 {
+        true
+    } else {
+        false
+    }
 }

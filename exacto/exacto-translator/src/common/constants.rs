@@ -33,6 +33,22 @@ impl FrameshiftState {
 
 #[repr(u8)]
 #[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
+pub enum AminoAcidChange {
+    Reference,
+    Mutant
+}
+
+impl AminoAcidChange {
+    pub fn as_str(&self) -> &str {
+        match self {
+            AminoAcidChange::Reference => "reference",
+            AminoAcidChange::Mutant => "mutant"
+        }
+    }
+}
+
+#[repr(u8)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
 pub enum PrimaryStructureRecordType {
     Base,
     Event

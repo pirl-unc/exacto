@@ -1,3 +1,3 @@
 sample_id	fastq_file
-dna-011-tumor	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-011-tumor_long-read.fastq.gz
-dna-011-normal	/Users/leework/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-011-normal_long-read.fastq.gz
+dna-011-tumor	/Users/ajslee/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-011-tumor_long-read.fastq.gz
+dna-011-normal	/Users/ajslee/Documents/Research/projects/project_exacto/exacto/test/data/fastq/dna-011-normal_long-read.fastq.gz

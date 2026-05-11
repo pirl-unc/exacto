@@ -1,0 +1,101 @@
+---
+title: "Exacto"
+subtitle: "EXacto Accurate Characterization of Transcriptomes and genOmes"
+---
+
+A long-read toolkit for mutant proteoform prediction. Exacto identifies
+somatic and germline DNA variants, RNA variants, integrates them, and
+translates full-length transcripts with variant annotation at the
+amino-acid level.
+
+## Quick Start
+
+### 1. Install
+
+```bash
+conda create -n exacto python=3.10
+conda activate exacto
+pip install pysam==0.23.0
+conda install -c conda-forge rust==1.88.0
+conda install -c anaconda pandas==2.2.3
+conda install -c conda-forge polars==1.26.0
+conda install -c conda-forge pyarrow==19.0.1
+pip install exacto-<version>.tar.gz --verbose
+```
+
+Download the latest release from
+[GitHub Releases](https://github.com/pirl-unc/exacto/releases). A Docker
+image is also available on
+[Docker Hub](https://hub.docker.com/r/ajslee/exacto).
+
+### 2. See What's Available
+
+```bash
+exacto --help
+```
+
+Or browse the [Commands](cli/index.qmd) reference for every subcommand
+and its options.
+
+### 3. Pipelines
+
+Exacto supports pipelines for mutant proteoform prediction and individualized graph genome / transcriptome construction.
+See [Pipelines](pipelines/index.qmd) for more.
+
+## How Exacto is Organized
+
+::: {.grid}
+
+::: {.g-col-4}
+### DNA / RNA variant calling / annotation
+`call-dna-vars` and `call-rna-vars` identify variants from long-read
+alignments; `annotate-vars` adds gene-level context.
+:::
+
+::: {.g-col-4}
+### DNA + RNA variant integration
+`integrate-vars` merges DNA and RNA variant evidence into a single
+unified callset.
+:::
+
+::: {.g-col-4}
+### Peptide translation
+`translate-seqs` and `translate-structs` translate transcripts and
+transcript structures to mutant proteoform sequences.
+:::
+
+::: {.g-col-4}
+### Mutant peptide calling
+`call-peptide-vars` identifies peptide-level variants in mutant
+proteoforms produced by translation.
+:::
+
+::: {.g-col-4}
+### Individualized genome / transcriptome graph construction
+`build-genome-var-graph` and `build-transcriptome-var-graph` produce
+personalized graphs that encode the sample's variants
+alongside the linear reference.
+:::
+
+::: {.g-col-4}
+### Quality control
+`remove-unspliced-rnas` filters out background unspliced contigs before
+RNA variant calling.
+:::
+
+:::
+
+## Dependencies
+
+* python (>=3.10)
+* rust (1.88.0 tested)
+* numpy (>=1.22.3)
+* pandas (>=2.0.3)
+* polars (>=1.12.0)
+* pyarrow (>=18.0.0)
+* pysam (>=0.22.0)
+* pytz (>=2024.1)
+
+## License
+
+Licensed under the [Apache License, Version 2.0](https://opensource.org/licenses/Apache-2.0).

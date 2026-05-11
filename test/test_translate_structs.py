@@ -12,9 +12,5 @@ def test_translate_structs_1():
         output_tsv_file='',
         output_fasta_file='',
         num_threads=1,
-        output_type=OutputType.DATAFRAME,
+        output_type=OutputType.DATAFRAME
     )
-
-    print(df_primary_structures.head(n=10000))
-
-    # assert(len(df_peptides) == 2)

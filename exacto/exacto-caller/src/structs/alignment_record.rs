@@ -13,22 +13,21 @@
 
 use exacto_core::prelude::*;
 use noodles_bam as bam;
-
-use crate::prelude::TranscriptModel;
+use std::sync::Arc;
 
 
 #[derive(Debug)]
 pub struct AlignmentRecord {
     /// Read sequence start position
-    pub read_start: usize,
+    pub read_start: u32,
     
     /// Read sequence end position
-    pub read_end: usize,
+    pub read_end: u32,
 
     /// Reference strand
     pub reference_strand: Strand,
 
-    pub record: bam::Record
+    pub record: Arc<bam::Record>
 }
 
 impl PartialEq for AlignmentRecord {
@@ -41,10 +40,10 @@ impl PartialEq for AlignmentRecord {
 
 impl AlignmentRecord {
     pub fn new(
-        read_start: usize,
-        read_end: usize,
+        read_start: u32,
+        read_end: u32,
         reference_strand: Strand,
-        record: bam::Record
+        record: Arc<bam::Record>
     ) -> Self {
         assert!(read_start <= read_end);
         Self {

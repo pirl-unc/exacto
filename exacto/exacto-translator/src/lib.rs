@@ -11,6 +11,7 @@ extern crate tempfile;
 mod tests;
 pub mod algorithms;
 pub mod common;
-pub mod structs;
+pub mod primary_structure;
+pub mod translation;
 pub mod prelude;
 

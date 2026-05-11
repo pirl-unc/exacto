@@ -18,8 +18,6 @@ and run Exacto 'integrate-vars' command.
 
 
 import argparse
-import os
-
 from ..main import *
 from ..utilities import *
 

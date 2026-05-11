@@ -13,10 +13,9 @@
 
 [build-system]
 requires = [
-    "maturin>=0.14,<0.15",
+    "maturin>=1.0,<2.0",
     "numpy>=1.22.3",
     "pandas>=2.0.3",
-    "polars>=1.32.3",
     "pyarrow>=18.0.0",
     "pysam>=0.22.0",
     "pytz>=2024.1"
@@ -25,7 +24,7 @@ build-backend = "maturin"
 
 [project]
 name = "exacto"
-version = "0.4.5"
+version = "0.4.6a1"
 requires-python = ">=3.10"
 keywords = [
     "long-read",
@@ -44,12 +43,31 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+dependencies = [
+    "numpy>=1.22.3",
+    "pandas>=2.0.3",
+    "pyarrow>=18.0.0",
+    "pysam>=0.22.0",
+    "pytz>=2024.1"
+]
+
+[project.optional-dependencies]
+polars = [
+    "polars==1.18.0"
+]
+polars-ltu = [
+    "polars-ltu-cpu==1.18.0"
+]
 
 [tool.maturin]
 python-source = "python"
 bindings = "pyo3"
-module = "exactolib"
+module-name = "exactolib.exactolibrs"
+compatibility = "linux"
 cargo-extra-args = ["--manifest-path", "Cargo.toml"]
+include = [
+    { path = "exacto/Cargo.toml", format = "sdist" }
+]
 
 [project.scripts]
 exacto = "exactolib.cli.cli_main:run"

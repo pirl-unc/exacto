@@ -15,7 +15,7 @@ use bimap::BiMap;
 use polars::prelude::*;
 use rayon::iter::ParallelIterator;
 use rayon::prelude::ParallelSlice;
-use rayon::ThreadPoolBuilder;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -26,12 +26,8 @@ use crate::prelude::*;
 #[derive(Debug,Serialize,Deserialize)]
 pub struct TranscriptModelSet {
     pub transcript_models: HashSet<TranscriptModel>,
-
-    /// A map between read names and read IDs.
-    pub read_names_map: BiMap<Box<str>, usize>,
-
-    /// A map between chromosome names and chromosome IDs.
-    pub chromosome_names_map: BiMap<Box<str>, u16>
+    pub read_names_map: BiMap<Box<str>, usize>,         // A map between read names and read IDs.
+    pub chromosome_names_map: BiMap<Box<str>, u16>      // A map between chromosome names and chromosome IDs.
 }
 
 /// API methods
@@ -163,11 +159,13 @@ impl TranscriptModelSet {
 
         let mut read_name_values: Vec<String> = Vec::new();
         let mut excluded_values: Vec<bool> = Vec::new();
+
         for read_id in included_read_ids.iter() {
             let read_name: Box<str> = self.read_names_map.get_by_right(read_id).unwrap().clone();
             read_name_values.push(read_name.to_string());
             excluded_values.push(false);
         }
+
         for read_id in excluded_read_ids.iter() {
             let read_name: Box<str> = self.read_names_map.get_by_right(read_id).unwrap().clone();
             read_name_values.push(read_name.to_string());
@@ -336,7 +334,7 @@ impl TranscriptModelSet {
         DataFrame::new(vec![
             Column::from(Series::new("transcript_model_id".into(), merged_map.get("transcript_model_id").unwrap())),
             Column::from(Series::new("reference_transcript_ids".into(), merged_map.get("reference_transcript_ids").unwrap())),
-            Column::from(Series::new("transcript_structure_index".into(), merged_map.get("index").unwrap())),
+            Column::from(Series::new("index".into(), merged_map.get("index").unwrap())),
             Column::from(Series::new("read_start".into(), merged_map.get("read_start").unwrap())),
             Column::from(Series::new("read_end".into(), merged_map.get("read_end").unwrap())),
             Column::from(Series::new("sequence".into(), merged_map.get("sequence").unwrap())),
@@ -372,7 +370,7 @@ impl TranscriptModelSet {
             "self.read_names_map is empty."
         );
 
-        let thread_pool = ThreadPoolBuilder::new()
+        let thread_pool: ThreadPool = ThreadPoolBuilder::new()
             .num_threads(num_threads)
             .build()
             .unwrap();
@@ -399,7 +397,7 @@ impl TranscriptModelSet {
             }
         }
 
-        let chunk_size = (variant_calls_list.len() + num_threads - 1) / num_threads;
+        let chunk_size = ((variant_calls_list.len() + num_threads - 1) / num_threads).max(1);
         let rows: Vec<_> = thread_pool.install(|| {
             variant_calls_list
                 .par_chunks(chunk_size)
@@ -457,7 +455,7 @@ impl TranscriptModelSet {
             Column::from(Series::new("operation_2".into(), rows.iter().map(|r| r.10).collect::<Vec<_>>())),
             Column::from(Series::new("variant_size".into(), rows.iter().map(|r| r.11).collect::<Vec<_>>())),
             Column::from(Series::new("variant_type".into(), rows.iter().map(|r| r.12.clone()).collect::<Vec<_>>())),
-            Column::from(Series::new("variant_sequence".into(), rows.iter().map(|r| r.13.clone()).collect::<Vec<_>>())),
+            Column::from(Series::new("sequence".into(), rows.iter().map(|r| r.13.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("consensus_read_names".into(), rows.iter().map(|r| r.14.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("read_start".into(), rows.iter().map(|r| r.15.clone()).collect::<Vec<_>>())),
             Column::from(Series::new("read_end".into(), rows.iter().map(|r| r.16.clone()).collect::<Vec<_>>()))
@@ -513,7 +511,7 @@ impl TranscriptModelSet {
         prefix: &str
     ) {
         // Step 1. Define output TSV file paths
-        let output_dir = if output_dir.ends_with('/') {
+        let output_dir: String = if output_dir.ends_with('/') {
             output_dir.to_string()
         } else {
             format!("{}/", output_dir)
@@ -537,7 +535,7 @@ impl TranscriptModelSet {
         let variant_calls_tsv_file: String = make_path("rna_variant_calls");
 
         // Step 2. Get all DataFrames to output
-        let mut df_exons = self.get_exons_dataframe();
+        let mut df_exons: DataFrame = self.get_exons_dataframe();
         let mut df_read_filter_status: DataFrame = self.get_read_filter_status_dataframe();
         let mut df_read_names: DataFrame = self.get_read_names_dataframe();
         let mut df_matched_reference_transcripts: DataFrame = self.get_reference_transcript_matches_dataframe();
