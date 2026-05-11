@@ -102,6 +102,7 @@ jobs:
       - name: Install dependencies
         run: |
           conda install -y \
+            pip \
             rust=1.88.0 \
             pandas=2.2.3 \
             polars=1.26.0 \
