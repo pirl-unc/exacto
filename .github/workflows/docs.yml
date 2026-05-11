@@ -17,14 +17,47 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
         with:
-          python-version: "3.12"
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
-      - run: pip install pyyaml
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          activate-environment: docs-env
+          python-version: "3.10"
+          channels: conda-forge,bioconda,defaults
+          channel-priority: strict
+
+      - name: Install dependencies
+        run: |
+          conda install -y \
+            pip \
+            rust=1.88.0 \
+            pandas=2.2.3 \
+            polars=1.26.0 \
+            pyarrow=19.0.1 \
+            pyyaml
+          python -m pip install pysam==0.23.0
+          python -m pip install . --verbose
+
+      - name: Verify install
+        run: |
+          python -c "import exactolib; print('exactolib OK:', exactolib.__file__)"
 
       - uses: quarto-dev/quarto-actions/setup@v2
 

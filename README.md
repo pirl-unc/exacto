@@ -68,8 +68,8 @@ exacto <subcommand> --help
 | `translate-seqs`                | Translate transcript sequences into peptide sequences.       |
 | `translate-structs`             | Translate transcript structures into mutant proteoforms.     |
 
-See the [Commands reference](https://pirl-unc.github.io/exacto/cli/) for full
-parameter documentation, and the [Pipelines guide](https://pirl-unc.github.io/exacto/pipelines/)
+See the [Commands documentation](https://pirl-unc.github.io/exacto/cli/) for full
+parameter documentation, and the [Pipelines documentation](https://pirl-unc.github.io/exacto/pipelines/)
 for end-to-end mutant-proteoform-prediction and variation-graph-construction
 walkthroughs.
 
