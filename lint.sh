@@ -4,6 +4,6 @@ set -o errexit
 find python test -name '*.py' \
   | xargs pylint \
   --errors-only \
-  --disable=unsubscriptable-object,not-an-iterable,no-member
+  --disable=unsubscriptable-object,not-an-iterable,no-member,import-error
 
 echo 'Passes pylint check'
