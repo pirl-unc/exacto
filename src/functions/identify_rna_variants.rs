@@ -34,35 +34,32 @@ pub fn identify_rna_variants(
     reference_gene_annotation_source: String,
     reference_gene_annotation_assembly: String,
     reference_gene_annotation_version: String,
-    gene_types: Vec<String>,
-    gene_levels: Vec<u8>,
-    transcript_types: Vec<String>,
-    transcript_levels: Vec<u8>,
     output_dir: String,
     output_prefix: String,
     reference_transcript_scoring_method: String,
     reference_transcript_selection_strategy: String,
     reference_transcript_top_k: usize,
     reference_transcript_threshold: f32,
-    min_mapping_quality: usize,
+    min_mapping_quality: u16,
     min_average_base_quality: u8,
     num_threads: usize,
     temp_dir: String,
-    output_type: String
+    output_type: String,
+    chunk_size: usize
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let gene_annotator = if reference_gene_annotation_source.as_str() == "gencode" {
-        let gene_types_: Option<HashSet<&str>> = (!gene_types.is_empty()).then(|| gene_types.iter().map(String::as_str).collect());
-        let gene_levels_: Option<HashSet<u8>> = (!gene_levels.is_empty()).then(|| gene_levels.iter().copied().collect());
-        let transcript_types_: Option<HashSet<&str>> = (!transcript_types.is_empty()).then(|| transcript_types.iter().map(String::as_str).collect());
-        let transcript_levels_: Option<HashSet<u8>> = (!transcript_levels.is_empty()).then(|| transcript_levels.iter().copied().collect());
+//         let gene_types_: Option<HashSet<&str>> = (!gene_types.is_empty()).then(|| gene_types.iter().map(String::as_str).collect());
+//         let gene_levels_: Option<HashSet<u8>> = (!gene_levels.is_empty()).then(|| gene_levels.iter().copied().collect());
+//         let transcript_types_: Option<HashSet<&str>> = (!transcript_types.is_empty()).then(|| transcript_types.iter().map(String::as_str).collect());
+//         let transcript_levels_: Option<HashSet<u8>> = (!transcript_levels.is_empty()).then(|| transcript_levels.iter().copied().collect());
         core::Gencode::new(
             reference_gene_annotation_file.as_str(),
             reference_gene_annotation_assembly.as_str(),
             reference_gene_annotation_version.as_str(),
-            gene_types_,
-            gene_levels_,
-            transcript_types_,
-            transcript_levels_
+            None,
+            None,
+            None,
+            None
         )
     } else {
         panic!("Unsupported annotation source: {}", reference_gene_annotation_source);
@@ -80,7 +77,9 @@ pub fn identify_rna_variants(
         reference_transcript_threshold,
         min_mapping_quality,
         min_average_base_quality,
-        num_threads
+        num_threads,
+        chunk_size,
+        temp_dir.as_str()
     );
     match output_type.as_str() {
         "dataframe" => {

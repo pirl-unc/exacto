@@ -23,6 +23,7 @@ use crate::prelude::*;
 #[derive(Debug,Eq,Serialize,Deserialize)]
 pub struct VariantCall {
     pub id: usize,
+    pub total_depth: i32,
     pub variant_records: HashSet<VariantRecord>
 }
 
@@ -77,12 +78,19 @@ impl VariantCall {
     pub fn new(id: usize) -> Self {
         Self {
             id: id,
+            total_depth: -1,
             variant_records: HashSet::new()
         }
     }
 
     pub fn add_variant_record(&mut self, variant_record: VariantRecord) {
         self.variant_records.insert(variant_record);
+    }
+
+    pub fn get_alternate_allele_fraction(&self) -> f32 {
+        assert!(self.total_depth > 0);
+        let num_alt_allele_read_count: usize = self.get_read_ids().len();
+        num_alt_allele_read_count as f32 / self.total_depth as f32
     }
     
     /// Get the consensus VariantRecord object for this VariantCall object.
@@ -91,29 +99,88 @@ impl VariantCall {
     ///
     /// (VariantRecord,read IDs).
     pub fn get_consensus_record(&self) -> (&VariantRecord, Vec<usize>) {
-        let mut map: HashMap<(u16, usize, GraphOperationType, u16, usize, GraphOperationType, Box<str>, VariantType),Vec<&VariantRecord>> = HashMap::new();
-        for variant_record in self.variant_records.iter() {
-            let key: (u16, usize, GraphOperationType, u16, usize, GraphOperationType, Box<str>, VariantType) = (
-                variant_record.graph_operation.get_chromosome_1(),
-                variant_record.graph_operation.get_position_1(),
-                variant_record.graph_operation.get_operation_type_1().clone(),
-                variant_record.graph_operation.get_chromosome_2(),
-                variant_record.graph_operation.get_position_2(),
-                variant_record.graph_operation.get_operation_type_2().clone(),
-                variant_record.get_standardized_sequence().into(),
-                variant_record.graph_operation.get_variant_type().clone()
-            );
-            map
-                .entry(key)
-                .or_insert(Vec::new())
-                .push(variant_record);
+        assert!(!self.variant_records.is_empty(), "self.variant_records is empty");
+
+        type Key = (
+            u16,
+            u32,
+            GraphOperationType,
+            u16,
+            u32,
+            GraphOperationType,
+            Box<str>,
+            VariantType
+        );
+
+        // Build a stable "key" function
+        let make_key = |vr: &VariantRecord| -> Key {
+            (
+                vr.graph_operation.get_chromosome_1(),
+                vr.graph_operation.get_position_1(),
+                vr.graph_operation.get_operation_type_1().clone(),
+                vr.graph_operation.get_chromosome_2(),
+                vr.graph_operation.get_position_2(),
+                vr.graph_operation.get_operation_type_2().clone(),
+                vr.get_standardized_sequence().into(),
+                vr.graph_operation.get_variant_type().clone()
+            )
+        };
+
+        let mut map: HashMap<Key, Vec<&VariantRecord>> = HashMap::new();
+
+        for vr in self.variant_records.iter() {
+            let key: Key = make_key(vr);
+            map.entry(key).or_insert_with(Vec::new).push(vr);
         }
-        let max_vec = map
+
+        // If there is a consensus group (>=2), return it
+        if let Some((_key, max_vec)) = map.iter().max_by_key(|(_, v)| v.len()) {
+            if max_vec.len() >= 2 {
+                let consensus_record = max_vec[0];
+                let read_ids = max_vec.iter().map(|v| v.read_id).collect();
+                return (consensus_record, read_ids);
+            }
+        }
+
+        // Otherwise, choose the record with the median variant size.
+        // Then tie-break by highest support among records with that same size.
+        let mut sizes: Vec<isize> = self.variant_records.iter().map(|vr| vr.get_variant_size()).collect();
+        sizes.sort_unstable();
+        let median_size: isize = sizes[(sizes.len() - 1) / 2];
+
+        // Filter candidates that match median size
+        let mut median_candidates: Vec<&VariantRecord> = self
+            .variant_records
             .iter()
-            .max_by_key(|(_, v)| v.len())
-            .expect("self.variant_records is empty.")
-            .1;
-        (max_vec[0], max_vec.iter().map(|v| v.read_id).collect())
+            .filter(|vr| vr.get_variant_size() == median_size)
+            .collect();
+        assert!(!median_candidates.is_empty(), "median_candidates is empty");
+
+        // For insertion edge-case: same size, different sequences.
+        // Pick the candidate whose key-group has the largest support count.
+        // Tie-break deterministically by smallest read_id.
+        median_candidates.sort_by(|a, b| {
+            let ka: Key = make_key(a);
+            let kb: Key = make_key(b);
+
+            let sa: usize = map.get(&ka).map(|v| v.len()).unwrap_or(0);
+            let sb: usize = map.get(&kb).map(|v| v.len()).unwrap_or(0);
+
+            // Primary: larger support first
+            sb.cmp(&sa)
+                // Tie-breaker: smaller read_id first (deterministic)
+                .then_with(|| a.read_id.cmp(&b.read_id))
+        });
+
+        let chosen: &VariantRecord = median_candidates[0];
+        let chosen_key: Key = make_key(chosen);
+
+        let read_ids: Vec<usize> = map
+            .get(&chosen_key)
+            .map(|v| v.iter().map(|vr| vr.read_id).collect())
+            .unwrap_or_else(|| vec![chosen.read_id]);
+
+        (chosen, read_ids)
     }
 
     pub fn get_named_consensus_record(&self, read_names_map: &BiMap<Box<str>,usize>) -> (&VariantRecord, Vec<Box<str>>) {
@@ -186,6 +253,14 @@ impl VariantCall {
             (false, false)  => panic!("No strand information available for this variant call.")
         }
     }
+    
+    pub fn get_total_depth(&self) -> i32 {
+        self.total_depth
+    }
+
+    pub fn set_total_depth(&mut self, total_depth: i32) {
+        self.total_depth = total_depth;
+    }
 
     pub fn to_tsv_string(
         &self,
@@ -230,6 +305,7 @@ impl Clone for VariantCall {
     fn clone(&self) -> Self {
         VariantCall {
             id: self.id,
+            total_depth: self.total_depth,
             variant_records: self.variant_records.clone()
         }
     }

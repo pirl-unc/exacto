@@ -30,11 +30,11 @@ pub struct AlignmentStructure {
     
     /// A map between (read_position_1, read_position_2) and its alignment event.
     /// Note that `read_position_1` is smaller than or equal to `read_position_2`.
-    events: HashMap<(usize, usize), AlignmentStructureEvent>,
+    events: HashMap<(u32, u32), AlignmentStructureEvent>,
 
     /// Events index. The key is a read position and the value is another read position
     /// that together appear as a key in `events`.
-    events_index: HashMap<usize, usize>
+    events_index: HashMap<u32, u32>
 }
 
 /// API methods
@@ -53,13 +53,46 @@ impl AlignmentStructure {
     }
 
     pub fn add_event(&mut self, event: AlignmentStructureEvent) {
-        // Index the event
-        self.events_index
-            .insert(event.get_prev_read_position(), event.get_next_read_position());
-        self.events_index
-            .insert(event.get_next_read_position(), event.get_prev_read_position());
+        // If there already exists a deletion and a splicing is being added,
+        // replace the event with the splicing
+        if self.events.contains_key(&(event.get_prev_read_position(), event.get_next_read_position())) {
+            let existing_event: &AlignmentStructureEvent = self.get_event(event.get_prev_read_position(), event.get_next_read_position());
+            if *event.get_kind() == AlignmentStructureEventKind::Splicing &&
+                *existing_event.get_kind() == AlignmentStructureEventKind::Deletion {
+                // Make sure the events index already contains the event read positions
+                assert!(self.events_index.contains_key(&event.get_prev_read_position()));
+                assert!(self.events_index.contains_key(&event.get_next_read_position()));
 
-        // Add the event
+                // Replace the event
+                self.events.insert(
+                    (event.get_prev_read_position(), event.get_next_read_position()),
+                    event
+                );
+
+                return;
+            }
+        }
+
+        // If there already exists a splicing and a deletion is being added,
+        // do not add the event (i.e. keep the splicing)
+        if self.events.contains_key(&(event.get_prev_read_position(), event.get_next_read_position())) {
+            let existing_event: &AlignmentStructureEvent = self.get_event(event.get_prev_read_position(), event.get_next_read_position());
+            if *event.get_kind() == AlignmentStructureEventKind::Deletion &&
+                *existing_event.get_kind() == AlignmentStructureEventKind::Splicing {
+                // Make sure the events index already contains the event read positions
+                assert!(self.events_index.contains_key(&event.get_prev_read_position()));
+                assert!(self.events_index.contains_key(&event.get_next_read_position()));
+
+                // Do nothing
+                return;
+            }
+        }
+
+        // Otherwise, first index the event
+        self.events_index.insert(event.get_prev_read_position(), event.get_next_read_position());
+        self.events_index.insert(event.get_next_read_position(), event.get_prev_read_position());
+
+        // Then, add the event
         self.events.insert(
             (event.get_prev_read_position(), event.get_next_read_position()),
             event
@@ -68,50 +101,46 @@ impl AlignmentStructure {
 
     pub fn contextualize(
         &mut self,
+        read_name: &str,
         reference_transcript_sequences: &Vec<&ReferenceTranscriptSequence>,
         gene_annotator: &(impl GeneAnnotator + Sync),
         chromosome_names_map: &BiMap<Box<str>, u16>
     ) {
-        // Step 1. Make sure the reference transcript sequences have unique gene IDs
-        let mut gene_ids: HashSet<Box<str>> = HashSet::new();
+        // Step 1. Make sure the reference transcript sequences have unique reference gene IDs
+        let mut reference_gene_ids: HashSet<Box<str>> = HashSet::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
-            if gene_ids.contains(reference_transcript_sequence.get_gene_id()) {
+            let inserted: bool = reference_gene_ids.insert(reference_transcript_sequence.get_gene_id().into());
+            if !inserted {
                 panic!("Only 1 reference transcript per gene ID is allowed.");
             }
-            gene_ids.insert(reference_transcript_sequence.get_gene_id().into());
         }
 
-        // Step 2. Make sure each reference transcript sequence has 1 base that
+        // Step 2. Make sure each reference transcript sequence has at least 1 base that
         // overlaps with one of the self.bases
-        let mut reference_transcript_overlap_map: HashMap<&str, bool> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
-            reference_transcript_overlap_map.insert(reference_transcript_sequence.get_transcript_id().into(), false);
-        }
-        if reference_transcript_sequences.is_empty() == false {
-            for base in self.get_bases() {
-                for reference_transcript_sequence in reference_transcript_sequences.iter() {
-                    for base_reference in reference_transcript_sequence.get_bases() {
-                        if base.get_reference_chromosome_id().unwrap() == base_reference.reference_chromosome_id &&
-                            base.get_reference_position().unwrap() == base_reference.reference_position &&
-                            base.get_reference_strand().as_ref().unwrap().clone() == base_reference.reference_strand {
-                            reference_transcript_overlap_map.insert(reference_transcript_sequence.get_transcript_id(), true);
-                        }
-                    }
-                }
-            }
-
-            // Make sure every reference transcript sequence overlaps with one of the self.bases
-            for reference_transcript_sequence in reference_transcript_sequences.iter() {
-                assert_eq!(
-                    *reference_transcript_overlap_map.get(reference_transcript_sequence.get_transcript_id()).unwrap(), true,
-                    "None of the ReferenceTranscriptSequence bases for {} overlaps with any of the AlignmentStructure bases.",
-                    reference_transcript_sequence.get_transcript_id()
-                );
-            }
+            let has_overlap = self.get_bases().iter()
+                .filter(|base| matches!(
+                    base.get_kind(),
+                    AlignmentStructureBaseKind::Match |
+                    AlignmentStructureBaseKind::Mismatch |
+                    AlignmentStructureBaseKind::Insertion
+                ))
+                .any(|base| {
+                    reference_transcript_sequence.get_bases().iter().any(|base_reference| {
+                        base.get_reference_chromosome_id().unwrap() == base_reference.reference_chromosome_id
+                            && base.get_reference_position().unwrap() == base_reference.reference_position
+                            && base.get_reference_strand().as_ref().unwrap().clone() == base_reference.reference_strand
+                    })
+                });
+            assert!(
+                has_overlap,
+                "Read name: {}. None of the ReferenceTranscriptSequence bases for {} overlaps with any of the AlignmentStructure bases.",
+                read_name, reference_transcript_sequence.get_transcript_id()
+            );
         }
 
         // Step 3. Index the positions of the reference transcript sequences
-        let mut reference_transcripts_positions_map: HashMap<(u16, usize, Strand), &ReferenceTranscriptSequence> = HashMap::new();
+        let mut reference_transcripts_positions_map: HashMap<(u16, u32, Strand), &ReferenceTranscriptSequence> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
             for base in reference_transcript_sequence.get_bases() {
                 reference_transcripts_positions_map.insert(
@@ -123,16 +152,20 @@ impl AlignmentStructure {
             }
         }
 
-        // Step 4. Identify context of each AlignmentStructureBase
+        // Step 4. Identify the context of each AlignmentStructureBase
         for i in 0..self.get_bases_length() {
-            let base: &mut AlignmentStructureBase = self.get_mut_base(i);
-            if *base.get_kind() != AlignmentStructureBaseKind::Unaligned {
-                let key: (u16, usize, Strand) = (
+            let base: &mut AlignmentStructureBase = self.get_base_mut(i);
+            if matches!(base.get_kind(),
+                AlignmentStructureBaseKind::Match |
+                AlignmentStructureBaseKind::Mismatch |
+                AlignmentStructureBaseKind::Insertion) {
+                let key: (u16, u32, Strand) = (
                     base.get_reference_chromosome_id().unwrap(),
                     base.get_reference_position().unwrap(),
                     base.get_reference_strand().as_ref().unwrap().clone()
                 );
                 if reference_transcripts_positions_map.contains_key(&key) {
+                    // Base is an exonic base
                     let reference_transcript_sequence: &ReferenceTranscriptSequence = reference_transcripts_positions_map.get(&key).unwrap();
                     base.set_context(AlignmentStructureBaseContext::Exonic);
                     base.set_reference_gene_id(reference_transcript_sequence.get_gene_id().into());
@@ -150,6 +183,7 @@ impl AlignmentStructure {
                     }
                     assert_eq!(base.get_reference_exon_id().is_some(), true);
                 } else {
+                    // Base is an intronic base
                     for reference_transcript_sequence in reference_transcript_sequences.iter() {
                         if base.get_reference_position().unwrap() >= reference_transcript_sequence.get_transcript_start() &&
                             base.get_reference_position().unwrap() <= reference_transcript_sequence.get_transcript_end() {
@@ -167,9 +201,9 @@ impl AlignmentStructure {
         }
 
         // Step 5. Identify reference transcript introns
-        let mut reference_transcripts_introns_map: HashMap<u16, HashSet<(usize, usize)>> = HashMap::new();
+        let mut reference_transcripts_introns_map: HashMap<u16, HashSet<(u32, u32)>> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
-            let introns: Vec<(u16, usize, usize)> = reference_transcript_sequence.get_introns();
+            let introns: Vec<(u16, u32, u32)> = reference_transcript_sequence.get_introns();
             for (chromosome_id, start, end) in introns.iter() {
                 reference_transcripts_introns_map
                     .entry(*chromosome_id)
@@ -178,8 +212,8 @@ impl AlignmentStructure {
             }
         }
 
-        // Step 6. Identify context of each AlignmentStructureEvent
-        let event_keys: Vec<(usize, usize)> = self.get_events().keys().cloned().collect();
+        // Step 6. Identify the context of each AlignmentStructureEvent
+        let event_keys: Vec<(u32, u32)> = self.get_events().keys().cloned().collect();
         for (read_position_1, read_position_2) in event_keys {
             let base_1: AlignmentStructureBase = self.get_base(read_position_1).clone();
             let base_2: AlignmentStructureBase = self.get_base(read_position_2).clone();
@@ -194,8 +228,8 @@ impl AlignmentStructure {
                 AlignmentStructureEventKind::Splicing => {
                     let reference_chromosome_id: u16 = base_1.get_reference_chromosome_id().unwrap();
                     let reference_strand: Strand = base_1.get_reference_strand().as_ref().unwrap().clone();
-                    let mut reference_start: usize = base_1.get_reference_position().unwrap();
-                    let mut reference_end: usize = base_2.get_reference_position().unwrap();
+                    let mut reference_start: u32 = base_1.get_reference_position().unwrap();
+                    let mut reference_end: u32 = base_2.get_reference_position().unwrap();
                     if reference_strand == Strand::Forward {
                         reference_start = reference_start + 1;
                         reference_end = reference_end - 1;
@@ -208,44 +242,44 @@ impl AlignmentStructure {
                         let reference_transcripts_introns = reference_transcripts_introns_map.get(&reference_chromosome_id).unwrap();
                         if reference_transcripts_introns.contains(&(reference_start, reference_end)) ||
                             reference_transcripts_introns.contains(&(reference_end, reference_start)) {
-                            self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::CanonicalSplicing);
+                            self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::CanonicalSplicing);
                         } else {
                             if gene_ids_disjoint_count_1 > 0 && gene_ids_disjoint_count_2 > 0 {
-                                self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::FusionGene);
+                                self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::FusionGene);
                             } else {
-                                self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::NonCanonicalSplicing);
+                                self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::NonCanonicalSplicing);
                             }
                         }
                     } else {
-                        self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::NonCanonicalSplicing);
+                        self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::NonCanonicalSplicing);
                     }
                 },
                 AlignmentStructureEventKind::Breakpoint => {
                     if base_1.get_reference_chromosome_id().unwrap() == base_2.get_reference_chromosome_id().unwrap() {
-                        let left_bases_set: HashSet<(u16, usize)> = (0..=read_position_1 as usize)
+                        let left_bases_set: HashSet<(u16, u32)> = (0..=read_position_1)
                             .map(|i| {
-                                let base = self.get_base(i as usize);
+                                let base = self.get_base(i);
                                 (base.get_reference_chromosome_id().unwrap(), base.get_reference_position().unwrap())
                             })
                             .collect();
-                        let right_bases_set: HashSet<(u16, usize)> = (read_position_2..self.get_bases_length())
+                        let right_bases_set: HashSet<(u16, u32)> = (read_position_2..self.get_bases_length())
                             .map(|i| {
                                 let base = self.get_base(i);
                                 (base.get_reference_chromosome_id().unwrap(), base.get_reference_position().unwrap())
                             })
                             .collect();
                         if left_bases_set.is_disjoint(&right_bases_set) == false {
-                            self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::BackSplicing);
+                            self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::BackSplicing);
                         } else {
                             if gene_ids_disjoint_count_1 > 0 && gene_ids_disjoint_count_2 > 0 {
-                                self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::FusionGene);
+                                self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::FusionGene);
                             } else {
-                                self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::NonCanonicalSplicing);
+                                self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::NonCanonicalSplicing);
                             }
                         }
                     } else {
                         if gene_ids_disjoint_count_1 > 0 && gene_ids_disjoint_count_2 > 0 {
-                            self.get_mut_event(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::FusionGene);
+                            self.get_event_mut(read_position_1, read_position_2).set_context(AlignmentStructureEventContext::FusionGene);
                         }
                     }
                 },
@@ -256,7 +290,7 @@ impl AlignmentStructure {
         }
 
         // Step 7. Identify skipped reference transcript bases
-        let mut reference_transcripts_bases: HashMap<(u16, usize, &Strand), (&str, &ReferenceBase)> = HashMap::new();
+        let mut reference_transcripts_bases: HashMap<(u16, u32, &Strand), (&str, &ReferenceBase)> = HashMap::new();
         for reference_transcript_sequence in reference_transcript_sequences.iter() {
             for base in reference_transcript_sequence.get_bases() {
                 reference_transcripts_bases.insert(
@@ -265,42 +299,42 @@ impl AlignmentStructure {
                 );
             }
         }
-        let alignment_structure_bases: HashSet<(u16, usize, &Strand)> = self
-            .get_bases()
-            .iter()
-            .map(|base|
-                (base.get_reference_chromosome_id().unwrap(),
-                 base.get_reference_position().unwrap(),
-                 base.get_reference_strand().as_ref().unwrap())
-            )
-            .collect();
-        let mut reference_transcript_bases_skipped: HashSet<(u16, usize, &Strand)> = reference_transcripts_bases
+        let mut alignment_structure_bases: HashSet<(u16, u32, &Strand)> = HashSet::new();
+        for base in self.get_bases() {
+            if matches!(base.get_kind(),
+                AlignmentStructureBaseKind::Match |
+                AlignmentStructureBaseKind::Mismatch |
+                AlignmentStructureBaseKind::Insertion) {
+                alignment_structure_bases.insert((
+                    base.get_reference_chromosome_id().unwrap(),
+                    base.get_reference_position().unwrap(),
+                    base.get_reference_strand().as_ref().unwrap()
+                ));
+            }
+        }
+        let mut reference_transcript_bases_skipped: HashSet<(u16, u32, &Strand)> = reference_transcripts_bases
             .keys()
             .cloned()
             .filter(|pos| !alignment_structure_bases.contains(pos))
             .sorted_by_key(|&(_, pos, _)| pos)
             .collect();
 
-        // Step 8. Get the alignment structure base reference positions and sort them
-        let mut base_reference_positions_map: HashMap<Box<str>, Vec<(usize, usize)>> = HashMap::new();
+        // Step 8. Get the reference positions corresponding to exonic boundaries in the
+        // alignment structure bases and sort them
+        let mut exon_boundary_positions_map: HashMap<Box<str>, Vec<(u32, u32)>> = HashMap::new();
         for ((read_position_1, read_position_2), event) in self.get_events() {
-            if event.get_kind() == &AlignmentStructureEventKind::Splicing {
-                if *event.get_context().as_ref().unwrap() == AlignmentStructureEventContext::CanonicalSplicing {
-                    continue;
-                }
-            }
             let base_1: &AlignmentStructureBase = self.get_base(*read_position_1);
             let base_2: &AlignmentStructureBase = self.get_base(*read_position_2);
             if base_1.get_reference_transcript_id().is_some() {
                 let reference_transcript_id: Box<str> = base_1.get_reference_transcript_id().as_ref().unwrap().clone();
-                base_reference_positions_map
+                exon_boundary_positions_map
                     .entry(reference_transcript_id)
                     .or_insert(Vec::new())
                     .push((*read_position_1, base_1.get_reference_position().unwrap()));
             }
             if base_2.get_reference_transcript_id().is_some() {
                 let reference_transcript_id: Box<str> = base_2.get_reference_transcript_id().as_ref().unwrap().clone();
-                base_reference_positions_map
+                exon_boundary_positions_map
                     .entry(reference_transcript_id)
                     .or_insert(Vec::new())
                     .push((*read_position_2, base_2.get_reference_position().unwrap()));
@@ -312,8 +346,11 @@ impl AlignmentStructure {
             let mut reference_transcript_bases: Vec<&AlignmentStructureBase> = self.get_reference_transcript_bases(&*reference_transcript_id);
             reference_transcript_bases.sort_by_key(|base| base.get_reference_position().unwrap());
             for base in reference_transcript_bases.iter() {
-                if base.is_embedded_insertion() == false && base.is_soft_clipped() == false {
-                    base_reference_positions_map
+                if matches!(base.get_kind(),
+                    AlignmentStructureBaseKind::Match |
+                    AlignmentStructureBaseKind::Mismatch |
+                    AlignmentStructureBaseKind::Insertion) {
+                    exon_boundary_positions_map
                         .entry(reference_transcript_id.clone())
                         .or_insert(Vec::new())
                         .push(
@@ -323,8 +360,11 @@ impl AlignmentStructure {
                 }
             }
             for base in reference_transcript_bases.iter().rev() {
-                if base.is_embedded_insertion() == false && base.is_soft_clipped() == false {
-                    base_reference_positions_map
+                if matches!(base.get_kind(),
+                    AlignmentStructureBaseKind::Match |
+                    AlignmentStructureBaseKind::Mismatch |
+                    AlignmentStructureBaseKind::Insertion) {
+                    exon_boundary_positions_map
                         .entry(reference_transcript_id.clone())
                         .or_insert(Vec::new())
                         .push(
@@ -334,14 +374,13 @@ impl AlignmentStructure {
                 }
             }
         }
-        for vec in base_reference_positions_map.values_mut() {
+        for vec in exon_boundary_positions_map.values_mut() {
             vec.sort_by_key(|&(_, reference_position)| reference_position);
         }
 
         // Step 9. Identify the closet event for each skipped reference transcript base
-        // Key: (chromosome ID, reference position, reference strand)
-        // Value: (read position 1, read position 2)
-        let mut events_map: HashMap<(u16, usize, &Strand), (usize, usize)> = HashMap::new();
+        // Map of (chromosome ID, reference position, reference strand) and (read position 1, read position 2)
+        let mut events_map: HashMap<(u16, u32, &Strand), (u32, u32)> = HashMap::new();
         for (reference_chromosome_id, reference_position, reference_strand) in reference_transcript_bases_skipped.iter() {
             let reference_transcript_id: Box<str> = reference_transcripts_bases
                 .get(&(*reference_chromosome_id, *reference_position, reference_strand))
@@ -350,8 +389,12 @@ impl AlignmentStructure {
                 .into();
 
             // Identify the closest base
-            let vec: &Vec<(usize, usize)> = base_reference_positions_map.get(&reference_transcript_id).unwrap();
-            let closest_read_position: usize = match vec.binary_search_by_key(reference_position, |&(_, base_reference_position)| base_reference_position) {
+            let vec: &Vec<(u32, u32)> = exon_boundary_positions_map
+                .get(&reference_transcript_id)
+                .expect(
+                    &format!("Missing reference transcript bases for read name {} and reference transcript ID {}", read_name, reference_transcript_id)
+                );
+            let closest_read_position: u32 = match vec.binary_search_by_key(reference_position, |&(_, base_reference_position)| base_reference_position) {
                 Ok(idx) => {
                     vec[idx].0
                 },
@@ -361,10 +404,10 @@ impl AlignmentStructure {
                     } else if idx == vec.len() {
                         vec[vec.len() - 1].0
                     } else {
-                        let read_position_1: usize = vec[idx-1].0;
-                        let read_position_2: usize = vec[idx].0;
-                        let reference_position_1: usize = vec[idx-1].1;
-                        let reference_position_2: usize = vec[idx].1;
+                        let read_position_1: u32 = vec[idx-1].0;
+                        let read_position_2: u32 = vec[idx].0;
+                        let reference_position_1: u32 = vec[idx-1].1;
+                        let reference_position_2: u32 = vec[idx].1;
                         if reference_position.abs_diff(reference_position_1) <= reference_position.abs_diff(reference_position_2) {
                             read_position_1
                         } else {
@@ -389,12 +432,26 @@ impl AlignmentStructure {
                 events_map.insert(
                     (*reference_chromosome_id, *reference_position, reference_strand), (closest_read_position, closest_read_position)
                 );
-            } else {
-                assert!(self.events_index.contains_key(&closest_read_position), "Event does not exist for base position {}. Skipped reference position: {}:{}", closest_read_position, reference_chromosome_id, reference_position);
-                let closest_read_position_2: usize = *self.events_index.get(&closest_read_position).unwrap();
+            } else if self.events_index.contains_key(&closest_read_position) {
+                let closest_read_position_2: u32 = *self.events_index.get(&closest_read_position).unwrap();
                 assert!(self.has_event_between(closest_read_position, closest_read_position_2), "Event does not exist between bases {} and {}", closest_read_position, closest_read_position_2);
                 events_map.insert(
                     (*reference_chromosome_id, *reference_position, reference_strand), (closest_read_position, closest_read_position_2)
+                );
+            } else {
+                // No event exists at this position (e.g. no splicing in this read).
+                // Create a boundary event to anchor the skipped reference base.
+                let mut event: AlignmentStructureEvent = AlignmentStructureEvent::new(
+                    AlignmentStructureEventKind::Boundary,
+                    closest_read_position,
+                    closest_read_position,
+                    GraphOperationType::Mark,
+                    GraphOperationType::Mark
+                );
+                event.set_context(AlignmentStructureEventContext::NonCanonicalSplicing);
+                self.add_event(event);
+                events_map.insert(
+                    (*reference_chromosome_id, *reference_position, reference_strand), (closest_read_position, closest_read_position)
                 );
             }
         }
@@ -405,25 +462,39 @@ impl AlignmentStructure {
         for ((chromosome_id, reference_position, reference_strand), (read_position_1, read_position_2)) in events_map.iter() {
             let reference_base: &ReferenceBase = reference_transcripts_bases.get(&(*chromosome_id, *reference_position, reference_strand)).unwrap().1;
             assert!(self.has_event_between(*read_position_1, *read_position_2) == true);
-            self.get_mut_event(*read_position_1, *read_position_2).add_skipped_reference_base(reference_base.clone());
+            self.get_event_mut(*read_position_1, *read_position_2).add_skipped_reference_base(reference_base.clone());
         }
     }
 
-    pub fn get_base(&self, read_position: usize) -> &AlignmentStructureBase {
-        self.bases.get(read_position as usize).unwrap()
+    pub fn get_base(&self, read_position: u32) -> &AlignmentStructureBase {
+        match self.bases.get(read_position as usize) {
+            Some(base) => {
+                base
+            },
+            None => {
+                panic!(
+                    "Invalid read_position: {}\n
+                     Read length: {}\n
+                     First base: {:?}",
+                    read_position,
+                    self.bases.len(),
+                    self.bases.first().unwrap()
+                );
+            }
+        }
     }
 
     pub fn get_bases(&self) -> &Vec<AlignmentStructureBase> {
         &self.bases
     }
 
-    pub fn get_bases_length(&self) -> usize {
-        self.bases.len() as usize
+    pub fn get_bases_length(&self) -> u32 {
+        self.bases.len() as u32
     }
     
     pub fn get_event(&self,
-        read_position_1: usize,
-        read_position_2: usize
+        read_position_1: u32,
+        read_position_2: u32
     ) -> &AlignmentStructureEvent {
         if read_position_1 < read_position_2 {
             self.events
@@ -436,17 +507,17 @@ impl AlignmentStructure {
         }
     }
 
-    pub fn get_events(&self) -> &HashMap<(usize, usize), AlignmentStructureEvent> {
+    pub fn get_events(&self) -> &HashMap<(u32, u32), AlignmentStructureEvent> {
         &self.events
     }
 
-    pub fn get_event_at_read_position(&self, read_position: usize) -> &AlignmentStructureEvent {
+    pub fn get_event_at_read_position(&self, read_position: u32) -> &AlignmentStructureEvent {
         let read_position_2 = self.events_index.get(&read_position).unwrap();
         self.get_event(read_position, *read_position_2)
     }
     
-    pub fn get_events_of_kind(&self, kind: AlignmentStructureEventKind) -> Vec<(usize, usize, &AlignmentStructureEvent)> {
-        let mut events: Vec<(usize, usize, &AlignmentStructureEvent)> = Vec::new();
+    pub fn get_events_of_kind(&self, kind: AlignmentStructureEventKind) -> Vec<(u32, u32, &AlignmentStructureEvent)> {
+        let mut events: Vec<(u32, u32, &AlignmentStructureEvent)> = Vec::new();
         for ((read_position_1, read_position_2), event) in self.get_events() {
             if event.get_kind() == &kind {
                 events.push((*read_position_1, *read_position_2, event));
@@ -455,14 +526,14 @@ impl AlignmentStructure {
         events
     }
 
-    pub fn get_mut_base(&mut self, read_position: usize) -> &mut AlignmentStructureBase {
+    pub fn get_base_mut(&mut self, read_position: u32) -> &mut AlignmentStructureBase {
         self.bases.get_mut(read_position as usize).unwrap()
     }
 
-    pub fn get_mut_event(
+    pub fn get_event_mut(
         &mut self,
-        read_position_1: usize,
-        read_position_2: usize
+        read_position_1: u32,
+        read_position_2: u32
     ) -> &mut AlignmentStructureEvent {
         if read_position_1 < read_position_2 {
             assert!(
@@ -514,7 +585,7 @@ impl AlignmentStructure {
         reference_transcript_ids
     }
 
-    pub fn has_event(&self, read_position: usize) -> bool {
+    pub fn has_event(&self, read_position: u32) -> bool {
         if self.events_index.contains_key(&read_position) {
             true
         } else {
@@ -524,8 +595,8 @@ impl AlignmentStructure {
 
     pub fn has_event_between(
         &self,
-        read_position_1: usize,
-        read_position_2: usize
+        read_position_1: u32,
+        read_position_2: u32
     ) -> bool {
         if read_position_1 < read_position_2 {
             self.events.contains_key(&(read_position_1, read_position_2))
@@ -534,39 +605,53 @@ impl AlignmentStructure {
         }
     }
 
-    pub fn identify_exons(&self) -> Vec<TranscriptModelExon> {
+    pub fn identify_exons(&self, read_name: &str) -> Vec<TranscriptModelExon> {
         // Step 1. Cluster adjacent bases by reference position
+        let is_exonic = |base: &AlignmentStructureBase| matches!(
+            base.get_kind(),
+            AlignmentStructureBaseKind::Match |
+            AlignmentStructureBaseKind::Mismatch |
+            AlignmentStructureBaseKind::Insertion
+        );
         let mut uf: UnionFind = UnionFind::new();
         for i in 0..self.get_bases_length() {
-            uf.union(i as usize, i as usize);
-            if i > 0 {
-                let prev_base: &AlignmentStructureBase = self.get_base(i - 1);
-                let curr_base: &AlignmentStructureBase = self.get_base(i);
-                if self.has_event_between(i-1, i) {
-                    let event: &AlignmentStructureEvent = self.get_event(i-1, i);
-                    if event.get_kind() == &AlignmentStructureEventKind::Deletion {
-                        if prev_base.get_reference_chromosome_id().unwrap() == curr_base.get_reference_chromosome_id().unwrap() &&
-                            prev_base.get_reference_strand().as_ref().unwrap() == curr_base.get_reference_strand().as_ref().unwrap() {
-                            uf.union(i as usize - 1, i as usize);
-                        }
-                    }
-                } else {
-                    if prev_base.get_reference_chromosome_id().unwrap() == curr_base.get_reference_chromosome_id().unwrap() &&
-                        prev_base.get_reference_strand().as_ref().unwrap() == curr_base.get_reference_strand().as_ref().unwrap() &&
-                        prev_base.get_reference_position().unwrap().abs_diff(curr_base.get_reference_position().unwrap()) <= 1 {
-                        uf.union(i as usize - 1, i as usize);
-                    }
-                }
+            let curr_base: &AlignmentStructureBase = self.get_base(i);
+            if is_exonic(curr_base) == false {
+                continue;
+            }
+            uf.union(i, i);
+
+            if i == 0 {
+                continue;
+            }
+
+            let prev_base: &AlignmentStructureBase = self.get_base(i - 1);
+            if is_exonic(prev_base) == false {
+                continue;
+            }
+
+            let should_union: bool = if self.has_event_between(i - 1, i) {
+                let event = self.get_event(i - 1, i);
+                event.get_kind() == &AlignmentStructureEventKind::Deletion
+                    && prev_base.get_reference_chromosome_id() == curr_base.get_reference_chromosome_id()
+                    && prev_base.get_reference_strand() == curr_base.get_reference_strand()
+            } else {
+                matches!((prev_base.get_reference_chromosome_id(), curr_base.get_reference_chromosome_id()), (Some(p), Some(c)) if p == c) &&
+                    prev_base.get_reference_strand() == curr_base.get_reference_strand() &&
+                    prev_base.get_reference_position().unwrap().abs_diff(curr_base.get_reference_position().unwrap()) <= 1
+            };
+
+            if should_union {
+                uf.union(i - 1, i);
             }
         }
 
         // Step 2. Identify exonic boundaries
         let mut exons: Vec<TranscriptModelExon> = Vec::new();
-        let mut exon_number: u16 = 1;
-        let mut clusters: Vec<HashSet<usize>> = uf.get_clusters();
+        let mut clusters: Vec<HashSet<u32>> = uf.get_clusters();
         for cluster in clusters.iter() {
             // Sort the read positions
-            let mut read_positions: Vec<usize> = cluster.iter().map(|&pos| pos as usize).collect();
+            let mut read_positions: Vec<u32> = cluster.iter().map(|&pos| pos).collect();
             read_positions.sort();
 
             let mut bases: Vec<&AlignmentStructureBase> = Vec::new();
@@ -574,25 +659,32 @@ impl AlignmentStructure {
                 bases.push(self.get_base(*read_position));
             }
 
-            let reference_chromosome_id: u16 = bases.first().unwrap().get_reference_chromosome_id().unwrap();
-            let reference_strand: Strand = bases.first().unwrap().get_reference_strand().as_ref().unwrap().clone();
-            let reference_start: usize = bases.iter().map(|base| base.get_reference_position().unwrap()).min().unwrap();
-            let reference_end: usize = bases.iter().map(|base| base.get_reference_position().unwrap()).max().unwrap();
-            let read_start_position: usize = bases.first().unwrap().get_read_position();
-            let read_end_position: usize = bases.last().unwrap().get_read_position();
+            if let Some(reference_chromosome_id) = bases.first().unwrap().get_reference_chromosome_id() {
+                let reference_strand: Strand = bases.first().unwrap().get_reference_strand().as_ref().unwrap().clone();
+                let reference_start: u32 = bases.iter().map(|base| base.get_reference_position().unwrap()).min().unwrap();
+                let reference_end: u32 = bases.iter().map(|base| base.get_reference_position().unwrap()).max().unwrap();
+                let read_start_position: u32 = bases.first().unwrap().get_read_position();
+                let read_end_position: u32 = bases.last().unwrap().get_read_position();
 
-            let exon: TranscriptModelExon = TranscriptModelExon::new(
-                reference_chromosome_id,
-                reference_start,
-                reference_end,
-                reference_strand,
-                exon_number,
-                read_start_position,
-                read_end_position
-            );
+                // Use 0 as a placeholder — exon_number assigned after sorting
+                let exon: TranscriptModelExon = TranscriptModelExon::new(
+                    *reference_chromosome_id,
+                    reference_start,
+                    reference_end,
+                    reference_strand,
+                    0,
+                    read_start_position,
+                    read_end_position
+                );
 
-            exons.push(exon);
-            exon_number += 1;
+                exons.push(exon);
+            }
+        }
+
+        // Sort by read order, then assign exon numbers
+        exons.sort_by_key(|e| e.read_start_position);
+        for (i, exon) in exons.iter_mut().enumerate() {
+            exon.exon_number = (i + 1) as u16;
         }
 
         exons
@@ -600,7 +692,7 @@ impl AlignmentStructure {
 
     pub fn identify_introns(
         &self,
-        chromosome_names_map: &BiMap<Box<str>,u16>,
+        chromosome_names_map: &BiMap<Box<str>, u16>,
         reference_genome_fasta_file: &str
     ) -> Vec<TranscriptModelIntron> {
         let mut introns: Vec<TranscriptModelIntron> = Vec::new();
@@ -627,15 +719,15 @@ impl AlignmentStructure {
 
                     let sequence_1: Box<str> = get_fasta_sequence(
                         &*reference_chromosome_name,
-                        reference_start_position as usize + 1,
-                        reference_start_position as usize + 2,
+                        reference_start_position + 1,
+                        reference_start_position + 2,
                         reference_genome_fasta_file
                     );
 
                     let sequence_2: Box<str> = get_fasta_sequence(
                         &*reference_chromosome_name,
-                        reference_end_position as usize - 2,
-                        reference_end_position as usize - 1,
+                        reference_end_position - 2,
+                        reference_end_position - 1,
                         reference_genome_fasta_file
                     );
 
@@ -670,34 +762,46 @@ impl AlignmentStructure {
     }
 
     pub fn identify_records(&self) -> Vec<AlignmentStructureRecord> {
-        // Step 1. Cluster bases
-        let num_bases: usize = self.get_bases_length();
+        // Step 1. Cluster Match, Mismatch, Insertion bases
+        let num_bases: u32 = self.get_bases_length();
         let mut uf_bases: UnionFind = UnionFind::new();
         for i in 0..num_bases {
-            let curr_base: &AlignmentStructureBase = self.get_base(i);
-            if !curr_base.is_embedded_insertion() {
-                uf_bases.union(i as usize, i as usize);
+            if matches!(self.get_base(i).get_kind(),
+                AlignmentStructureBaseKind::Match |
+                AlignmentStructureBaseKind::Mismatch |
+                AlignmentStructureBaseKind::Insertion) {
+                uf_bases.union(i, i);
             }
         }
         for i in 0..num_bases {
             if i > 0 {
                 let prev_base: &AlignmentStructureBase = self.get_base(i - 1);
                 let curr_base: &AlignmentStructureBase = self.get_base(i);
-                if !prev_base.is_embedded_insertion() && !curr_base.is_embedded_insertion() {
+                let is_prev_base_aligned: bool = matches!(prev_base.get_kind(),
+                    AlignmentStructureBaseKind::Match |
+                    AlignmentStructureBaseKind::Mismatch |
+                    AlignmentStructureBaseKind::Insertion
+                );
+                let is_curr_base_aligned: bool = matches!(curr_base.get_kind(),
+                    AlignmentStructureBaseKind::Match |
+                    AlignmentStructureBaseKind::Mismatch |
+                    AlignmentStructureBaseKind::Insertion
+                );
+                if is_prev_base_aligned && is_curr_base_aligned {
                     if prev_base.get_context().is_some() && curr_base.get_context().is_some() {
                         if *prev_base.get_kind() == *curr_base.get_kind() &&
                             *prev_base.get_context().as_ref().unwrap() == *curr_base.get_context().as_ref().unwrap() &&
                             prev_base.get_reference_chromosome_id().unwrap() == curr_base.get_reference_chromosome_id().unwrap() &&
                             prev_base.get_reference_position().unwrap().abs_diff(curr_base.get_reference_position().unwrap()) <= 1 &&
                             prev_base.get_reference_strand().as_ref().unwrap() == curr_base.get_reference_strand().as_ref().unwrap() {
-                            uf_bases.union(i as usize - 1, i as usize);
+                            uf_bases.union(i - 1, i);
                         }
                     } else {
                         if *prev_base.get_kind() == *curr_base.get_kind() &&
                             prev_base.get_reference_chromosome_id().unwrap() == curr_base.get_reference_chromosome_id().unwrap() &&
                             prev_base.get_reference_position().unwrap().abs_diff(curr_base.get_reference_position().unwrap()) <= 1 &&
                             prev_base.get_reference_strand().as_ref().unwrap() == curr_base.get_reference_strand().as_ref().unwrap() {
-                            uf_bases.union(i as usize - 1, i as usize);
+                            uf_bases.union(i - 1, i);
                         }
                     }
                 }
@@ -707,25 +811,29 @@ impl AlignmentStructure {
         // Step 2. Record bases
         let mut records: Vec<AlignmentStructureRecord> = Vec::new();
         for cluster in uf_bases.get_clusters() {
-            let mut read_positions: Vec<usize> = cluster.into_iter().collect();
+            let mut read_positions: Vec<u32> = cluster.into_iter().collect();
             read_positions.sort();
-            let bases: Vec<&AlignmentStructureBase> = read_positions.iter().map(|&i| self.get_base(i as usize)).collect();
+            let bases: Vec<&AlignmentStructureBase> = read_positions.iter().map(|&i| self.get_base(i)).collect();
             let first_base: &AlignmentStructureBase = bases.first().unwrap();
             let last_base: &AlignmentStructureBase = bases.last().unwrap();
             let mut sequence: String = String::new();
             let mut base_quality_scores: Vec<u8> = Vec::new();
             for base in bases.iter() {
+                assert_eq!(
+                    matches!(base.get_kind(),
+                        AlignmentStructureBaseKind::Match |
+                        AlignmentStructureBaseKind::Mismatch |
+                        AlignmentStructureBaseKind::Insertion
+                    ),
+                    true
+                );
                 sequence.push_str(base.get_nucleotide().as_str());
                 base_quality_scores.push(base.get_base_quality());
             }
-            let (base_1, base_2) = if *first_base.get_kind() == AlignmentStructureBaseKind::Unaligned {
+            let (base_1, base_2) = if *first_base.get_reference_strand().as_ref().unwrap() == Strand::Forward {
                 (first_base, last_base)
             } else {
-                if *first_base.get_reference_strand().as_ref().unwrap() == Strand::Forward {
-                    (first_base, last_base)
-                } else {
-                    (last_base, first_base)
-                }
+                (last_base, first_base)
             };
             match first_base.get_kind() {
                 AlignmentStructureBaseKind::Match => {
@@ -787,37 +895,6 @@ impl AlignmentStructure {
                     records.push(record);
                 },
                 AlignmentStructureBaseKind::Insertion => {
-                    if first_base.is_embedded_insertion() == false && last_base.is_embedded_insertion() == false {
-                        let record: AlignmentStructureRecord = AlignmentStructureRecord::new(
-                            first_base.get_read_position(),
-                            last_base.get_read_position(),
-                            sequence.as_str(),
-                            base_quality_scores,
-                            AlignmentStructureRecordType::Base,
-                            AlignmentStructureKind::Base(first_base.get_kind().clone()),
-                            first_base.get_context().as_ref().cloned().map(AlignmentStructureContext::Base),
-                            base_1.get_reference_chromosome_id().unwrap(),
-                            base_1.get_reference_position().unwrap(),
-                            GraphOperationType::Downstream,
-                            base_1.get_reference_strand().as_ref().unwrap().clone(),
-                            base_1.get_mapping_quality().unwrap_or(0),
-                            base_2.get_reference_chromosome_id().unwrap(),
-                            base_2.get_reference_position().unwrap() + 1,
-                            GraphOperationType::Upstream,
-                            base_2.get_reference_strand().as_ref().unwrap().clone(),
-                            base_2.get_mapping_quality().unwrap_or(0),
-                            base_1.get_reference_gene_id().clone(),
-                            base_1.get_reference_transcript_id().clone(),
-                            base_1.get_reference_exon_id().clone(),
-                            base_2.get_reference_gene_id().clone(),
-                            base_2.get_reference_transcript_id().clone(),
-                            base_2.get_reference_exon_id().clone(),
-                            None
-                        );
-                        records.push(record);
-                    }
-                },
-                AlignmentStructureBaseKind::Unaligned => {
                     let record: AlignmentStructureRecord = AlignmentStructureRecord::new(
                         first_base.get_read_position(),
                         last_base.get_read_position(),
@@ -825,26 +902,29 @@ impl AlignmentStructure {
                         base_quality_scores,
                         AlignmentStructureRecordType::Base,
                         AlignmentStructureKind::Base(first_base.get_kind().clone()),
-                        None,
-                        0,
-                        0,
-                        GraphOperationType::Noop,
-                        Strand::Unknown,
-                        0,
-                        0,
-                        0,
-                        GraphOperationType::Noop,
-                        Strand::Unknown,
-                        0,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
+                        first_base.get_context().as_ref().cloned().map(AlignmentStructureContext::Base),
+                        base_1.get_reference_chromosome_id().unwrap(),
+                        base_1.get_reference_position().unwrap(),
+                        GraphOperationType::Downstream,
+                        base_1.get_reference_strand().as_ref().unwrap().clone(),
+                        base_1.get_mapping_quality().unwrap_or(0),
+                        base_2.get_reference_chromosome_id().unwrap(),
+                        base_2.get_reference_position().unwrap() + 1,
+                        GraphOperationType::Upstream,
+                        base_2.get_reference_strand().as_ref().unwrap().clone(),
+                        base_2.get_mapping_quality().unwrap_or(0),
+                        base_1.get_reference_gene_id().clone(),
+                        base_1.get_reference_transcript_id().clone(),
+                        base_1.get_reference_exon_id().clone(),
+                        base_2.get_reference_gene_id().clone(),
+                        base_2.get_reference_transcript_id().clone(),
+                        base_2.get_reference_exon_id().clone(),
                         None
                     );
                     records.push(record);
+                },
+                _ => {
+                    // Do nothing
                 }
             }
         }
@@ -914,7 +994,7 @@ impl AlignmentStructure {
 
     pub fn identify_variant_records(
         &self,
-        min_mapping_quality: usize,
+        min_mapping_quality: u16,
         min_base_quality: u8,
         analyte_type: AnalyteType
     ) -> Vec<VariantRecord> {
@@ -929,14 +1009,23 @@ impl AlignmentStructure {
             analyte_type.clone()
         );
 
-        // Step 3. Identify event variant records
+        // Step 3. Identify terminal-softclip insertion variant records
+        variant_records.extend(
+            self.identify_terminal_softclip_insertions(
+                min_mapping_quality,
+                min_base_quality,
+                analyte_type.clone()
+            )
+        );
+
+        // Step 4. Identify event variant records
         variant_records.extend(self.identify_event_variant_records(
             &records,
             min_mapping_quality,
             min_base_quality
         ));
 
-        // Step 4. Sort the variant records
+        // Step 5. Sort the variant records
         variant_records.sort_by(|a, b| {
             a.get_chromosome_1()
                 .cmp(&b.get_chromosome_1())
@@ -1025,6 +1114,142 @@ impl AlignmentStructure {
 /// Helper functions
 impl AlignmentStructure {
 
+    /// Build a single `Insertion` `VariantRecord` covering read positions
+    /// `[start, end_inclusive]`. Mirrors the position/operation conventions
+    /// used by `identify_records` for Insertion-kind base clusters:
+    ///   position_1 = base.reference_position, op_1 = Downstream
+    ///   position_2 = base.reference_position + 1, op_2 = Upstream
+    fn build_softclip_insertion_record(
+        &self,
+        start: u32,
+        end_inclusive: u32,
+        min_mapping_quality: u16,
+        min_base_quality: u8,
+    ) -> Option<VariantRecord> {
+        let first: &AlignmentStructureBase = self.get_base(start);
+
+        // All terminal-softclip bases set in alignment.rs::identify_breakpoint_variants
+        // share chromosome_id / reference_position / reference_strand / mapping_quality,
+        // so reading them off the first base is sufficient.
+        let mq: u16 = first.get_mapping_quality().unwrap();
+        if mq < min_mapping_quality {
+            return None;
+        }
+        let chromosome_id: u16 = first.get_reference_chromosome_id().unwrap();
+        let ref_position: u32 = first.get_reference_position().unwrap();
+        let ref_strand: Strand = first.get_reference_strand().as_ref().unwrap().clone();
+
+        // Filter the inserted sequence by base quality.
+        let mut sequence: String = String::new();
+        for i in start..=end_inclusive {
+            let b: &AlignmentStructureBase = self.get_base(i);
+            if b.get_base_quality() >= min_base_quality {
+                sequence.push_str(b.get_nucleotide().as_str());
+            }
+        }
+        if sequence.is_empty() {
+            return None;
+        }
+
+        let graph_operation: GraphOperation = GraphOperation::new(
+            chromosome_id,
+            ref_position,
+            ref_strand.clone(),
+            GraphOperationType::Downstream,
+            chromosome_id,
+            ref_position + 1,
+            ref_strand,
+            GraphOperationType::Upstream,
+            sequence.into(),
+            VariantType::Insertion,
+        );
+
+        Some(VariantRecord::new(
+            self.read_id,
+            start,
+            end_inclusive,
+            graph_operation,
+        ))
+    }
+
+    /// Detect runs of `Softclip`-kind bases that touch the read termini
+    /// (start at read position 0 or end at the last read position) and emit
+    /// each as a single `Insertion` `VariantRecord`. Mid-read soft-clip runs
+    /// (between split alignments) are ignored — those already get a
+    /// `Breakpoint` event added by `identify_breakpoint_variants`.
+    fn identify_terminal_softclip_insertions(
+        &self,
+        min_mapping_quality: u16,
+        min_base_quality: u8,
+        analyte_type: AnalyteType
+    ) -> Vec<VariantRecord> {
+        let mut variant_records: Vec<VariantRecord> = Vec::new();
+        let n: u32 = self.get_bases_length();
+        if n == 0 {
+            return variant_records;
+        }
+
+        // Leading run: contiguous Softclip bases starting at read position 0.
+        let mut leading_end: u32 = 0; // exclusive
+        while leading_end < n
+            && *self.get_base(leading_end).get_kind() == AlignmentStructureBaseKind::Softclip
+        {
+            leading_end += 1;
+        }
+        if leading_end > 0 {
+            if let Some(vr) = self.build_softclip_insertion_record(
+                0,
+                leading_end - 1,
+                min_mapping_quality,
+                min_base_quality,
+            ) {
+                variant_records.push(vr);
+            }
+        }
+
+        // Trailing run: contiguous Softclip bases ending at read position n-1.
+        let mut trailing_start: u32 = n; // inclusive
+        while trailing_start > 0
+            && *self.get_base(trailing_start - 1).get_kind() == AlignmentStructureBaseKind::Softclip
+        {
+            trailing_start -= 1;
+        }
+        // Skip if there is no trailing run, or if the trailing run overlaps the
+        // leading run we already emitted (entire read is one softclip span).
+        if trailing_start < n && trailing_start > leading_end {
+            if let Some(vr) = self.build_softclip_insertion_record(
+                trailing_start,
+                n - 1,
+                min_mapping_quality,
+                min_base_quality,
+            ) {
+                variant_records.push(vr);
+            }
+        }
+
+        // Exclude template-switching artifacts if the analyte type is RNA
+        if analyte_type == AnalyteType::RNA {
+            variant_records.retain(|vr| {
+                let sequence: String = vr.get_sequence().to_uppercase();
+                if sequence.len() <= 3 {
+                    if sequence.contains("CC") ||
+                        sequence.contains("GG") ||
+                        sequence.contains("GG") ||
+                        sequence.contains("CC") ||
+                        sequence.contains("GG") {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            });
+        }
+
+        variant_records
+    }
+
     /// Identifies base variant records.
     ///
     /// This function identifies the following variant types:
@@ -1044,7 +1269,7 @@ impl AlignmentStructure {
     fn identify_base_variant_records(
         &self,
         records: &Vec<AlignmentStructureRecord>,
-        min_mapping_quality: usize,
+        min_mapping_quality: u16,
         min_base_quality: u8,
         analyte_type: AnalyteType
     ) -> Vec<VariantRecord> {
@@ -1071,7 +1296,6 @@ impl AlignmentStructure {
                         (curr_record.get_start() == 0 || curr_record.get_end() == self.get_bases_length() - 1) {
                         continue;
                     }
-
                     let sequence: String = curr_record
                         .get_sequence()
                         .chars()
@@ -1084,7 +1308,7 @@ impl AlignmentStructure {
                         continue;
                     }
 
-                    let decrement: usize = sequence.len().abs_diff(curr_record.get_sequence().len()) as usize;
+                    let decrement: u32 = sequence.len().abs_diff(curr_record.get_sequence().len()) as u32;
 
                     let variant_type = if sequence.len() == 1 {
                         VariantType::SingleNucleotideVariant
@@ -1115,17 +1339,6 @@ impl AlignmentStructure {
                     );
                 },
                 AlignmentStructureKind::Base(AlignmentStructureBaseKind::Insertion) => {
-                    // Exclude template-switching artifacts if the analyte type is RNA
-                    if analyte_type == AnalyteType::RNA &&
-                        (curr_record.get_start() == 0 || curr_record.get_end() == self.get_bases_length() - 1) &&
-                        curr_record.get_sequence().len() <= 3 &&
-                        (curr_record.get_sequence().to_uppercase().contains("AA") ||
-                         curr_record.get_sequence().to_uppercase().contains("CC") ||
-                         curr_record.get_sequence().to_uppercase().contains("GG") ||
-                         curr_record.get_sequence().to_uppercase().contains("TT")) {
-                        continue;
-                    }
-
                     let sequence: String = curr_record
                         .get_sequence()
                         .chars()
@@ -1166,17 +1379,26 @@ impl AlignmentStructure {
             }
         }
 
+        // Return the current vector of VariantRecord objects for DNA variant calling
         if analyte_type == AnalyteType::DNA {
             return variant_records;
         }
 
-        // Step 2. Identify variant records based on the AlignmentStructureBase contexts
+        // Step 2. Get a set of all included read bases
+        let mut included_read_bases: HashSet<(u32, u32)> = HashSet::new();
+        for variant_record in variant_records.iter() {
+            included_read_bases.insert(
+                (variant_record.read_position_1, variant_record.read_position_2)
+            );
+        }
+
+        // Step 3. Identify variant records based on the AlignmentStructureBase contexts - RNA variant calling
         let mut uf: UnionFind = UnionFind::new();
         for i in 0..records.len() {
             let record: &AlignmentStructureRecord = records.get(i).unwrap();
             if *record.get_record_type() == AlignmentStructureRecordType::Base &&
                 *record.get_context().as_ref().unwrap() != AlignmentStructureContext::Base(AlignmentStructureBaseContext::Exonic) {
-                uf.union(i, i);
+                uf.union(i as u32, i as u32);
             }
         }
         for i in 1..records.len() {
@@ -1200,7 +1422,7 @@ impl AlignmentStructure {
                         if *base_1.get_context().as_ref().unwrap() != AlignmentStructureBaseContext::Exonic &&
                             *base_1.get_context().as_ref().unwrap() == *base_2.get_context().as_ref().unwrap() &&
                             *base_1.get_context().as_ref().unwrap() == *curr_record.get_context().as_ref().unwrap().as_base().unwrap() {
-                            uf.union(i - 1, i);
+                            uf.union(i as u32 - 1, i as u32);
                         }
                     }
                 },
@@ -1218,7 +1440,7 @@ impl AlignmentStructure {
                         if *base_1.get_context().as_ref().unwrap() != AlignmentStructureBaseContext::Exonic &&
                             *base_1.get_context().as_ref().unwrap() == *base_2.get_context().as_ref().unwrap() &&
                             *base_1.get_context().as_ref().unwrap() == *prev_record.get_context().as_ref().unwrap().as_base().unwrap() {
-                            uf.union(i - 1, i);
+                            uf.union(i as u32 - 1, i as u32);
                         }
                     }
                 }
@@ -1232,26 +1454,26 @@ impl AlignmentStructure {
                         prev_record.get_strand_2() == curr_record.get_strand_2() &&
                         (prev_record.get_position_1().abs_diff(curr_record.get_position_2()) <= 1 ||
                          prev_record.get_position_2().abs_diff(curr_record.get_position_1()) <= 1) {
-                        uf.union(i - 1, i);
+                        uf.union(i as u32 - 1, i as u32);
                     }
                 }
             }
         }
         for cluster in uf.get_clusters().iter() {
             // Sort the record positions
-            let mut record_indices: Vec<usize> = cluster.iter().map(|&pos| pos as usize).collect();
+            let mut record_indices: Vec<u32> = cluster.iter().map(|&pos| pos).collect();
             record_indices.sort();
 
             let first_record: &AlignmentStructureRecord = records.get(*record_indices.first().unwrap() as usize).unwrap();
             let last_record: &AlignmentStructureRecord = records.get(*record_indices.last().unwrap() as usize).unwrap();
 
-            let prev_record: Option<&AlignmentStructureRecord> = if *record_indices.first().unwrap() > 0usize  {
+            let prev_record: Option<&AlignmentStructureRecord> = if *record_indices.first().unwrap() > 0u32  {
                 records.get(record_indices[0] as usize - 1)
             } else {
                 None
             };
 
-            let next_record: Option<&AlignmentStructureRecord> = if *record_indices.last().unwrap() < records.len() as usize - 1  {
+            let next_record: Option<&AlignmentStructureRecord> = if *record_indices.last().unwrap() < records.len() as u32 - 1  {
                 records.get(*record_indices.last().unwrap() as usize + 1)
             } else {
                 None
@@ -1328,14 +1550,16 @@ impl AlignmentStructure {
                 )
             };
 
-            variant_records.push(
-                VariantRecord::new(
-                    self.read_id,
-                    first_record.get_start(),
-                    last_record.get_end(),
-                    graph_operation
-                )
-            );
+            if included_read_bases.contains(&(first_record.get_start(), last_record.get_end())) == false {
+                variant_records.push(
+                    VariantRecord::new(
+                        self.read_id,
+                        first_record.get_start(),
+                        last_record.get_end(),
+                        graph_operation
+                    )
+                );
+            }
         }
 
         variant_records
@@ -1360,7 +1584,7 @@ impl AlignmentStructure {
     fn identify_event_variant_records(
         &self,
         records: &Vec<AlignmentStructureRecord>,
-        min_mapping_quality: usize,
+        min_mapping_quality: u16,
         min_base_quality: u8
     ) -> Vec<VariantRecord> {
         let mut variant_records: Vec<VariantRecord> = Vec::new();
@@ -1377,9 +1601,9 @@ impl AlignmentStructure {
             match record.get_kind() {
                 AlignmentStructureKind::Event(AlignmentStructureEventKind::Breakpoint) => {
                     // Get sequence
-                    let sequence = record.get_sequence();
-                    let base_quality_scores = record.get_base_quality_scores();
-                    let mut filtered_sequence = String::new();
+                    let sequence: &Box<str> = record.get_sequence();
+                    let base_quality_scores: &Vec<u8> = record.get_base_quality_scores();
+                    let mut filtered_sequence: String = String::new();
                     for (base, &quality) in sequence.chars().zip(base_quality_scores) {
                         if quality >= min_base_quality {
                             filtered_sequence.push(base);
@@ -1440,8 +1664,8 @@ impl AlignmentStructure {
                     if record.get_skipped().is_some() {
                         for reference_bases in record.get_skipped().as_ref().unwrap().iter() {
                             let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
-                            let reference_position_1: usize = reference_bases.first().unwrap().reference_position;
-                            let reference_position_2: usize = reference_bases.last().unwrap().reference_position;
+                            let reference_position_1: u32 = reference_bases.first().unwrap().reference_position;
+                            let reference_position_2: u32 = reference_bases.last().unwrap().reference_position;
                             let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
                             let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
                                 reference_bases
@@ -1483,8 +1707,8 @@ impl AlignmentStructure {
                 AlignmentStructureKind::Event(AlignmentStructureEventKind::Boundary) => {
                     for reference_bases in record.get_skipped().as_ref().unwrap().iter() {
                         let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
-                        let reference_position_1: usize = reference_bases.first().unwrap().reference_position;
-                        let reference_position_2: usize = reference_bases.last().unwrap().reference_position;
+                        let reference_position_1: u32 = reference_bases.first().unwrap().reference_position;
+                        let reference_position_2: u32 = reference_bases.last().unwrap().reference_position;
                         let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
                         let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
                             reference_bases
@@ -1549,9 +1773,9 @@ impl AlignmentStructure {
                     if record.get_context().is_some() {
                         if record.get_context().as_ref().unwrap() == &AlignmentStructureContext::Event(AlignmentStructureEventContext::FusionGene) {
                             // Get sequence
-                            let sequence = record.get_sequence();
-                            let base_quality_scores = record.get_base_quality_scores();
-                            let mut filtered_sequence = String::new();
+                            let sequence: &Box<str> = record.get_sequence();
+                            let base_quality_scores: &Vec<u8> = record.get_base_quality_scores();
+                            let mut filtered_sequence: String = String::new();
                             for (base, &quality) in sequence.chars().zip(base_quality_scores) {
                                 if quality >= min_base_quality {
                                     filtered_sequence.push(base);
@@ -1585,8 +1809,8 @@ impl AlignmentStructure {
                     if record.get_skipped().is_some() {
                         for reference_bases in record.get_skipped().as_ref().unwrap().iter() {
                             let reference_chromosome_id: u16 = reference_bases.first().unwrap().reference_chromosome_id;
-                            let reference_position_1: usize = reference_bases.first().unwrap().reference_position;
-                            let reference_position_2: usize = reference_bases.last().unwrap().reference_position;
+                            let reference_position_1: u32 = reference_bases.first().unwrap().reference_position;
+                            let reference_position_2: u32 = reference_bases.last().unwrap().reference_position;
                             let reference_strand: &Strand = &reference_bases.first().unwrap().reference_strand;
                             let sequence: String = if reference_bases.first().unwrap().reference_strand == Strand::Forward {
                                 reference_bases

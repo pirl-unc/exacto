@@ -57,7 +57,7 @@ pub fn read_tsv_file(tsv_file: &str) -> DataFrame {
         parse_options: Arc::new(parse_options),
         ..Default::default()
     };
-    let df = options
+    let df: DataFrame = options
         .try_into_reader_with_file_path(Some(tsv_file.into()))
         .unwrap()
         .finish()
@@ -69,12 +69,12 @@ pub fn read_fasta_file(fasta_file: &str) -> Vec<(Box<str>, Box<str>)> {
     let mut sequences: Vec<(Box<str>, Box<str>)> = Vec::new();
 
     // Check if file is gzip compressed by reading magic bytes
-    let is_gzipped = {
-        let mut file = File::open(fasta_file).unwrap();
+    let is_gzipped: bool = {
+        let mut file: File = File::open(fasta_file).unwrap();
         let mut magic = [0; 2];
         match file.read_exact(&mut magic) {
             Ok(()) => magic == [0x1F, 0x8B],
-            Err(_) => false, // File too short, assume not gzipped
+            Err(_) => false
         }
     };
 

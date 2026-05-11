@@ -109,7 +109,8 @@ pub enum AlignmentStructureBaseKind {
     Match,
     Mismatch,
     Insertion,
-    Unaligned
+    Unaligned,
+    Softclip
 }
 
 impl AlignmentStructureBaseKind {
@@ -118,7 +119,8 @@ impl AlignmentStructureBaseKind {
             AlignmentStructureBaseKind::Match => "match",
             AlignmentStructureBaseKind::Mismatch => "mismatch",
             AlignmentStructureBaseKind::Insertion => "insertion",
-            AlignmentStructureBaseKind::Unaligned => "unaligned"
+            AlignmentStructureBaseKind::Unaligned => "unaligned",
+            AlignmentStructureBaseKind::Softclip => "softclip"
         }
     }
 
@@ -127,7 +129,8 @@ impl AlignmentStructureBaseKind {
             AlignmentStructureBaseKind::Match => "=",
             AlignmentStructureBaseKind::Mismatch => "*",
             AlignmentStructureBaseKind::Insertion => "+",
-            AlignmentStructureBaseKind::Unaligned => "X"
+            AlignmentStructureBaseKind::Unaligned => "X",
+            AlignmentStructureBaseKind::Softclip => "S"
         }
     }
 }
@@ -141,6 +144,7 @@ impl FromStr for AlignmentStructureBaseKind {
             "mismatch" | "*" => Ok(AlignmentStructureBaseKind::Mismatch),
             "insertion" | "+" => Ok(AlignmentStructureBaseKind::Insertion),
             "unaligned" | "X" => Ok(AlignmentStructureBaseKind::Unaligned),
+            "softclip" | "S" => Ok(AlignmentStructureBaseKind::Softclip),
             _ => Err(())
         }
     }
@@ -405,41 +409,6 @@ impl VariantType {
             VariantType::UTRExtension => "UTR"
         }
     }
-
-    // pub fn as_symbol_str(&self) -> &str {
-    //     match self {
-    //         VariantType::Breakpoint => "#",
-    //         VariantType::CircularRNA => "@",
-    //         VariantType::CrypticExon => "?",
-    //         VariantType::Deletion => "-",
-    //         VariantType::ExonTruncation => "!",
-    //         VariantType::FusionGene => "&",
-    //         VariantType::Insertion => "+",
-    //         VariantType::IntronRetention => "$",
-    //         VariantType::MultiNucleotideVariant => "{",
-    //         VariantType::NoncanonicalSplicing => "/",
-    //         VariantType::SingleNucleotideVariant => "*",
-    //         VariantType::Translocation => "^"
-    //     }
-    // }
-    //
-    // pub fn from_symbol_str(s: &str) -> Result<Self, ()> {
-    //     match s {
-    //         "#" => Ok(Self::Breakpoint),
-    //         "@" => Ok(Self::CircularRNA),
-    //         "?" => Ok(Self::CrypticExon),
-    //         "-" => Ok(Self::Deletion),
-    //         "!" => Ok(Self::ExonTruncation),
-    //         "&" => Ok(Self::FusionGene),
-    //         "+" => Ok(Self::Insertion),
-    //         "$" => Ok(Self::IntronRetention),
-    //         "{" => Ok(Self::MultiNucleotideVariant),
-    //         "/" => Ok(Self::NoncanonicalSplicing),
-    //         "*" => Ok(Self::SingleNucleotideVariant),
-    //         "^" => Ok(Self::Translocation),
-    //         _ => Err(())
-    //     }
-    // }
 }
 
 impl FromStr for VariantType {
@@ -463,4 +432,3 @@ impl FromStr for VariantType {
         }
     }
 }
-

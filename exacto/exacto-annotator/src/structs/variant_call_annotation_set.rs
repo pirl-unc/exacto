@@ -29,7 +29,7 @@ pub struct VariantCallAnnotationSet {
     /// Nested structure for position indexing:
     /// - Outer HashMap: Maps chromosome names to their position index
     /// - Inner BTreeMap: Maps positions to variant call IDs
-    position_index: HashMap<Box<str>, BTreeMap<usize, HashSet<usize>>>,
+    position_index: HashMap<Box<str>, BTreeMap<u32, HashSet<usize>>>,
 
     /// A map between reference transcript ID and its associated variant call IDs
     transcript_index: HashMap<Box<str>, HashSet<usize>>
@@ -95,7 +95,7 @@ impl VariantCallAnnotationSet {
         self.annotations.get(&variant_call_id).unwrap()
     }
     
-    pub fn get_by_range(&self, chromosome: &str, start: usize, end: usize) -> Vec<&VariantCallAnnotation> {
+    pub fn get_by_range(&self, chromosome: &str, start: u32, end: u32) -> Vec<&VariantCallAnnotation> {
         let mut result_ids = HashSet::new();
 
         if let Some(position_map) = self.position_index.get(chromosome) {
@@ -139,7 +139,7 @@ impl VariantCallAnnotationSet {
         let col_chromosome_2 = df.column("chromosome_2").unwrap().str().unwrap();
         let col_position_2 = df.column("position_2").unwrap().i64().unwrap();
         let col_variant_type = df.column("variant_type").unwrap().str().unwrap();
-        let col_variant_sequence = df.column("variant_sequence").unwrap().str().unwrap();
+        let col_variant_sequence = df.column("sequence").unwrap().str().unwrap();
         let col_position_1_genic_region = df.column("position_1_genic_region").unwrap().str().unwrap();
         let col_position_1_annotation = df.column("position_1_annotation").unwrap().str().unwrap();
         let col_position_2_genic_region = df.column("position_2_genic_region").unwrap().str().unwrap();
@@ -149,9 +149,9 @@ impl VariantCallAnnotationSet {
         for i in 0 ..df.height() {
             let variant_call_id: usize = col_variant_call_id.get(i).unwrap() as usize;
             let chromosome_1: Box<str> = col_chromosome_1.get(i).unwrap().into();
-            let position_1: usize = col_position_1.get(i).unwrap() as usize;
+            let position_1: u32 = col_position_1.get(i).unwrap() as u32;
             let chromosome_2: Box<str> = col_chromosome_2.get(i).unwrap().into();
-            let position_2: usize = col_position_2.get(i).unwrap() as usize;
+            let position_2: u32 = col_position_2.get(i).unwrap() as u32;
             let variant_type: VariantType = VariantType::from_str(col_variant_type.get(i).unwrap()).unwrap();
             let variant_sequence: Box<str> = col_variant_sequence.get(i).unwrap().into();
             let position_1_annotation: PositionAnnotation = PositionAnnotation::from_string(col_position_1_annotation.get(i).unwrap());
@@ -178,9 +178,9 @@ impl VariantCallAnnotationSet {
     pub fn to_dataframe(&self) -> DataFrame {
         let mut variant_call_id_values: Vec<u64> = Vec::new();
         let mut chromosome_1_values: Vec<&str> = Vec::new();
-        let mut position_1_values: Vec<u64> = Vec::new();
+        let mut position_1_values: Vec<u32> = Vec::new();
         let mut chromosome_2_values: Vec<&str> = Vec::new();
-        let mut position_2_values: Vec<u64> = Vec::new();
+        let mut position_2_values: Vec<u32> = Vec::new();
         let mut variant_type_values: Vec<&str> = Vec::new();
         let mut variant_sequence_values: Vec<&str> = Vec::new();
         let mut position_1_annotation_genic_region_values: Vec<String> = Vec::new();
@@ -191,9 +191,9 @@ impl VariantCallAnnotationSet {
         for variant_call_annotation in self.annotations.values() {
             variant_call_id_values.push(variant_call_annotation.variant_call_id as u64);
             chromosome_1_values.push(&*variant_call_annotation.chromosome_1);
-            position_1_values.push(variant_call_annotation.position_1 as u64);
+            position_1_values.push(variant_call_annotation.position_1);
             chromosome_2_values.push(&*variant_call_annotation.chromosome_2);
-            position_2_values.push(variant_call_annotation.position_2 as u64);
+            position_2_values.push(variant_call_annotation.position_2);
             variant_type_values.push(variant_call_annotation.variant_type.as_str());
             variant_sequence_values.push(&*variant_call_annotation.variant_sequence);
             position_1_annotation_genic_region_values.push(variant_call_annotation.position_1_annotation.genic_region.as_str().to_string());
@@ -209,7 +209,7 @@ impl VariantCallAnnotationSet {
             Column::from(Series::new("chromosome_2".into(), chromosome_2_values)),
             Column::from(Series::new("position_2".into(), position_2_values)),
             Column::from(Series::new("variant_type".into(), variant_type_values)),
-            Column::from(Series::new("variant_sequence".into(), variant_sequence_values)),
+            Column::from(Series::new("sequence".into(), variant_sequence_values)),
             Column::from(Series::new("position_1_genic_region".into(), position_1_annotation_genic_region_values)),
             Column::from(Series::new("position_1_annotation".into(), position_1_annotation_values)),
             Column::from(Series::new("position_2_genic_region".into(), position_2_annotation_genic_region_values)),

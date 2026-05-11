@@ -14,15 +14,15 @@
 #[macro_export]
 macro_rules! log_info {
     ($($arg:tt)*) => {{
-        crate::common::logging::try_init_logging();
-        log::info!($($arg)*);
+        $crate::common::logging::init_logging(true);
+        ::log::info!($($arg)*);
     }}
 }
 
 #[macro_export]
 macro_rules! log_debug {
     ($($arg:tt)*) => {{
-        crate::common::logging::try_init_logging();
+        $crate::common::logging::init_logging(true);
         log::debug!($($arg)*);
     }}
 }

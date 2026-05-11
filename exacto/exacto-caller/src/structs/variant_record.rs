@@ -22,8 +22,8 @@ use crate::prelude::*;
 #[derive(Debug,Eq,Serialize,Deserialize)]
 pub struct VariantRecord {
     pub read_id: usize,
-    pub read_position_1: usize,
-    pub read_position_2: usize,
+    pub read_position_1: u32,
+    pub read_position_2: u32,
     pub graph_operation: GraphOperation
 }
 
@@ -52,15 +52,15 @@ impl Hash for VariantRecord {
 impl VariantRecord {
     pub fn new(
         read_id: usize,
-        read_start_position: usize,
-        read_end_position: usize,
-        sequence_operation: GraphOperation
+        read_start_position: u32,
+        read_end_position: u32,
+        graph_operation: GraphOperation
     ) -> Self {
         Self {
             read_id,
             read_position_1: read_start_position,
             read_position_2: read_end_position,
-            graph_operation: sequence_operation
+            graph_operation: graph_operation
         }
     }
 
@@ -84,11 +84,11 @@ impl VariantRecord {
         self.graph_operation.get_operation_type_2()
     }
 
-    pub fn get_position_1(&self) -> usize {
+    pub fn get_position_1(&self) -> u32 {
         self.graph_operation.get_position_1()
     }
 
-    pub fn get_position_2(&self) -> usize {
+    pub fn get_position_2(&self) -> u32 {
         self.graph_operation.get_position_2()
     }
 
@@ -96,11 +96,11 @@ impl VariantRecord {
         self.read_id
     }
     
-    pub fn get_read_position_1(&self) -> usize {
+    pub fn get_read_position_1(&self) -> u32 {
         self.read_position_1
     }
 
-    pub fn get_read_position_2(&self) -> usize {
+    pub fn get_read_position_2(&self) -> u32 {
         self.read_position_2
     }
 

@@ -1,49 +1,35 @@
 [package]
 name = "exacto-caller"
-version = "0.4.5"
-edition = "2021"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-exacto-core = { path = "../exacto-core", version = "0.4.5" }
-bimap = { version = "0.6.3", features = ["serde"] }
-bincode = "1.3"
-bstr = "1.10.0"
-chrono = "0.4.38"
-csv = "1.3.0"
-edit-distance = "2.1.3"
-env_logger = "0.10"
-flate2 = "1.0.35"
-indicatif = "0.17"
-interavl = "0.2.0"
-itertools = "0.14.0"
-log = "0.4.22"
-nalgebra = "0.33.2"
-noodles-bam = "0.83.0"
-noodles-bgzf = "0.43.0"
-noodles-core = "0.18.0"
-noodles-fasta = "0.56.0"
-noodles-sam = "0.79.0"
-once_cell = "1.10"
-polars = { version = "0.45.0", features = ["csv","decompress","json","lazy","parquet","serde","strings"] }
-rayon = "1.10.0"
-serde = { version = "1.0.210", features = ["derive"] }
-sysinfo = "0.32.0"
-tempfile = "3.6"
-regex = "1.10.6"
-
-[profile.dev]
-opt-level = 0
-debug = true
-overflow-checks = true
-panic = 'unwind'
-incremental = true
-codegen-units = 256
-
-[profile.release]
-opt-level = 3
-debug = false
-lto = true
-overflow-checks = false
-panic = 'unwind'
-incremental = true
-codegen-units = 1
+exacto-core = { workspace = true }
+bimap = { workspace = true }
+bincode = { workspace = true }
+bstr = { workspace = true }
+chrono = { workspace = true }
+csv= { workspace = true }
+edit-distance = { workspace = true }
+env_logger = { workspace = true }
+flate2 = { workspace = true }
+indicatif = { workspace = true }
+interavl = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
+nalgebra = { workspace = true }
+noodles-bam = { workspace = true }
+noodles-bgzf = { workspace = true }
+noodles-core = { workspace = true }
+noodles-fasta = { workspace = true }
+noodles-sam = { workspace = true }
+once_cell = { workspace = true }
+polars = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+statrs = { workspace = true }
+sysinfo = { workspace = true }
+tempfile = { workspace = true }
+regex = { workspace = true }

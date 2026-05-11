@@ -18,7 +18,6 @@ and run Exacto 'translate-structs' command.
 
 
 import argparse
-from ..constants import *
 from ..main import *
 from ..utilities import *
 
@@ -68,9 +67,7 @@ def add_cli_translate_structs_arg_parser(sub_parsers) -> argparse._SubParsersAct
         type=str,
         choices=[str(TranslationStrategy.LONGEST_ORF), str(TranslationStrategy.ALL_ORFS)],
         required=True,
-        help="Translation strategy (default: %s). Available options: '%s'." %
-             (str(TranslationStrategy.LONGEST_ORF),
-              ','.join([str(TranslationStrategy.LONGEST_ORF)]))
+        help="Translation strategy."
     )
     parser_required.add_argument(
         "--output-tsv-file",

@@ -15,7 +15,7 @@ use flate2::Compression;
 use flate2::write::GzEncoder;
 use polars::prelude::*;
 use rayon::prelude::*;
-use rayon::ThreadPoolBuilder;
+use rayon::{ThreadPool, ThreadPoolBuilder};
 use serde::{Serialize, Deserialize};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -96,9 +96,9 @@ impl MutantPeptidesSet {
     }
 
     pub fn to_tsv(&self, file: &str, buffer_size: usize, num_threads: usize, gzip: bool) {
-        let file = File::create(file).unwrap();
+        let file: File = File::create(file).unwrap();
 
-        let thread_pool = ThreadPoolBuilder::new()
+        let thread_pool: ThreadPool = ThreadPoolBuilder::new()
             .num_threads(num_threads)
             .build()
             .unwrap();
@@ -140,21 +140,25 @@ impl MutantPeptidesSet {
         } else {
             let writer = Arc::new(Mutex::new(BufWriter::new(file)));
             writer.lock().unwrap().write_all(header.as_bytes()).unwrap();
-            thread_pool.scope(|s| {
-                for (chunk_idx, chunk) in mutant_peptides.chunks(buffer_size).enumerate() {
-                    let writer = writer.clone();
-                    s.spawn(move |_| {
+            let chunks: Vec<&[&MutantPeptide]> = mutant_peptides.chunks(buffer_size).collect();
+            let buffers: Vec<String> = thread_pool.install(|| {
+                chunks
+                    .par_iter()
+                    .map(|chunk| {
                         let mut local_buffer = String::new();
-                        for (i, mutant_peptide) in chunk.iter().enumerate() {
+                        for mutant_peptide in chunk.iter() {
                             let row = mutant_peptide.to_tsv_string();
                             local_buffer.push_str(&row);
                         }
-                        let mut writer_guard = writer.lock().unwrap();
-                        writer_guard.write_all(local_buffer.as_bytes()).unwrap();
-                    });
-                }
+                        local_buffer
+                    })
+                    .collect()
             });
-            writer.lock().unwrap().flush().unwrap();
+            let mut writer_guard = writer.lock().unwrap();
+            for buffer in buffers {
+                writer_guard.write_all(buffer.as_bytes()).unwrap();
+            }
+            writer_guard.flush().unwrap();
         }
     }
 }

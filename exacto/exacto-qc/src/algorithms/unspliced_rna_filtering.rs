@@ -44,7 +44,7 @@ pub fn remove_unspliced_rnas(
     output_bam_bai_file: &str,
     output_fasta_file: &str,
     num_threads: usize,
-    min_mapping_quality: usize
+    min_mapping_quality: u16
 ) {
     // Step 1. Get single-exon transcripts
     let mut single_exon_transcripts_map: HashMap<Box<str>, Vec<&Transcript>> = HashMap::new();
@@ -104,7 +104,7 @@ pub fn remove_unspliced_rnas(
     );
 
     // Step 8. Write to FASTA file
-    let sequence_ids: Vec<(Box<str>, usize)> = get_fasta_sequence_ids(fasta_file);
+    let sequence_ids: Vec<(Box<str>, u32)> = get_fasta_sequence_ids(fasta_file);
     let mut sequences: Vec<(Box<str>, Box<str>)> = Vec::new();
     for (sequence_id, sequence_length) in sequence_ids.iter() {
         if read_names_to_keep.contains(&**sequence_id) {

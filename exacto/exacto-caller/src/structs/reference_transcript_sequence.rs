@@ -69,8 +69,8 @@ impl ReferenceTranscriptSequence {
     ///
     /// # Returns
     /// A vector of `(u16, usize, usize)` tuples representing intron positions (chromosome ID, start, end).
-    pub fn get_introns(&self) -> Vec<(u16, usize, usize)> {
-        let mut introns: Vec<(u16, usize, usize)> = Vec::new();
+    pub fn get_introns(&self) -> Vec<(u16, u32, u32)> {
+        let mut introns: Vec<(u16, u32, u32)> = Vec::new();
         for i in 0..(self.bases.len() - 1) {
             let curr_base: &ReferenceBase = self.get_base(i);
             let next_base: &ReferenceBase = self.get_base(i + 1);
@@ -94,8 +94,8 @@ impl ReferenceTranscriptSequence {
         &*self.reference_transcript_id
     }
     
-    pub fn get_transcript_end(&self) -> usize {
-        let mut end: usize = 0;
+    pub fn get_transcript_end(&self) -> u32 {
+        let mut end: u32 = 0;
         for base in self.bases.iter() {
             if base.reference_position > end {
                 end = base.reference_position
@@ -104,8 +104,8 @@ impl ReferenceTranscriptSequence {
         end
     }
 
-    pub fn get_transcript_start(&self) -> usize {
-        let mut start: usize = usize::MAX;
+    pub fn get_transcript_start(&self) -> u32 {
+        let mut start: u32 = u32::MAX;
         for base in self.bases.iter() {
             if base.reference_position < start {
                 start = base.reference_position
@@ -135,7 +135,7 @@ impl ReferenceTranscriptSequence {
 impl ReferenceTranscriptSequence {
     pub fn from_reference_transcript(
         transcript: &Transcript,
-        chromosome_names_map: &BiMap<Box<str>,u16>,
+        chromosome_names_map: &BiMap<Box<str>, u16>,
         reference_genome_fasta_file: &str
     ) -> ReferenceTranscriptSequence {
         let mut fasta_reader = Builder::default()
@@ -147,9 +147,9 @@ impl ReferenceTranscriptSequence {
         for exon in transcript.get_sorted_exons() {
             if transcript.strand == Strand::Forward {
                 for i in exon.start..=exon.end {
-                    let position_start = Position::try_from(i as usize).unwrap();
-                    let position_end = Position::try_from(i as usize).unwrap();
-                    let region = Region::new(reference_chromosome_name, position_start..=position_end);
+                    let position_start: Position = Position::try_from(i as usize).unwrap();
+                    let position_end: Position = Position::try_from(i as usize).unwrap();
+                    let region: Region = Region::new(reference_chromosome_name, position_start..=position_end);
                     let ref_record = fasta_reader.query(&region).unwrap();
                     let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
                     let sequence: &str = std::str::from_utf8(ref_sequence_bytes).expect("Failed to convert sequence to UTF-8");
@@ -167,9 +167,9 @@ impl ReferenceTranscriptSequence {
                 }
             } else {
                 for i in (exon.start..=exon.end).rev() {
-                    let position_start = Position::try_from(i as usize).unwrap();
-                    let position_end = Position::try_from(i as usize).unwrap();
-                    let region = Region::new(reference_chromosome_name, position_start..=position_end);
+                    let position_start: Position = Position::try_from(i as usize).unwrap();
+                    let position_end: Position = Position::try_from(i as usize).unwrap();
+                    let region: Region = Region::new(reference_chromosome_name, position_start..=position_end);
                     let ref_record = fasta_reader.query(&region).unwrap();
                     let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
                     let sequence: &str = std::str::from_utf8(ref_sequence_bytes).expect("Failed to convert sequence to UTF-8");

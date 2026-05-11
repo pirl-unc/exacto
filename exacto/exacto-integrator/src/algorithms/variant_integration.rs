@@ -27,9 +27,9 @@ pub fn integrate_dna_rna_variants(
     dna_variant_call_annotation_set: &VariantCallAnnotationSet,
     rna_variant_call_set: &RNAVariantCallSet,
     gene_annotator: &(impl GeneAnnotator + Sync),
-    max_exon_offset: u32,
-    max_transcript_boundary_offset: usize,
-    max_intergenic_distance: usize,
+    max_exon_offset: u16,
+    max_transcript_boundary_offset: u32,
+    max_intergenic_distance: u32,
     num_threads: usize
 ) -> IntegratedVariantSet {
     // Step 1. Get RNA variant calls
@@ -194,7 +194,7 @@ pub fn integrate_dna_rna_variants(
     integrated_variant_set
 }
 
-fn are_exons_proximal(exon_a: &Exon, exon_b: &Exon, max_exon_offset: u32) -> bool {
+fn are_exons_proximal(exon_a: &Exon, exon_b: &Exon, max_exon_offset: u16) -> bool {
     exon_a.exon_number.abs_diff(exon_b.exon_number) <= max_exon_offset
 }
 
@@ -203,7 +203,7 @@ fn calculate_distance(
     dna_variant_call_annotation: &VariantCallAnnotation,
     rna_chromosome_names_map: &BiMap<Box<str>, u16>
 ) -> IntegratedVariantDistance {
-    let mut min_distance: usize = std::usize::MAX;
+    let mut min_distance: u32 = u32::MAX;
     let mut rna_variant_position_used: VariantPosition = VariantPosition::Position1;
     let mut dna_variant_position_used: VariantPosition = VariantPosition::Position1;
 
@@ -216,7 +216,7 @@ fn calculate_distance(
 
     // RNA variant position 1 vs DNA variant position 1
     if rna_chromosome_1_name == dna_chromosome_1_name {
-        let curr_distance: usize = consensus_rna_variant_record.get_position_1().abs_diff(dna_variant_call_annotation.position_1);
+        let curr_distance: u32 = consensus_rna_variant_record.get_position_1().abs_diff(dna_variant_call_annotation.position_1);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position1;
@@ -226,7 +226,7 @@ fn calculate_distance(
 
     // RNA variant position 1 vs DNA variant position 2
     if rna_chromosome_1_name == dna_chromosome_2_name {
-        let curr_distance: usize = consensus_rna_variant_record.get_position_1().abs_diff(dna_variant_call_annotation.position_2);
+        let curr_distance: u32 = consensus_rna_variant_record.get_position_1().abs_diff(dna_variant_call_annotation.position_2);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position1;
@@ -236,7 +236,7 @@ fn calculate_distance(
 
     // RNA variant position 2 vs DNA variant position 1
     if rna_chromosome_2_name == dna_chromosome_1_name {
-        let curr_distance: usize = consensus_rna_variant_record.get_position_2().abs_diff(dna_variant_call_annotation.position_1);
+        let curr_distance: u32 = consensus_rna_variant_record.get_position_2().abs_diff(dna_variant_call_annotation.position_1);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position2;
@@ -246,7 +246,7 @@ fn calculate_distance(
 
     // RNA variant position 2 vs DNA variant position 2
     if rna_chromosome_2_name == dna_chromosome_2_name {
-        let curr_distance: usize = consensus_rna_variant_record.get_position_2().abs_diff(dna_variant_call_annotation.position_2);
+        let curr_distance: u32 = consensus_rna_variant_record.get_position_2().abs_diff(dna_variant_call_annotation.position_2);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position2;
@@ -254,22 +254,22 @@ fn calculate_distance(
         }
     }
 
-    assert_ne!(min_distance, std::usize::MAX);
+    assert_ne!(min_distance, u32::MAX);
 
     IntegratedVariantDistance::new(min_distance, rna_variant_position_used, dna_variant_position_used)
 }
 
 fn is_dna_variant_near_rna_variant(
-    rna_position: usize,
+    rna_position: u32,
     rna_exons: Option<(Exon, Exon)>,
     rna_region: GenicRegion,
-    dna_position: usize,
+    dna_position: u32,
     dna_region: GenicRegion,
     dna_exons: Option<(Exon, Exon)>,
     reference_transcript: &Transcript,
-    max_exon_offset: u32,
-    max_transcript_boundary_offset: usize,
-    max_intergenic_distance: usize
+    max_exon_offset: u16,
+    max_transcript_boundary_offset: u32,
+    max_intergenic_distance: u32
 ) -> bool {
     match (rna_region, dna_region) {
         (GenicRegion::Exonic, GenicRegion::Exonic) => {
@@ -287,7 +287,7 @@ fn is_dna_variant_near_rna_variant(
             if let Some((rna_exon, _)) = rna_exons.as_ref() {
                 let exon_count = reference_transcript.get_exon_ids().len();
                 if rna_exon.exon_number <= max_exon_offset ||
-                    rna_exon.exon_number as usize >= (exon_count - max_exon_offset as usize) {
+                    rna_exon.exon_number as usize >= exon_count.saturating_sub(max_exon_offset as usize) {
                     return rna_position.abs_diff(dna_position) <= max_transcript_boundary_offset;
                 }
             }
@@ -309,8 +309,8 @@ fn is_dna_variant_near_rna_variant(
         (GenicRegion::Intronic, GenicRegion::Intergenic) => {
             if let Some((rna_exon_1, rna_exon_2)) = rna_exons.as_ref() {
                 let exon_count = reference_transcript.get_exon_ids().len();
-                if ((rna_exon_1.exon_number <= max_exon_offset || rna_exon_1.exon_number as usize >= (exon_count - max_exon_offset as usize)) ||
-                    (rna_exon_2.exon_number <= max_exon_offset || rna_exon_2.exon_number as usize >= (exon_count - max_exon_offset as usize))) &&
+                if ((rna_exon_1.exon_number <= max_exon_offset || rna_exon_1.exon_number as usize >= exon_count.saturating_sub(max_exon_offset as usize)) ||
+                    (rna_exon_2.exon_number <= max_exon_offset || rna_exon_2.exon_number as usize >= exon_count.saturating_sub(max_exon_offset as usize))) &&
                     rna_position.abs_diff(dna_position) <= max_transcript_boundary_offset {
                     return true;
                 } else {
@@ -327,7 +327,7 @@ fn is_dna_variant_near_rna_variant(
                 }
             }
             if rna_position.abs_diff(reference_transcript.end) <= max_transcript_boundary_offset {
-                let last_exon: &Exon = reference_transcript.get_exon_by_number(reference_transcript.get_exon_ids().len() as u32).unwrap();
+                let last_exon: &Exon = reference_transcript.get_exon_by_number(reference_transcript.get_exon_ids().len() as u16).unwrap();
                 if let Some((dna_exon, _)) = dna_exons.as_ref() {
                     return are_exons_proximal(last_exon, dna_exon, max_exon_offset)
                 }
@@ -344,7 +344,7 @@ fn is_dna_variant_near_rna_variant(
                 }
             }
             if rna_position.abs_diff(reference_transcript.end) <= max_transcript_boundary_offset {
-                let last_exon: &Exon = reference_transcript.get_exon_by_number(reference_transcript.get_exon_ids().len() as u32).unwrap();
+                let last_exon: &Exon = reference_transcript.get_exon_by_number(reference_transcript.get_exon_ids().len() as u16).unwrap();
                 if let Some((dna_exon_1, dna_exon_2)) = dna_exons.as_ref() {
                     return are_exons_proximal(last_exon, dna_exon_1, max_exon_offset) ||
                             are_exons_proximal(last_exon, dna_exon_2, max_exon_offset);

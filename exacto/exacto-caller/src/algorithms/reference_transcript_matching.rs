@@ -21,26 +21,28 @@ use crate::prelude::*;
 pub fn identify_reference_transcript_matches(
     exons: &Vec<TranscriptModelExon>,
     gene_annotator: &impl GeneAnnotator,
-    chromosome_names_map: &BiMap<Box<str>,u16>,
+    chromosome_names_map: &BiMap<Box<str>, u16>,
     scoring_method: ReferenceTranscriptScoringMethod,
     selection_strategy: ReferenceTranscriptSelectionStrategy,
     top_k: usize,
     threshold: f32
 ) -> Vec<ReferenceTranscriptMatch> {
-    // Step 1. Identifying overlapping genes and transcript IDs
-    let reference_gene_ids: HashSet<Box<str>> = identify_overlapping_gene_ids(
-        exons,
-        gene_annotator,
-        chromosome_names_map
-    );
+    // Step 1. Identifying overlapping transcript IDa
     let reference_transcript_ids: HashSet<Box<str>> = identify_overlapping_transcript_ids(
         exons,
-        &reference_gene_ids,
         gene_annotator,
         chromosome_names_map
     );
 
-    // Step 2. Score each transcript in each gene
+    // Step 2. Identifying overlapping gene IDs
+    let mut reference_gene_ids: HashSet<Box<str>> = HashSet::new();
+    for reference_transcript_id in reference_transcript_ids.iter() {
+        let transcript: &Transcript = gene_annotator.get_transcript(reference_transcript_id).unwrap();
+        reference_gene_ids.insert(transcript.gene_id.clone());
+    }
+
+    // Step 3. Score each overlapping transcript in each gene
+    // gene_id -> scored transcript matches
     let mut reference_transcript_scores: HashMap<Box<str>, Vec<ReferenceTranscriptMatch>> = HashMap::new();
     for reference_gene_id in reference_gene_ids.iter() {
         let reference_gene: &Gene = gene_annotator.get_gene(reference_gene_id).unwrap();
@@ -60,38 +62,37 @@ pub fn identify_reference_transcript_matches(
         reference_transcript_scores.insert(reference_gene.gene_id.clone(), reference_transcript_matches_);
     }
 
-    // Step 3. Select reference transcript matches
+    // Step 4. Select reference transcript matches
     let mut reference_transcript_matches: Vec<ReferenceTranscriptMatch> = Vec::new();
     for reference_gene_id in reference_gene_ids.iter() {
         if let Some(matches) = reference_transcript_scores.get(reference_gene_id) {
-            // Sort by score descending
-            let mut sorted_matches = matches.clone();
-            sorted_matches.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+            let mut sorted_matches: Vec<ReferenceTranscriptMatch> = matches.clone();
+
+            // Build canonical ordering via rank_transcripts
+            let ranked: Vec<&Transcript> = gene_annotator.rank_transcripts(
+                sorted_matches.iter()
+                    .map(|m| gene_annotator.get_transcript(&*m.reference_transcript_id).unwrap())
+                    .collect()
+            );
+            let canonical_order: HashMap<&str, usize> = ranked.iter()
+                .enumerate()
+                .map(|(i, t)| (t.transcript_id.as_ref(), i))
+                .collect();
+
+            // Sort by score descending, then canonical rank ascending as tiebreaker
+            sorted_matches.sort_by(|a, b| {
+                b.score.partial_cmp(&a.score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| {
+                        let rank_a = canonical_order.get(a.reference_transcript_id.as_ref()).unwrap_or(&usize::MAX);
+                        let rank_b = canonical_order.get(b.reference_transcript_id.as_ref()).unwrap_or(&usize::MAX);
+                        rank_a.cmp(rank_b)
+                    })
+            });
 
             if selection_strategy == ReferenceTranscriptSelectionStrategy::TopK {
-                // Find the top K score values
-                let mut prev_score: f32 = f32::NEG_INFINITY;
-                let mut top_k_scores: Vec<f32> = Vec::new();
-                for reference_transcript_match in sorted_matches.iter() {
-                    let score = reference_transcript_match.score;
-                    if (score == prev_score) || (top_k_scores.len() >= top_k) {
-                        continue;
-                    }
-                    top_k_scores.push(score);
-                    prev_score = score;
-                }
-
-                // Find reference transcript matches that have the top K score values
-                let min_score = top_k_scores
-                    .iter()
-                    .copied()
-                    .reduce(|a, b| a.partial_cmp(&b).map(|o| if o == std::cmp::Ordering::Less { a } else { b }).unwrap())
-                    .expect("top_k_scores is empty");
-                for reference_transcript_match in sorted_matches.iter() {
-                    if reference_transcript_match.score >= min_score {
-                        reference_transcript_matches.push(reference_transcript_match.clone());
-                    }
-                }
+                sorted_matches.truncate(top_k);
+                reference_transcript_matches.extend(sorted_matches);
             } else if selection_strategy == ReferenceTranscriptSelectionStrategy::Threshold {
                 reference_transcript_matches.extend(
                     sorted_matches.into_iter().filter(|m| m.score >= threshold)
@@ -102,7 +103,7 @@ pub fn identify_reference_transcript_matches(
         }
     }
 
-    // Step 4. Sort by score
+    // Step 5. Sort by score
     reference_transcript_matches.sort_by(|a, b|  {
         b.score
             .partial_cmp(&a.score)
@@ -113,63 +114,51 @@ pub fn identify_reference_transcript_matches(
     reference_transcript_matches
 }
 
-fn identify_overlapping_gene_ids(
-    exons: &Vec<TranscriptModelExon>,
+fn identify_overlapping_transcript_ids(
+    model_exons: &Vec<TranscriptModelExon>,
     gene_annotator: &impl GeneAnnotator,
     chromosome_names_map: &BiMap<Box<str>, u16>
 ) -> HashSet<Box<str>> {
-    let mut gene_ids: HashSet<Box<str>> = HashSet::new();
-    for exon in exons.iter() {
-        let chromosome_name: Box<str> = chromosome_names_map.get_by_right(&exon.reference_chromosome_id).unwrap().to_string().into_boxed_str();
-        for gene_id in gene_annotator.get_gene_ids_overlapping_region(&*chromosome_name, exon.reference_start, exon.reference_end) {
-            let gene: &Gene = gene_annotator.get_gene(&*gene_id).unwrap();
-            if gene.strand.as_str() == exon.reference_strand.as_str() {
-                gene_ids.insert(gene_id);
+    let mut reference_transcript_ids: HashSet<Box<str>> = HashSet::new();
+    for model_exon in model_exons.iter() {
+        let chromosome_name: Box<str> = chromosome_names_map.get_by_right(&model_exon.reference_chromosome_id).unwrap().to_string().into_boxed_str();
+        let overlapping_transcript_ids: Vec<Box<str>> = gene_annotator.get_transcript_ids_overlapping_region(
+            &*chromosome_name,
+            model_exon.reference_start,
+            model_exon.reference_end
+        );
+        for transcript_id in overlapping_transcript_ids.iter() {
+            if reference_transcript_ids.contains(transcript_id) {
+                continue;
             }
-        }
-    }
-    gene_ids
-}
-
-fn identify_overlapping_transcript_ids(
-    exons: &Vec<TranscriptModelExon>,
-    reference_gene_ids: &HashSet<Box<str>>,
-    gene_annotator: &impl GeneAnnotator,
-    chromosome_names_map: &BiMap<Box<str>,u16>
-) -> HashSet<Box<str>> {
-    let mut transcript_ids: HashSet<Box<str>> = HashSet::new();
-    for reference_gene_id in reference_gene_ids {
-        let reference_gene: &Gene = gene_annotator.get_gene(&reference_gene_id).unwrap();
-        for transcript in reference_gene.transcripts.values() {
-            let transcript: &Transcript = gene_annotator.get_transcript(&*transcript.transcript_id).unwrap();
-            for exon in exons.iter() {
-                let chromosome_name: Box<str> = chromosome_names_map.get_by_right(&exon.reference_chromosome_id).unwrap().to_string().into_boxed_str();
-                if transcript.chromosome == chromosome_name &&
-                    transcript.strand == exon.reference_strand {
+            let transcript: &Transcript = gene_annotator.get_transcript(transcript_id).unwrap();
+            if transcript.strand == model_exon.reference_strand {
+                for reference_exon in transcript.get_sorted_exons() {
                     if overlaps(
-                        exon.reference_start as isize,
-                        exon.reference_end as isize,
-                        transcript.start as isize,
-                        transcript.end as isize
+                        model_exon.reference_start as isize,
+                        model_exon.reference_end as isize,
+                        reference_exon.start as isize,
+                        reference_exon.end as isize
                     ) {
-                        transcript_ids.insert(transcript.transcript_id.clone());
+                        reference_transcript_ids.insert(transcript_id.clone());
                     }
                 }
             }
         }
     }
-    transcript_ids
+
+    reference_transcript_ids
 }
 
 fn score_reference_transcript(
     exons: &Vec<TranscriptModelExon>,
     reference_transcript: &Transcript,
     reference_gene: &Gene,
-    chromosome_names_map: &BiMap<Box<str>,u16>,
+    chromosome_names_map: &BiMap<Box<str>, u16>,
     scoring_method: ReferenceTranscriptScoringMethod
 ) -> ReferenceTranscriptMatch {
     // Step 1. Get the transcript model's exonic regions
-    let model_exon_regions: Vec<(Box<str>, usize, usize)> = exons
+    let model_exon_regions: Vec<(Box<str>, u32, u32)> = exons
         .iter()
         .map(|exon| {
             let chr = chromosome_names_map
@@ -182,7 +171,7 @@ fn score_reference_transcript(
         .collect();
 
     // Step 2. Get the reference transcript's exonic regions
-    let reference_exons: Vec<(Box<str>, usize, usize)> = reference_transcript
+    let reference_exons: Vec<(Box<str>, u32, u32)> = reference_transcript
         .get_sorted_exons()
         .iter()
         .map(|exon| (exon.chromosome.clone(), exon.start, exon.end))
@@ -220,8 +209,8 @@ fn score_reference_transcript(
         ReferenceTranscriptScoringMethod::CosineSimilarity => {
             // Identify the portion of the reference gene covered by the transcript model exons
             let chromosome_id: u16 = *chromosome_names_map.get_by_left(&reference_transcript.chromosome).unwrap();
-            let mut exon_reference_start_positions: Vec<usize> = Vec::new();
-            let mut exon_reference_end_positions: Vec<usize> = Vec::new();
+            let mut exon_reference_start_positions: Vec<u32> = Vec::new();
+            let mut exon_reference_end_positions: Vec<u32> = Vec::new();
             let reference_gene_start: isize = reference_gene.start as isize;
             let reference_gene_end: isize = reference_gene.end as isize;
             for exon in exons.iter() {
@@ -241,12 +230,8 @@ fn score_reference_transcript(
                 let max_exon_reference_end_position = *exon_reference_end_positions.iter().max().expect("Exon reference end positions vector is empty.");
                 
                 // Tight boundaries
-                let vectorization_reference_start: usize = reference_transcript.start.max(min_exon_reference_start_position);
-                let vectorization_reference_end: usize = reference_transcript.end.min(max_exon_reference_end_position);
-
-                // Loose boundaries 
-                // let vectorization_reference_start: usize = reference_transcript.start.min(min_exon_reference_start_position);
-                // let vectorization_reference_end: usize = reference_transcript.end.max(max_exon_reference_end_position);
+                let vectorization_reference_start: u32 = reference_transcript.start.max(min_exon_reference_start_position);
+                let vectorization_reference_end: u32 = reference_transcript.end.min(max_exon_reference_end_position);
 
                 assert!(
                     vectorization_reference_start <= vectorization_reference_end, 
@@ -298,14 +283,17 @@ fn score_reference_transcript(
         }
     };
 
-    let num_overlap_bases: f32 = count_common_bases(&model_exon_regions, &reference_exons) as f32;
+    let num_overlap_bases: u32 = count_common_bases(&model_exon_regions, &reference_exons);
 
-    let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(&model_exon_regions, &reference_exons);
+    let (num_model_only_bases, num_reference_only_bases) = count_non_overlapping_bases(
+        &model_exon_regions,
+        &reference_exons
+    );
 
     let reference_transcript_match: ReferenceTranscriptMatch = ReferenceTranscriptMatch::new(
         &*reference_transcript.gene_id,
         &*reference_transcript.transcript_id,
-        num_overlap_bases as usize,
+        num_overlap_bases,
         num_model_only_bases,
         num_reference_only_bases,
         scoring_method.clone(),
@@ -319,7 +307,7 @@ fn score_reference_transcripts(
     exons: &Vec<TranscriptModelExon>,
     reference_transcripts: Vec<&Transcript>,
     reference_gene: &Gene,
-    chromosome_names_map: &BiMap<Box<str>,u16>,
+    chromosome_names_map: &BiMap<Box<str>, u16>,
     scoring_method: ReferenceTranscriptScoringMethod
 ) -> Vec<ReferenceTranscriptMatch> {
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = reference_transcripts

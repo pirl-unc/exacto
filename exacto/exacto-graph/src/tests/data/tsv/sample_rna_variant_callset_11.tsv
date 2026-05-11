@@ -1,0 +1,3 @@
+transcript_model_id	reference_transcript_ids	index	chromosome_1	position_1	operation_1	strand_1	chromosome_2	position_2	operation_2	strand_2	sequence	variant_type	num_cycles
+1	t1	0	chrA	11	I	+	chrA	15	I	+			
+1	t1	1	chrA	11	U	+	chrA	15	D	+		CIR	2

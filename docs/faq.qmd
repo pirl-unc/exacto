@@ -1,0 +1,49 @@
+---
+title: "FAQ"
+---
+
+Frequently asked questions. If your question isn't answered here, please
+[open an issue](https://github.com/pirl-unc/exacto/issues).
+
+<script>
+function faqExpandAll() {
+  document.querySelectorAll('#faq-list .callout-collapse:not(.show)').forEach(c => {
+    bootstrap.Collapse.getOrCreateInstance(c, {toggle: false}).show();
+  });
+  document.querySelectorAll('#faq-list details').forEach(d => { d.open = true; });
+}
+function faqCollapseAll() {
+  document.querySelectorAll('#faq-list .callout-collapse.show').forEach(c => {
+    bootstrap.Collapse.getOrCreateInstance(c, {toggle: false}).hide();
+  });
+  document.querySelectorAll('#faq-list details').forEach(d => { d.open = false; });
+}
+</script>
+
+<div class="d-flex gap-2 my-3">
+  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="faqExpandAll()">Expand all</button>
+  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="faqCollapseAll()">Collapse all</button>
+</div>
+
+<div id="faq-list">
+
+**Inputs**
+
+::: {.callout-note collapse="true" icon="false"}
+## For `integrate-vars` can I supply a DNA variant callset from another method?
+
+Yes, but the variant callset format must be in the Occam's Grammar format (TSV). You can do this using
+[VSTOL](https://github.com/pirl-unc/vstol).
+:::
+
+::: {.callout-note collapse="true" icon="false"}
+## How do I avoid out-of-memory errors on large BAMs?
+
+Exacto's DNA variant caller (`call-dna-vars`) holds per-read evidence in memory while
+clustering variant candidates. If your Exacto job runs out of memory, you can:
+
+- Reduce `--num-threads` to lower concurrent peak memory.
+- Reduce `--chunk-size` (default: 100,000) for `call-dna-vars`.
+:::
+
+</div>

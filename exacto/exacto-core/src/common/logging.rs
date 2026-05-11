@@ -21,21 +21,26 @@ use std::io::Write;
 static INIT_LOGGER: OnceCell<()> = OnceCell::new();
 
 
-pub fn try_init_logging() {
+pub fn init_logging(verbose: bool) {
     INIT_LOGGER.get_or_init(|| {
+        let level = if verbose {
+            LevelFilter::Info
+        } else {
+            LevelFilter::Error
+        };
+
         Builder::new()
             .format(|buf, record| {
                 writeln!(
                     buf,
-                    "{} [{}] - {}",
-                    Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                    "{} [{}] {}",
                     record.level(),
+                    Local::now().format("%Y-%m-%dT%H:%M:%S"),
                     record.args()
                 )?;
-                // Explicitly flush the buffer after each log entry
                 buf.flush()
             })
-            .filter(None, LevelFilter::Info)
+            .filter(None, level)
             .init();
     });
 }

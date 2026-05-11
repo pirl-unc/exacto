@@ -17,7 +17,7 @@ The purpose of this python3 script is to implement general-purpose utility funct
 
 
 import pysam
-from typing import List, Set
+from typing import Dict, List, Set, Tuple
 from .logging import get_logger
 
 
@@ -44,6 +44,25 @@ def get_chromosomes(bam_file: str) -> List[str]:
     """
     bam = pysam.AlignmentFile(bam_file, "rb")
     return list(bam.references)
+
+
+def get_chromosome_lengths(bam_file: str) -> Dict[str, int]:
+    with pysam.AlignmentFile(bam_file, "rb") as bam:
+        return dict(zip(bam.references, bam.lengths))
+
+
+def get_chromosome_regions(bam_file: str) -> List[Tuple[str, int, int]]:
+    """
+    Get chromosome regions in the form <chrom>:1-<end> from a BAM file.
+    """
+    with pysam.AlignmentFile(bam_file, "rb") as bam:
+        chromosomes = bam.references
+        lengths = bam.lengths
+
+    return [
+        (chromosome, 1, length)   # tuple, not list
+        for chromosome, length in zip(chromosomes, lengths)
+    ]
 
 
 def get_kmers(sequence: str, k: int) -> Set[str]:

@@ -18,7 +18,6 @@ and run Exacto 'remove-unspliced-rnas' command.
 
 
 import argparse
-import os
 from ..main import *
 from ..utilities import *
 

@@ -1,0 +1,7 @@
+variant_id	chromosome_1	position_1	operation_1	strand_1	chromosome_2	position_2	operation_2	strand_2	sequence	variant_type	num_cycles
+1	chrA	1	D	+	chrA	3	U	+	C	SNV	
+2	chrA	5	U	+	chrA	10	D	+		DUP	2
+3	chrA	15	D	+	chrB	15	D	+		TRA	
+4	chrA	18	D	+	chrA	20	U	+	C	SNV	
+5	chrB	1	D	+	chrB	3	U	+	C	SNV	
+6	chrB	18	D	+	chrB	20	U	+	G	SNV	

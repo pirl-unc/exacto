@@ -19,16 +19,14 @@ use crate::prelude::*;
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct AlignmentStructureBase {
-    read_position: usize,
+    read_position: u32,
     nucleotide: Nucleotide,
     base_quality: u8,
     kind: AlignmentStructureBaseKind,
-    is_soft_clipped: bool,
-    is_embedded_insertion: bool,
-    mapping_quality: Option<usize>,
+    mapping_quality: Option<u16>,
     context: Option<AlignmentStructureBaseContext>,
     reference_chromosome_id: Option<u16>,
-    reference_position: Option<usize>,
+    reference_position: Option<u32>,
     reference_strand: Option<Strand>,
     reference_gene_id: Option<Box<str>>,
     reference_transcript_id: Option<Box<str>>,
@@ -38,7 +36,7 @@ pub struct AlignmentStructureBase {
 // API methods
 impl AlignmentStructureBase {
     pub fn new(
-        read_position: usize,
+        read_position: u32,
         nucleotide: Nucleotide,
         base_quality: u8
     ) -> Self {
@@ -47,8 +45,8 @@ impl AlignmentStructureBase {
             nucleotide,
             base_quality,
             kind: AlignmentStructureBaseKind::Unaligned,
-            is_soft_clipped: false,
-            is_embedded_insertion: false,
+            // is_soft_clipped: false,
+            // is_embedded_insertion: false,
             mapping_quality: None,
             context: None,
             reference_chromosome_id: None,
@@ -72,7 +70,7 @@ impl AlignmentStructureBase {
         &self.kind
     }
 
-    pub fn get_mapping_quality(&self) -> &Option<usize> {
+    pub fn get_mapping_quality(&self) -> &Option<u16> {
         &self.mapping_quality
     }
 
@@ -80,7 +78,7 @@ impl AlignmentStructureBase {
         &self.nucleotide
     }
 
-    pub fn get_read_position(&self) -> usize {
+    pub fn get_read_position(&self) -> u32 {
         self.read_position
     }
 
@@ -96,7 +94,7 @@ impl AlignmentStructureBase {
         &self.reference_gene_id
     }
 
-    pub fn get_reference_position(&self) -> &Option<usize> {
+    pub fn get_reference_position(&self) -> &Option<u32> {
         &self.reference_position
     }
 
@@ -107,32 +105,16 @@ impl AlignmentStructureBase {
     pub fn get_reference_transcript_id(&self) -> &Option<Box<str>> {
         &self.reference_transcript_id
     }
-
-    pub fn is_embedded_insertion(&self) -> bool {
-        self.is_embedded_insertion
-    }
-    
-    pub fn is_soft_clipped(&self) -> bool {
-        self.is_soft_clipped
-    }
     
     pub fn set_context(&mut self, context: AlignmentStructureBaseContext) {
         self.context = Some(context);
-    }
-    
-    pub fn set_is_soft_clipped(&mut self, value: bool) {
-        self.is_soft_clipped = value;
-    }    
-
-    pub fn set_is_embedded_insertion(&mut self, value: bool) {
-        self.is_embedded_insertion = value;
     }
 
     pub fn set_kind(&mut self, kind: AlignmentStructureBaseKind) {
         self.kind = kind;
     }
     
-    pub fn set_mapping_quality(&mut self, value: usize) {
+    pub fn set_mapping_quality(&mut self, value: u16) {
         self.mapping_quality = Some(value);
     }
 
@@ -148,7 +130,7 @@ impl AlignmentStructureBase {
         self.reference_gene_id = Some(value.into());
     }
     
-    pub fn set_reference_position(&mut self, value: usize) {
+    pub fn set_reference_position(&mut self, value: u32) {
         self.reference_position = Some(value);
     }
     
@@ -168,8 +150,6 @@ impl Clone for AlignmentStructureBase {
             nucleotide: self.nucleotide.clone(),
             base_quality: self.base_quality,
             kind: self.kind.clone(),
-            is_soft_clipped: self.is_soft_clipped,
-            is_embedded_insertion: self.is_embedded_insertion,
             mapping_quality: self.mapping_quality,
             context: self.context.clone(),
             reference_chromosome_id: self.reference_chromosome_id,

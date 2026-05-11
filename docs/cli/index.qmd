@@ -1,0 +1,23 @@
+---
+title: "Commands"
+---
+
+Alphabetical reference for every Exacto command line interface. For end-to-end
+walkthroughs that compose these into pipelines, see [Pipelines](../pipelines/index.qmd).
+
+## Available Commands
+
+| Command | Description |
+|:--------|:------------|
+| [`annotate-vars`](annotate-vars.qmd) | Annotate variants. |
+| [`build-genome-var-graph`](build-genome-var-graph.qmd) | Build a genome variation graph. |
+| [`build-transcriptome-var-graph`](build-transcriptome-var-graph.qmd) | Build a transcriptome variation graph. |
+| [`call-germline-dna-vars`](call-somatic-dna-vars.qmd) | Call germline DNA variants in a long-read DNA BAM file. |
+| [`call-somatic-dna-vars`](call-somatic-dna-vars.qmd) | Call somatic DNA variants in tumor and matched normal long-read DNA BAM files. |
+| [`call-rna-vars`](call-rna-vars.qmd) | Call RNA variants in a long-read RNA assembly BAM file. |
+| [`integrate-vars`](integrate-vars.qmd) | Integrate DNA and RNA variants. |
+| [`remove-unspliced-rnas`](remove-unspliced-rnas.qmd) | Remove unspliced RNAs. |
+| [`translate-seqs`](translate-seqs.qmd) | Translate transcript sequences in a FASTA or FASTQ file to peptide sequences. |
+| [`translate-structs`](translate-structs.qmd) | Translate transcript structures to primary structures. |
+
+: {.striped .hover}

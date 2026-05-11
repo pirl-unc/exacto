@@ -20,6 +20,7 @@ extern crate polars;
 extern crate rayon;
 extern crate regex;
 extern crate serde;
+extern crate statrs;
 extern crate sysinfo;
 extern crate tempfile;
 
@@ -27,6 +28,5 @@ extern crate tempfile;
 mod tests;
 pub mod algorithms;
 pub mod common;
-pub mod macros;
 pub mod prelude;
 pub mod structs;

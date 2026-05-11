@@ -1,3 +1,0 @@
-variant_id	chromosome_1	position_1	operation_1	strand_1	chromosome_2	position_2	operation_2	strand_2	sequence	variant_type
-1	chrA	4	D	+	chrA	10	D	-		INV_1
-2	chrA	5	U	-	chrA	11	U	+		INV_1

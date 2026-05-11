@@ -17,6 +17,7 @@ use noodles_bam as bam;
 use noodles_sam::alignment::Record;
 use regex::Regex;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crate::prelude::*;
 
@@ -59,14 +60,14 @@ impl Alignment {
         read_id: usize,
         read_sequence: &str,
         base_quality_scores: &Vec<u8>,
-        records: &Vec<bam::Record>
+        records: &Vec<Arc<bam::Record>>
     ) -> Self {
         assert!(!records.is_empty());
 
         // Step 1. Make sure all the BAM records come from the same read ID
-        let first_read_id = std::str::from_utf8(records[0].name().unwrap().as_bytes()).unwrap();
+        let first_read_id: &str = std::str::from_utf8(records[0].name().unwrap().as_bytes()).unwrap();
         for record in records.iter().skip(1) {
-            let read_id = std::str::from_utf8(record.name().unwrap().as_bytes()).unwrap();
+            let read_id: &str = std::str::from_utf8(record.name().unwrap().as_bytes()).unwrap();
             assert_eq!(read_id, first_read_id, "Not all records have the same read ID.");
         }
 
@@ -148,7 +149,7 @@ impl Alignment {
 impl Alignment {
     fn build_alignment_records(
         read_sequence: &str,
-        records: &Vec<bam::Record>
+        records: &Vec<Arc<bam::Record>>
     ) -> Vec<AlignmentRecord> {
         let mut alignment_records: Vec<AlignmentRecord> = Vec::new();
 
@@ -158,23 +159,24 @@ impl Alignment {
             let aligned_sequence: Box<str> = get_aligned_sequence_from_cigar(&record).into();
 
             // Identify all start positions between aligned sequence and original read sequence
-            let start_positions: Vec<usize> = find_substring_positions(&*read_sequence.to_uppercase(), &*aligned_sequence.to_uppercase());
+            let start_positions: Vec<u32> = find_substring_positions(&*read_sequence.to_uppercase(), &*aligned_sequence.to_uppercase());
             assert!(!start_positions.is_empty(), "Could not find the aligned sequence in the original read sequence.");
 
             // Get left and right soft-clipping information of the current record
-            let left_softclipping: (bool, usize) = get_left_softclipping(&record);
-            let right_softclipping: (bool, usize) = get_right_softclipping(&record);
+            let left_softclipping: (bool, u32) = get_left_softclipping(&record);
+            let right_softclipping: (bool, u32) = get_right_softclipping(&record);
 
             // If there are multiple start positions, find where the aligned sequence starts
             // on the original read sequence
-            let mut read_start: usize = 0;
-            let mut read_end: usize = 0;
+            let mut found_alignment: bool = false;
+            let mut read_start: u32 = 0;
+            let mut read_end: u32 = 0;
             let reference_strand: Strand = get_alignment_strand(&record);
             for start_position in start_positions.iter() {
                 // Check if the current start position aligns with the current alignment record
-                let end_position: usize = *start_position + aligned_sequence.len() - 1;
-                let num_left_bases: usize = *start_position;
-                let num_right_bases: usize = read_sequence.len() - end_position - 1;
+                let end_position: u32 = *start_position + aligned_sequence.len() as u32 - 1;
+                let num_left_bases: u32 = *start_position;
+                let num_right_bases: u32 = read_sequence.len() as u32 - end_position - 1;
 
                 let mut aligned: bool = true;
                 if reference_strand == Strand::Reverse {
@@ -190,14 +192,15 @@ impl Alignment {
                 }
 
                 if aligned {
-                    read_start = *start_position as usize;
-                    read_end = read_start + (aligned_sequence.len() as usize) - 1;
+                    read_start = *start_position;
+                    read_end = read_start + (aligned_sequence.len() as u32) - 1;
+                    found_alignment = true;
                     break;
                 }
             }
 
-            assert!(read_start != read_end, "read_start should not be the same as read_end.");
-            assert!(&*aligned_sequence == read_sequence[(read_start as usize)..(read_end as usize)+1].to_string(), "Aligned sequence does not match the identified part of the original read sequence.");
+            assert!(found_alignment, "No valid alignment found for the aligned sequence.");
+            assert!(&*aligned_sequence == read_sequence[(read_start as usize)..(read_end as usize + 1)].to_string(), "Aligned sequence does not match the identified part of the original read sequence.");
 
             let alignment_record: AlignmentRecord = AlignmentRecord::new(
                 read_start,
@@ -225,7 +228,7 @@ impl Alignment {
             let nucleotide: Nucleotide = Nucleotide::from_str(s.to_string().as_str()).unwrap();
             let base_quality: u8 = base_quality_scores[i];
             let alignment_base: AlignmentStructureBase = AlignmentStructureBase::new(
-                i as usize,
+                i as u32,
                 nucleotide,
                 base_quality
             );
@@ -245,134 +248,156 @@ impl Alignment {
         for (i, curr_alignment_record) in alignment_records.iter().enumerate() {
             let reference_chromosome_id: u16 = curr_alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
             let reference_strand: Strand = get_alignment_strand(&curr_alignment_record.record);
-            let mapping_quality: usize = get_alignment_mapping_quality(&curr_alignment_record.record);
+            let mapping_quality: u16 = get_alignment_mapping_quality(&curr_alignment_record.record);
 
             // Identify soft-clipped insertion in the first alignment
             if (i == 0) && (curr_alignment_record.read_start != 0) {
-                let expected_softclip_length: usize = curr_alignment_record.read_start as usize;
+                let expected_softclip_length: u32 = curr_alignment_record.read_start;
                 let (is_softclipped, softclip_length, reference_position) = if reference_strand == Strand::Reverse {
                     let (is_softclipped, softclip_length) = get_right_softclipping(&curr_alignment_record.record);
-                    assert!(is_softclipped, "The 3' end of the first alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(is_softclipped, true, "The 3' end of the first alignment (read ID: {}) is soft-clipped.", read_id);
                     assert_eq!(softclip_length, expected_softclip_length, "Read start position is expected to be the same as the number of soft-clipped bases.");
-                    let reference_position: usize = get_alignment_end_position(&curr_alignment_record.record);
+                    let reference_position: u32 = get_alignment_end_position(&curr_alignment_record.record);
                     (is_softclipped, softclip_length, reference_position)
                 } else {
                     let (is_softclipped, softclip_length) = get_left_softclipping(&curr_alignment_record.record);
-                    assert!(is_softclipped, "The 5' end of the first alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(is_softclipped, true, "The 5' end of the first alignment (read ID: {}) is soft-clipped.", read_id);
                     assert_eq!(softclip_length, expected_softclip_length, "Read start position is expected to be the same as the number of soft-clipped bases.");
-                    let reference_position: usize = get_alignment_start_position(&curr_alignment_record.record) - 1;
+                    let reference_position: u32 = get_alignment_start_position(&curr_alignment_record.record) - 1;
                     (is_softclipped, softclip_length, reference_position)
                 };
                 for j in 0..softclip_length {
-                    let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as usize);
+                    let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_base_mut(j);
                     alignment_base.set_mapping_quality(mapping_quality);
                     alignment_base.set_reference_chromosome_id(reference_chromosome_id);
                     alignment_base.set_reference_position(reference_position);
                     alignment_base.set_reference_strand(reference_strand.clone());
-                    alignment_base.set_is_soft_clipped(true);
-                    alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                    // alignment_base.set_is_soft_clipped(true);
+                    // alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                    alignment_base.set_kind(AlignmentStructureBaseKind::Softclip);
                 }
             }
 
             // Identify soft-clipped insertion in the last alignment
-            if (i == alignment_records.len() - 1) && ((curr_alignment_record.read_end as usize) != read_sequence.len() - 1) {
-                let expected_softclip_length: usize = read_sequence.len() - (curr_alignment_record.read_end as usize) - 1;
+            if (i == alignment_records.len() - 1) && ((curr_alignment_record.read_end) != read_sequence.len() as u32 - 1) {
+                let expected_softclip_length: u32 = read_sequence.len() as u32 - curr_alignment_record.read_end - 1;
                 let (is_softclipped, softclip_length, reference_position) = if reference_strand == Strand::Reverse {
                     let (is_softclipped, softclip_length) = get_left_softclipping(&curr_alignment_record.record);
-                    assert!(is_softclipped, "The 5' end of the last alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(is_softclipped, true, "The 5' end of the last alignment (read ID: {}) is soft-clipped.", read_id);
                     assert_eq!(softclip_length, expected_softclip_length, "(Read length - alignment's last read position - 1) is expected to match the number of soft-clipped bases.");
-                    let reference_position: usize = get_alignment_start_position(&curr_alignment_record.record) - 1;
+                    let reference_position: u32 = get_alignment_start_position(&curr_alignment_record.record) - 1;
                     (is_softclipped, softclip_length, reference_position)
                 } else {
                     let (is_softclipped, softclip_length) = get_right_softclipping(&curr_alignment_record.record);
-                    assert!(is_softclipped, "The 3' end of the last alignment (read ID: {}) is soft-clipped.", read_id);
+                    assert_eq!(is_softclipped, true, "The 3' end of the last alignment (read ID: {}) is soft-clipped.", read_id);
                     assert_eq!(softclip_length, expected_softclip_length, "(Read length - alignment's last read position - 1) is expected to match the number of soft-clipped bases.");
                     let reference_position = get_alignment_end_position(&curr_alignment_record.record);
                     (is_softclipped, softclip_length, reference_position)
                 };
-                let start: usize = read_sequence.len() - softclip_length;
-                let end: usize = read_sequence.len();
+                let start: u32 = read_sequence.len() as u32 - softclip_length;
+                let end: u32 = read_sequence.len() as u32;
                 for j in start..end {
-                    let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as usize);
+                    let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_base_mut(j);
                     alignment_base.set_mapping_quality(mapping_quality);
                     alignment_base.set_reference_chromosome_id(reference_chromosome_id);
                     alignment_base.set_reference_position(reference_position);
                     alignment_base.set_reference_strand(reference_strand.clone());
-                    alignment_base.set_is_soft_clipped(true);
-                    alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                    // alignment_base.set_is_soft_clipped(true);
+                    // alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                    alignment_base.set_kind(AlignmentStructureBaseKind::Softclip);
                 }
             }
 
             // Identify breakpoints (soft-clipping) between alignments
             if i > 0 {
-                let mut bnd_1_read_position: usize = prev_alignment_record.read_end;
-                let mut bnd_2_read_position: usize = curr_alignment_record.read_start;
+                let mut bnd_1_read_position: u32 = prev_alignment_record.read_end;
+                let mut bnd_2_read_position: u32 = curr_alignment_record.read_start;
 
-                // Check if the previous and the current alignments overlap
-                let alignments_overlap: bool = overlaps(
-                    prev_alignment_record.read_start as isize,
-                    prev_alignment_record.read_end as isize,
-                    curr_alignment_record.read_start as isize,
-                    curr_alignment_record.read_end as isize
+                // Check if curr_alignment_record is completely contained within prev_alignment_record
+                let contained_1: bool = interval_contains(
+                    prev_alignment_record.read_start,
+                    prev_alignment_record.read_end,
+                    curr_alignment_record.read_start,
+                    curr_alignment_record.read_end
                 );
-                if alignments_overlap {
-                    // If the previous and the current alignment records overlap,
-                    // treat the overlapping part as an insertion
-                    let (overlap_start,overlap_end) = find_overlap(
-                        (prev_alignment_record.read_start as isize,prev_alignment_record.read_end as isize),
-                        (curr_alignment_record.read_start as isize,curr_alignment_record.read_end as isize)
-                    ).unwrap();
-                    let insertion: Box<str> = read_sequence[(overlap_start as usize)..=(overlap_end as usize)].to_string().into_boxed_str();
+                let contained_2: bool = interval_contains(
+                    curr_alignment_record.read_start,
+                    curr_alignment_record.read_end,
+                    prev_alignment_record.read_start,
+                    prev_alignment_record.read_end
+                );
 
-                    // Retreat read positions by the length of the insertion and mark each an insertion
-                    for j in overlap_start..=overlap_end {
-                        let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as usize);
-                        alignment_base.set_is_embedded_insertion(true);
-                        alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
-                        bnd_1_read_position -= 1;
-                        bnd_2_read_position += 1;
-                    }
-                } else {
-                    // Check if an insertion (i.e. unaligned bases) exists between the breakpoints
-                    if prev_alignment_record.read_end + 1 != curr_alignment_record.read_start &&
-                        prev_alignment_record.read_end < curr_alignment_record.read_start {
-                        let insertion: Box<str> = read_sequence[(prev_alignment_record.read_end as usize) + 1..=(curr_alignment_record.read_start as usize) - 1].to_string().into_boxed_str();
+                if contained_1 == false && contained_2 == false {
+                    // Check if the previous and the current alignments overlap
+                    let alignments_overlap: bool = overlaps(
+                        prev_alignment_record.read_start as isize,
+                        prev_alignment_record.read_end as isize,
+                        curr_alignment_record.read_start as isize,
+                        curr_alignment_record.read_end as isize
+                    );
+                    let mut insertion: Box<str> = "".to_string().into_boxed_str();
+                    if alignments_overlap {
+                        // If the previous and the current alignment records overlap,
+                        // treat the overlapping part as an insertion
+                        let (overlap_start,overlap_end) = find_overlap(
+                            (prev_alignment_record.read_start as isize,prev_alignment_record.read_end as isize),
+                            (curr_alignment_record.read_start as isize,curr_alignment_record.read_end as isize)
+                        ).unwrap();
+                        insertion = read_sequence[(overlap_start as usize)..=(overlap_end as usize)].to_string().into_boxed_str();
 
-                        // Mark each unaligned base an insertion
-                        for j in (prev_alignment_record.read_end as usize) + 1..=(curr_alignment_record.read_start as usize) - 1 {
-                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(j as usize);
-                            alignment_base.set_is_embedded_insertion(true);
-                            alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                        // Retreat read positions by the length of the insertion and mark each an insertion
+                        for j in overlap_start..=overlap_end {
+                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_base_mut(j as u32);
+                            // alignment_base.set_is_embedded_insertion(true);
+                            // alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                            alignment_base.set_kind(AlignmentStructureBaseKind::Softclip);
+                            bnd_1_read_position -= 1;
+                            bnd_2_read_position += 1;
+                        }
+                    } else {
+                        // Check if an insertion (i.e. unaligned bases) exists between the breakpoints
+                        if prev_alignment_record.read_end + 1 != curr_alignment_record.read_start &&
+                            prev_alignment_record.read_end < curr_alignment_record.read_start {
+                            insertion = read_sequence[(prev_alignment_record.read_end as usize) + 1..=(curr_alignment_record.read_start as usize) - 1].to_string().into_boxed_str();
+
+                            // Mark each unaligned base an insertion
+                            for j in (prev_alignment_record.read_end) + 1..=(curr_alignment_record.read_start) - 1 {
+                                let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_base_mut(j);
+                                // alignment_base.set_is_embedded_insertion(true);
+                                // alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
+                                alignment_base.set_kind(AlignmentStructureBaseKind::Softclip);
+                            }
                         }
                     }
+
+                    assert!(bnd_1_read_position < bnd_2_read_position, "{} < {} not satisfied", bnd_1_read_position, bnd_2_read_position);
+                    assert!(bnd_2_read_position < read_sequence.len() as u32, "{} < {} not satisfied", bnd_2_read_position, read_sequence.len());
+
+                    let bnd_1_base: &AlignmentStructureBase = alignment_structure.get_base(bnd_1_read_position);
+                    let bnd_2_base: &AlignmentStructureBase = alignment_structure.get_base(bnd_2_read_position);
+                    let bnd_1_operation: GraphOperationType = match bnd_1_base.get_reference_strand().as_ref().unwrap() {
+                        Strand::Forward => GraphOperationType::Downstream,
+                        Strand::Reverse => GraphOperationType::Upstream,
+                        Strand::Both => panic!("Unexpected strand: {}", bnd_1_base.get_reference_strand().as_ref().unwrap().as_str()),
+                        Strand::Unknown => panic!("Unexpected strand: {}", bnd_1_base.get_reference_strand().as_ref().unwrap().as_str())
+                    };
+                    let bnd_2_operation: GraphOperationType = match bnd_2_base.get_reference_strand().as_ref().unwrap() {
+                        Strand::Forward => GraphOperationType::Upstream,
+                        Strand::Reverse => GraphOperationType::Downstream,
+                        Strand::Both => panic!("Unexpected strand: {}", bnd_2_base.get_reference_strand().as_ref().unwrap().as_str()),
+                        Strand::Unknown => panic!("Unexpected strand: {}", bnd_2_base.get_reference_strand().as_ref().unwrap().as_str())
+                    };
+
+                    let alignment_event: AlignmentStructureEvent = AlignmentStructureEvent::new(
+                        AlignmentStructureEventKind::Breakpoint,
+                        bnd_1_read_position,
+                        bnd_2_read_position,
+                        bnd_1_operation.clone(),
+                        bnd_2_operation.clone()
+                    );
+
+                    alignment_structure.add_event(alignment_event);
                 }
-
-                assert!(bnd_1_read_position < bnd_2_read_position);
-
-                let bnd_1_base: &AlignmentStructureBase = alignment_structure.get_base(bnd_1_read_position);
-                let bnd_2_base: &AlignmentStructureBase = alignment_structure.get_base(bnd_2_read_position);
-                let bnd_1_operation: GraphOperationType = match bnd_1_base.get_reference_strand().as_ref().unwrap() {
-                    Strand::Forward => GraphOperationType::Downstream,
-                    Strand::Reverse => GraphOperationType::Upstream,
-                    Strand::Both => panic!("Unexpected strand: {}", bnd_1_base.get_reference_strand().as_ref().unwrap().as_str()),
-                    Strand::Unknown => panic!("Unexpected strand: {}", bnd_1_base.get_reference_strand().as_ref().unwrap().as_str())
-                };
-                let bnd_2_operation: GraphOperationType = match bnd_2_base.get_reference_strand().as_ref().unwrap() {
-                    Strand::Forward => GraphOperationType::Upstream,
-                    Strand::Reverse => GraphOperationType::Downstream,
-                    Strand::Both => panic!("Unexpected strand: {}", bnd_2_base.get_reference_strand().as_ref().unwrap().as_str()),
-                    Strand::Unknown => panic!("Unexpected strand: {}", bnd_2_base.get_reference_strand().as_ref().unwrap().as_str())
-                };
-
-                let alignment_event: AlignmentStructureEvent = AlignmentStructureEvent::new(
-                    AlignmentStructureEventKind::Breakpoint,
-                    bnd_1_read_position,
-                    bnd_2_read_position,
-                    bnd_1_operation.clone(),
-                    bnd_2_operation.clone()
-                );
-
-                alignment_structure.add_event(alignment_event);
             }
             prev_alignment_record = curr_alignment_record;
         }
@@ -388,7 +413,7 @@ impl Alignment {
             let mut reference_position: isize = get_alignment_start_position(&alignment_record.record) as isize - 1;
             let reference_chromosome_id: u16 = alignment_record.record.reference_sequence_id().unwrap().unwrap() as u16;
             let reference_strand: Strand = get_alignment_strand(&alignment_record.record);
-            let mapping_quality: usize = get_alignment_mapping_quality(&alignment_record.record);
+            let mapping_quality: u16 = get_alignment_mapping_quality(&alignment_record.record);
             let cs_tag: String = get_tag_value(&alignment_record.record, "cs")
                 .expect("Could not find the CS tag.")
                 .to_string();
@@ -399,12 +424,12 @@ impl Alignment {
             };
 
             // Identify SNVs, insertions, deletions, and splicing in the CS tag
-            let re = Regex::new(r"([:\-+*~=][0-9A-Za-z]+)").unwrap(); // or ([:][0-9]+|[-+*=][A-Za-z]+)
+            let re: Regex = Regex::new(r"([:\-+*~=][0-9A-Za-z]+)").unwrap(); // or ([:][0-9]+|[-+*=][A-Za-z]+)
             for cap in re.captures_iter(&cs_tag) {
                 let token = &cap[0];
                 let mut chars = token.chars();
                 let cs_tag_kind: CSTagKind = CSTagKind::from_str(chars.next().unwrap().to_string().as_str()).unwrap();
-                let payload = chars.as_str();
+                let payload: &str = chars.as_str();
 
                 match cs_tag_kind {
                     CSTagKind::Match => {
@@ -412,10 +437,10 @@ impl Alignment {
                         for _ in 0..length {
                             read_position += if reference_strand == Strand::Forward { 1 } else { -1 };
                             reference_position += 1;
-                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(read_position as usize);
+                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_base_mut(read_position as u32);
                             alignment_base.set_mapping_quality(mapping_quality);
                             alignment_base.set_reference_chromosome_id(reference_chromosome_id);
-                            alignment_base.set_reference_position(reference_position as usize);
+                            alignment_base.set_reference_position(reference_position as u32);
                             alignment_base.set_reference_strand(reference_strand.clone());
                             alignment_base.set_kind(AlignmentStructureBaseKind::Match);
                         }
@@ -425,10 +450,10 @@ impl Alignment {
                         assert_eq!(alleles.len(), 2, "1 reference allele and 1 alternate allele expected.");
                         read_position += if reference_strand == Strand::Forward { 1 } else { -1 };
                         reference_position += 1;
-                        let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(read_position as usize);
+                        let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_base_mut(read_position as u32);
                         alignment_base.set_mapping_quality(mapping_quality);
                         alignment_base.set_reference_chromosome_id(reference_chromosome_id);
-                        alignment_base.set_reference_position(reference_position as usize);
+                        alignment_base.set_reference_position(reference_position as u32);
                         alignment_base.set_reference_strand(reference_strand.clone());
                         alignment_base.set_kind(AlignmentStructureBaseKind::Mismatch);
                     },
@@ -437,18 +462,18 @@ impl Alignment {
                         let length: usize = insertion.chars().count();
                         for _ in 0..length {
                             read_position += if reference_strand == Strand::Forward { 1 } else { -1 };
-                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_mut_base(read_position as usize);
+                            let alignment_base: &mut AlignmentStructureBase = alignment_structure.get_base_mut(read_position as u32);
                             alignment_base.set_mapping_quality(mapping_quality);
                             alignment_base.set_reference_chromosome_id(reference_chromosome_id);
-                            alignment_base.set_reference_position(reference_position as usize);
+                            alignment_base.set_reference_position(reference_position as u32);
                             alignment_base.set_reference_strand(reference_strand.clone());
                             alignment_base.set_kind(AlignmentStructureBaseKind::Insertion);
                         }
                     }
                     CSTagKind::Deletion => {
                         let length: usize = payload.chars().count();
-                        let read_position_1: usize = read_position as usize;
-                        let read_position_2: usize = if reference_strand == Strand::Forward { read_position as usize + 1 } else { read_position as usize - 1 };
+                        let read_position_1: u32 = read_position as u32;
+                        let read_position_2: u32 = if reference_strand == Strand::Forward { read_position as u32 + 1 } else { read_position as u32 - 1 };
                         
                         let alignment_event: AlignmentStructureEvent = if reference_strand == Strand::Forward {
                             AlignmentStructureEvent::new(
@@ -495,8 +520,12 @@ impl Alignment {
                             acceptor_splice_site_signal = reverse_complement(&*acceptor_splice_site_signal);
                         }
 
-                        let read_position_1: usize = read_position as usize;
-                        let read_position_2: usize = if reference_strand == Strand::Forward { read_position as usize + 1 } else { read_position as usize - 1 };
+                        let read_position_1: u32 = read_position as u32;
+                        let read_position_2: u32 = if reference_strand == Strand::Forward { 
+                            read_position as u32 + 1 
+                        } else { 
+                            read_position as u32 - 1 
+                        };
 
                         let alignment_event: AlignmentStructureEvent = if reference_strand == Strand::Forward {
                             AlignmentStructureEvent::new(

@@ -40,7 +40,7 @@ pub fn remove_unspliced_rnas(
     output_bam_bai_file: String,
     output_fasta_file: String,
     num_threads: usize,
-    min_mapping_quality: usize
+    min_mapping_quality: u16
 ) -> PyResult<()> {
     let gene_annotator = if reference_gene_annotation_source.as_str() == "gencode" {
         let gene_types_: Option<HashSet<&str>> = (!gene_types.is_empty()).then(|| gene_types.iter().map(String::as_str).collect());

@@ -20,23 +20,19 @@ use crate::prelude::*;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ReferenceBase {
     pub reference_chromosome_id: u16,
-    pub reference_position: usize,
-    
-    /// Reference nucleotide on the reference (forward or reverse) strand.
-    pub reference_nucleotide: Nucleotide,
-
+    pub reference_position: u32,
+    pub reference_nucleotide: Nucleotide,           // Reference nucleotide on the reference (forward or reverse) strand.
     pub reference_strand: Strand,
-    
     pub reference_gene_id: Option<Box<str>>,
     pub reference_transcript_id: Option<Box<str>>,
-    pub reference_exon_id: Option<Box<str>>,
+    pub reference_exon_id: Option<Box<str>>
 }
 
 /// API methods
 impl ReferenceBase {
     pub fn new(
         reference_chromosome_id: u16,
-        reference_position: usize,
+        reference_position: u32,
         reference_nucleotide: Nucleotide,
         reference_strand: Strand,
         reference_gene_id: Option<Box<str>>,

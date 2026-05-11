@@ -6,7 +6,7 @@ use crate::prelude::*;
 #[test]
 fn test_find_kmers_1() {
     let value: String = "AAATTTCCCAAA".to_string();
-    let kmers: HashMap<Box<str>,Vec<usize>> = find_kmers(value.as_str(), 3);
+    let kmers: HashMap<Box<str>, Vec<u32>> = find_kmers(value.as_str(), 3);
     match kmers.get("AAA") {
         Some(values) => {
             assert_eq!(values[0], 0);
@@ -21,8 +21,25 @@ fn test_find_kmers_1() {
 #[test]
 fn test_find_substring_positions_1() {
     let value: String = "helloworldhelloworld".to_string();
-    let positions: Vec<usize> = find_substring_positions(value.as_str(), "hello");
+    let positions: Vec<u32> = find_substring_positions(value.as_str(), "hello");
     assert_eq!(positions, vec![0, 10]);
+}
+
+#[test]
+fn test_get_dinucleotide_repeat_motif_1() {
+    assert_ne!(get_dinucleotide_repeat_motif("AC"), None);
+    assert!(get_dinucleotide_repeat_motif("AC").unwrap() == "AC".to_string());
+    assert!(get_dinucleotide_repeat_motif("CAC").unwrap() == "CA".to_string());
+}
+
+#[test]
+fn test_is_homopolymer_sequence_1() {
+    assert!(is_homopolymer_sequence("A") == true);
+    assert!(is_homopolymer_sequence("AAAAAA") == true);
+    assert!(is_homopolymer_sequence("AAAaaa") == true);
+    assert!(is_homopolymer_sequence("cCcccC") == true);
+    assert!(is_homopolymer_sequence("Gggggg") == true);
+    assert!(is_homopolymer_sequence("AAATtt") == false);
 }
 
 #[test]
@@ -47,9 +64,15 @@ fn test_reverse_complement_2() {
 }
 
 #[test]
+fn test_reverse_string_1() {
+    assert!(reverse_string("abcd") == "dcba");
+}
+
+
+#[test]
 fn test_translate_1() {
     let rna_sequence: String = "AUGUAG".to_string();
-    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
+    let peptides: Vec<(Box<str>, u32, u32, u32)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -63,7 +86,7 @@ fn test_translate_1() {
 #[test]
 fn test_translate_2() {
     let rna_sequence: String = "AUGAGUAUCAUCAACUUUGAAAAACUCUAG".to_string();
-    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
+    let peptides: Vec<(Box<str>, u32, u32, u32)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -81,7 +104,7 @@ fn test_translate_2() {
 #[test]
 fn test_translate_3() {
     let rna_sequence: String = "AAUGAGUAUCAUCAACUUUGAAAAACUCUAGAAAAAAAUGUGUUGUUGUAUCAUCAACUUUGAAAAACUCUAG".to_string();
-    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
+    let peptides: Vec<(Box<str>, u32, u32, u32)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -102,7 +125,7 @@ fn test_translate_3() {
 #[test]
 fn test_translate_4() {
     let rna_sequence: String = "AUGAUUUGCCAUAUCGGGGCGAAC".to_string();
-    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
+    let peptides: Vec<(Box<str>, u32, u32, u32)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -120,7 +143,7 @@ fn test_translate_4() {
 #[test]
 fn test_translate_5() {
     let rna_sequence: String = "AUGAUUUGCCAUAUCGGGGCGAACUGAAUGAUUUGCCAUAUCGGGGCGAAC".to_string();
-    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
+    let peptides: Vec<(Box<str>, u32, u32, u32)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -139,7 +162,7 @@ fn test_translate_5() {
 #[test]
 fn test_translate_6() {
     let rna_sequence: String = "AUUAUUAUUAUUAUUAUUAUUAUUAUU".to_string();
-    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
+    let peptides: Vec<(Box<str>, u32, u32, u32)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );
@@ -149,7 +172,7 @@ fn test_translate_6() {
 #[test]
 fn test_translate_7() {
     let rna_sequence: String = "ATGGGGCCCATGCCTTAG".to_string();
-    let peptides: Vec<(Box<str>, usize, usize, usize)> = translate(
+    let peptides: Vec<(Box<str>, u32, u32, u32)> = translate(
         rna_sequence.as_str(),
         START_CODONS.iter().map(|c| &**c).collect()
     );

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::prelude::*;
 
 
@@ -26,7 +28,8 @@ fn test_gene_1() {
         1,
         "transcript",
         "protein_coding",
-        "1"
+        "1",
+        HashSet::new()
     );
 
     gene.add_transcript(transcript);
@@ -60,7 +63,8 @@ fn test_gene_2() {
         1,
         "transcript",
         "protein_coding",
-        "1"
+        "1",
+        HashSet::new()
     );
 
     gene_1.add_transcript(transcript);

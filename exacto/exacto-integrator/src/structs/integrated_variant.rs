@@ -15,7 +15,7 @@ use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-use crate::structs::integrated_variant_distance::IntegratedVariantDistance;
+use crate::prelude::*;
 
 
 #[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
@@ -40,7 +40,11 @@ impl Hash for IntegratedVariant {
 }
 
 impl IntegratedVariant {
-    pub fn new(transcript_model_id: usize, reference_transcript_ids: &Vec<Box<str>>, rna_variant_call_id: usize) -> Self {
+    pub fn new(
+        transcript_model_id: usize, 
+        reference_transcript_ids: &Vec<Box<str>>,
+        rna_variant_call_id: usize
+    ) -> Self {
         Self {
             transcript_model_id: transcript_model_id,
             reference_transcript_ids: reference_transcript_ids.clone(),
@@ -49,7 +53,11 @@ impl IntegratedVariant {
         }
     }
     
-    pub fn add_dna_variant_call_id(&mut self, dna_variant_call_id: usize, distance: IntegratedVariantDistance) {
+    pub fn add_dna_variant_call_id(
+        &mut self, 
+        dna_variant_call_id: usize, 
+        distance: IntegratedVariantDistance
+    ) {
         assert_eq!(self.dna_variant_call_ids.contains_key(&dna_variant_call_id), false);
         self.dna_variant_call_ids.insert(dna_variant_call_id, distance);
     }

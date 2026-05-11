@@ -16,10 +16,10 @@ The purpose of this python3 script is to define Exacto constants.
 """
 
 
-from enum import Enum, IntEnum
+from enum import Enum
 
 
-class DnaVariantCallingMode(Enum):
+class DNAVariantCallingMode(Enum):
     CASE_SPECIFIC = 'case-specific'
     ALL = 'all'
 
@@ -34,9 +34,18 @@ class GeneAnnotationSource(Enum):
         return self.value
 
 
+class GraphType(Enum):
+    individual = 'individual'
+    population = 'population'
+
+    def __str__(self) -> str:
+        return self.value
+
+
 class OutputType(Enum):
     DATAFRAME = 'dataframe'
     FILE = 'file'
+    VECTOR = 'vector'
 
     def __str__(self) -> str:
         return self.value

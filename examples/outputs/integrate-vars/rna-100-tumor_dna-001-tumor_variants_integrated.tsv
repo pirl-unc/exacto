@@ -1,0 +1,7 @@
+transcript_model_id	reference_transcript_ids	rna_variant_call_id	dna_variant_call_id	distance	rna_variant_position	dna_variant_position
+1	ENST00000610538.4	7	1	0	position_1	position_1
+1	ENST00000619485.4	13	1	0	position_1	position_1
+1	ENST00000620739.4	3	1	0	position_1	position_1
+1	ENST00000455263.6	11	1	0	position_1	position_1
+1	ENST00000269305.9	1	1	0	position_1	position_1
+1	ENST00000445888.6	16	1	0	position_1	position_1

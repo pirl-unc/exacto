@@ -12,8 +12,68 @@ members = [
 resolver = "2"
 
 [workspace.package]
-license = "MIT"
+version = "0.4.6"
+license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.79.0"
 
 [workspace.dependencies]
+exacto-annotator  = { path = "exacto-annotator",  version = "0.4.6" }
+exacto-caller     = { path = "exacto-caller",     version = "0.4.6" }
+exacto-core       = { path = "exacto-core",       version = "0.4.6" }
+exacto-graph      = { path = "exacto-graph",      version = "0.4.6" }
+exacto-integrator = { path = "exacto-integrator", version = "0.4.6" }
+exacto-qc         = { path = "exacto-qc",         version = "0.4.6" }
+exacto-translator = { path = "exacto-translator", version = "0.4.6" }
+
+# Third-party crates
+bimap = { version = "0.6.3", features = ["serde"] }
+bincode = "1.3"
+bio = "2.0.3"
+bitvec = "1"
+bstr = "1.12.1"
+chrono = "0.4.38"
+csv = "1.3.0"
+edit-distance = "2.1.3"
+env_logger = "0.10"
+flate2 = "1.0.35"
+indicatif = "0.17"
+interavl = "0.2.0"
+itertools = "0.14.0"
+log = "0.4.22"
+nalgebra = "0.33.2"
+noodles-bam = "0.83.0"
+noodles-bgzf = "0.43.0"
+noodles-core = "0.18.0"
+noodles-cram = "=0.86.0"
+noodles-csi  = "=0.51.0"
+noodles-fasta = "0.56.0"
+noodles-fastq = "0.16.0"
+noodles-sam = "0.79.0"
+noodles-util = { version = "0.70.0", default-features = false, features = ["alignment"] }
+once_cell = "1.20.2"
+phf = { version = "0.11", features = ["macros"] }
+polars = { version = "0.45.0", features = ["csv","decompress","json","lazy","parquet","serde","strings"] }
+rayon = "1.10.0"
+serde = { version = "1.0.210", features = ["derive", "rc"] }
+statrs = "0.18.0"
+sysinfo = "0.32.0"
+tempfile = "3.22.0"
+regex = "1.10.6"
+
+[profile.dev]
+opt-level = 0
+debug = 1
+overflow-checks = true
+panic = 'unwind'
+incremental = true
+codegen-units = 256
+
+[profile.release]
+opt-level = 3
+debug = 0
+lto = "thin"
+overflow-checks = false
+panic = 'unwind'
+incremental = false
+codegen-units = 16

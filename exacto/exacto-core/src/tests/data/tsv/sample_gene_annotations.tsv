@@ -1,0 +1,21 @@
+row_type	gene_id	transcript_id	exon_id	exon_number	strand	chromosome	start	end
+gene	g1				+	chrA	1	50
+transcript	g1	t1			+	chrA	1	25
+exon	g1	t1	e1	1	+	chrA	1	5
+exon	g1	t1	e2	2	+	chrA	11	15
+exon	g1	t1	e3	3	+	chrA	21	25
+transcript	g1	t2			+	chrA	1	50
+exon	g1	t2	e1	1	+	chrA	1	5
+exon	g1	t2	e3	2	+	chrA	21	25
+exon	g1	t2	e4	3	+	chrA	36	40
+exon	g1	t2	e5	4	+	chrA	46	50
+gene	g2				-	chrB	1	25
+transcript	g2	t3			-	chrB	1	25
+exon	g2	t3	e6	1	-	chrB	21	25
+exon	g2	t3	e7	2	-	chrB	11	15
+exon	g2	t3	e8	3	-	chrB	1	5
+gene	g3				+	chrC	1	25
+transcript	g3	t4			+	chrC	1	25
+exon	g3	t4	e9	1	+	chrC	1	5
+exon	g3	t4	e10	2	+	chrC	11	15
+exon	g3	t4	e11	3	+	chrC	21	25

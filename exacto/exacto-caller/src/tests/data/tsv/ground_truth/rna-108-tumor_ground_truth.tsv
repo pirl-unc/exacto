@@ -1,2 +1,2 @@
-variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence
 108	chr17	7675976	*	I	chr17	7675993	*	I		IRT	

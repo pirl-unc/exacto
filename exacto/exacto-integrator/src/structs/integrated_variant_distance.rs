@@ -19,7 +19,7 @@ use crate::prelude::*;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct IntegratedVariantDistance {
-    pub distance: usize,
+    pub distance: u32,
     pub rna_variant_position_used: VariantPosition,
     pub dna_variant_position_used: VariantPosition
 }
@@ -33,7 +33,11 @@ impl Hash for IntegratedVariantDistance {
 }
 
 impl IntegratedVariantDistance {
-    pub fn new(distance: usize, rna_variant_position_used: VariantPosition, dna_variant_position_used: VariantPosition) -> Self {
+    pub fn new(
+        distance: u32,
+        rna_variant_position_used: VariantPosition,
+        dna_variant_position_used: VariantPosition
+    ) -> Self {
         Self {
             distance: distance,
             rna_variant_position_used: rna_variant_position_used,

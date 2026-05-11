@@ -1,0 +1,6 @@
+transcript_model_id	reference_transcript_ids	index	chromosome_1	position_1	operation_1	strand_1	chromosome_2	position_2	operation_2	strand_2	sequence	variant_type	num_cycles
+1	t1	0	chrA	21	I	-	chrA	25	I	-
+1	t1	1	chrA	15	D	-	chrA	21	U	-
+1	t1	2	chrA	11	I	-	chrA	15	I	-
+1	t1	3	chrA	5	D	-	chrA	11	U	-
+1	t1	4	chrA	1	I	-	chrA	5	I	-

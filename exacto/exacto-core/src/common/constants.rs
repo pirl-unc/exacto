@@ -223,7 +223,7 @@ impl FromStr for Nucleotide {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
+        match s {
             "T" => Ok(Nucleotide::T),
             "C" => Ok(Nucleotide::C),
             "G" => Ok(Nucleotide::G),
@@ -236,7 +236,7 @@ impl FromStr for Nucleotide {
             "a" => Ok(Nucleotide::a),
             "u" => Ok(Nucleotide::u),
             "n" => Ok(Nucleotide::n),
-            _ => Err(()),
+            _ => Err(())
         }
     }
 }

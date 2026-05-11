@@ -1,2 +1,2 @@
-variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence	consensus_read_names	consensus_read_names_count	read_names	read_names_count
-1	chr17	7676155	+	D	chr18	5170100	-	D	-1	TRA		m64012_459679_277770/3/ccs,m64012_291012_248279/1/ccs,m64012_436917_496758/2/ccs	3	m64012_459679_277770/3/ccs,m64012_291012_248279/1/ccs,m64012_436917_496758/2/ccs	3
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence	consensus_read_names	consensus_read_names_count	read_names	read_names_count
+1	chr17	7676155	+	D	chr18	5170100	-	D	-1	TRA		"m64012_459679_277770/3/ccs,m64012_291012_248279/1/ccs,m64012_436917_496758/2/ccs"	3	"m64012_459679_277770/3/ccs,m64012_291012_248279/1/ccs,m64012_436917_496758/2/ccs"	3
