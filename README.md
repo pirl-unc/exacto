@@ -6,7 +6,7 @@ A long-read toolkit for mutant proteoform prediction. Exacto identifies somatic
 and germline DNA variants, RNA variants, integrates them, and translates
 full-length transcripts with variant annotation at the amino-acid level.
 
-[![build](https://github.com/pirl-unc/exacto/actions/workflows/main.yml/badge.svg)](https://github.com/pirl-unc/exacto/actions/workflows/main.yml)
+[![CI](https://github.com/pirl-unc/exacto/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pirl-unc/exacto/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 **Documentation**: [https://pirl-unc.github.io/exacto/](https://pirl-unc.github.io/exacto/)
