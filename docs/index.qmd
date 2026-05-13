@@ -48,8 +48,8 @@ See [Pipelines](pipelines/index.qmd) for more.
 
 ::: {.g-col-4}
 ### DNA / RNA variant calling / annotation
-`call-dna-vars` and `call-rna-vars` identify variants from long-read
-alignments; `annotate-vars` adds gene-level context.
+`call-germline-dna-vars`, `call-somatic-dna-vars`, and `call-rna-vars` identify
+variants from long-read alignments; `annotate-vars` adds gene-level context.
 :::
 
 ::: {.g-col-4}

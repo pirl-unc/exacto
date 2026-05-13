@@ -13,5 +13,5 @@ relevant commands.
 Identify somatic and germline variants from long-read DNA and RNA, integrate them, and translate full-length transcripts to mutant proteoforms.
 
 
-[**Variant Graph Construction**](variant-graph-construction.qmd)<br/>
+[**Variation Graph Construction**](variation-graph-construction.qmd)<br/>
 Build individualized genome and transcriptome variation graphs from variant calls.
