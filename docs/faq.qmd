@@ -39,11 +39,12 @@ Yes, but the variant callset format must be in the Occam's Grammar format (TSV).
 ::: {.callout-note collapse="true" icon="false"}
 ## How do I avoid out-of-memory errors on large BAMs?
 
-Exacto's DNA variant caller (`call-dna-vars`) holds per-read evidence in memory while
-clustering variant candidates. If your Exacto job runs out of memory, you can:
+Exacto's DNA variant callers (`call-germline-dna-vars` and `call-somatic-dna-vars`) hold
+per-read evidence in memory while clustering variant candidates. If your Exacto job
+runs out of memory, you can:
 
 - Reduce `--num-threads` to lower concurrent peak memory.
-- Reduce `--chunk-size` (default: 100,000) for `call-dna-vars`.
+- Reduce `--chunk-size` (default: 100,000) for `call-germline-dna-vars` / `call-somatic-dna-vars`.
 :::
 
 </div>

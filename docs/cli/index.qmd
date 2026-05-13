@@ -12,9 +12,10 @@ walkthroughs that compose these into pipelines, see [Pipelines](../pipelines/ind
 | [`annotate-vars`](annotate-vars.qmd) | Annotate variants. |
 | [`build-genome-var-graph`](build-genome-var-graph.qmd) | Build a genome variation graph. |
 | [`build-transcriptome-var-graph`](build-transcriptome-var-graph.qmd) | Build a transcriptome variation graph. |
-| [`call-germline-dna-vars`](call-somatic-dna-vars.qmd) | Call germline DNA variants in a long-read DNA BAM file. |
-| [`call-somatic-dna-vars`](call-somatic-dna-vars.qmd) | Call somatic DNA variants in tumor and matched normal long-read DNA BAM files. |
+| [`call-germline-dna-vars`](call-germline-dna-vars.qmd) | Call germline DNA variants in a long-read DNA BAM file. |
+| [`call-peptide-vars`](call-peptide-vars.qmd) | Call peptide variants by comparing translated mutant proteoforms to a reference proteome. |
 | [`call-rna-vars`](call-rna-vars.qmd) | Call RNA variants in a long-read RNA assembly BAM file. |
+| [`call-somatic-dna-vars`](call-somatic-dna-vars.qmd) | Call somatic DNA variants in tumor and matched normal long-read DNA BAM files. |
 | [`integrate-vars`](integrate-vars.qmd) | Integrate DNA and RNA variants. |
 | [`remove-unspliced-rnas`](remove-unspliced-rnas.qmd) | Remove unspliced RNAs. |
 | [`translate-seqs`](translate-seqs.qmd) | Translate transcript sequences in a FASTA or FASTQ file to peptide sequences. |
