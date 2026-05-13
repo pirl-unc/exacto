@@ -1,0 +1,54 @@
+---
+title: "Variation Graph Construction"
+description: "Build individualized genome and transcriptome variation graphs from Exacto variant calls."
+---
+
+This pipeline produces individualized genome and transcriptome variation graphs that encode an individual's variants
+alongside the reference sequence. These graphs are useful for downstream variant-aware analyses that benefit from a
+graph reference instead of a linear one.
+
+## Workflow
+
+```{mermaid}
+%%{init: {'securityLevel': 'loose'}}%%
+flowchart LR
+    INTV[/"<span style='white-space:nowrap;color:#414a4c'>DNA variants TSV</span>"/] --> BGV(build‑genome‑var‑graph)
+    REFG[("<span style='white-space:nowrap;color:#414a4c'>Reference genome FASTA</span>")] --> BGV
+    BGV --> GG[/"<span style='white-space:nowrap;color:#414a4c'>Genome variation graph</span>"/]
+
+    PRIMS[/"<span style='white-space:nowrap;color:#414a4c'>Transcript structures TSV</span>"/] --> BTV(build‑transcriptome‑var‑graph)
+    REFT[("<span style='white-space:nowrap;color:#414a4c'>Reference transcriptome FASTA</span>")] --> BTV
+    BTV --> TG[/"<span style='white-space:nowrap;color:#414a4c'>Transcriptome variation graph</span>"/]
+
+    click BGV href "../cli/build-genome-var-graph.html" "View build-genome-var-graph docs" _self
+    click BTV href "../cli/build-transcriptome-var-graph.html" "View build-transcriptome-var-graph docs" _self
+
+    classDef linked text-decoration:underline;
+    class BGV,BTV linked
+```
+
+DNA variants TSV can be obtained by running [`call-germline-dna-vars`](../cli/call-germline-dna-vars.qmd) or [`call-somatic-dna-vars`](../cli/call-somatic-dna-vars.qmd).
+
+Transcript structures TSV can be obtained by running [`call-rna-vars`](../cli/call-rna-vars.qmd).
+
+## Genome variation graph
+
+Add germline and/or somatic DNA variants to a reference genome to produce a individualized genome graph:
+
+```bash
+exacto build-genome-var-graph \
+    --variants-tsv-file dna_variants.tsv \
+    --fasta-file reference_genome.fasta \
+    --output-dir genome_var_graph_outputs/
+```
+
+## Transcriptome variation graph
+
+Add RNA variants to a reference transcriptome to produce a individualized transcriptome graph:
+
+```bash
+exacto build-transcriptome-var-graph \
+    --transcript-structures-tsv-file transcript_structures.tsv \
+    --fasta-file reference_transcriptome.fasta \
+    --output-fasta-file transcriptome_var_graph.fasta
+```

@@ -14,9 +14,7 @@ target/
 docs/_site
 docs/.quarto/
 docs/cli/*
-docs/pipelines/*
 !docs/cli/index.qmd
-!docs/pipelines/index.qmd
 Cargo.lock
 .nojekyll
 *.nextflow.log*

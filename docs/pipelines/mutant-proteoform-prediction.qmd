@@ -1,0 +1,221 @@
+---
+title: "Mutant Proteoform Prediction"
+description: "Call somatic/germline DNA and RNA variants, integrate them, and translate transcripts to mutant proteoforms using long-read DNA + RNA sequencing data."
+---
+
+This pipeline is Exacto's primary use case: identify germline and
+somatic DNA variants as well as RNA variants from a case sample
+(e.g. a tumor), integrate the DNA and RNA variants, and translate the mutant peptide sequences they encode.
+
+External tools you'll need alongside exacto:
+
+- [`Minimap2`](https://github.com/lh3/minimap2) — long-read DNA/RNA alignment
+- [`Samtools`](https://www.htslib.org/) — BAM manipulation and indexing
+- [`RNA-Bloom2`](https://github.com/bcgsc/RNA-Bloom) — long-read transcriptome assembly
+
+## Workflow
+
+```{mermaid}
+%%{init: {'securityLevel': 'loose', 'flowchart': {'rankSpacing': 20, 'nodeSpacing': 40, 'subGraphTitleMargin': {'top': 5, 'bottom': 20}}}}%%
+flowchart TD
+    subgraph DNA["<span style='white-space:nowrap;color:#414a4c'>DNA variant calling</span>"]
+        direction LR
+        DNAIN[/"<span style='white-space:nowrap;color:#414a4c'>Tumor + normal BAMs</span>"/] --> CALLDNA(call-somatic-dna-vars)
+        CALLDNA --> ANN(annotate-vars)
+        ANN --> ANNOUT[/"<span style='white-space:nowrap'>Annotated DNA variants TSV</span>"/]
+    end
+
+    subgraph RNA["<span style='white-space:nowrap;color:#414a4c'>RNA variant calling</span>"]
+        direction LR
+        RNAIN[/"<span style='white-space:nowrap;color:#414a4c'>Assembled transcriptome BAM</span>"/] --> RM(remove-unspliced-rnas)
+        RM --> CALLRNA(call-rna-vars)
+        CALLRNA --> RNAOUT[/"<span style='white-space:nowrap;color:#414a4c'>RNA variants TSV</span>"/]
+        CALLRNA --> TS[/"<span style='white-space:nowrap;color:#414a4c'>Transcript structures TSV</span>"/]
+    end
+
+    ANNOUT --> INT(integrate-vars)
+    RNAOUT --> INT
+    INT --> INTOUT[/"<span style='white-space:nowrap;color:#414a4c'>Integrated DNA + RNA variants TSV</span>"/]
+
+    TS --> TR(translate-structs)
+    RNAOUT --> TR
+    INTOUT --> TR
+    TR --> PRIMTSV[/"<span style='white-space:nowrap;color:#414a4c'>Primary structures TSV</span>"/]
+    TR --> PRIMFA[/"<span style='white-space:nowrap;color:#414a4c'>Primary structures FASTA</span>"/]
+
+    PRIMTSV --> CPV(call-peptide-vars)
+    CPV --> PEPS[/"<span style='white-space:nowrap;color:#414a4c'>Peptide variants TSV</span>"/]
+
+    style DNA fill:#ffffff,stroke:#bbbbbb
+    style RNA fill:#ffffff,stroke:#bbbbbb
+
+    click CALLDNA href "../cli/call-somatic-dna-vars.html" "View call-somatic-dna-vars docs" _self
+    click ANN href "../cli/annotate-vars.html" "View annotate-vars docs" _self
+    click RM href "../cli/remove-unspliced-rnas.html" "View remove-unspliced-rnas docs" _self
+    click CALLRNA href "../cli/call-rna-vars.html" "View call-rna-vars docs" _self
+    click INT href "../cli/integrate-vars.html" "View integrate-vars docs" _self
+    click TR href "../cli/translate-structs.html" "View translate-structs docs" _self
+    click CPV href "../cli/call-peptide-vars.html" "View call-peptide-vars docs" _self
+
+    classDef linked text-decoration:underline;
+    class CALLDNA,ANN,RM,CALLRNA,INT,TR,CPV linked
+```
+
+## Step 1. Align long reads
+
+Align tumor and normal long-read DNA to the reference genome with Minimap2, then sort and index with samtools.
+Please make sure `--cs` is specified for Minimap2 as Exacto relies on the `CS` tag to identify variants:
+
+```bash
+# Tumor
+minimap2 -ax map-hifi --cs --eqx -Y -L --secondary=no \
+    reference.fasta tumor_dna.fastq.gz \
+    | samtools sort -o tumor_dna.sorted.bam
+samtools index tumor_dna.sorted.bam
+
+# Normal — repeat with normal_dna.fastq.gz → normal_dna.sorted.bam
+```
+
+## Step 2. Identify somatic DNA variants
+
+Identify case-specific (somatic) variants in tumor against matched normal:
+
+```bash
+exacto call-somatic-dna-vars \
+    --bam-file tumor_dna.sorted.bam \
+    --bam-bai-file tumor_dna.sorted.bam.bai \
+    --fasta-file reference.fasta \
+    --control-bam-files normal_dna.sorted.bam \
+    --control-bam-bai-files normal_dna.sorted.bam.bai \
+    --output-tsv-file tumor_specific_dna_variants.tsv
+```
+
+## Step 3. Annotate the somatic DNA variants
+
+Add gene/isoform level contexts using a GENCODE GTF:
+
+```bash
+exacto annotate-vars \
+    --tsv-file tumor_specific_dna_variants.tsv \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v45 \
+    --output-tsv-file tumor_specific_dna_variants.annotated.tsv
+```
+
+## Step 4. Assemble and align the tumor transcriptome
+
+Assemble long-read RNA with [RNA-Bloom2](https://github.com/BirolLab/RNA-Bloom), then align the assembled
+contigs back to the reference genome with minimap2 and sort/index with samtools. Transcriptome assembly is necessary
+because polyA-capture long-read RNA-seq commonly yields 5'-truncated reads; the assembler stitches them into full-length
+transcripts.
+
+Assemble tumor transcripts using RNA-bloom2:
+```bash
+java -jar RNA-Bloom.jar \
+    -long tumor_rna.fastq.gz \
+    --outdir rnabloom2_outputs/ \
+    -chimera [-lrpb]
+```
+
+Filter RNA-bloom2 transcripts using [Nexus](https://pirl-unc.github.io/nexus/utilities/filter_rnabloom2_transcripts.html):
+```bash
+nexus_filter_rnabloom2_transcripts \
+    --assembly4-pol-fasta-file rnabloom2_outputs/rnabloom.longreads.assembly4.pol.fa \
+    --assembly3-map-paf-file rnabloom2_outputs/rnabloom.longreads.assembly3.map.paf.gz \
+    --output-reads-tsv-file rnabloom2_outputs/rnalboom_longreads_filtered_reads.tsv \
+    --output-transcripts-tsv-file rnabloom2_outputs/rnalboom_longreads_filtered_transcripts.tsv \
+    --output-fasta-file rnabloom2_outputs/rnalboom_longreads_filtered_transcripts.fasta
+```
+
+Align the assembled tumor transcriptome. Please make sure `--cs` is specified for Minimap2 as Exacto relies on the `CS` tag to identify variants:
+```bash
+minimap2 -ax splice:hq -uf --cs --eqx -Y -L --secondary=no \
+    reference.fasta rnabloom2_outputs/rnalboom_longreads_filtered_transcripts.fasta \
+    | samtools sort -o tumor_rna_assembly.sorted.bam
+samtools index tumor_rna_assembly.sorted.bam
+```
+
+## Step 5. Filter unspliced RNAs
+
+Drop assembled transcripts that are likely unspliced RNAs. Note that `remove-unspliced-rnas` keeps transcripts
+overlapping 1-exon reference transcripts:
+
+```bash
+exacto remove-unspliced-rnas \
+    --bam-file tumor_rna_assembly.sorted.bam \
+    --bam-bai-file tumor_rna_assembly.sorted.bam.bai \
+    --fasta-file reference.fasta \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v44 \
+    --output-bam-file tumor_rna_assembly.sorted.filtered.bam \
+    --output-bam-bai-file tumor_rna_assembly.sorted.filtered.bam.bai \
+    --output-fasta-file tumor_rna_assembly.sorted.filtered.fasta
+```
+
+## Step 6. Identify tumor RNA variants
+
+```bash
+exacto call-rna-vars \
+    --bam-file tumor_rna_assembly.sorted.filtered.bam \
+    --bam-bai-file tumor_rna_assembly.sorted.filtered.bam.bai \
+    --reference-genome-fasta-file hg38.fasta \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v45 \
+    --output-dir rna_variants_outputs/ \
+    --output-prefix tumor
+```
+
+## Step 7. Integrate DNA and RNA variants
+
+```bash
+exacto integrate-vars \
+    --annotated-dna-vars-tsv-file tumor_specific_dna_variants.annotated.tsv \
+    --rna-vars-tsv-file rna_variants_outputs/tumor_exacto_rna_variant_calls.tsv \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v44 \
+    --output-tsv-file tumor_dna_rna_variants_integrated.tsv
+```
+
+## Step 8. Translate transcripts to primary structures
+
+```bash
+exacto translate-structs \
+    --transcript-structures-tsv-file rna_variants_outputs/tumor_exacto_transcript_structures.tsv \
+    --rna-variant-calls-tsv-file rna_variants_outputs/tumor_exacto_rna_variant_calls.tsv \
+    --integrated-variants-tsv-file tumor_dna_rna_variants_integrated.tsv \
+    --strategy longest_orf \
+    --output-tsv-file tumor_primary_structures.tsv \
+    --output-fasta-file tumor_primary_structures.fasta
+```
+
+## Step 9. Identify peptide variants
+
+```bash
+exacto call-peptide-vars \
+    --primary-structures-tsv-file tumor_primary_structures.tsv \
+    --reference-fasta-file reference_proteome.fasta \
+    --output-tsv-file tumor_peptide_variants.tsv \
+    --output-fasta-file tumor_peptide_variants.fasta
+```
+
+## Outputs
+
+| File | Produced by | Description |
+|:-----|:------------|:------------|
+| `tumor_specific_dna_variants.tsv` | `call-somatic-dna-vars` | Somatic DNA variants |
+| `tumor_specific_dna_variants.annotated.tsv` | `annotate-vars` | Annotated DNA variants |
+| `tumor_exacto_rna_variant_calls.tsv` | `call-rna-vars` | RNA variants |
+| `tumor_exacto_transcript_structures.tsv` | `call-rna-vars` | Per-transcript structural records |
+| `tumor_dna_rna_variants_integrated.tsv` | `integrate-vars` | DNA + RNA variants merged |
+| `tumor_primary_structures.fasta` | `translate-structs` | Mutant proteoform sequences (FASTA) |
+| `tumor_peptide_variants.tsv` | `call-peptide-vars` | Mutant peptide variants |
+
+: {.striped .hover}
