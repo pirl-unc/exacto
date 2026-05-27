@@ -20,20 +20,24 @@ use crate::prelude::*;
 
 #[derive(Debug,Eq,PartialEq,Serialize,Deserialize)]
 pub struct IntegratedVariant {
-    pub transcript_model_id: usize,
+    pub assembled_transcript_name: Box<str>,
+    pub transcript_model_id: u32,
+    pub reference_gene_names: Vec<Box<str>>,
     pub reference_transcript_ids: Vec<Box<str>>,
-    pub rna_variant_call_id: usize,
+    pub rna_variant_id: u32,
     
     /// A map between DNA variant call ID and IntegratedVariantDistance object
-    pub dna_variant_call_ids: HashMap<usize, IntegratedVariantDistance>
+    pub dna_variant_ids: HashMap<u32, IntegratedVariantDistance>
 }
 
 impl Hash for IntegratedVariant {
     fn hash<H: Hasher>(&self, state: &mut H) {
+        self.assembled_transcript_name.hash(state);
         self.transcript_model_id.hash(state);
-        self.rna_variant_call_id.hash(state);
+        self.rna_variant_id.hash(state);
+        self.reference_gene_names.hash(state);
         self.reference_transcript_ids.hash(state);
-        for key in self.dna_variant_call_ids.keys() {
+        for key in self.dna_variant_ids.keys() {
             key.hash(state);
         }
     }
@@ -41,35 +45,41 @@ impl Hash for IntegratedVariant {
 
 impl IntegratedVariant {
     pub fn new(
-        transcript_model_id: usize, 
+        assembled_transcript_name: Box<str>,
+        transcript_model_id: u32,
+        reference_gene_names: &Vec<Box<str>>,
         reference_transcript_ids: &Vec<Box<str>>,
-        rna_variant_call_id: usize
+        rna_variant_id: u32
     ) -> Self {
         Self {
-            transcript_model_id: transcript_model_id,
+            assembled_transcript_name,
+            transcript_model_id,
+            reference_gene_names: reference_gene_names.clone(),
             reference_transcript_ids: reference_transcript_ids.clone(),
-            rna_variant_call_id: rna_variant_call_id,
-            dna_variant_call_ids: HashMap::new()
+            rna_variant_id,
+            dna_variant_ids: HashMap::new()
         }
     }
     
-    pub fn add_dna_variant_call_id(
+    pub fn add_dna_variant_id(
         &mut self, 
-        dna_variant_call_id: usize, 
+        dna_variant_id: u32, 
         distance: IntegratedVariantDistance
     ) {
-        assert_eq!(self.dna_variant_call_ids.contains_key(&dna_variant_call_id), false);
-        self.dna_variant_call_ids.insert(dna_variant_call_id, distance);
+        assert_eq!(self.dna_variant_ids.contains_key(&dna_variant_id), false);
+        self.dna_variant_ids.insert(dna_variant_id, distance);
     }
 }
 
 impl Clone for IntegratedVariant {
     fn clone(&self) -> Self {
         IntegratedVariant {
+            assembled_transcript_name: self.assembled_transcript_name.clone(),
             transcript_model_id: self.transcript_model_id,
+            reference_gene_names: self.reference_gene_names.clone(),
             reference_transcript_ids: self.reference_transcript_ids.clone(),
-            rna_variant_call_id: self.rna_variant_call_id,
-            dna_variant_call_ids: self.dna_variant_call_ids.clone()
+            rna_variant_id: self.rna_variant_id,
+            dna_variant_ids: self.dna_variant_ids.clone()
         }
     }
 }

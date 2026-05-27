@@ -86,14 +86,14 @@ pub fn identify_variant_transcripts(
     let entries: Vec<(usize, Vec<bam::Record>)> = records_map.into_iter().collect();
     log_info!("{} transcript models to process", entries.len());
     for chunk in entries.chunks(chunk_size) {
-        let transcript_models: Vec<TranscriptModel> = thread_pool.install(|| {
+        let assembled_transcripts: Vec<(AssembledTranscript, Vec<TranscriptModel>)> = thread_pool.install(|| {
             chunk
                 .into_par_iter()
                 .filter_map(|(read_id, records)| {
-                    let read_name = read_names_map.get_by_right(read_id).unwrap();
+                    let read_name: Box<str> = read_names_map.get_by_right(read_id).unwrap().clone();
 
                     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                        (|| -> Result<Option<TranscriptModel>, Box<dyn std::error::Error + Send + Sync>> {
+                        (|| -> Result<Option<(AssembledTranscript, Vec<TranscriptModel>)>, Box<dyn std::error::Error + Send + Sync>> {
                             let read_sequence: Box<str> = get_fastx_read_sequence(records);
                             let base_quality_scores: Vec<u8> = get_fastx_base_quality_scores(records);
 
@@ -113,16 +113,16 @@ pub fn identify_variant_transcripts(
                                 return Ok(None);
                             }
 
-                            let mut transcript_model = TranscriptModel::new(
-                                1,
-                                read_name,
+                            let _ = *read_id; // read_id retained for downstream BiMap key compatibility
+                            let assembled_transcript = AssembledTranscript::new(
+                                &*read_name,
                                 alignment.get_alignment_structure(),
                                 &chromosome_names_map,
                                 reference_genome_fasta_file
                             );
 
                             let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-                                transcript_model.get_exons(),
+                                assembled_transcript.get_exons(),
                                 gene_annotator,
                                 &chromosome_names_map,
                                 reference_transcript_scoring_method.clone(),
@@ -131,21 +131,21 @@ pub fn identify_variant_transcripts(
                                 threshold
                             );
 
-                            transcript_model.identify_variants(
-                                &**read_name,
+                            let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
                                 &reference_transcript_matches,
                                 gene_annotator,
                                 reference_genome_fasta_file,
+                                &chromosome_names_map,
                                 min_mapping_quality,
                                 min_base_quality
                             );
 
-                            Ok(Some(transcript_model))
+                            Ok(Some((assembled_transcript, transcript_models)))
                         })()
                     }));
 
                     match result {
-                        Ok(Ok(maybe_model)) => maybe_model,
+                        Ok(Ok(maybe_pair)) => maybe_pair,
                         Ok(Err(e)) => {
                             eprintln!("Error processing read name {}: {}", read_name, e);
                             None
@@ -159,14 +159,14 @@ pub fn identify_variant_transcripts(
                 .collect()
         });
 
-        log_info!("\t{} transcript model(s) constructed in chunk.", transcript_models.len());
+        log_info!("\t{} assembled transcript(s) constructed in chunk.", assembled_transcripts.len());
 
         // Serialize chunk to temp file
         let temp_path: TempPath = {
             let temp_file = NamedTempFile::new_in(dir_path).unwrap();
             let mut writer = BufWriter::new(temp_file);
-            bincode::serialize_into(&mut writer, &transcript_models)
-                .expect("Failed to serialize transcript models");
+            bincode::serialize_into(&mut writer, &assembled_transcripts)
+                .expect("Failed to serialize assembled transcripts");
             writer.flush().unwrap();
             let temp_file: NamedTempFile = writer.into_inner().unwrap();
             temp_file.into_temp_path()
@@ -197,27 +197,36 @@ fn merge_temp_transcript_model_sets(
         .build()
         .unwrap();
 
-    let all_models: Vec<Vec<TranscriptModel>> = thread_pool.install(|| {
+    let all_pairs: Vec<Vec<(AssembledTranscript, Vec<TranscriptModel>)>> = thread_pool.install(|| {
         temp_files
             .par_iter()
             .map(|temp_path| {
                 let file = File::open(temp_path).unwrap();
                 let reader = BufReader::new(file);
                 bincode::deserialize_from(reader)
-                    .expect("Failed to deserialize transcript models")
+                    .expect("Failed to deserialize assembled transcripts")
             })
             .collect()
     });
 
     let mut transcript_model_set = TranscriptModelSet::new();
-    let mut transcript_id: usize = 1;
-    for models in all_models {
-        for mut transcript_model in models {
-            if !transcript_model.is_reference_transcript() {
-                transcript_model.set_transcript_id(transcript_id);
-                transcript_model_set.add_transcript_model(transcript_model);
-                transcript_id += 1;
+    let mut next_transcript_model_id: usize = 1;
+    for pairs in all_pairs {
+        for (assembled_transcript, mut transcript_models) in pairs {
+            // Only keep variant transcript models
+            let keep: bool = transcript_models
+                .iter()
+                .any(|tm| !tm.is_reference_transcript());
+            if !keep {
+                continue;
             }
+
+            for transcript_model in transcript_models.iter_mut() {
+                transcript_model.set_id(next_transcript_model_id);
+                next_transcript_model_id += 1;
+            }
+
+            transcript_model_set.add_transcript_model(assembled_transcript, transcript_models);
         }
     }
 

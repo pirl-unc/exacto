@@ -6,4 +6,5 @@ exacto call-somatic-dna-vars \
   --control-bam-files ../test/data/bam/dna-001-normal_minimap2_mdtagged_sorted.bam \
   --control-bam-bai-files ../test/data/bam/dna-001-normal_minimap2_mdtagged_sorted.bam.bai \
   --fasta-file ../test/data/fasta/hg38_chr17-18.fa.gz \
-  --output-tsv-file outputs/call-somatic-dna-vars/dna-001-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv
+  --output-tsv-file outputs/call-somatic-dna-vars/dna-001-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants.tsv \
+  --expected-sequencing-error 0.001

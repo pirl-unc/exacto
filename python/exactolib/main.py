@@ -17,6 +17,7 @@ The purpose of this python3 script is to implement Exacto's main APIs.
 
 
 import gc
+import os
 import pandas as pd
 import polars as pl
 from exactolib import exactolibrs
@@ -376,7 +377,7 @@ def identify_rna_variants(
         num_threads: int = CALL_RNA_VARS_NUM_THREADS,
         temp_dir: str = "",
         output_type: OutputType = OutputType.FILE
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Identify RNA variants.
 
@@ -405,16 +406,21 @@ def identify_rna_variants(
 
     Returns:
         If output_type is 'dataframe', then
+        Pandas DataFrame of assembled transcripts,
         Pandas DataFrame of exons,
-        Pandas DataFrame of read filter status,
-        Pandas DataFrame of read names and transcript IDs,
+        Pandas DataFrame of introns,
         Pandas DataFrame of reference transcript matches,
-        Pandas DataFrame of splice junction,
-        Pandas DataFrame of transcripts,
-        Pandas DataFrame of transcript structures,
-        Pandas DataFrame of variants
+        Pandas DataFrame of read filter status,
+        Pandas DataFrame of transcript model structures,
+        Pandas DataFrame of RNA variants
     """
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = exactolibrs.identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = exactolibrs.identify_rna_variants(
         bam_file=bam_file,
         bam_bai_file=bam_bai_file,
         reference_genome_fasta_file=reference_genome_fasta_file,
@@ -435,14 +441,13 @@ def identify_rna_variants(
         output_type=str(output_type),
         chunk_size=chunk_size
     )
-    return (df_exons.to_pandas(),
-            df_read_filter_status.to_pandas(),
-            df_read_names.to_pandas(),
-            df_matched_reference_transcripts.to_pandas(),
+    return (df_assembled_transcripts.to_pandas(),
+            df_exons.to_pandas(),
             df_introns.to_pandas(),
-            df_transcripts.to_pandas(),
-            df_transcript_structures.to_pandas(),
-            df_variant_calls.to_pandas())
+            df_reference_transcript_matches.to_pandas(),
+            df_read_filter_status.to_pandas(),
+            df_transcript_model_structures.to_pandas(),
+            df_rna_variants.to_pandas())
 
 
 def identify_peptide_variants(
@@ -452,13 +457,48 @@ def identify_peptide_variants(
         max_k: int,
         num_processes: int
 ) -> pd.DataFrame:
+    """
+    Identify mutant peptide k-mers from a primary-structures TSV.
+
+    Reads the `PrimaryStructureRecord` TSV produced by `translate_structures`,
+    extracts every k-mer (min_k..max_k) that overlaps at least one mutant
+    amino-acid index, and filters out k-mers that occur in the reference
+    proteome.
+
+    Args:
+        primary_structures_tsv_file :   Path to the primary-structures TSV.
+                                        Must contain at minimum:
+                                            primary_structure_id,
+                                            amino_acid_sequence,
+                                            mutant_amino_acid_intervals,
+                                            rna_variant_ids,
+                                            dna_variant_ids.
+        reference_proteome_fasta_file: Path to the reference proteome FASTA.
+        min_k                       :   Minimum peptide length.
+        max_k                       :   Maximum peptide length.
+        num_processes               :   Number of worker processes.
+
+    Returns:
+        pd.DataFrame with columns:
+            mutant_peptide_id, primary_structure_id, mutant_peptide_sequence, k,
+            amino_acid_index_start, amino_acid_index_end,
+            rna_variant_ids, dna_variant_ids.
+    """
     reference_kmer_set = build_reference_kmer_index(
         reference_fasta_file=reference_proteome_fasta_file,
         min_k=min_k,
         max_k=max_k,
         num_processes=num_processes
     )
-    df_primary_structures = pd.read_csv(primary_structures_tsv_file, sep='\t', low_memory=False, memory_map=True)
+    # keep_default_na=False preserves empty strings as "" instead of NaN,
+    # so the worker doesn't have to special-case NaN for the variant-ID columns.
+    df_primary_structures = pd.read_csv(
+        primary_structures_tsv_file,
+        sep='\t',
+        low_memory=False,
+        memory_map=True,
+        keep_default_na=False
+    )
     df_mutant_peptides = identify_peptide_variants_(
         df_primary_structures=df_primary_structures,
         reference_kmer_set=reference_kmer_set,
@@ -470,8 +510,8 @@ def identify_peptide_variants(
 
 
 def integrate_variants(
-        dna_variant_call_annotation_set_tsv_file: str,
-        rna_variant_call_set_tsv_file: str,
+        dna_variants_tsv_file: str,
+        rna_variants_tsv_file: str,
         reference_gene_annotation_file: str,
         reference_gene_annotation_source: GeneAnnotationSource,
         reference_gene_annotation_assembly: str,
@@ -507,8 +547,8 @@ def integrate_variants(
             'dna_variant_position'
     """
     df_integration = exactolibrs.integrate_dna_rna_variants(
-        dna_variant_call_annotation_set_tsv_file=dna_variant_call_annotation_set_tsv_file,
-        rna_variant_call_set_tsv_file=rna_variant_call_set_tsv_file,
+        dna_variants_tsv_file=dna_variants_tsv_file,
+        rna_variants_tsv_file=rna_variants_tsv_file,
         reference_gene_annotation_file=reference_gene_annotation_file,
         reference_gene_annotation_source=str(reference_gene_annotation_source),
         reference_gene_annotation_assembly=str(reference_gene_annotation_assembly),
@@ -565,145 +605,152 @@ def translate_fasta_file(
         fasta_file: str,
         temp_dir: str,
         strategy: TranslationStrategy = TranslationStrategy(TRANSLATE_STRATEGY),
+        start_codons: List[str] = ["AUG"],
         num_threads: int = TRANSLATE_NUM_THREADS
 ) -> pd.DataFrame:
     """
-    Translate a long-read RNA-seq FASTQ file into peptide sequences.
+    Translate a long-read RNA-seq FASTA file into peptide sequences.
 
     Args:
         fasta_file      :   FASTA file.
         strategy        :   Translation strategy.
+        start_codons    :   List of start codons (default: ["AUG"]).
         num_threads     :   Number of threads.
 
     Returns:
-        Pandas DataFrame with the following columns:
-        'peptide_id',
-        'peptide_sequence'
-        'rna_id'
-        'rna_sequence'
-        'orf_start'
-        'orf_end'
+        Pandas DataFrame with one row per `PrimaryStructure`, including
+        columns: 'primary_structure_id', 'amino_acid_sequence',
+        'transcript_id', 'assembled_transcript_name',
+        'assembled_transcript_sequence', 'orf_start', 'orf_end',
+        'reference_gene_names', 'reference_transcript_ids',
+        'rna_variant_ids', 'rna_variants', 'dna_variant_ids',
+        'dna_variants', 'rna_read_names', etc.
     """
-    ipc_file = exactolibrs.translate_fasta_file(
+    tsv_file = exactolibrs.translate_fasta_file(
         fasta_file=fasta_file,
         strategy=str(strategy),
+        start_codons=start_codons,
         num_threads=num_threads,
         temp_dir=temp_dir
     )
     gc.collect()
-    df = pl.read_ipc(ipc_file).to_pandas()
-    if len(df) == 0:
-        df = pd.DataFrame({
-            'peptide_id': [],
-            'peptide_sequence': [],
-            'rna_id': [],
-            'rna_sequence': [],
-            'orf_start': [],
-            'orf_end': []
-        })
-    return df
+    # Empty translation set → csv writer never emits the header row, so
+    # the file is 0 bytes. Return an empty DataFrame in that case.
+    if os.path.getsize(tsv_file) == 0:
+        return pd.DataFrame()
+    return pl.read_csv(tsv_file, separator='\t').to_pandas()
 
 
 def translate_fastq_file(
         fastq_file: str,
         temp_dir: str,
         strategy: TranslationStrategy = TranslationStrategy(TRANSLATE_STRATEGY),
+        start_codons: List[str] = ["AUG"],
         num_threads: int = TRANSLATE_NUM_THREADS
 ) -> pd.DataFrame:
     """
     Translate a long-read RNA-seq FASTQ file into peptide sequences.
 
     Args:
-        fastq_file      :   FASTA file.
+        fastq_file      :   FASTQ file (may be gzipped).
         strategy        :   Translation strategy.
+        start_codons    :   List of start codons (default: ["AUG"]).
         num_threads     :   Number of threads.
 
     Returns:
-        Pandas DataFrame with the following columns:
-        'peptide_id',
-        'peptide_sequence'
-        'rna_id'
-        'rna_sequence'
-        'orf_start'
-        'orf_end'
+        Pandas DataFrame with one row per `PrimaryStructure`, including
+        columns: 'primary_structure_id', 'amino_acid_sequence',
+        'transcript_id', 'assembled_transcript_name',
+        'assembled_transcript_sequence', 'orf_start', 'orf_end',
+        'reference_gene_names', 'reference_transcript_ids',
+        'rna_variant_ids', 'rna_variants', 'dna_variant_ids',
+        'dna_variants', 'rna_read_names', etc.
     """
-    ipc_file = exactolibrs.translate_fastq_file(
+    tsv_file = exactolibrs.translate_fastq_file(
         fastq_file=fastq_file,
         strategy=str(strategy),
+        start_codons=start_codons,
         num_threads=num_threads,
         temp_dir=temp_dir
     )
     gc.collect()
-    df = pl.read_ipc(ipc_file).to_pandas()
-    if len(df) == 0:
-        df = pd.DataFrame({
-            'peptide_id': [],
-            'peptide_sequence': [],
-            'rna_id': [],
-            'rna_sequence': [],
-            'orf_start': [],
-            'orf_end': []
-        })
-    return df
+    if os.path.getsize(tsv_file) == 0:
+        return pd.DataFrame()
+    return pl.read_csv(tsv_file, separator='\t').to_pandas()
 
 
 def translate_sequence(
         rna_sequence: str,
-        strategy: TRANSLATE_STRATEGY
-) -> List[Tuple[str,int,int]]:
+        strategy: TRANSLATE_STRATEGY,
+        start_codons: List[str] = ["AUG"]
+) -> List[Tuple[str, int, int]]:
     """
-    Translate a RNA sequence.
+    Translate a single RNA sequence.
 
     Args:
         rna_sequence    :   RNA sequence.
         strategy        :   Translation strategy.
+        start_codons    :   List of start codons (default: ["AUG"]).
 
     Returns:
-        Peptide sequence, ORF start, ORF end
+        List of (peptide_sequence, orf_start, orf_end) tuples — one per
+        primary structure produced by the strategy.
     """
     translations = exactolibrs.translate_sequence(
         rna_sequence=rna_sequence,
-        strategy=str(strategy)
+        strategy=str(strategy),
+        start_codons=start_codons
     )
     return translations
 
 
 def translate_structures(
-        transcript_structures_tsv_file: str,
-        rna_variant_calls_tsv_file: str,
+        rna_assembly_support_tsv_file: str,
+        transcript_model_structures_tsv_file: str,
+        rna_variants_tsv_file: str,
+        dna_variants_tsv_file: str,
         integrated_variants_tsv_file: str,
         strategy: TRANSLATE_STRATEGY,
-        output_tsv_file: str,
-        output_fasta_file: str,
+        output_dir: str,
+        output_prefix: str,
+        start_codons: List[str] = ["AUG"],
         num_threads: int = TRANSLATE_NUM_THREADS,
         output_type: OutputType = OutputType.FILE
-) -> pd.DataFrame:
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Translate transcript structures.
 
     Args:
-        transcript_structures_tsv_file    :   Transcript structures TSV file.
-        rna_variant_calls_tsv_file        :   RNA variant calls TSV file.
-        integrated_variants_tsv_file      :   Integrated variants TSV file.
-        strategy                          :   Translation strategy.
-        output_tsv_file                   :   Output TSV file.
-        output_fasta_file                 :   Output FASTA file.
-        num_threads                       :   Number of threads.
-        output_type                       :   Output type.
+        assembled_transcript_support_tsv_file   :   Assembled transcript support TSV file.
+        transcript_model_structures_tsv_file    :   Transcript model structures TSV file.
+        rna_variants_tsv_file                   :   RNA variant records TSV file.
+        dna_variants_tsv_file                   :   DNA variant records TSV file.
+        integrated_variants_tsv_file            :   Integrated variant records TSV file.
+        strategy                                :   Translation strategy.
+        output_tsv_file                         :   Output TSV file path (written in 'file' mode).
+        output_fasta_file                       :   Output FASTA file path (empty = skip; only honored in 'file' mode).
+        start_codons                            :   List of start codons (default: ["AUG"]).
+        num_threads                             :   Number of threads.
+        output_type                             :   'file' writes TSV+FASTA and returns an empty DataFrame;
+                                                    'dataframe' returns the populated DataFrame and writes no files.
 
     Returns:
-        Pandas DataFrame.
+        Pandas DataFrame. Empty in 'file' mode; populated with one row per
+        primary structure in 'dataframe' mode.
     """
-    df_primary_structures = exactolibrs.translate_structures(
-        transcript_structures_tsv_file=transcript_structures_tsv_file,
-        rna_variant_calls_tsv_file=rna_variant_calls_tsv_file,
+    df_ps, df_ps_nucleotides = exactolibrs.translate_structures(
+        rna_assembly_support_tsv_file=rna_assembly_support_tsv_file,
+        transcript_model_structures_tsv_file=transcript_model_structures_tsv_file,
+        rna_variants_tsv_file=rna_variants_tsv_file,
+        dna_variants_tsv_file=dna_variants_tsv_file,
         integrated_variants_tsv_file=integrated_variants_tsv_file,
         strategy=str(strategy),
-        output_tsv_file=output_tsv_file,
-        output_fasta_file=output_fasta_file,
+        start_codons=start_codons,
+        output_dir=output_dir,
+        output_prefix=output_prefix,
         num_threads=num_threads,
         output_type=str(output_type)
     )
 
-    return df_primary_structures.to_pandas()
+    return df_ps.to_pandas(), df_ps_nucleotides.to_pandas()
 

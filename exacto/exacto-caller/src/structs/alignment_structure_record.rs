@@ -12,7 +12,7 @@
 
 
 use bimap::BiMap;
-use exacto_core::prelude::Strand;
+use exacto_core::prelude::{reverse_complement, Strand};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -117,6 +117,14 @@ impl AlignmentStructureRecord {
 
     pub fn get_sequence(&self) -> &Box<str> {
         &self.sequence
+    }
+
+    pub fn get_standardized_sequence(&self) -> Box<str> {
+        if self.strand_1 == Strand::Forward {
+            self.sequence.to_string().to_uppercase().into_boxed_str()
+        } else {
+            reverse_complement(&self.sequence).to_string().to_uppercase().into_boxed_str()
+        }
     }
 
     pub fn get_base_quality_scores(&self) -> &Vec<u8> {

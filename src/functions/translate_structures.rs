@@ -12,61 +12,159 @@
 
 
 extern crate exacto;
-extern crate flate2;
 extern crate polars;
 extern crate pyo3;
 extern crate pyo3_polars;
-extern crate tempfile;
 
 use exacto::caller::prelude as caller;
 use exacto::core::prelude as core;
+use exacto::integrator::prelude as integrator;
 use exacto::translator::prelude as translator;
-use polars::prelude::*;
+use polars::prelude::DataFrame;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
 use pyo3_polars::PyDataFrame;
 use std::collections::HashSet;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::str::FromStr;
+use std::path::{Path, PathBuf};
 
 
+/// Translate the assembled-transcript pipeline outputs (the five
+/// post-caller/integrator TSVs) into primary structures.
+///
+/// `output_type` selects the return shape:
+/// - `"file"`     → write TSV and (if `output_fasta_file` is non-empty) FASTA;
+///                  return an empty `PyDataFrame`.
+/// - `"dataframe"` → build a polars DataFrame in memory and return it;
+///                  no files are written.
 #[pyfunction]
 pub fn translate_structures(
-    py: Python,
-    transcript_structures_tsv_file: String,
-    rna_variant_calls_tsv_file: String,
+    _py: Python,
+    rna_assembly_support_tsv_file: String,
+    transcript_model_structures_tsv_file: String,
+    rna_variants_tsv_file: String,
+    dna_variants_tsv_file: String,
     integrated_variants_tsv_file: String,
     strategy: String,
-    output_tsv_file: String,
-    output_fasta_file: String,
+    start_codons: Vec<String>,
+    output_dir: String,
+    output_prefix: String,
     num_threads: usize,
-    output_type: String
-) -> PyResult<PyDataFrame> {
-    let df_transcript_structures: DataFrame = core::read_tsv_file(transcript_structures_tsv_file.as_str());
-    let rna_variant_call_set: caller::RNAVariantCallSet = caller::RNAVariantCallSet::read_tsv_file(rna_variant_calls_tsv_file.as_str());
-    let df_integrated_variants: DataFrame = core::read_tsv_file(integrated_variants_tsv_file.as_str());
-    let strategy_: translator::TranslationStrategy = translator::TranslationStrategy::from_str(strategy.as_str()).unwrap();
+    output_type: String,
+) -> PyResult<(PyDataFrame, PyDataFrame)> {
+    // Step 1. Load every record stream.
+    let assembled_transcript_support_records: Vec<translator::AssembledTranscriptSupportRecord> =
+        translator::load_assembled_transcript_support_records(&rna_assembly_support_tsv_file);
+    let transcript_model_structure_records: Vec<caller::TranscriptModelStructureRecord> =
+        caller::load_transcript_model_structure_records(&transcript_model_structures_tsv_file);
+    let rna_variant_records: Vec<caller::RNAVariantRecord> =
+        caller::load_rna_variant_records(&rna_variants_tsv_file);
+    let dna_variant_records: Vec<caller::DNAVariantRecord> =
+        caller::load_dna_variant_records(&dna_variants_tsv_file);
+    let integrated_variant_records: Vec<integrator::IntegratedVariantRecord> =
+        integrator::load_integrated_variant_records(&integrated_variants_tsv_file);
 
-    let primary_structure_set: translator::PrimaryStructureSet = translator::translate_transcript_structures(
-        &df_transcript_structures,
-        &rna_variant_call_set,
-        &df_integrated_variants,
-        strategy_,
-        num_threads
+    // Step 2. Translate. `translate_structures` builds the TranscriptSet
+    // from the five record streams and runs translation.
+    let translation_strategy: translator::TranslationStrategy =
+        translator::TranslationStrategy::from_str(&strategy).unwrap();
+    let start_codons_set: HashSet<&str> = start_codons.iter().map(|s| s.as_str()).collect();
+    let transcript_set: translator::TranscriptSet = translator::translate_structures(
+        &assembled_transcript_support_records,
+        &transcript_model_structure_records,
+        &rna_variant_records,
+        &dna_variant_records,
+        &integrated_variant_records,
+        translation_strategy,
+        start_codons_set,
+        num_threads,
     );
 
+    // Step 3. Branch on the requested output shape.
     match output_type.as_str() {
-        "dataframe" => {
-            let df_primary_structures: DataFrame = primary_structure_set.to_dataframe();
-            Ok((PyDataFrame(df_primary_structures)))
-        },
         "file" => {
-            primary_structure_set.to_tsv_file(output_tsv_file.as_str());
-            primary_structure_set.to_fasta_file(output_fasta_file.as_str());
-            Ok((PyDataFrame(DataFrame::new(vec![]).unwrap())))
-        },
-        other => {
-            let error_message = format!("Unsupported value for output_type: {}", other);
-            Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(error_message))
+            let primary_structures_tsv_file: PathBuf = if output_prefix.is_empty() {
+                Path::new(&output_dir).join("exacto_primary_structures.tsv")
+            } else {
+                Path::new(&output_dir).join(format!("{}_exacto_primary_structures.tsv", output_prefix))
+            };
+
+            let nucleotide_tsv_file: PathBuf = if output_prefix.is_empty() {
+                Path::new(&output_dir).join("exacto_primary_structure_nucleotides.tsv")
+            } else {
+                Path::new(&output_dir).join(format!("{}_exacto_primary_structure_nucleotides.tsv", output_prefix))
+            };
+
+            let fasta_file: PathBuf = if output_prefix.is_empty() {
+                Path::new(&output_dir).join("exacto_primary_structures.fasta")
+            } else {
+                Path::new(&output_dir).join(format!("{}_exacto_primary_structures.fasta", output_prefix))
+            };
+
+            core::write_tsv_file(
+                translator::build_primary_structure_records(&transcript_set),
+                &primary_structures_tsv_file
+            );
+
+            core::write_tsv_file(
+                translator::build_nucleotide_records(&transcript_set),
+                &nucleotide_tsv_file
+            );
+
+            write_protein_fasta(&transcript_set, &fasta_file)?;
+
+            Ok((PyDataFrame(DataFrame::empty()), PyDataFrame(DataFrame::empty())))
+        }
+        "dataframe" => {
+            let ps_records: Vec<translator::PrimaryStructureRecord> =
+                translator::build_primary_structure_records(&transcript_set).collect();
+            let nuc_records: Vec<translator::NucleotideRecord> =
+                translator::build_nucleotide_records(&transcript_set).collect();
+
+            let df_ps: DataFrame = translator::primary_structure_records_to_dataframe(ps_records);
+            let df_ps_nucleotides: DataFrame = translator::nucleotide_records_to_dataframe(nuc_records);
+
+            Ok((PyDataFrame(df_ps), PyDataFrame(df_ps_nucleotides)))
+        }
+        other => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            format!(
+                "Unsupported value for output_type: {:?}. Expected \"file\" or \"dataframe\".",
+                other
+            ),
+        )),
+    }
+}
+
+
+/// Write one FASTA record per `PrimaryStructure` across all transcripts.
+/// Header format: `>{transcript_id}|orf_{orf_start}-{orf_end}`.
+fn write_protein_fasta(
+    transcript_set: &translator::TranscriptSet,
+    path: &Path,
+) -> PyResult<()> {
+    let file: File = File::create(path)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+    let mut writer = BufWriter::new(file);
+    for transcript in transcript_set.iter() {
+        for primary_structure in transcript.primary_structures.iter() {
+            writeln!(
+                writer,
+                ">{}|orf_{}-{}",
+                transcript.get_id(),
+                primary_structure.get_orf_start(),
+                primary_structure.get_orf_end(),
+            )
+            .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+            for amino_acid in primary_structure.amino_acids.iter() {
+                write!(writer, "{}", amino_acid.get_amino_acid())
+                    .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+            }
+            writeln!(writer)
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
         }
     }
+    writer.flush()
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
+    Ok(())
 }

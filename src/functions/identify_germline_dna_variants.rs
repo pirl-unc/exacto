@@ -21,6 +21,7 @@ use exacto::core::prelude as core;
 use polars::prelude::*;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
+use std::path::Path;
 
 
 #[pyfunction]
@@ -54,7 +55,7 @@ pub fn identify_germline_dna_variants(
     temp_dir: String,
     output_type: String
 ) -> PyResult<PyDataFrame> {
-    let variant_call_set: caller::DNAVariantCallSet = caller::identify_germline_dna_variants(
+    let dna_variant_call_set: caller::DNAVariantCallSet = caller::identify_germline_dna_variants(
         bam_file.as_str(),
         bam_bai_file.as_str(),
         fasta_file.as_str(),
@@ -81,14 +82,19 @@ pub fn identify_germline_dna_variants(
         max_fpr,
         temp_dir.as_str()
     );
+
     match output_type.as_str() {
         "dataframe" => {
-            Ok(PyDataFrame(variant_call_set.to_dataframe(num_threads)))
+            Ok(PyDataFrame(
+                caller::dna_variant_records_to_dataframe(
+                    caller::build_dna_variant_records(&dna_variant_call_set)
+                )
+            ))
         }
         "file" => {
-            variant_call_set.to_tsv_file(
-                output_tsv_file.as_str(),
-                num_threads
+            core::write_tsv_file(
+                caller::build_dna_variant_records(&dna_variant_call_set),
+                Path::new(output_tsv_file.as_str())
             );
             Ok(PyDataFrame(DataFrame::new(vec![]).unwrap()))
         }

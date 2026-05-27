@@ -134,11 +134,17 @@ def run_cli_call_peptide_vars_from_parsed_args(args) -> None:
 
     df.to_csv(args.output_tsv_file, sep='\t', index=False)
 
+    # One FASTA record per unique mutant peptide. Header lists every primary
+    # structure the k-mer was observed in.
     with open(args.output_fasta_file, 'w') as f:
         for mutant_peptide_id, group in df.groupby('mutant_peptide_id'):
             sequence = group.iloc[0]['mutant_peptide_sequence']
-            peptide_ids = ','.join(str(pid) for pid in sorted(group['peptide_id'].unique()))
-            f.write('>mutant_peptide_id=%s peptide_ids=%s\n%s\n' % (mutant_peptide_id, peptide_ids, sequence))
+            primary_structure_ids = ','.join(
+                str(psid) for psid in sorted(group['primary_structure_id'].unique())
+            )
+            f.write('>mutant_peptide_id=%s primary_structure_ids=%s\n%s\n' % (
+                mutant_peptide_id, primary_structure_ids, sequence
+            ))
 
     logger.info("Wrote %i mutant peptide(s) to %s" % (len(df), args.output_tsv_file))
     logger.info("Wrote %i unique sequence(s) to %s" % (df['mutant_peptide_id'].nunique(), args.output_fasta_file))

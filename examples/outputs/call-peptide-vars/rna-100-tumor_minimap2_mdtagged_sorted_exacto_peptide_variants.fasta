@@ -1,76 +1,76 @@
->mutant_peptide_id=0 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=0 primary_structure_ids=1
 NSSCMGGI
->mutant_peptide_id=1 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=1 primary_structure_ids=1
 SSCMGGIN
->mutant_peptide_id=2 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=2 primary_structure_ids=1
 SCMGGINR
->mutant_peptide_id=3 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=3 primary_structure_ids=1
 CMGGINRR
->mutant_peptide_id=4 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=4 primary_structure_ids=1
 MGGINRRP
->mutant_peptide_id=5 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=5 primary_structure_ids=1
 GGINRRPI
->mutant_peptide_id=6 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=6 primary_structure_ids=1
 GINRRPIL
->mutant_peptide_id=7 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=7 primary_structure_ids=1
 INRRPILT
->mutant_peptide_id=8 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=8 primary_structure_ids=1
 CNSSCMGGI
->mutant_peptide_id=9 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=9 primary_structure_ids=1
 NSSCMGGIN
->mutant_peptide_id=10 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=10 primary_structure_ids=1
 SSCMGGINR
->mutant_peptide_id=11 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=11 primary_structure_ids=1
 SCMGGINRR
->mutant_peptide_id=12 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=12 primary_structure_ids=1
 CMGGINRRP
->mutant_peptide_id=13 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=13 primary_structure_ids=1
 MGGINRRPI
->mutant_peptide_id=14 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=14 primary_structure_ids=1
 GGINRRPIL
->mutant_peptide_id=15 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=15 primary_structure_ids=1
 GINRRPILT
->mutant_peptide_id=16 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=16 primary_structure_ids=1
 INRRPILTI
->mutant_peptide_id=17 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=17 primary_structure_ids=1
 MCNSSCMGGI
->mutant_peptide_id=18 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=18 primary_structure_ids=1
 CNSSCMGGIN
->mutant_peptide_id=19 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=19 primary_structure_ids=1
 NSSCMGGINR
->mutant_peptide_id=20 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=20 primary_structure_ids=1
 SSCMGGINRR
->mutant_peptide_id=21 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=21 primary_structure_ids=1
 SCMGGINRRP
->mutant_peptide_id=22 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=22 primary_structure_ids=1
 CMGGINRRPI
->mutant_peptide_id=23 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=23 primary_structure_ids=1
 MGGINRRPIL
->mutant_peptide_id=24 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=24 primary_structure_ids=1
 GGINRRPILT
->mutant_peptide_id=25 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=25 primary_structure_ids=1
 GINRRPILTI
->mutant_peptide_id=26 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=26 primary_structure_ids=1
 INRRPILTII
->mutant_peptide_id=27 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=27 primary_structure_ids=1
 YMCNSSCMGGI
->mutant_peptide_id=28 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=28 primary_structure_ids=1
 MCNSSCMGGIN
->mutant_peptide_id=29 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=29 primary_structure_ids=1
 CNSSCMGGINR
->mutant_peptide_id=30 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=30 primary_structure_ids=1
 NSSCMGGINRR
->mutant_peptide_id=31 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=31 primary_structure_ids=1
 SSCMGGINRRP
->mutant_peptide_id=32 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=32 primary_structure_ids=1
 SCMGGINRRPI
->mutant_peptide_id=33 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=33 primary_structure_ids=1
 CMGGINRRPIL
->mutant_peptide_id=34 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=34 primary_structure_ids=1
 MGGINRRPILT
->mutant_peptide_id=35 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=35 primary_structure_ids=1
 GGINRRPILTI
->mutant_peptide_id=36 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=36 primary_structure_ids=1
 GINRRPILTII
->mutant_peptide_id=37 peptide_ids=1,2,3,4,5,6
+>mutant_peptide_id=37 primary_structure_ids=1
 INRRPILTIIT

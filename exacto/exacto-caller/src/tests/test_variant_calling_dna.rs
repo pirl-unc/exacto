@@ -1,4 +1,5 @@
 use csv::ReaderBuilder;
+use exacto_core::prelude::*;
 use polars::prelude::*;
 use std::fs;
 use std::fs::File;
@@ -51,10 +52,13 @@ fn test_variant_calling_germline_dna_1() {
     assert!(variant_call_set.get_size() == 1);
 
     let file: NamedTempFile = NamedTempFile::new().unwrap();
-    variant_call_set.to_tsv_file(file.path().to_str().unwrap(), 1);
+    write_tsv_file(build_dna_variant_records(&variant_call_set), file.path())
+        .expect("Failed to write DNA variant TSV");
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-001-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -130,7 +134,9 @@ fn test_variant_calling_germline_dna_2() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-002-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -206,7 +212,9 @@ fn test_variant_calling_germline_dna_3() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-003-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -281,7 +289,9 @@ fn test_variant_calling_germline_dna_4() {
     assert!(variant_call_set.get_size() == 2);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-004-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -358,7 +368,9 @@ fn test_variant_calling_germline_dna_5() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-005-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -435,7 +447,9 @@ fn test_variant_calling_germline_dna_6() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-006-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -512,7 +526,9 @@ fn test_variant_calling_germline_dna_7() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-007-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -600,7 +616,9 @@ fn test_variant_calling_somatic_dna_1() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-001-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -686,7 +704,9 @@ fn test_variant_calling_somatic_dna_2() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-002-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -773,7 +793,9 @@ fn test_variant_calling_somatic_dna_3() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-003-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -859,7 +881,9 @@ fn test_variant_calling_somatic_dna_4() {
     assert!(variant_call_set.get_size() == 2);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-004-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -947,7 +971,9 @@ fn test_variant_calling_somatic_dna_5() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-005-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1035,7 +1061,9 @@ fn test_variant_calling_somatic_dna_6() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-006-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1123,7 +1151,9 @@ fn test_variant_calling_somatic_dna_7() {
     assert!(variant_call_set.get_size() == 1);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-007-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1211,7 +1241,9 @@ fn test_variant_calling_somatic_dna_8() {
     assert!(variant_call_set.get_size() == 2);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-008-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1299,7 +1331,9 @@ fn test_variant_calling_somatic_dna_9() {
     assert!(variant_call_set.get_size() == 3);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-009-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1387,7 +1421,9 @@ fn test_variant_calling_somatic_dna_10() {
     assert!(variant_call_set.get_size() == 4);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-010-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1487,7 +1523,9 @@ fn test_variant_calling_somatic_dna_11() {
     assert!(variant_call_set.get_size() == 2);
 
     // Compare against the ground truth
-    let df_variants: DataFrame = variant_call_set.to_dataframe(1);
+    let df_variants: DataFrame = dna_variant_records_to_dataframe(
+        build_dna_variant_records(&variant_call_set)
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/dna-011-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);

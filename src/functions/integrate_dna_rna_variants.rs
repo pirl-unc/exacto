@@ -24,14 +24,15 @@ use polars::prelude::*;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use pyo3_polars::PyDataFrame;
+use std::path::Path;
 
 
 /// This function integrates DNA and RNA variants.
 #[pyfunction]
 pub fn integrate_dna_rna_variants(
     py: Python,
-    dna_variant_call_annotation_set_tsv_file: String,
-    rna_variant_call_set_tsv_file: String,
+    dna_variants_tsv_file: String,
+    rna_variants_tsv_file: String,
     reference_gene_annotation_file: String,
     reference_gene_annotation_source: String,
     reference_gene_annotation_assembly: String,
@@ -43,8 +44,12 @@ pub fn integrate_dna_rna_variants(
     num_threads: usize,
     output_type: String
 ) -> PyResult<PyDataFrame> {
-    let dna_variant_call_annotation_set: annotator::VariantCallAnnotationSet = annotator::VariantCallAnnotationSet::read_tsv_file(dna_variant_call_annotation_set_tsv_file.as_str());
-    let rna_variant_call_set: caller::RNAVariantCallSet = caller::RNAVariantCallSet::read_tsv_file(rna_variant_call_set_tsv_file.as_str());
+    let dna_variant_records: Vec<caller::DNAVariantRecord> = caller::load_dna_variant_records(
+        dna_variants_tsv_file.as_str()
+    );
+    let rna_variant_records: Vec<caller::RNAVariantRecord> = caller::load_rna_variant_records(
+        rna_variants_tsv_file.as_str()
+    );
 
     let gene_annotator = if reference_gene_annotation_source.as_str() == "gencode" {
         core::Gencode::new_with_defaults(
@@ -56,9 +61,9 @@ pub fn integrate_dna_rna_variants(
         panic!("Unsupported annotation source: {}", reference_gene_annotation_source);
     };
 
-    let integrated_variant_set: integrator::IntegratedVariantSet = integrator::integrate_dna_rna_variants(
-        &dna_variant_call_annotation_set,
-        &rna_variant_call_set,
+    let integrated_variants: Vec<integrator::IntegratedVariant> = integrator::integrate_dna_rna_variants(
+        &dna_variant_records,
+        &rna_variant_records,
         &gene_annotator,
         max_exon_offset,
         max_transcript_boundary_offset,
@@ -68,12 +73,15 @@ pub fn integrate_dna_rna_variants(
 
     match output_type.as_str() {
         "dataframe" => {
-            let df_integrations: DataFrame = integrated_variant_set.to_dataframe();
+            let df_integrations: DataFrame = integrator::integrated_variant_records_to_dataframe(
+                integrator::build_integrated_variant_records(&integrated_variants)
+            );
             Ok((PyDataFrame(df_integrations)))
         },
         "file" => {
-            integrated_variant_set.to_tsv_file(
-                output_tsv_file.as_str()
+            core::write_tsv_file(
+                integrator::build_integrated_variant_records(&integrated_variants),
+                Path::new(output_tsv_file.as_str())
             );
             Ok((PyDataFrame(DataFrame::new(vec![]).unwrap())))
         },

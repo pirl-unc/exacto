@@ -11,6 +11,8 @@ pub use crate::index::fasta_map::FastaMap;
 pub use crate::index::interval_tree::{Interval, IntervalTree};
 pub use crate::index::trie::Trie;
 pub use crate::index::union_find::UnionFind;
+pub use crate::io::formatting::join_ids;
+pub use crate::io::tsv_writer::write_tsv_file;
 pub use crate::annotation::gene::cds::CDS;
 pub use crate::annotation::gene::exon::Exon;
 pub use crate::annotation::gene::gencode::Gencode;

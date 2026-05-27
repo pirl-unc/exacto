@@ -8,9 +8,33 @@ use polars::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::prelude::*;
 
+
+fn variant_records_for<'a>(
+    transcript_models: &'a [TranscriptModel],
+    reference_transcript_ids: &[&str],
+) -> &'a Vec<VariantRecord> {
+    let wanted: HashSet<Box<str>> = reference_transcript_ids
+        .iter()
+        .map(|s| (*s).into())
+        .collect();
+    transcript_models
+        .iter()
+        .find(|tm| {
+            let mut got: HashSet<Box<str>> = tm.get_reference_transcript_ids().clone();
+            got == wanted
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "no TranscriptModel found for reference_transcript_ids = {:?}",
+                reference_transcript_ids
+            )
+        })
+        .get_variant_records()
+}
 
 #[test]
 fn test_transcript_model_1() {
@@ -79,8 +103,7 @@ fn test_transcript_model_1() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -88,7 +111,7 @@ fn test_transcript_model_1() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -97,17 +120,17 @@ fn test_transcript_model_1() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
     // ENST00000620739.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000620739.4".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000620739.4"]);
     assert_eq!(variant_records.len(), 3);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -133,7 +156,7 @@ fn test_transcript_model_1() {
     assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::ExonTruncation);
 
     // ENST00000269305.9
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 1);
     assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::SingleNucleotideVariant);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
@@ -145,7 +168,7 @@ fn test_transcript_model_1() {
     assert_eq!(variant_records.get(0).unwrap().get_standardized_sequence(), "A");
 
     // ENST00000445888.6
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000445888.6".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000445888.6"]);
     assert_eq!(variant_records.len(), 3);
     assert_eq!(variant_records.get(0).unwrap().get_variant_type(), &VariantType::SingleNucleotideVariant);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
@@ -238,8 +261,7 @@ fn test_transcript_model_2() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -247,7 +269,7 @@ fn test_transcript_model_2() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -256,17 +278,17 @@ fn test_transcript_model_2() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
     // ENST00000445888.6
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000445888.6".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000445888.6"]);
     assert_eq!(variant_records.len(), 3);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -278,7 +300,7 @@ fn test_transcript_model_2() {
     assert_eq!(variant_records.get(0).unwrap().get_standardized_sequence(), "GGGGGTTTTT");
 
     // ENST00000269305.9
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 1);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -290,7 +312,7 @@ fn test_transcript_model_2() {
     assert_eq!(variant_records.get(0).unwrap().get_standardized_sequence(), "GGGGGTTTTT");
 
     // ENST00000620739.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000620739.4".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000620739.4"]);
     assert_eq!(variant_records.len(), 3);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -383,8 +405,7 @@ fn test_transcript_model_3() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -392,7 +413,7 @@ fn test_transcript_model_3() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -401,17 +422,17 @@ fn test_transcript_model_3() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
     // ENST00000620739.4
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000620739.4".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000620739.4"]);
     assert_eq!(variant_records.len(), 3);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -436,7 +457,7 @@ fn test_transcript_model_3() {
     assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::ExonTruncation);
 
     // ENST00000445888.6
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000445888.6".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000445888.6"]);
     assert_eq!(variant_records.len(), 3);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -461,7 +482,7 @@ fn test_transcript_model_3() {
     assert_eq!(variant_records.get(2).unwrap().get_variant_type(), &VariantType::UTRExtension);
 
     // ENST00000269305.9
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 1);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -539,8 +560,7 @@ fn test_transcript_model_4() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -548,7 +568,7 @@ fn test_transcript_model_4() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -557,16 +577,16 @@ fn test_transcript_model_4() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000698746.1".into(), "ENST00000570791.5".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000698746.1", "ENST00000570791.5"]);
     assert_eq!(variant_records.len(), 10);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -724,8 +744,7 @@ fn test_transcript_model_5() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -733,7 +752,7 @@ fn test_transcript_model_5() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -742,16 +761,16 @@ fn test_transcript_model_5() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 1);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -830,8 +849,7 @@ fn test_transcript_model_6() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -839,7 +857,7 @@ fn test_transcript_model_6() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -848,16 +866,16 @@ fn test_transcript_model_6() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 1);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -936,8 +954,7 @@ fn test_transcript_model_7() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -945,7 +962,7 @@ fn test_transcript_model_7() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -954,16 +971,16 @@ fn test_transcript_model_7() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 1);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -1042,8 +1059,7 @@ fn test_transcript_model_8() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -1051,7 +1067,7 @@ fn test_transcript_model_8() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -1060,16 +1076,16 @@ fn test_transcript_model_8() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 2);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -1154,8 +1170,7 @@ fn test_transcript_model_9() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -1163,7 +1178,7 @@ fn test_transcript_model_9() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -1172,16 +1187,16 @@ fn test_transcript_model_9() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000269305.9".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000269305.9"]);
     assert_eq!(variant_records.len(), 1);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_2(), 0);
@@ -1261,8 +1276,7 @@ fn test_transcript_model_10() {
 
     assert_eq!(*alignment_structure.get_base(837).get_kind() == AlignmentStructureBaseKind::Softclip, true);
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -1270,7 +1284,7 @@ fn test_transcript_model_10() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -1279,22 +1293,23 @@ fn test_transcript_model_10() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map
-        .get(&vec![
-            "ENST00000263087.9".into(),
-            "ENST00000570791.5".into(),
-            "ENST00000333813.4".into()
-        ])
-        .unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(
+        &transcript_models,
+        &[
+            "ENST00000263087.9",
+            "ENST00000570791.5",
+            "ENST00000333813.4",
+        ],
+    );
 
     assert_eq!(variant_records.len(), 35);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);
@@ -1382,8 +1397,7 @@ fn test_transcript_model_11() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -1391,7 +1405,7 @@ fn test_transcript_model_11() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -1400,22 +1414,23 @@ fn test_transcript_model_11() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map
-        .get(&vec![
-            "ENST00000263092.11".into(),
-            "ENST00000250113.12".into(),
-            "ENST00000355530.7".into(),
-        ])
-        .unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(
+        &transcript_models,
+        &[
+            "ENST00000263092.11",
+            "ENST00000250113.12",
+            "ENST00000355530.7",
+        ],
+    );
 
     assert_eq!(variant_records.len(), 17);
     assert_eq!(variant_records.get(4).unwrap().get_chromosome_1(), 0);
@@ -1503,8 +1518,7 @@ fn test_transcript_model_12() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let mut transcript_model: TranscriptModel = TranscriptModel::new(
-        1,
+    let assembled_transcript: AssembledTranscript = AssembledTranscript::new(
         "",
         &alignment_structure,
         &chromosome_names_map,
@@ -1512,7 +1526,7 @@ fn test_transcript_model_12() {
     );
 
     let reference_transcript_matches: Vec<ReferenceTranscriptMatch> = identify_reference_transcript_matches(
-        &transcript_model.get_exons(),
+        &assembled_transcript.get_exons(),
         &gene_annotator,
         &chromosome_names_map,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
@@ -1521,16 +1535,16 @@ fn test_transcript_model_12() {
         0.9f32
     );
 
-    let variant_records_map: &HashMap<Vec<Box<str>>, Vec<VariantRecord>> = transcript_model.identify_variants(
-        "",
+    let transcript_models: Vec<TranscriptModel> = assembled_transcript.identify_variants(
         &reference_transcript_matches,
         &gene_annotator,
         reference_genome_fasta_file,
+        &chromosome_names_map,
         30,
         30
     );
 
-    let variant_records: &Vec<VariantRecord> = variant_records_map.get(&vec!["ENST00000254719.10".into()]).unwrap();
+    let variant_records: &Vec<VariantRecord> = variant_records_for(&transcript_models, &["ENST00000254719.10"]);
 
     assert_eq!(variant_records.len(), 15);
     assert_eq!(variant_records.get(0).unwrap().get_chromosome_1(), 0);

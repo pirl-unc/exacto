@@ -96,6 +96,30 @@ impl GraphOperationView {
         Self::standardize(unstandardized)
     }
 
+    pub fn as_boxed_str(&self) -> Box<str> {
+        let mut s: String = String::new();
+        s.push_str(self.chromosome_1.to_string().as_str());
+        s.push_str(":");
+        s.push_str(self.position_1.to_string().as_str());
+        s.push_str(":");
+        s.push_str(self.strand_1.as_str());
+        s.push_str(":");
+        s.push_str(self.operation_type_1.as_str());
+        s.push_str(":");
+        s.push_str(self.chromosome_2.to_string().as_str());
+        s.push_str(":");
+        s.push_str(self.position_2.to_string().as_str());
+        s.push_str(":");
+        s.push_str(self.strand_2.as_str());
+        s.push_str(":");
+        s.push_str(self.operation_type_2.as_str());
+        s.push_str(":");
+        s.push_str(&*self.sequence);
+        s.push_str(":");
+        s.push_str(self.get_sequence_length().to_string().as_str());
+        s.into_boxed_str()
+    }
+
     pub fn get_chromosome_1(&self) -> &str {
         &*self.chromosome_1
     }

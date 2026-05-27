@@ -11,6 +11,7 @@ bio = { workspace = true }
 bitvec = { workspace = true }
 bstr = { workspace = true }
 chrono = { workspace = true }
+csv = { workspace = true }
 env_logger = { workspace = true }
 flate2 = { workspace = true }
 log = { workspace = true }

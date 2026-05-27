@@ -147,7 +147,7 @@ pub fn reverse_string(s: &str) -> String {
 ///
 /// Parameters:
 ///
-/// * `rna_sequence` is an RNA sequence consisting of characters \[AUCGaucg\]+.
+/// * `rna_sequence` is an RNA sequence consisting of characters \[AUCGTaucgt\]+.
 /// * `start_codons` is a vector of possible start codons (e.g. 'AUG', 'GUG', 'CUG', 'UUG').
 ///
 /// Returns:

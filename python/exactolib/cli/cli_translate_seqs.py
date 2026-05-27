@@ -74,6 +74,15 @@ def add_cli_translate_seqs_arg_parser(sub_parsers) -> argparse._SubParsersAction
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
     parser_optional.add_argument(
+        "--start-codons",
+        dest="start_codons",
+        type=str,
+        nargs='+',
+        default=["AUG"],
+        required=False,
+        help="One or more start codons (default: AUG). Pass multiple as: --start-codons AUG GUG CUG."
+    )
+    parser_optional.add_argument(
         "--output-tsv-file",
         dest="output_tsv_file",
         type=str,
@@ -142,6 +151,7 @@ def run_cli_translate_seqs_from_parsed_args(args) -> None:
             df_translations = translate_fasta_file(
                 fasta_file=args.fasta_file,
                 strategy=TranslationStrategy(args.strategy),
+                start_codons=args.start_codons,
                 num_threads=args.num_threads,
                 temp_dir=args.temp_dir
             )
@@ -150,13 +160,18 @@ def run_cli_translate_seqs_from_parsed_args(args) -> None:
             df_translations = translate_fastq_file(
                 fastq_file=args.fastq_file,
                 strategy=TranslationStrategy(args.strategy),
+                start_codons=args.start_codons,
                 num_threads=args.num_threads,
                 temp_dir=args.temp_dir
             )
         else:
             raise Exception("Unexpected error - either a FASTA or FASTQ file should have been specified.")
-        logger.info("%i translated reads." % len(df_translations))
-        logger.info('%i unique rna IDs in the translated peptides.' % len(df_translations['rna_id'].unique()))
+        logger.info("%i translated primary structures." % len(df_translations))
+        if len(df_translations) > 0:
+            logger.info('%i unique transcript IDs in the translated primary structures.'
+                        % len(df_translations['assembled_transcript_name'].unique()))
+        else:
+            logger.info('No primary structures translated.')
 
         # Step 2. Prepare file paths with appropriate extensions
         if args.gzip:
@@ -180,25 +195,42 @@ def run_cli_translate_seqs_from_parsed_args(args) -> None:
             compression='gzip' if args.gzip else None
         )
 
-        # Step 4. Output FASTA file
-        df_peptides_unique = df_translations.loc[:, ['peptide_id', 'peptide_sequence']].drop_duplicates()
+        # Step 4. Output FASTA file. One record per primary structure;
+        # header matches the Rust FASTA writer's convention:
+        # >{assembled_transcript_name}|orf_{orf_start}-{orf_end}
+        # For the FASTA/FASTQ path, `assembled_transcript_name` carries the
+        # input sequence's FASTA/FASTQ id (set in Transcript::new_with_default).
+        if len(df_translations) > 0:
+            df_peptides_unique = df_translations.loc[
+                :, ['assembled_transcript_name', 'orf_start', 'orf_end', 'amino_acid_sequence']
+            ].drop_duplicates()
+        else:
+            df_peptides_unique = df_translations
         if args.gzip:
             with pysam.BGZFile(output_fasta_file, "wb") as fasta:
-                for index,row in df_peptides_unique.iterrows():
-                    curr_peptide_id = str(row['peptide_id']).encode()
-                    curr_peptide_sequence = str(row['peptide_sequence']).encode()
-                    fasta.write(b">%s\n" % curr_peptide_id)
-                    fasta.write(b"%s\n" % curr_peptide_sequence)
+                for _index, row in df_peptides_unique.iterrows():
+                    header = ("%s|orf_%s-%s" % (
+                        row['assembled_transcript_name'], row['orf_start'], row['orf_end']
+                    )).encode()
+                    sequence = str(row['amino_acid_sequence']).encode()
+                    fasta.write(b">%s\n" % header)
+                    fasta.write(b"%s\n" % sequence)
         else:
             with open(output_fasta_file, "w") as file:
-                for index,row in df_peptides_unique.iterrows():
-                    curr_peptide_id = str(row['peptide_id'])
-                    curr_peptide_sequence = str(row['peptide_sequence'])
-                    file.write(">%s\n" % curr_peptide_id)
-                    file.write("%s\n" % curr_peptide_sequence)
+                for _index, row in df_peptides_unique.iterrows():
+                    header = "%s|orf_%s-%s" % (
+                        row['assembled_transcript_name'], row['orf_start'], row['orf_end']
+                    )
+                    sequence = str(row['amino_acid_sequence'])
+                    file.write(">%s\n" % header)
+                    file.write("%s\n" % sequence)
         pysam.faidx(output_fasta_file, rebuild=True)
     elif args.sequence:
-        translations = translate_sequence(rna_sequence=args.sequence, strategy=args.strategy)
+        translations = translate_sequence(
+            rna_sequence=args.sequence,
+            strategy=args.strategy,
+            start_codons=args.start_codons,
+        )
         print('Translated peptide sequence(s):')
         print('[orf_start:orf_end] [sequence]')
         for (sequence, orf_start, orf_end) in translations:

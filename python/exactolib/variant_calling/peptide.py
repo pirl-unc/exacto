@@ -12,129 +12,92 @@
 
 
 """
-The purpose of this python3 script is to implement classes and functions related to identifying peptide variants.
+Identify peptide variants from primary structures.
+
+The input DataFrame has one row per primary structure (`PrimaryStructureRecord`):
+its `amino_acid_sequence` column carries the full peptide as a string,
+`mutant_amino_acid_intervals` encodes the mutant positions as a compact
+interval string (e.g. `"3-5,12,20-21"`, 0-indexed inclusive), and
+`rna_variant_ids` / `dna_variant_ids` list the contributing variants at the
+primary-structure level.
+
+For each primary structure we slide a window of size k over the amino-acid
+sequence, emit every window that overlaps at least one mutant position
+(skipping windows that contain a stop codon `*`), and drop any k-mer found
+in the reference proteome.
 """
 
 
-import copy
 import pandas as pd
-from collections import defaultdict, deque
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass, field
 from functools import partial
-from typing import Dict, Set
+from typing import Dict, List, Set, Tuple
 
 
-@dataclass(frozen=False)
-class AminoAcid:
-    aa: str
-    amino_acid_change: str
-    primary_structure_index_start: int
-    primary_structure_index_end: int
-    rna_variant_call_ids: str
-    dna_variant_call_ids: str
+# Per-row payload threaded through the worker pool. Kept as a tuple (not a
+# dataclass) so it pickles cheaply for multiprocessing.
+PrimaryStructureRow = Tuple[int, str, str, str, str]
+
+# Worker output: (primary_structure_id, kmer, aa_index_start, aa_index_end,
+#                 rna_variant_ids, dna_variant_ids).
+MutantKmer = Tuple[int, str, int, int, str, str]
 
 
-@dataclass(frozen=False)
-class Peptide:
-    peptide_id: int
-    amino_acids: deque = field(default_factory=deque)
+def _parse_intervals(intervals_str: str) -> Set[int]:
+    """Parse a compact interval string into the set of integers it covers.
 
-    def get_id(self) -> int:
-        return self.peptide_id
-
-    def get_length(self) -> int:
-        return len(self.amino_acids)
-
-    def get_sequence(self) -> str:
-        return ''.join(aa.aa for aa in self.amino_acids)
-
-    def push_back(self, amino_acid: AminoAcid):
-        self.amino_acids.append(amino_acid)
-
-    def pop_front(self):
-        self.amino_acids.popleft()
-
-    def is_mutant(self) -> bool:
-        for aa in self.amino_acids:
-            if aa.amino_acid_change == 'mutant':
-                return True
-        return False
+    Accepts the same format `format_intervals` emits on the Rust side:
+    comma-separated runs that are either a single number `X` or an inclusive
+    range `X-Y`. Empty / non-string input yields an empty set.
+    """
+    if not isinstance(intervals_str, str) or not intervals_str:
+        return set()
+    positions: Set[int] = set()
+    for part in intervals_str.split(','):
+        part = part.strip()
+        if not part:
+            continue
+        if '-' in part:
+            start_str, end_str = part.split('-', 1)
+            positions.update(range(int(start_str), int(end_str) + 1))
+        else:
+            positions.add(int(part))
+    return positions
 
 
-def _worker(min_k, max_k, args):
-    peptide_id, df_chunk = args
+def _worker(min_k: int, max_k: int, row: PrimaryStructureRow) -> List[MutantKmer]:
+    """Extract every mutant k-mer (min_k <= k <= max_k) from one primary structure.
 
-    # Keep base rows (remove event rows)
-    df_chunk = df_chunk[df_chunk['type'] == 'base']
+    A k-mer is "mutant" iff its window overlaps at least one mutant amino-acid
+    index. K-mers containing the stop codon `*` are skipped.
+    """
+    primary_structure_id, sequence, intervals_str, rna_variant_ids, dna_variant_ids = row
 
-    mutant_peptides_dict = {} # key = length, value = List[Peptide]
+    if not isinstance(sequence, str) or not sequence:
+        return []
+
+    mutant_positions = _parse_intervals(intervals_str)
+    if not mutant_positions:
+        return []
+
+    rna_variant_ids = rna_variant_ids if isinstance(rna_variant_ids, str) else ''
+    dna_variant_ids = dna_variant_ids if isinstance(dna_variant_ids, str) else ''
+
+    results: List[MutantKmer] = []
+    seq_len = len(sequence)
     for k in range(min_k, max_k + 1):
-        # Iterate through the peptide in the order of amino_acid index
-        mutant_peptides = []
-        peptide = Peptide(peptide_id=peptide_id)
-        for _, group in df_chunk.groupby('amino_acid_index', sort=True):
-            if len(group) != 3:
-                break
-
-            # Check if there is at least one mutant amino acid
-            is_mutant = set(group['frameshift_state'].unique()) != {'inframe'}
-            row0 = group.iloc[0]
-            row1 = group.iloc[1]
-            row2 = group.iloc[2]
-            aa = str(row0['amino_acid'])
-
-            if aa == '*':
-                break
-
-            primary_structure_index_start = row0['primary_structure_index']
-            primary_structure_index_end = row2['primary_structure_index']
-
-            rna_ids = set()
-            dna_ids = set()
-            for row in [row0, row1, row2]:
-                val = row['rna_variant_call_ids']
-                if isinstance(val, str) and val:
-                    for id_str in val.split(','):
-                        if id_str:
-                            rna_ids.add(id_str)
-                val = row['dna_variant_call_ids']
-                if isinstance(val, str) and val:
-                    for id_str in val.split(','):
-                        if id_str:
-                            dna_ids.add(id_str)
-            rna_variant_call_ids = ','.join(sorted(rna_ids)) if rna_ids else ''
-            dna_variant_call_ids = ','.join(sorted(dna_ids)) if dna_ids else ''
-
-            assert row0['amino_acid_change'] == row1['amino_acid_change'] == row2['amino_acid_change'], 'Peptide ID: %s. Primary structure index: %i' % (peptide_id, primary_structure_index_start)
-
-            amino_acid_change = row0['amino_acid_change']
-
-            amino_acid = AminoAcid(
-                aa=aa,
-                amino_acid_change=amino_acid_change,
-                primary_structure_index_start=primary_structure_index_start,
-                primary_structure_index_end=primary_structure_index_end,
-                rna_variant_call_ids=rna_variant_call_ids,
-                dna_variant_call_ids=dna_variant_call_ids
-            )
-
-            peptide.push_back(amino_acid=amino_acid)
-
-            if peptide.get_length() > k:
-                peptide.pop_front()
-
-            if peptide.get_length() == k and peptide.is_mutant():
-                mutant_peptides.append(copy.deepcopy(peptide))
-
-        mutant_peptides_dict[k] = mutant_peptides
-
-    return mutant_peptides_dict
-
-
-def _grouped_iter(df, col):
-    for key in df[col].unique():
-        yield key, df.loc[df[col] == key]
+        if k > seq_len:
+            break
+        for start in range(seq_len - k + 1):
+            end = start + k - 1
+            # Cheap overlap check: do any mutant positions land in [start, end]?
+            if not any((start <= p <= end) for p in mutant_positions):
+                continue
+            kmer = sequence[start:start + k]
+            if '*' in kmer:
+                continue
+            results.append((primary_structure_id, kmer, start, end, rna_variant_ids, dna_variant_ids))
+    return results
 
 
 def identify_peptide_variants(
@@ -145,78 +108,82 @@ def identify_peptide_variants(
         num_processes: int
 ) -> pd.DataFrame:
     """
-    Extract mutant peptide k-mers from primary structures and filter
+    Extract mutant peptide k-mers from primary structures and filter them
     against a reference proteome.
 
-    For each peptide_id, generates all k-mers (min_k to max_k) that overlap
-    at least one mutant amino acid (frameshift_state != 'inframe'), then
-    removes any k-mer found in the reference proteome.
-
     Args:
-        df_primary_structures   :   DataFrame with the following columns:
-        reference_kmer_set      :   Reference proteome k-mers (Dict[k, Set[k-mer]]).
+        df_primary_structures   :   DataFrame with one row per primary
+                                    structure. Required columns:
+                                        primary_structure_id,
+                                        amino_acid_sequence,
+                                        mutant_amino_acid_intervals,
+                                        rna_variant_ids,
+                                        dna_variant_ids.
+        reference_kmer_set      :   Reference proteome k-mers
+                                    (Dict[k, Set[k-mer]]).
         min_k                   :   Minimum peptide length.
         max_k                   :   Maximum peptide length.
-        num_processes           :   Number of processes.
+        num_processes           :   Number of worker processes.
 
     Returns:
         pd.DataFrame with columns:
-            peptide_id
-            peptide_sequence
-            primary_structure_index_start
-            primary_structure_index_end,
-            rna_variant_call_ids
-            dna_variant_call_ids
+            mutant_peptide_id,
+            primary_structure_id,
+            mutant_peptide_sequence,
+            k,
+            amino_acid_index_start,
+            amino_acid_index_end,
+            rna_variant_ids,
+            dna_variant_ids
     """
-    # Step 1. Identify mutant peptides
-    with ProcessPoolExecutor(max_workers=num_processes) as pool:
-        results = list(pool.map(partial(_worker, min_k, max_k), _grouped_iter(df_primary_structures, "peptide_id")))
+    # Step 1. Assemble per-row payloads. zip over Series is faster than
+    # iterrows() and avoids the per-row dtype-coerce cost.
+    row_payloads: List[PrimaryStructureRow] = list(zip(
+        df_primary_structures['primary_structure_id'].astype(int).tolist(),
+        df_primary_structures['amino_acid_sequence'].fillna('').astype(str).tolist(),
+        df_primary_structures['mutant_amino_acid_intervals'].fillna('').astype(str).tolist(),
+        df_primary_structures['rna_variant_ids'].fillna('').astype(str).tolist(),
+        df_primary_structures['dna_variant_ids'].fillna('').astype(str).tolist(),
+    ))
 
-    # Step 2. Consolidate all the dictionaries into one
-    mutant_peptides = defaultdict(list)
-    for result in results:
-        for k, peptides in result.items():
-            mutant_peptides[k].extend(peptides)
+    # Step 2. Extract mutant k-mers in parallel.
+    if num_processes <= 1 or len(row_payloads) <= 1:
+        nested_results: List[List[MutantKmer]] = [
+            _worker(min_k, max_k, row) for row in row_payloads
+        ]
+    else:
+        with ProcessPoolExecutor(max_workers=num_processes) as pool:
+            nested_results = list(pool.map(partial(_worker, min_k, max_k), row_payloads))
 
-    # Step 3. Identify mutant peptides absent in the reference peptides set
-    sequence_to_id = {}
+    # Step 3. Flatten, filter against the reference proteome, dedupe sequences.
+    sequence_to_id: Dict[str, int] = {}
     next_id = 0
-    data = {
+    data: Dict[str, list] = {
         'mutant_peptide_id': [],
-        'peptide_id': [],
+        'primary_structure_id': [],
         'mutant_peptide_sequence': [],
         'k': [],
-        'primary_structure_index_start': [],
-        'primary_structure_index_end': [],
-        'rna_variant_call_ids': [],
-        'dna_variant_call_ids': []
+        'amino_acid_index_start': [],
+        'amino_acid_index_end': [],
+        'rna_variant_ids': [],
+        'dna_variant_ids': []
     }
-    for k, peptides in mutant_peptides.items():
-        ref_set = reference_kmer_set.get(k, set())
-        for peptide in peptides:
-            sequence = peptide.get_sequence()
-            if sequence not in ref_set:
-                if sequence not in sequence_to_id:
-                    sequence_to_id[sequence] = next_id
-                    next_id += 1
-                rna_variant_call_ids = set()
-                dna_variant_call_ids = set()
-                for aa in peptide.amino_acids:
-                    if isinstance(aa.rna_variant_call_ids, str) and aa.rna_variant_call_ids:
-                        for id_str in aa.rna_variant_call_ids.split(','):
-                            if id_str:
-                                rna_variant_call_ids.add(id_str)
-                    if isinstance(aa.dna_variant_call_ids, str) and aa.dna_variant_call_ids:
-                        for id_str in aa.dna_variant_call_ids.split(','):
-                            if id_str:
-                                dna_variant_call_ids.add(id_str)
-                data['peptide_id'].append(peptide.get_id())
-                data['mutant_peptide_id'].append(sequence_to_id[sequence])
-                data['mutant_peptide_sequence'].append(sequence)
-                data['k'].append(len(sequence))
-                data['primary_structure_index_start'].append(peptide.amino_acids[0].primary_structure_index_start)
-                data['primary_structure_index_end'].append(peptide.amino_acids[-1].primary_structure_index_end)
-                data['rna_variant_call_ids'].append(','.join(sorted(rna_variant_call_ids)))
-                data['dna_variant_call_ids'].append(','.join(sorted(dna_variant_call_ids)))
+    for results in nested_results:
+        for (primary_structure_id, sequence, aa_start, aa_end, rna_ids, dna_ids) in results:
+            k = len(sequence)
+            ref_set = reference_kmer_set.get(k, set())
+            if sequence in ref_set:
+                continue
+            if sequence not in sequence_to_id:
+                sequence_to_id[sequence] = next_id
+                next_id += 1
+            data['mutant_peptide_id'].append(sequence_to_id[sequence])
+            data['primary_structure_id'].append(primary_structure_id)
+            data['mutant_peptide_sequence'].append(sequence)
+            data['k'].append(k)
+            data['amino_acid_index_start'].append(aa_start)
+            data['amino_acid_index_end'].append(aa_end)
+            data['rna_variant_ids'].append(rna_ids)
+            data['dna_variant_ids'].append(dna_ids)
 
     return pd.DataFrame(data)

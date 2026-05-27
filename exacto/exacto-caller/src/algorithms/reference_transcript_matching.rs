@@ -19,7 +19,7 @@ use crate::prelude::*;
 
 
 pub fn identify_reference_transcript_matches(
-    exons: &Vec<TranscriptModelExon>,
+    exons: &Vec<AssembledTranscriptExon>,
     gene_annotator: &impl GeneAnnotator,
     chromosome_names_map: &BiMap<Box<str>, u16>,
     scoring_method: ReferenceTranscriptScoringMethod,
@@ -42,7 +42,6 @@ pub fn identify_reference_transcript_matches(
     }
 
     // Step 3. Score each overlapping transcript in each gene
-    // gene_id -> scored transcript matches
     let mut reference_transcript_scores: HashMap<Box<str>, Vec<ReferenceTranscriptMatch>> = HashMap::new();
     for reference_gene_id in reference_gene_ids.iter() {
         let reference_gene: &Gene = gene_annotator.get_gene(reference_gene_id).unwrap();
@@ -115,7 +114,7 @@ pub fn identify_reference_transcript_matches(
 }
 
 fn identify_overlapping_transcript_ids(
-    model_exons: &Vec<TranscriptModelExon>,
+    model_exons: &Vec<AssembledTranscriptExon>,
     gene_annotator: &impl GeneAnnotator,
     chromosome_names_map: &BiMap<Box<str>, u16>
 ) -> HashSet<Box<str>> {
@@ -151,7 +150,7 @@ fn identify_overlapping_transcript_ids(
 }
 
 fn score_reference_transcript(
-    exons: &Vec<TranscriptModelExon>,
+    exons: &Vec<AssembledTranscriptExon>,
     reference_transcript: &Transcript,
     reference_gene: &Gene,
     chromosome_names_map: &BiMap<Box<str>, u16>,
@@ -292,6 +291,7 @@ fn score_reference_transcript(
 
     let reference_transcript_match: ReferenceTranscriptMatch = ReferenceTranscriptMatch::new(
         &*reference_transcript.gene_id,
+        &*reference_gene.gene_name,
         &*reference_transcript.transcript_id,
         num_overlap_bases,
         num_model_only_bases,
@@ -304,7 +304,7 @@ fn score_reference_transcript(
 }
 
 fn score_reference_transcripts(
-    exons: &Vec<TranscriptModelExon>,
+    exons: &Vec<AssembledTranscriptExon>,
     reference_transcripts: Vec<&Transcript>,
     reference_gene: &Gene,
     chromosome_names_map: &BiMap<Box<str>, u16>,

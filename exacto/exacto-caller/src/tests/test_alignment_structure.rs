@@ -497,8 +497,8 @@ fn test_alignment_structure_8() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -570,8 +570,8 @@ fn test_alignment_structure_9() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -636,8 +636,8 @@ fn test_alignment_structure_10() {
 
     let alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -718,8 +718,8 @@ fn test_alignment_structure_11() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -837,8 +837,8 @@ fn test_alignment_structure_12() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -944,8 +944,8 @@ fn test_alignment_structure_13() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -1051,8 +1051,8 @@ fn test_alignment_structure_14() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -1158,8 +1158,8 @@ fn test_alignment_structure_15() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -1261,8 +1261,8 @@ fn test_alignment_structure_16() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -1364,8 +1364,8 @@ fn test_alignment_structure_17() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );
@@ -1500,8 +1500,8 @@ fn test_alignment_structure_18() {
 
     let mut alignment_structure: AlignmentStructure = alignment.get_alignment_structure().clone();
 
-    let exons: Vec<TranscriptModelExon> = alignment_structure.identify_exons("");
-    let introns: Vec<TranscriptModelIntron> = alignment_structure.identify_introns(
+    let exons: Vec<AssembledTranscriptExon> = alignment_structure.identify_exons("");
+    let introns: Vec<AssembledTranscriptIntron> = alignment_structure.identify_introns(
         &chromosome_names_map,
         reference_genome_fasta_file
     );

@@ -41,18 +41,18 @@ def add_cli_integrate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        "--annotated-dna-vars-tsv-file",
-        dest="annotated_dna_vars_tsv_file",
+        "--dna-variants-tsv-file",
+        dest="dna_variants_tsv_file",
         type=str,
         required=True,
-        help="Annotated DNA variant callset TSV file."
+        help="DNA variant callset TSV file."
     )
     parser_required.add_argument(
-        "--rna-vars-tsv-file",
-        dest="rna_vars_tsv_file",
+        "--rna-variants-tsv-file",
+        dest="rna_variants_tsv_file",
         type=str,
         required=True,
-        help="RNA variant callset TSV file.."
+        help="RNA variant callset TSV file."
     )
     parser_required.add_argument(
         "--reference-gene-annotation-file",
@@ -139,7 +139,7 @@ def run_cli_integrate_vars_from_parsed_args(args) -> None:
 
     Parameters:
         args    :   An instance of argparse.ArgumentParser with the following variables:
-                    annotated_dna_vars_tsv_file
+                    dna_vars_tsv_file
                     rna_vars_tsv_file
                     reference_gene_annotation_file
                     reference_gene_annotation_source
@@ -151,8 +151,8 @@ def run_cli_integrate_vars_from_parsed_args(args) -> None:
                     temp_dir
     """
     integrate_variants(
-        dna_variant_call_annotation_set_tsv_file=args.annotated_dna_vars_tsv_file,
-        rna_variant_call_set_tsv_file=args.rna_vars_tsv_file,
+        dna_variants_tsv_file=args.dna_variants_tsv_file,
+        rna_variants_tsv_file=args.rna_variants_tsv_file,
         reference_gene_annotation_file=args.reference_gene_annotation_file,
         reference_gene_annotation_source=args.reference_gene_annotation_source,
         reference_gene_annotation_assembly=args.reference_gene_annotation_assembly,

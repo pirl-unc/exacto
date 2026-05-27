@@ -605,7 +605,7 @@ impl AlignmentStructure {
         }
     }
 
-    pub fn identify_exons(&self, read_name: &str) -> Vec<TranscriptModelExon> {
+    pub fn identify_exons(&self, read_name: &str) -> Vec<AssembledTranscriptExon> {
         // Step 1. Cluster adjacent bases by reference position
         let is_exonic = |base: &AlignmentStructureBase| matches!(
             base.get_kind(),
@@ -647,7 +647,7 @@ impl AlignmentStructure {
         }
 
         // Step 2. Identify exonic boundaries
-        let mut exons: Vec<TranscriptModelExon> = Vec::new();
+        let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
         let mut clusters: Vec<HashSet<u32>> = uf.get_clusters();
         for cluster in clusters.iter() {
             // Sort the read positions
@@ -667,7 +667,7 @@ impl AlignmentStructure {
                 let read_end_position: u32 = bases.last().unwrap().get_read_position();
 
                 // Use 0 as a placeholder — exon_number assigned after sorting
-                let exon: TranscriptModelExon = TranscriptModelExon::new(
+                let exon: AssembledTranscriptExon = AssembledTranscriptExon::new(
                     *reference_chromosome_id,
                     reference_start,
                     reference_end,
@@ -694,8 +694,8 @@ impl AlignmentStructure {
         &self,
         chromosome_names_map: &BiMap<Box<str>, u16>,
         reference_genome_fasta_file: &str
-    ) -> Vec<TranscriptModelIntron> {
-        let mut introns: Vec<TranscriptModelIntron> = Vec::new();
+    ) -> Vec<AssembledTranscriptIntron> {
+        let mut introns: Vec<AssembledTranscriptIntron> = Vec::new();
         let mut intron_number: u16 = 1;
         for ((read_position_1, read_position_2), event) in self.get_events() {
             match event.get_kind() {
@@ -737,7 +737,7 @@ impl AlignmentStructure {
                         (reverse_complement(&*sequence_2).into(), reverse_complement(&*sequence_1).into())
                     };
 
-                    let intron: TranscriptModelIntron = TranscriptModelIntron::new(
+                    let intron: AssembledTranscriptIntron = AssembledTranscriptIntron::new(
                         reference_chromosome_id,
                         reference_start_position,
                         reference_end_position,

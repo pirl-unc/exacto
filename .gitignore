@@ -19,3 +19,6 @@ Cargo.lock
 .nojekyll
 *.nextflow.log*
 **/.nextflow/
+references/
+tasks/
+CLAUDE.md

@@ -21,6 +21,7 @@ use crate::prelude::*;
 #[derive(Debug,Serialize,Deserialize)]
 pub struct ReferenceTranscriptMatch {
     pub reference_gene_id: Box<str>,
+    pub reference_gene_name: Box<str>,
     pub reference_transcript_id: Box<str>,
     pub num_overlap_bases: u32,
     pub num_transcript_only_bases: u32,
@@ -31,7 +32,8 @@ pub struct ReferenceTranscriptMatch {
 
 impl PartialEq for ReferenceTranscriptMatch {
     fn eq(&self, other: &Self) -> bool {
-        self.reference_gene_id == other.reference_gene_id && 
+        self.reference_gene_id == other.reference_gene_id &&
+            self.reference_gene_name == other.reference_gene_name &&
             self.reference_transcript_id == other.reference_transcript_id &&
             self.num_overlap_bases == other.num_overlap_bases &&
             self.num_transcript_only_bases == other.num_transcript_only_bases &&
@@ -46,6 +48,7 @@ impl Eq for ReferenceTranscriptMatch {}
 impl Hash for ReferenceTranscriptMatch {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.reference_gene_id.hash(state);
+        self.reference_gene_name.hash(state);
         self.reference_transcript_id.hash(state);
         self.num_overlap_bases.hash(state);
         self.num_transcript_only_bases.hash(state);
@@ -58,6 +61,7 @@ impl Hash for ReferenceTranscriptMatch {
 impl ReferenceTranscriptMatch {
     pub fn new(
         reference_gene_id: &str,
+        reference_gene_name: &str,
         reference_transcript_id: &str,
         num_overlap_bases: u32,
         num_transcript_only_bases: u32,
@@ -67,6 +71,7 @@ impl ReferenceTranscriptMatch {
     ) -> Self {
         Self {
             reference_gene_id: reference_gene_id.into(),
+            reference_gene_name: reference_gene_name.into(),
             reference_transcript_id: reference_transcript_id.into(),
             num_overlap_bases: num_overlap_bases,
             num_transcript_only_bases: num_transcript_only_bases,
@@ -81,6 +86,7 @@ impl Clone for ReferenceTranscriptMatch {
     fn clone(&self) -> Self {
         ReferenceTranscriptMatch {
             reference_gene_id: self.reference_gene_id.clone(),
+            reference_gene_name: self.reference_gene_name.clone(),
             reference_transcript_id: self.reference_transcript_id.clone(),
             num_overlap_bases: self.num_overlap_bases,
             num_transcript_only_bases: self.num_transcript_only_bases,

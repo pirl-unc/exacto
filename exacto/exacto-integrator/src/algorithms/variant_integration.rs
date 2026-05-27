@@ -11,8 +11,6 @@
 // limitations under the License.
 
 
-use bimap::BiMap;
-use exacto_annotator::prelude::*;
 use exacto_caller::prelude::*;
 use exacto_core::prelude::*;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -24,151 +22,171 @@ use crate::prelude::*;
 
 
 pub fn integrate_dna_rna_variants(
-    dna_variant_call_annotation_set: &VariantCallAnnotationSet,
-    rna_variant_call_set: &RNAVariantCallSet,
+    dna_variant_records: &Vec<DNAVariantRecord>,
+    rna_variant_records: &Vec<RNAVariantRecord>,
     gene_annotator: &(impl GeneAnnotator + Sync),
     max_exon_offset: u16,
     max_transcript_boundary_offset: u32,
     max_intergenic_distance: u32,
     num_threads: usize
-) -> IntegratedVariantSet {
-    // Step 1. Get RNA variant calls
-    let mut rna_variant_calls: Vec<(usize, &Vec<Box<str>>, &VariantCall)> = Vec::new();
-    for (transcript_model_id, inner_map) in rna_variant_call_set.variant_calls_index.iter() {
-        for (reference_transcript_ids, variant_call_ids) in inner_map.iter() {
-            for variant_call_id in variant_call_ids.iter() {
-                rna_variant_calls.push((
-                    *transcript_model_id,
-                    reference_transcript_ids,
-                    rna_variant_call_set.get_variant_call(*variant_call_id)
-                ));
-            }
-        }
-    }
+) -> Vec<IntegratedVariant> {
+    let dna_variant_records_index: DNAVariantIndex = DNAVariantIndex::new(dna_variant_records);
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(rna_variant_records);
 
-    // Step 2. Integrate DNA and RNA variants
     let thread_pool = rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .build()
         .unwrap();
-    let pb = Arc::new(ProgressBar::new(rna_variant_calls.len() as u64));
+    
+    let pb: Arc<ProgressBar> = Arc::new(ProgressBar::new(rna_variant_records_index.len() as u64));
+
     pb.set_style(
         ProgressStyle::default_bar()
             .template("[{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})")
             .unwrap()
             .progress_chars("=>-")
     );
+
     let integrated_variants: Vec<IntegratedVariant> = thread_pool.install(|| {
-        rna_variant_calls
+        rna_variant_records
             .par_iter()
-            .map(|(transcript_model_id, reference_transcript_ids, rna_variant_call)| {
+            .map(|rna_variant_record| {
+                let reference_gene_names: Vec<Box<str>> = if rna_variant_record.reference_gene_name.is_empty() {
+                    Vec::new()
+                } else {
+                    rna_variant_record
+                        .reference_gene_name
+                        .split(',')
+                        .map(|s| Box::from(s))
+                        .collect()
+                };
+                let reference_transcript_ids: Vec<Box<str>> = if rna_variant_record.reference_transcript_id.is_empty() {
+                    Vec::new()
+                } else {
+                    rna_variant_record
+                        .reference_transcript_id
+                        .split(',')
+                        .map(|s| Box::from(s))
+                        .collect()
+                };
+
                 let mut integrated_variant: IntegratedVariant = IntegratedVariant::new(
-                    *transcript_model_id,
-                    reference_transcript_ids,
-                    rna_variant_call.id
+                    rna_variant_record.assembled_transcript_name.clone(),
+                    rna_variant_record.transcript_model_id,
+                    &reference_gene_names,
+                    &reference_transcript_ids,
+                    rna_variant_record.variant_id
                 );
-                let (rna_variant_record,_) = rna_variant_call.get_consensus_record();
-                let chromosome_1: Box<str> = rna_variant_call_set.chromosome_names_map.get_by_right(&rna_variant_record.get_chromosome_1()).unwrap().clone();
-                let chromosome_2: Box<str> = rna_variant_call_set.chromosome_names_map.get_by_right(&rna_variant_record.get_chromosome_2()).unwrap().clone();
+
                 if reference_transcript_ids.is_empty() {
-                    // Check if this intergenic RNA variant can be integrated with any DNA variants
-                    let dna_variant_call_annotations_1: Vec<&VariantCallAnnotation> = dna_variant_call_annotation_set.get_by_range(
-                        &*chromosome_1,
-                        rna_variant_record.get_position_1().saturating_sub(max_intergenic_distance),
-                        rna_variant_record.get_position_1() + max_intergenic_distance
+                    // Intergenic RNA variant — range-query DNA variants around
+                    // each RNA endpoint and accept any whose endpoint falls
+                    // within `max_intergenic_distance` bp.
+                    let dna_records_1: Vec<&DNAVariantRecord> = dna_variant_records_index.get_by_range(
+                        &rna_variant_record.chromosome_1,
+                        rna_variant_record.position_1.saturating_sub(max_intergenic_distance),
+                        rna_variant_record.position_1 + max_intergenic_distance
                     );
-                    let dna_variant_call_annotations_2: Vec<&VariantCallAnnotation> = dna_variant_call_annotation_set.get_by_range(
-                        &*chromosome_2,
-                        rna_variant_record.get_position_2().saturating_sub(max_intergenic_distance),
-                        rna_variant_record.get_position_2() + max_intergenic_distance
+                    let dna_records_2: Vec<&DNAVariantRecord> = dna_variant_records_index.get_by_range(
+                        &rna_variant_record.chromosome_2,
+                        rna_variant_record.position_2.saturating_sub(max_intergenic_distance),
+                        rna_variant_record.position_2 + max_intergenic_distance
                     );
-                    for dna_variant_call_annotation in dna_variant_call_annotations_1.iter().chain(dna_variant_call_annotations_2.iter()) {
-                        if integrated_variant.dna_variant_call_ids.contains_key(&dna_variant_call_annotation.variant_call_id) == false {
+                    for dna_variant_record in dna_records_1.iter().chain(dna_records_2.iter()) {
+                        let dna_variant_id: u32 = dna_variant_record.variant_id;
+                        if !integrated_variant.dna_variant_ids.contains_key(&dna_variant_id) {
                             let integrated_variant_distance: IntegratedVariantDistance = calculate_distance(
-                                rna_variant_call,
-                                dna_variant_call_annotation,
-                                &rna_variant_call_set.chromosome_names_map
+                                rna_variant_record,
+                                dna_variant_record
                             );
-                            integrated_variant.add_dna_variant_call_id(dna_variant_call_annotation.variant_call_id, integrated_variant_distance);
+                            integrated_variant.add_dna_variant_id(dna_variant_id, integrated_variant_distance);
                         }
                     }
                 } else {
-                    // Integrate RNA variants within known reference transcripts with DNA variants within maximum exon offset
+                    // Intragenic RNA variant — for each annotated reference
+                    // transcript, range-query DNA variants that fall within
+                    // the RT's genomic span, then apply the exon/intron/
+                    // intergenic proximity rules.
                     for reference_transcript_id in reference_transcript_ids.iter() {
-                        let reference_transcript: &Transcript = gene_annotator.get_transcript(reference_transcript_id).unwrap();
-                        if let Some(dna_variant_call_annotations) = dna_variant_call_annotation_set.get_by_reference_transcript(reference_transcript_id) {
-                            let (rna_genic_region_1, rna_exons_1) = reference_transcript.locate_position(rna_variant_record.get_position_1());
-                            let (rna_genic_region_2, rna_exons_2) = reference_transcript.locate_position(rna_variant_record.get_position_2());
+                        let reference_transcript: &Transcript = gene_annotator
+                            .get_transcript(reference_transcript_id)
+                            .unwrap();
+                        let dna_variant_records_in_transcript: Vec<&DNAVariantRecord> = dna_variant_records_index.get_by_range(
+                            &reference_transcript.chromosome,
+                            reference_transcript.start,
+                            reference_transcript.end
+                        );
+                        let (rna_genic_region_1, rna_exons_1) = reference_transcript.locate_position(rna_variant_record.position_1);
+                        let (rna_genic_region_2, rna_exons_2) = reference_transcript.locate_position(rna_variant_record.position_2);
 
-                            for dna_variant_call_annotation in dna_variant_call_annotations.iter() {
-                                let (dna_genic_region_1, dna_exons_1) = reference_transcript.locate_position(dna_variant_call_annotation.position_1);
-                                let (dna_genic_region_2, dna_exons_2) = reference_transcript.locate_position(dna_variant_call_annotation.position_2);
+                        for dna_variant_record in dna_variant_records_in_transcript.iter() {
+                            let (dna_genic_region_1, dna_exons_1) = reference_transcript.locate_position(dna_variant_record.position_1);
+                            let (dna_genic_region_2, dna_exons_2) = reference_transcript.locate_position(dna_variant_record.position_2);
 
-                                // RNA position 1 and DNA position 1
-                                let integrate_11 = is_dna_variant_near_rna_variant(
-                                    rna_variant_record.get_position_1(),
-                                    rna_exons_1.clone(),
-                                    rna_genic_region_1.clone(),
-                                    dna_variant_call_annotation.position_1,
-                                    dna_genic_region_1.clone(),
-                                    dna_exons_1.clone(),
-                                    reference_transcript,
-                                    max_exon_offset,
-                                    max_transcript_boundary_offset,
-                                    max_intergenic_distance
-                                );
+                            // RNA position 1 and DNA position 1
+                            let integrate_11 = is_dna_variant_near_rna_variant(
+                                rna_variant_record.position_1,
+                                rna_exons_1.clone(),
+                                rna_genic_region_1.clone(),
+                                dna_variant_record.position_1,
+                                dna_genic_region_1.clone(),
+                                dna_exons_1.clone(),
+                                reference_transcript,
+                                max_exon_offset,
+                                max_transcript_boundary_offset,
+                                max_intergenic_distance
+                            );
 
-                                // RNA position 1 and DNA position 2
-                                let integrate_12 = is_dna_variant_near_rna_variant(
-                                    rna_variant_record.get_position_1(),
-                                    rna_exons_1.clone(),
-                                    rna_genic_region_1.clone(),
-                                    dna_variant_call_annotation.position_2,
-                                    dna_genic_region_2.clone(),
-                                    dna_exons_2.clone(),
-                                    reference_transcript,
-                                    max_exon_offset,
-                                    max_transcript_boundary_offset,
-                                    max_intergenic_distance
-                                );
+                            // RNA position 1 and DNA position 2
+                            let integrate_12 = is_dna_variant_near_rna_variant(
+                                rna_variant_record.position_1,
+                                rna_exons_1.clone(),
+                                rna_genic_region_1.clone(),
+                                dna_variant_record.position_2,
+                                dna_genic_region_2.clone(),
+                                dna_exons_2.clone(),
+                                reference_transcript,
+                                max_exon_offset,
+                                max_transcript_boundary_offset,
+                                max_intergenic_distance
+                            );
 
-                                // RNA position 2 and DNA position 1
-                                let integrate_21 = is_dna_variant_near_rna_variant(
-                                    rna_variant_record.get_position_2(),
-                                    rna_exons_2.clone(),
-                                    rna_genic_region_2.clone(),
-                                    dna_variant_call_annotation.position_1,
-                                    dna_genic_region_1.clone(),
-                                    dna_exons_1.clone(),
-                                    reference_transcript,
-                                    max_exon_offset,
-                                    max_transcript_boundary_offset,
-                                    max_intergenic_distance
-                                );
+                            // RNA position 2 and DNA position 1
+                            let integrate_21 = is_dna_variant_near_rna_variant(
+                                rna_variant_record.position_2,
+                                rna_exons_2.clone(),
+                                rna_genic_region_2.clone(),
+                                dna_variant_record.position_1,
+                                dna_genic_region_1.clone(),
+                                dna_exons_1.clone(),
+                                reference_transcript,
+                                max_exon_offset,
+                                max_transcript_boundary_offset,
+                                max_intergenic_distance
+                            );
 
-                                // RNA position 2 and DNA position 2
-                                let integrate_22 = is_dna_variant_near_rna_variant(
-                                    rna_variant_record.get_position_2(),
-                                    rna_exons_2.clone(),
-                                    rna_genic_region_2.clone(),
-                                    dna_variant_call_annotation.position_2,
-                                    dna_genic_region_2.clone(),
-                                    dna_exons_2.clone(),
-                                    reference_transcript,
-                                    max_exon_offset,
-                                    max_transcript_boundary_offset,
-                                    max_intergenic_distance
-                                );
+                            // RNA position 2 and DNA position 2
+                            let integrate_22 = is_dna_variant_near_rna_variant(
+                                rna_variant_record.position_2,
+                                rna_exons_2.clone(),
+                                rna_genic_region_2.clone(),
+                                dna_variant_record.position_2,
+                                dna_genic_region_2.clone(),
+                                dna_exons_2.clone(),
+                                reference_transcript,
+                                max_exon_offset,
+                                max_transcript_boundary_offset,
+                                max_intergenic_distance
+                            );
 
-                                if integrate_11 || integrate_12 || integrate_21 || integrate_22 {
-                                    if integrated_variant.dna_variant_call_ids.contains_key(&dna_variant_call_annotation.variant_call_id) == false {
-                                        let integrated_variant_distance: IntegratedVariantDistance = calculate_distance(
-                                            rna_variant_call,
-                                            dna_variant_call_annotation,
-                                            &rna_variant_call_set.chromosome_names_map
-                                        );
-                                        integrated_variant.add_dna_variant_call_id(dna_variant_call_annotation.variant_call_id, integrated_variant_distance);
-                                    }
+                            if integrate_11 || integrate_12 || integrate_21 || integrate_22 {
+                                let dna_variant_id: u32 = dna_variant_record.variant_id;
+                                if !integrated_variant.dna_variant_ids.contains_key(&dna_variant_id) {
+                                    let integrated_variant_distance: IntegratedVariantDistance = calculate_distance(
+                                        rna_variant_record,
+                                        dna_variant_record
+                                    );
+                                    integrated_variant.add_dna_variant_id(dna_variant_id, integrated_variant_distance);
                                 }
                             }
                         }
@@ -176,22 +194,15 @@ pub fn integrate_dna_rna_variants(
                 }
 
                 pb.inc(1);
-
-                Some(integrated_variant)
+                integrated_variant
             })
-            .filter_map(|v| v)
+            .filter(|integrated_variant| !integrated_variant.dna_variant_ids.is_empty())
             .collect()
     });
+
     pb.finish_with_message("Completed annotating variant calls.");
 
-    let mut integrated_variant_set: IntegratedVariantSet = IntegratedVariantSet::new();
-    for integrated_variant in integrated_variants {
-        if !integrated_variant.dna_variant_call_ids.is_empty() {
-            integrated_variant_set.add_integrated_variant(integrated_variant);
-        }
-    }
-
-    integrated_variant_set
+    integrated_variants
 }
 
 fn are_exons_proximal(exon_a: &Exon, exon_b: &Exon, max_exon_offset: u16) -> bool {
@@ -199,24 +210,16 @@ fn are_exons_proximal(exon_a: &Exon, exon_b: &Exon, max_exon_offset: u16) -> boo
 }
 
 fn calculate_distance(
-    rna_variant_call: &VariantCall,
-    dna_variant_call_annotation: &VariantCallAnnotation,
-    rna_chromosome_names_map: &BiMap<Box<str>, u16>
+    rna_variant_record: &RNAVariantRecord,
+    dna_variant_record: &DNAVariantRecord
 ) -> IntegratedVariantDistance {
     let mut min_distance: u32 = u32::MAX;
     let mut rna_variant_position_used: VariantPosition = VariantPosition::Position1;
     let mut dna_variant_position_used: VariantPosition = VariantPosition::Position1;
 
-    let consensus_rna_variant_record: &VariantRecord = rna_variant_call.get_consensus_record().0;
-    let rna_chromosome_1_name: Box<str> = rna_chromosome_names_map.get_by_right(&consensus_rna_variant_record.get_chromosome_1()).unwrap().clone();
-    let rna_chromosome_2_name: Box<str> = rna_chromosome_names_map.get_by_right(&consensus_rna_variant_record.get_chromosome_2()).unwrap().clone();
-
-    let dna_chromosome_1_name: Box<str> = dna_variant_call_annotation.chromosome_1.clone();
-    let dna_chromosome_2_name: Box<str> = dna_variant_call_annotation.chromosome_2.clone();
-
     // RNA variant position 1 vs DNA variant position 1
-    if rna_chromosome_1_name == dna_chromosome_1_name {
-        let curr_distance: u32 = consensus_rna_variant_record.get_position_1().abs_diff(dna_variant_call_annotation.position_1);
+    if rna_variant_record.chromosome_1 == dna_variant_record.chromosome_1 {
+        let curr_distance: u32 = rna_variant_record.position_1.abs_diff(dna_variant_record.position_1);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position1;
@@ -225,8 +228,8 @@ fn calculate_distance(
     }
 
     // RNA variant position 1 vs DNA variant position 2
-    if rna_chromosome_1_name == dna_chromosome_2_name {
-        let curr_distance: u32 = consensus_rna_variant_record.get_position_1().abs_diff(dna_variant_call_annotation.position_2);
+    if rna_variant_record.chromosome_1 == dna_variant_record.chromosome_2 {
+        let curr_distance: u32 = rna_variant_record.position_1.abs_diff(dna_variant_record.position_2);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position1;
@@ -235,8 +238,8 @@ fn calculate_distance(
     }
 
     // RNA variant position 2 vs DNA variant position 1
-    if rna_chromosome_2_name == dna_chromosome_1_name {
-        let curr_distance: u32 = consensus_rna_variant_record.get_position_2().abs_diff(dna_variant_call_annotation.position_1);
+    if rna_variant_record.chromosome_2 == dna_variant_record.chromosome_1 {
+        let curr_distance: u32 = rna_variant_record.position_2.abs_diff(dna_variant_record.position_1);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position2;
@@ -245,8 +248,8 @@ fn calculate_distance(
     }
 
     // RNA variant position 2 vs DNA variant position 2
-    if rna_chromosome_2_name == dna_chromosome_2_name {
-        let curr_distance: u32 = consensus_rna_variant_record.get_position_2().abs_diff(dna_variant_call_annotation.position_2);
+    if rna_variant_record.chromosome_2 == dna_variant_record.chromosome_2 {
+        let curr_distance: u32 = rna_variant_record.position_2.abs_diff(dna_variant_record.position_2);
         if curr_distance < min_distance {
             min_distance = curr_distance;
             rna_variant_position_used = VariantPosition::Position2;

@@ -22,6 +22,7 @@ use polars::prelude::*;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 
 #[pyfunction]
@@ -46,12 +47,8 @@ pub fn identify_rna_variants(
     temp_dir: String,
     output_type: String,
     chunk_size: usize
-) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let gene_annotator = if reference_gene_annotation_source.as_str() == "gencode" {
-//         let gene_types_: Option<HashSet<&str>> = (!gene_types.is_empty()).then(|| gene_types.iter().map(String::as_str).collect());
-//         let gene_levels_: Option<HashSet<u8>> = (!gene_levels.is_empty()).then(|| gene_levels.iter().copied().collect());
-//         let transcript_types_: Option<HashSet<&str>> = (!transcript_types.is_empty()).then(|| transcript_types.iter().map(String::as_str).collect());
-//         let transcript_levels_: Option<HashSet<u8>> = (!transcript_levels.is_empty()).then(|| transcript_levels.iter().copied().collect());
         core::Gencode::new(
             reference_gene_annotation_file.as_str(),
             reference_gene_annotation_assembly.as_str(),
@@ -66,7 +63,7 @@ pub fn identify_rna_variants(
     };
     let scoring_method: caller::ReferenceTranscriptScoringMethod = reference_transcript_scoring_method.as_str().parse().unwrap();
     let selection_strategy: caller::ReferenceTranscriptSelectionStrategy = reference_transcript_selection_strategy.as_str().parse().unwrap();
-    let transcript_model_set: caller::TranscriptModelSet = caller::identify_variant_transcripts(
+    let tms: caller::TranscriptModelSet = caller::identify_variant_transcripts(
         bam_file.as_str(),
         bam_bai_file.as_str(),
         reference_genome_fasta_file.as_str(),
@@ -81,32 +78,91 @@ pub fn identify_rna_variants(
         chunk_size,
         temp_dir.as_str()
     );
+
     match output_type.as_str() {
         "dataframe" => {
-            let df_exons = transcript_model_set.get_exons_dataframe();
-            let df_read_filter_status: DataFrame = transcript_model_set.get_read_filter_status_dataframe();
-            let df_read_names: DataFrame = transcript_model_set.get_read_names_dataframe();
-            let df_matched_reference_transcripts: DataFrame = transcript_model_set.get_reference_transcript_matches_dataframe();
-            let df_introns: DataFrame = transcript_model_set.get_introns_dataframe();
-            let df_transcripts: DataFrame = transcript_model_set.get_transcripts_dataframe();
-            let df_transcript_structures: DataFrame = transcript_model_set.get_transcript_structures_dataframe();
-            let df_variant_calls: DataFrame = transcript_model_set.get_variant_calls_dataframe(num_threads);
-            Ok((PyDataFrame(df_exons),
-                PyDataFrame(df_read_filter_status),
-                PyDataFrame(df_read_names),
-                PyDataFrame(df_matched_reference_transcripts),
+            let df_assembled_transcripts: DataFrame = caller::assembled_transcript_records_to_dataframe(
+                caller::build_assembled_transcript_records(&tms)
+            );
+            let df_exons: DataFrame = caller::exon_records_to_dataframe(
+                caller::build_exon_records(&tms)
+            );
+            let df_introns: DataFrame = caller::intron_records_to_dataframe(
+                caller::build_intron_records(&tms)
+            );
+            let df_reference_transcript_matches: DataFrame = caller::reference_transcript_match_records_to_dataframe(
+                caller::build_reference_transcript_match_records(&tms)
+            );
+            let df_read_filter_status: DataFrame = caller::read_filter_status_records_to_dataframe(
+                caller::build_read_filter_status_records(&tms)
+            );
+            let df_transcript_model_structures: DataFrame = caller::transcript_model_structure_records_to_dataframe(
+                caller::build_transcript_model_structure_records(&tms)
+            );
+            let df_rna_variants: DataFrame = caller::rna_variant_records_to_dataframe(
+                caller::build_rna_variant_records(&tms)
+            );
+
+            Ok((PyDataFrame(df_assembled_transcripts),
+                PyDataFrame(df_exons),
                 PyDataFrame(df_introns),
-                PyDataFrame(df_transcripts),
-                PyDataFrame(df_transcript_structures),
-                PyDataFrame(df_variant_calls)))
+                PyDataFrame(df_reference_transcript_matches),
+                PyDataFrame(df_read_filter_status),
+                PyDataFrame(df_transcript_model_structures),
+                PyDataFrame(df_rna_variants)))
         }
         "file" => {
-            transcript_model_set.to_tsv_files(
-                output_dir.as_str(),
-                output_prefix.as_str()
+            let assembled_transcripts_tsv_file: PathBuf = Path::new(&output_dir)
+                .join(format!("{}_exacto_assembled_transcripts.tsv", output_prefix));
+            let exons_tsv_file: PathBuf = Path::new(&output_dir)
+                .join(format!("{}_exacto_exons.tsv", output_prefix));
+            let introns_tsv_file: PathBuf = Path::new(&output_dir)
+                .join(format!("{}_exacto_introns.tsv", output_prefix));
+            let reference_transcript_matches_tsv_file: PathBuf = Path::new(&output_dir)
+                .join(format!("{}_exacto_reference_transcript_matches.tsv", output_prefix));
+            let read_filter_status_tsv_file: PathBuf = Path::new(&output_dir)
+                .join(format!("{}_exacto_read_filter_status.tsv", output_prefix));
+            let transcript_model_structures_tsv_file: PathBuf = Path::new(&output_dir)
+                .join(format!("{}_exacto_transcript_model_structures.tsv", output_prefix));
+            let rna_variants_tsv_file: PathBuf = Path::new(&output_dir)
+                .join(format!("{}_exacto_rna_variants.tsv", output_prefix));
+
+            core::write_tsv_file(
+                caller::build_assembled_transcript_records(&tms),
+                &assembled_transcripts_tsv_file
             );
+
+            core::write_tsv_file(
+                caller::build_exon_records(&tms),
+                &exons_tsv_file
+            );
+
+            core::write_tsv_file(
+                caller::build_intron_records(&tms),
+                &introns_tsv_file
+            );
+
+            core::write_tsv_file(
+                caller::build_reference_transcript_match_records(&tms),
+                &reference_transcript_matches_tsv_file
+            );
+
+            core::write_tsv_file(
+                caller::build_read_filter_status_records(&tms),
+                &read_filter_status_tsv_file
+            );
+
+            core::write_tsv_file(
+                caller::build_transcript_model_structure_records(&tms),
+                &transcript_model_structures_tsv_file
+            );
+
+            core::write_tsv_file(
+                caller::build_rna_variant_records(&tms),
+                &rna_variants_tsv_file
+            );
+
             Ok((PyDataFrame(DataFrame::new(vec![]).unwrap()),
-                PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),
                 PyDataFrame(DataFrame::new(vec![]).unwrap()),

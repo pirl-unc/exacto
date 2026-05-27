@@ -1,8 +1,8 @@
 mkdir -p outputs/integrate-vars/
 
 exacto integrate-vars \
-  --annotated-dna-vars-tsv-file ../test/data/tsv/variant_callset/dna-001-tumor_minimap2_mdtagged_sorted_exacto_somatic_variants_annotated.tsv \
-  --rna-vars-tsv-file ../test/data/tsv/variant_callset/rna-100-tumor-minimap2_mdtagged_sorted_bam_exacto_call_rna_vars_outputs/rna-100-tumor_minimap2_mdtagged_sorted_exacto_rna_variant_calls.tsv \
+  --dna-variants-tsv-file ../test/data/tsv/variant_callset/integrate_variants/dna-001-tumor_minimap2_mdtagged_sorted_exacto_dna_variant_records.tsv \
+  --rna-variants-tsv-file ../test/data/tsv/variant_callset/integrate_variants/rna-100-tumor_minimap2_mdtagged_sorted_exacto_rna_variant_records.tsv \
   --reference-gene-annotation-file ../test/data/gtf/gencode.v41.annotation.chr17-18.gtf.gz \
   --reference-gene-annotation-source gencode \
   --reference-gene-annotation-assembly hg38 \

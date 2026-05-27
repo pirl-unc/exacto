@@ -4,8 +4,20 @@ from exactolib.constants import GeneAnnotationSource, OutputType
 from exactolib.main import identify_rna_variants
 
 
+def filter_by_transcript_ids(df, expected_ids):
+    expected = set(expected_ids.split(','))
+    return df[df['reference_transcript_id'].apply(
+        lambda s: set(s.split(',')) == expected
+    )]
+
 def test_call_rna_variants_1():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-100-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-100-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -18,10 +30,10 @@ def test_call_rna_variants_1():
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 1)
+    assert(len(df_rna_variants) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-100-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -35,7 +47,13 @@ def test_call_rna_variants_1():
 
 
 def test_call_rna_variants_2():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-101-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-101-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -48,10 +66,10 @@ def test_call_rna_variants_2():
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 1)
+    assert(len(df_rna_variants) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-101-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -65,7 +83,13 @@ def test_call_rna_variants_2():
 
 
 def test_call_rna_variants_3():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-102-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-102-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -78,10 +102,10 @@ def test_call_rna_variants_3():
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 1)
+    assert(len(df_rna_variants) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-102-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -95,7 +119,13 @@ def test_call_rna_variants_3():
 
 
 def test_call_rna_variants_4():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-103-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-103-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -110,7 +140,10 @@ def test_call_rna_variants_4():
     )
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-103-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000698746.1,ENST00000570791.5']
+    df_variants = filter_by_transcript_ids(
+        df_rna_variants,
+        'ENST00000698746.1,ENST00000570791.5'
+    )
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -126,7 +159,13 @@ def test_call_rna_variants_4():
 
 
 def test_call_rna_variants_5():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-104-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-104-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -139,10 +178,10 @@ def test_call_rna_variants_5():
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 1)
+    assert(len(df_rna_variants) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-104-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -158,7 +197,13 @@ def test_call_rna_variants_5():
 
 
 def test_call_rna_variants_6():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-105-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-105-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -171,10 +216,10 @@ def test_call_rna_variants_6():
         output_type=OutputType.DATAFRAME
     )
 
-    assert(len(df_variant_calls) == 1)
+    assert(len(df_rna_variants) == 1)
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-105-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -190,7 +235,13 @@ def test_call_rna_variants_6():
 
 
 def test_call_rna_variants_7():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-106-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-106-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -205,7 +256,7 @@ def test_call_rna_variants_7():
     )
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-106-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -221,7 +272,13 @@ def test_call_rna_variants_7():
 
 
 def test_call_rna_variants_8():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-107-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-107-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -236,7 +293,7 @@ def test_call_rna_variants_8():
     )
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-107-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -252,7 +309,13 @@ def test_call_rna_variants_8():
 
 
 def test_call_rna_variants_9():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-108-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-108-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -267,7 +330,7 @@ def test_call_rna_variants_9():
     )
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-108-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000269305.9']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000269305.9']
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -283,7 +346,13 @@ def test_call_rna_variants_9():
 
 
 def test_call_rna_variants_10():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-109-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-109-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -298,7 +367,10 @@ def test_call_rna_variants_10():
     )
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-109-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000263087.9,ENST00000570791.5,ENST00000333813.4']
+    df_variants = filter_by_transcript_ids(
+        df_rna_variants,
+        'ENST00000333813.4,ENST00000570791.5,ENST00000263087.9'
+    )
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -314,7 +386,13 @@ def test_call_rna_variants_10():
 
 
 def test_call_rna_variants_11():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-110-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-110-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -329,7 +407,10 @@ def test_call_rna_variants_11():
     )
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-110-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000263092.11,ENST00000250113.12,ENST00000355530.7']
+    df_variants = filter_by_transcript_ids(
+        df_rna_variants,
+        'ENST00000263092.11,ENST00000250113.12,ENST00000355530.7'
+    )
     for _,row in df_ground_truth.iterrows():
         df_matched = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &
@@ -345,7 +426,13 @@ def test_call_rna_variants_11():
 
 
 def test_call_rna_variants_12():
-    df_exons,df_read_filter_status,df_read_names,df_matched_reference_transcripts,df_introns,df_transcripts,df_transcript_structures,df_variant_calls = identify_rna_variants(
+    (df_assembled_transcripts,
+     df_exons,
+     df_introns,
+     df_reference_transcript_matches,
+     df_read_filter_status,
+     df_transcript_model_structures,
+     df_rna_variants) = identify_rna_variants(
         bam_file=get_data_path(name='bam/rna-111-tumor_minimap2_mdtagged_sorted.bam'),
         bam_bai_file=get_data_path(name='bam/rna-111-tumor_minimap2_mdtagged_sorted.bam.bai'),
         reference_genome_fasta_file=get_data_path(name='fasta/hg38_chr17-18.fa.gz'),
@@ -360,7 +447,7 @@ def test_call_rna_variants_12():
     )
 
     df_ground_truth = pd.read_csv(get_data_path(name='tsv/ground_truth/rna-111-tumor_ground_truth.tsv'), sep='\t')
-    df_variants = df_variant_calls[df_variant_calls['reference_transcript_ids'] == 'ENST00000254719.10']
+    df_variants = df_rna_variants[df_rna_variants['reference_transcript_id'] == 'ENST00000254719.10']
     for _,row in df_ground_truth.iterrows():
         df_matched_1 = df_variants[
             (df_variants['chromosome_1'] == row['chromosome_1']) &

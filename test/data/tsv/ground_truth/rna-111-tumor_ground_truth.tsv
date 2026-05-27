@@ -1,2 +1,2 @@
-variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence
-111	chr17	1844686	*	D	chr17	1842803	*	U		CIR	
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	variant_sequence	reference_transcript_id	reference_gene_name
+111	chr17	1844686	*	D	chr17	1842803	*	U		CIR		ENST00000254719.10	RPA1

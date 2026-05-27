@@ -1,4 +1,5 @@
 extern crate bimap;
+extern crate csv;
 extern crate exacto_annotator;
 extern crate exacto_caller;
 extern crate exacto_core;
@@ -12,3 +13,4 @@ pub mod algorithms;
 pub mod structs;
 pub mod prelude;
 pub mod common;
+pub mod io;

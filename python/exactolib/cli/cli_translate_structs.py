@@ -41,18 +41,32 @@ def add_cli_translate_structs_arg_parser(sub_parsers) -> argparse._SubParsersAct
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        "--transcript-structures-tsv-file",
-        dest="transcript_structures_tsv_file",
+        "--rna-assembly-support-tsv-file",
+        dest="rna_assembly_support_tsv_file",
+        type=str,
+        required=True,
+        help="Input RNA assembly TSV file (columns: transcript_id, sequence, read_ids)."
+    )
+    parser_required.add_argument(
+        "--transcript-model-structures-tsv-file",
+        dest="transcript_model_structures_tsv_file",
         type=str,
         required=True,
         help="Input transcript structures TSV file."
     )
     parser_required.add_argument(
-        "--rna-variant-calls-tsv-file",
-        dest="rna_variant_calls_tsv_file",
+        "--rna-variants-tsv-file",
+        dest="rna_variants_tsv_file",
         type=str,
         required=True,
-        help="Input RNA variant calls TSV file."
+        help="Input RNA variants TSV file."
+    )
+    parser_required.add_argument(
+        "--dna-variants-tsv-file",
+        dest="dna_variants_tsv_file",
+        type=str,
+        required=True,
+        help="Input DNA variants TSV file."
     )
     parser_required.add_argument(
         "--integrated-variants-tsv-file",
@@ -70,18 +84,18 @@ def add_cli_translate_structs_arg_parser(sub_parsers) -> argparse._SubParsersAct
         help="Translation strategy."
     )
     parser_required.add_argument(
-        "--output-tsv-file",
-        dest="output_tsv_file",
+        "--output-dir",
+        dest="output_dir",
         type=str,
         required=True,
-        help="Output TSV file."
+        help="Output directory."
     )
     parser_required.add_argument(
-        "--output-fasta-file",
-        dest="output_fasta_file",
+        "--output-prefix",
+        dest="output_prefix",
         type=str,
-        required=True,
-        help="Output FASTA file."
+        default="",
+        help="Output prefix."
     )
 
     # Optional arguments
@@ -102,22 +116,16 @@ def add_cli_translate_structs_arg_parser(sub_parsers) -> argparse._SubParsersAct
 def run_cli_translate_structs_from_parsed_args(args) -> None:
     """
     Run Exacto 'translate-structs' command using parameters from parsed arguments.
-
-    Parameters:
-        args    :   An instance of argparse.ArgumentParser with the following variables:
-                    fastq_file
-                    strategy
-                    output_tsv_file
-                    output_fasta_file
-                    num_threads
-                    gzip
     """
+    os.makedirs(args.output_dir, exist_ok=True)
     translate_structures(
-        transcript_structures_tsv_file=args.transcript_structures_tsv_file,
-        rna_variant_calls_tsv_file=args.rna_variant_calls_tsv_file,
+        rna_assembly_support_tsv_file=args.rna_assembly_support_tsv_file,
+        transcript_model_structures_tsv_file=args.transcript_model_structures_tsv_file,
+        rna_variants_tsv_file=args.rna_variants_tsv_file,
+        dna_variants_tsv_file=args.dna_variants_tsv_file,
         integrated_variants_tsv_file=args.integrated_variants_tsv_file,
         strategy=TranslationStrategy(args.strategy),
-        output_tsv_file=args.output_tsv_file,
-        output_fasta_file=args.output_fasta_file,
+        output_dir=args.output_dir,
+        output_prefix=args.output_prefix,
         num_threads=args.num_threads
     )

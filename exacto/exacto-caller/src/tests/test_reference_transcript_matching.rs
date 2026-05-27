@@ -22,7 +22,7 @@ fn test_reference_transcript_matching_1() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -31,7 +31,7 @@ fn test_reference_transcript_matching_1() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -40,7 +40,7 @@ fn test_reference_transcript_matching_1() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -49,7 +49,7 @@ fn test_reference_transcript_matching_1() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);
@@ -87,7 +87,7 @@ fn test_reference_transcript_matching_2() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -96,7 +96,7 @@ fn test_reference_transcript_matching_2() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -105,7 +105,7 @@ fn test_reference_transcript_matching_2() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -114,7 +114,7 @@ fn test_reference_transcript_matching_2() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);
@@ -151,7 +151,7 @@ fn test_reference_transcript_matching_3() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -160,7 +160,7 @@ fn test_reference_transcript_matching_3() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -169,7 +169,7 @@ fn test_reference_transcript_matching_3() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -178,7 +178,7 @@ fn test_reference_transcript_matching_3() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);
@@ -215,7 +215,7 @@ fn test_reference_transcript_matching_4() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -224,7 +224,7 @@ fn test_reference_transcript_matching_4() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -233,7 +233,7 @@ fn test_reference_transcript_matching_4() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -242,7 +242,7 @@ fn test_reference_transcript_matching_4() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);
@@ -279,7 +279,7 @@ fn test_reference_transcript_matching_5() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -288,7 +288,7 @@ fn test_reference_transcript_matching_5() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -297,7 +297,7 @@ fn test_reference_transcript_matching_5() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -306,7 +306,7 @@ fn test_reference_transcript_matching_5() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);
@@ -347,7 +347,7 @@ fn test_reference_transcript_matching_6() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -356,7 +356,7 @@ fn test_reference_transcript_matching_6() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -365,7 +365,7 @@ fn test_reference_transcript_matching_6() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -374,7 +374,7 @@ fn test_reference_transcript_matching_6() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);
@@ -411,7 +411,7 @@ fn test_reference_transcript_matching_7() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -420,7 +420,7 @@ fn test_reference_transcript_matching_7() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -429,7 +429,7 @@ fn test_reference_transcript_matching_7() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -438,7 +438,7 @@ fn test_reference_transcript_matching_7() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);
@@ -475,7 +475,7 @@ fn test_reference_transcript_matching_8() {
     chromosome_names_map.insert("chr17".into(), 0);
 
     // CRK - ENST00000574295.1
-    let exon_1: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_1: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1455877,
         1456149,
@@ -484,7 +484,7 @@ fn test_reference_transcript_matching_8() {
         0,
         271
     );
-    let exon_2: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_2: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1436999,
         1437155,
@@ -493,7 +493,7 @@ fn test_reference_transcript_matching_8() {
         272,
         428
     );
-    let exon_3: TranscriptModelExon = TranscriptModelExon::new(
+    let exon_3: AssembledTranscriptExon = AssembledTranscriptExon::new(
         0,
         1422226,
         1423185,
@@ -502,7 +502,7 @@ fn test_reference_transcript_matching_8() {
         429,
         1388
     );
-    let mut exons: Vec<TranscriptModelExon> = Vec::new();
+    let mut exons: Vec<AssembledTranscriptExon> = Vec::new();
     exons.push(exon_1);
     exons.push(exon_2);
     exons.push(exon_3);

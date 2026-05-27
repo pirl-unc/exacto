@@ -1,2 +1,2 @@
-variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence
-103	chr17	7701730	*	D	chr17	7727200	*	U		FUS	
+variant_call_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence	reference_transcript_id	reference_gene_name
+103	chr17	7701730	*	D	chr17	7727200	*	U		FUS		ENST00000698746.1,ENST00000570791.5	WRAP53,DNAH2

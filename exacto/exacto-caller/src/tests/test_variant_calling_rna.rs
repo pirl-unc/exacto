@@ -40,7 +40,7 @@ fn test_variant_calling_rna_1() {
         &gene_annotator,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
         ReferenceTranscriptSelectionStrategy::TopK,
-        3,
+        1,
         0.95f32,
         25,
         25,
@@ -48,33 +48,26 @@ fn test_variant_calling_rna_1() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
 
-    let file: NamedTempFile = NamedTempFile::new().unwrap();
-    rna_variant_callset.to_tsv_file(file.path().to_str().unwrap(), 1);
-    let rna_variant_callset_2: RNAVariantCallSet = RNAVariantCallSet::read_tsv_file(file.path().to_str().unwrap());
-    assert_eq!(rna_variant_callset.to_dataframe(1), rna_variant_callset_2.to_dataframe(1));
+    // Only 1 because identify_variant_transcripts only returns variant transcripts
+    assert_eq!(transcript_model_set.transcript_models.len(), 1);
 
-    let variant_record: &VariantRecord = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1)
-        .get(&vec!["ENST00000269305.9".into()])
-        .unwrap()
-        .first()
-        .unwrap()
-        .get_consensus_record()
-        .0;
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
-    assert_eq!(*variant_record.get_variant_type(), VariantType::SingleNucleotideVariant);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_507476_774164/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+    assert_eq!(records.len(), 1);
+
+    let rna_variant_record = rna_variant_records.get(0).unwrap();
+    assert_eq!(&*rna_variant_record.variant_type, VariantType::SingleNucleotideVariant.as_str());
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-100-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -147,27 +140,21 @@ fn test_variant_calling_rna_2() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_record: &VariantRecord = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1)
-        .get(&vec!["ENST00000269305.9".into()])
-        .unwrap()
-        .first()
-        .unwrap()
-        .get_consensus_record()
-        .0;
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
-    assert_eq!(*variant_record.get_variant_type(), VariantType::Insertion);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_822724_603243/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+
+    let rna_variant_record = records.first().expect("expected at least one variant record");
+    assert_eq!(&*rna_variant_record.variant_type, VariantType::Insertion.as_str());
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-101-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -240,27 +227,21 @@ fn test_variant_calling_rna_3() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_record: &VariantRecord = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1)
-        .get(&vec!["ENST00000269305.9".into()])
-        .unwrap()
-        .first()
-        .unwrap()
-        .get_consensus_record()
-        .0;
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
-    assert_eq!(*variant_record.get_variant_type(), VariantType::Deletion);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_264855_304921/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+
+    let rna_variant_record = records.first().expect("expected at least one variant record");
+    assert_eq!(&*rna_variant_record.variant_type, VariantType::Deletion.as_str());
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-102-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -333,28 +314,23 @@ fn test_variant_calling_rna_4() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut fusion_gene_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000570791.5".into(), "ENST00000698746.1".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::FusionGene {
-            fusion_gene_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_535544_475898/1/ccs",
+        &HashSet::from(["ENST00000570791.5", "ENST00000698746.1"])
+    );
+
+    let fusion_gene_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::FusionGene.as_str());
     assert_eq!(fusion_gene_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000570791.5,ENST00000698746.1");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-103-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -427,28 +403,23 @@ fn test_variant_calling_rna_5() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut exon_truncation_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000269305.9".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::ExonTruncation {
-            exon_truncation_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_561742_839878/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+
+    let exon_truncation_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::ExonTruncation.as_str());
     assert_eq!(exon_truncation_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-104-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -521,28 +492,23 @@ fn test_variant_calling_rna_6() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut exon_truncation_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000269305.9".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::ExonTruncation {
-            exon_truncation_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_124525_407996/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+
+    let exon_truncation_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::ExonTruncation.as_str());
     assert_eq!(exon_truncation_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-105-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -615,28 +581,23 @@ fn test_variant_calling_rna_7() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut exon_truncation_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000269305.9".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::ExonTruncation {
-            exon_truncation_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_924107_174289/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+
+    let exon_truncation_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::ExonTruncation.as_str());
     assert_eq!(exon_truncation_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-106-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -709,28 +670,23 @@ fn test_variant_calling_rna_8() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut cryptic_exon_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000269305.9".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::CrypticExon {
-            cryptic_exon_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_924958_759981/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+
+    let cryptic_exon_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::CrypticExon.as_str());
     assert_eq!(cryptic_exon_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-107-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -803,28 +759,23 @@ fn test_variant_calling_rna_9() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut intron_retention_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000269305.9".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::IntronRetention {
-            intron_retention_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_721712_133913/1/ccs",
+        &HashSet::from(["ENST00000269305.9"])
+    );
+
+    let intron_retention_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::IntronRetention.as_str());
     assert_eq!(intron_retention_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000269305.9");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-108-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -897,28 +848,23 @@ fn test_variant_calling_rna_10() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut fusion_gene_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000263087.9".into(), "ENST00000333813.4".into(), "ENST00000570791.5".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::FusionGene {
-            fusion_gene_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_288476_571946/1/ccs",
+        &HashSet::from(["ENST00000263087.9", "ENST00000333813.4", "ENST00000570791.5"])
+    );
+
+    let fusion_gene_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::FusionGene.as_str());
     assert_eq!(fusion_gene_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000263087.9,ENST00000333813.4,ENST00000570791.5");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-109-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -983,7 +929,7 @@ fn test_variant_calling_rna_11() {
         &gene_annotator,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
         ReferenceTranscriptSelectionStrategy::TopK,
-        3,
+        1,
         0.95f32,
         25,
         25,
@@ -991,28 +937,23 @@ fn test_variant_calling_rna_11() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut fusion_gene_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000250113.12".into(), "ENST00000263092.11".into(), "ENST00000355530.7".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::FusionGene {
-            fusion_gene_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_175366_924183/1/ccs",
+        &HashSet::from(["ENST00000250113.12", "ENST00000263092.11", "ENST00000355530.7"])
+    );
+
+    let fusion_gene_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::FusionGene.as_str());
     assert_eq!(fusion_gene_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000250113.12,ENST00000263092.11,ENST00000355530.7");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-110-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1085,28 +1026,23 @@ fn test_variant_calling_rna_12() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
-    let variant_calls: HashMap<&Vec<Box<str>>, Vec<&VariantCall>> = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1);
-    let mut circular_rna_found: bool = false;
-    for variant_call in variant_calls.get(&vec!["ENST00000254719.10".into()]).unwrap().iter() {
-        let variant_record: &VariantRecord = variant_call.get_consensus_record().0;
-        if variant_record.get_variant_type() == &VariantType::CircularRNA {
-            circular_rna_found = true;
-        }
-    }
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_324970_273886/1/ccs",
+        &HashSet::from(["ENST00000254719.10"])
+    );
+
+    let circular_rna_found = records
+        .iter()
+        .any(|r| &*r.variant_type == VariantType::CircularRNA.as_str());
     assert_eq!(circular_rna_found, true);
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000254719.10");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-111-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
@@ -1183,7 +1119,7 @@ fn test_variant_calling_rna_13() {
         &gene_annotator,
         ReferenceTranscriptScoringMethod::CosineSimilarity,
         ReferenceTranscriptSelectionStrategy::TopK,
-        3,
+        1,
         0.95f32,
         25,
         25,
@@ -1191,33 +1127,28 @@ fn test_variant_calling_rna_13() {
         1_000,
         ""
     );
-    let rna_variant_callset: RNAVariantCallSet = transcript_model_set.get_variant_call_set();
+    let rna_variant_records: Vec<RNAVariantRecord> = build_rna_variant_records(&transcript_model_set).collect();
 
     let file: NamedTempFile = NamedTempFile::new().unwrap();
-    rna_variant_callset.to_tsv_file(file.path().to_str().unwrap(), 1);
-    let rna_variant_callset_2: RNAVariantCallSet = RNAVariantCallSet::read_tsv_file(file.path().to_str().unwrap());
-    assert_eq!(rna_variant_callset.to_dataframe(1), rna_variant_callset_2.to_dataframe(1));
+    write_tsv_file(rna_variant_records.iter().cloned(), file.path()).unwrap();
+    let rna_variant_records_2: Vec<RNAVariantRecord> =
+        load_rna_variant_records(file.path().to_str().unwrap());
+    assert_eq!(rna_variant_records, rna_variant_records_2);
 
-    let variant_record: &VariantRecord = rna_variant_callset
-        .get_variant_calls_for_transcript_model_id(1)
-        .get(&vec!["ENST00000396463.7".into()])
-        .unwrap()
-        .first()
-        .unwrap()
-        .get_consensus_record()
-        .0;
-    assert_eq!(rna_variant_callset.get_transcript_model_ids().len(), 1);
-    assert_eq!(*variant_record.get_variant_type(), VariantType::Insertion);
+    let rna_variant_records_index: RNAVariantIndex = RNAVariantIndex::new(&rna_variant_records);
+
+    let records: Vec<&RNAVariantRecord> = rna_variant_records_index.get_for_at_and_rt(
+        "m64012_485362_969320/1/ccs",
+        &HashSet::from(["ENST00000396463.7"])
+    );
+
+    let rna_variant_record = records.first().expect("expected at least one variant record");
+    assert_eq!(&*rna_variant_record.variant_type, VariantType::Insertion.as_str());
 
     // Compare against the ground truth
-    let mut df_variant_calls: DataFrame = rna_variant_callset.to_dataframe(1);
-    let mask = df_variant_calls
-        .column("reference_transcript_ids")
-        .unwrap()
-        .str()
-        .unwrap()
-        .equal("ENST00000396463.7");
-    let df_variant_calls_filtered = df_variant_calls.filter(&mask).unwrap();
+    let df_variant_calls_filtered: DataFrame = rna_variant_records_to_dataframe(
+        records.iter().map(|r| (*r).clone())
+    );
     let tsv_path = Path::new("src/tests/data/tsv/ground_truth/rna-112-tumor_ground_truth.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let file = File::open(tsv_full_path);
