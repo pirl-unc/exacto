@@ -18,3 +18,4 @@ mod test_utr;
 mod test_tsv_gene_annotator;
 mod test_fasta_map;
 mod test_algorithms;
+mod test_math;

@@ -12,7 +12,6 @@
 
 
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 
 #[repr(u8)]
@@ -47,30 +46,5 @@ impl PrimaryStructureRecordType {
     }
 }
 
-#[repr(u8)]
-#[derive(Clone,Debug,Eq,Hash,PartialEq,Serialize,Deserialize)]
-pub enum TranslationStrategy {
-    AllORFs,
-    LongestORF
-}
-
-impl TranslationStrategy {
-    pub fn as_str(&self) -> &str {
-        match self {
-            TranslationStrategy::AllORFs => "all_orfs",
-            TranslationStrategy::LongestORF => "longest_orf"
-        }
-    }
-}
-
-impl FromStr for TranslationStrategy {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "all_orfs" => Ok(TranslationStrategy::AllORFs),
-            "longest_orf" => Ok(TranslationStrategy::LongestORF),
-            _ => Err(())
-        }
-    }
-}
+/// Defined in `exacto-core` so crates below the translator select the same frames.
+pub use exacto_core::prelude::TranslationStrategy;

@@ -1,0 +1,2 @@
+variant_id	assembled_transcript_name	reference_gene_name	reference_transcript_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence	read_start	read_end	origin
+1	1	TP53	ENST00000269305.9	chr17	7669650	-	D	chr17	7669651	-	U	24	INS	TTAACTGAGTCTCAAAAAAATAAA	1282	1305	

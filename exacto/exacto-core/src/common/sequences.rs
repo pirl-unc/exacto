@@ -13,7 +13,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use crate::common::constants::CODON_TABLE;
+use crate::common::constants::{CODON_TABLE};
+use crate::prelude::TranslationStrategy;
 
 
 /// Find all k-mers in a sequence.
@@ -107,40 +108,47 @@ pub fn is_valid_nucleotide_sequence(sequence: &str) -> bool {
     }
 }
 
-/// Get the reverse complement of a nucleotide sequence.
+/// Reverse complement over the IUPAC nucleotide alphabet, either case: `ACGTUN` and the
+/// ambiguity codes a BAM `SEQ` or a reference assembly can carry.
 ///
-/// Parameters:
-///
-/// * `sequence` is a nucleotide sequence (DNA or RNA).
-///
-/// Returns:
-///
-/// * Reverse complement sequence.
+/// # Panics
+/// Panics on a character outside that alphabet.
 pub fn reverse_complement(sequence: &str) -> Box<str> {
     sequence.chars()
         .rev()
         .map(|nucleotide| match nucleotide {
-            'A' => 'T',
-            'T' => 'A',
-            'U' => 'A',
-            'C' => 'G',
-            'G' => 'C',
-            'N' => 'N',
-            'a' => 't',
-            't' => 'a',
-            'u' => 'a',
-            'c' => 'g',
-            'g' => 'c',
-            'n' => 'n',
-            _ => {
-                panic!("Invalid nucleotide: {}", nucleotide);
-            }
+            'A' => 'T', 'T' => 'A', 'U' => 'A', 'C' => 'G', 'G' => 'C',
+            'R' => 'Y', 'Y' => 'R', 'K' => 'M', 'M' => 'K', 'B' => 'V', 'V' => 'B', 'D' => 'H', 'H' => 'D',
+            'S' | 'W' | 'N' => nucleotide,
+            'a' => 't', 't' => 'a', 'u' => 'a', 'c' => 'g', 'g' => 'c',
+            'r' => 'y', 'y' => 'r', 'k' => 'm', 'm' => 'k', 'b' => 'v', 'v' => 'b', 'd' => 'h', 'h' => 'd',
+            's' | 'w' | 'n' => nucleotide,
+            _ => panic!("Invalid nucleotide: {}", nucleotide)
         })
         .collect()
 }
 
 pub fn reverse_string(s: &str) -> String {
     s.chars().rev().collect()
+}
+
+/// Replaces any character outside `ACGTacgt` with `N` and uppercases the result.
+///
+/// Notes:
+///
+/// * IUPAC ambiguity codes do occur in reference assemblies, and the nucleotide
+///   alphabet downstream is `ACGTN`. Masking them keeps a whole-sample run from dying
+///   on one sequence.
+pub fn sanitize_nucleotides(sequence: &str) -> String {
+    sequence.chars()
+        .map(|nucleotide| match nucleotide.to_ascii_uppercase() {
+            'A' => 'A',
+            'C' => 'C',
+            'G' => 'G',
+            'T' => 'T',
+            _ => 'N'
+        })
+        .collect()
 }
 
 /// Translate an RNA sequence to all possible ORF peptides.
@@ -155,7 +163,7 @@ pub fn reverse_string(s: &str) -> String {
 /// * A vector of tuples (peptide sequence, ORF start, ORF end, peptide length).
 pub fn translate(
     rna_sequence: &str,
-    start_codons: HashSet<&str>
+    start_codons: &HashSet<&str>
 ) -> Vec<(Box<str>, u32, u32, u32)> {
     // Step 1. Convert DNA to RNA
     let rna_sequence_: Box<str> = rna_sequence
@@ -192,7 +200,16 @@ pub fn translate(
                 break;
             }
             let codon: &str = &rna_sequence_[codon_start as usize..=(codon_start + 2) as usize].to_uppercase();
-            let amino_acid: &str = CODON_TABLE[codon];
+            // A codon containing an ambiguous base (e.g. an N masked in by
+            // `sanitize_nucleotides`, or emitted by the consensus caller) has no
+            // table entry: translate it to the unknown residue X and keep going.
+            // The start codon is read by the initiator tRNA, which carries methionine
+            // whatever the codon (AUG, GUG, CUG or UUG).
+            let amino_acid: &str = if codon_start == orf_start {
+                "M"
+            } else {
+                CODON_TABLE.get(codon).copied().unwrap_or("X")
+            };
             peptide.push_str(amino_acid);
             orf_end = codon_start + 2;
             if amino_acid == "*" {
@@ -205,3 +222,22 @@ pub fn translate(
     peptides
 }
 
+
+pub fn identify_open_reading_frames(
+    sequence: &str,
+    translation_strategy: &TranslationStrategy,
+    start_codons: &HashSet<&str>
+) -> Vec<(Box<str>, u32, u32, u32)> {
+    let open_reading_frames: Vec<(Box<str>, u32, u32, u32)> = translate(sequence, start_codons)
+        .into_iter()
+        .filter(|(peptide, _, _, _)| peptide.ends_with('*'))
+        .collect();
+    match translation_strategy {
+        TranslationStrategy::LongestORF => open_reading_frames
+            .into_iter()
+            .max_by_key(|(peptide, _, _, _)| peptide.len())
+            .into_iter()
+            .collect(),
+        TranslationStrategy::AllORFs => open_reading_frames
+    }
+}

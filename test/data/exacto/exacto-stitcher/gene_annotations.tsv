@@ -1,0 +1,30 @@
+row_type	gene_id	transcript_id	exon_id	exon_number	strand	chromosome	start	end
+gene	gs				+	chrS	101	600
+transcript	gs	ts			+	chrS	101	600
+exon	gs	ts	ts_e1	1	+	chrS	101	150
+exon	gs	ts	ts_e2	2	+	chrS	251	300
+exon	gs	ts	ts_e3	3	+	chrS	401	450
+exon	gs	ts	ts_e4	4	+	chrS	551	600
+gene	gr				+	chrS	651	800
+transcript	gr	tr			+	chrS	651	800
+exon	gr	tr	tr_e1	1	+	chrS	651	700
+exon	gr	tr	tr_e2	2	+	chrS	751	800
+gene	gm				-	chrM	301	800
+transcript	gm	tm			-	chrM	301	800
+exon	gm	tm	tm_e1	1	-	chrM	751	800
+exon	gm	tm	tm_e2	2	-	chrM	601	650
+exon	gm	tm	tm_e3	3	-	chrM	451	500
+exon	gm	tm	tm_e4	4	-	chrM	301	350
+gene	gf				+	chrF	101	300
+transcript	gf	tf			+	chrF	101	300
+exon	gf	tf	tf_e1	1	+	chrF	101	150
+exon	gf	tf	tf_e2	2	+	chrF	251	300
+gene	g1				+	chrF	501	600
+transcript	g1	t1			+	chrF	501	600
+exon	g1	t1	t1_e1	1	+	chrF	501	600
+gene	ga				+	chrF	651	750
+transcript	ga	ta			+	chrF	651	750
+exon	ga	ta	ta_e1	1	+	chrF	651	750
+gene	gb				+	chrF	651	750
+transcript	gb	tb			+	chrF	651	750
+exon	gb	tb	tb_e1	1	+	chrF	651	750

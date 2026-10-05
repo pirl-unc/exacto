@@ -8,7 +8,7 @@ use crate::common::files::*;
 
 #[test]
 fn test_read_tsv_file_1() {
-    let tsv_path = Path::new("src/tests/data/tsv/samples.tsv.gz");
+    let tsv_path = Path::new(env!("EXACTO_TEST_DATA")).join("exacto/exacto-core/samples.tsv.gz");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let tsv_file: &str = tsv_full_path.to_str().unwrap();
     let df: DataFrame = read_tsv_file(tsv_file);
@@ -17,7 +17,7 @@ fn test_read_tsv_file_1() {
 
 #[test]
 fn test_read_fasta_file_1() {
-    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa.gz");
+    let fasta_path = Path::new(env!("EXACTO_TEST_DATA")).join("references/hg38_chr17-18.fa.gz");
     let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
     let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let sequences: Vec<(Box<str>,Box<str>)> = read_fasta_file(fasta_file);
@@ -26,7 +26,7 @@ fn test_read_fasta_file_1() {
 
 #[test]
 fn test_read_fasta_file_2() {
-    let fasta_path = Path::new("src/tests/data/fasta/hg38_chr17-18.fa");
+    let fasta_path = Path::new(env!("EXACTO_TEST_DATA")).join("exacto/exacto-core/hg38_chr17-18.fa");
     let fasta_full_path = fs::canonicalize(fasta_path).unwrap();
     let fasta_file: &str = fasta_full_path.to_str().unwrap();
     let sequences: Vec<(Box<str>,Box<str>)> = read_fasta_file(fasta_file);
@@ -35,7 +35,7 @@ fn test_read_fasta_file_2() {
 
 #[test]
 fn test_read_bed_file_1() {
-    let path = Path::new("src/tests/data/bed/hg38_chr17-18.bed");
+    let path = Path::new(env!("EXACTO_TEST_DATA")).join("exacto/exacto-core/hg38_chr17-18.bed");
     let full_path = fs::canonicalize(path).unwrap();
     let bed_file: &str = full_path.to_str().unwrap();
     let records: Vec<bed::Record> = read_bed_file(bed_file);

@@ -11,8 +11,11 @@
 // limitations under the License.
 
 
+use exacto_core::prelude::LIST_SEPARATOR;
+
+
 pub fn sort_reference_transcript_ids<'b, I: IntoIterator<Item = &'b str>>(rt_ids: I) -> String {
     let mut parts: Vec<&str> = rt_ids.into_iter().collect();
     parts.sort_unstable();
-    parts.join(",")
+    parts.join(LIST_SEPARATOR)
 }

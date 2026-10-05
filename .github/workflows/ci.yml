@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -33,10 +33,12 @@ jobs:
     defaults:
       run:
         shell: bash -l {0}
+    env:
+      EXACTO_TEST_DATA: ${{ github.workspace }}/test/data
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Free disk space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -50,7 +52,7 @@ jobs:
           swap-storage: true
 
       - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: "latest"
           activate-environment: test-env
@@ -60,7 +62,8 @@ jobs:
 
       - name: Install Rust toolchain
         run: |
-          conda install -y rust=1.88.0
+          conda install -y rust=1.95.0 clangdev=21.1.8
+          echo "LIBCLANG_PATH=$CONDA_PREFIX/lib" >> $GITHUB_ENV
 
       - name: Run Rust unit tests
         run: |
@@ -77,7 +80,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Free disk space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -91,7 +94,7 @@ jobs:
           swap-storage: true
 
       - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: "latest"
           activate-environment: test-env
@@ -103,13 +106,15 @@ jobs:
         run: |
           conda install -y \
             pip \
-            rust=1.88.0 \
+            rust=1.95.0 \
+            clangdev=21.1.8 \
             pandas=2.2.3 \
             polars=1.26.0 \
             pyarrow=19.0.1 \
             coveralls=4.0.1 \
             pytest=8.3.5 \
             pytest-cov=6.1.1
+          export LIBCLANG_PATH=$CONDA_PREFIX/lib
           python -m pip install pysam==0.23.0
           python -m pip install . --verbose
 

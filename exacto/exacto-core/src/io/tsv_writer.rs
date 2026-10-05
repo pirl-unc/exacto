@@ -31,3 +31,28 @@ where
     writer.flush()?;
     Ok(())
 }
+
+
+/// Write `records` as a tab-separated table, like `write_tsv_file`. A table without records is
+/// written as its header line, the field names of `T`, so that any TSV reader reads it back as an
+/// empty table: csv writes the header with the first record, so a default record gives it here.
+pub fn write_tsv_table<T, I>(records: I, path: &Path) -> Result<(), Error>
+where
+    T: Serialize + Default,
+    I: IntoIterator<Item = T>
+{
+    let mut records = records.into_iter().peekable();
+    if records.peek().is_some() {
+        return write_tsv_file(records, path);
+    }
+    let mut writer = WriterBuilder::new()
+        .delimiter(b'\t')
+        .has_headers(true)
+        .from_writer(Vec::new());
+    writer.serialize(T::default())?;
+    writer.flush()?;
+    let table: &[u8] = writer.get_ref();
+    let header_end: usize = table.iter().position(|&byte| byte == b'\n').map_or(table.len(), |index| index + 1);
+    std::fs::write(path, &table[..header_end])?;
+    Ok(())
+}

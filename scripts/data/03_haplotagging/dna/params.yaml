@@ -1,0 +1,111 @@
+# =============================================================================
+# params.yaml — haplotagging_long-read-dna
+#
+# Usage:
+#   nextflow run haplotagging_long-read-dna.nf -params-file params.yaml
+#
+# Three orthogonal selectors decide what runs (CSV list, "all", or "none"/""):
+#   small_variant_callers       {deepvariant, longshot, clair3}
+#   structural_variant_callers  {pbsv}
+#   phasing_methods             {whatshap, hiphase, hapcut2-whatshap,
+#                                longphase, margin}
+#
+# Each requested phaser runs ONCE PER selected small-variant caller, with
+# outputs at ${output_dir}/${sample_id}/<caller>_<phaser>/.
+#
+# Special cases:
+#   * Longshot calls AND phases in one step — its phased BAM publishes
+#     whenever "longshot" is in small_variant_callers.
+#   * 'hiphase' requires structural_variant_callers="pbsv".
+#   * DeepVariant → HapCUT2 and Clair3 → HiPhase paths are NOT wired
+#     (silent skip + log warn).
+# =============================================================================
+
+
+# ---- required: input/output paths -------------------------------------------
+
+# TSV file with columns: sample_id, bam_file, bam_bai_file
+samples_tsv_file: "/Users/ajslee/Documents/Research/projects/project_exacto/exacto/scripts/data/03_haplotagging/dna/samples.tsv"
+
+# Directory to which output files will be copied
+output_dir: "/Users/ajslee/Documents/Research/projects/project_exacto/exacto/test/data/haplotagging/dna/"
+
+# Reference genome FASTA file (may be .fa or .fa.gz)
+reference_genome_fasta_file: "/Users/ajslee/Documents/Research/projects/project_exacto/exacto/test/data/references/hg38_chr17-18.fa.gz"
+
+
+# ---- required: pipeline selectors -------------------------------------------
+
+small_variant_callers: "longshot,clair3"
+structural_variant_callers: "all"
+phasing_methods: "longphase"
+
+# Output format for haplotagged reads.
+#   "bam"   →  publish full haplotagged BAM(s) (default).
+#   "tsv"   →  publish only a haplotag TSV per phaser (~1000× smaller).
+#   "both"  →  publish BAM and TSV.
+# Phased VCFs are always published.
+haplotag_output: "both"
+
+
+# =============================================================================
+# Tool-specific settings (only consumed when the corresponding tool runs).
+# =============================================================================
+
+# DeepVariant — input_path / output_path are host paths bind-mounted into the
+# container. Both REQUIRED when running DeepVariant.
+deepvariant:
+  input_path:  ""
+  output_path: ""
+  containerization: "singularity"   # "singularity" | "docker"
+  model_type: "PACBIO"              # PACBIO | ONT_R104 | WGS | WES | HYBRID_PACBIO_ILLUMINA
+  bin_path: "/opt/deepvariant/bin/run_deepvariant"
+  bin_version: "1.9.0"
+
+# Longshot
+longshot:
+  extra_args: ""
+
+# Clair3 — set extra_args to match your chemistry. Common defaults inside the image:
+#   PacBio HiFi (Sequel II) :  --model_path=/opt/models/hifi_sequel2/ --platform=hifi
+#   PacBio HiFi (Revio)     :  --model_path=/opt/models/hifi_revio/   --platform=hifi
+#   ONT R10.4               :  --model_path=/opt/models/ont_r10/      --platform=ont
+clair3:
+  extra_args: "--model_path=/opt/models/hifi_sequel2/ --platform=hifi --min_coverage=3"
+
+# pbsv (discover + call)
+pbsv:
+  discover_extra_args: ""
+  call_extra_args: ""
+
+# WhatsHap (also used as fallback for hapcut2_whatshap.whatshap_haplotag_extra_args)
+whatshap:
+  phase_extra_args: "--mapq 20"
+  haplotag_extra_args: "--ignore-read-groups --skip-missing-contigs --output-threads 4"
+
+# HiPhase has no extra-args knobs in this workflow.
+
+# HapCUT2 + WhatsHap haplotag
+hapcut2_whatshap:
+  read_technology: "pacbio"          # "pacbio" | "ont" | "illumina"
+  extracthairs_extra_args: ""
+  hapcut2_extra_args: ""
+  whatshap_haplotag_extra_args: "--ignore-read-groups --skip-missing-contigs --output-threads 4"
+
+# LongPhase — `phase` requires exactly one of:
+#   --ont    (Oxford Nanopore)
+#   --pb     (PacBio HiFi/CCS or CLR — both use --pb)
+# `haplotag` has no platform flag — leave haplotag_extra_args empty.
+longphase:
+  phase_extra_args: "--pb"
+  haplotag_extra_args: ""
+
+# Margin — `margin phase` (v2.3.1) emits both phased VCF and haplotagged BAM in
+# one call, so only the phase params JSON is needed. Pick a host-accessible
+# JSON matching your sequencing platform; the margin docker image ships
+# defaults under /opt/margin/params/phase/, e.g.
+#   PacBio HiFi :  allParams.phase_vcf.pb-hifi.json
+#   ONT R10.4   :  allParams.phase_vcf.ont.json
+margin:
+  phase_params_json_file: ""
+  phase_extra_args: ""

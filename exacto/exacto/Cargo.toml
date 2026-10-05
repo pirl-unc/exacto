@@ -13,8 +13,13 @@ license.workspace = true
 [dependencies]
 exacto-annotator = { workspace = true }
 exacto-caller = { workspace = true }
+exacto-cluster = { workspace = true }
+exacto-consensus = { workspace = true }
 exacto-core = { workspace = true }
+exacto-correction = { workspace = true }
 exacto-graph = { workspace = true }
-exacto-qc = { workspace = true }
 exacto-integrator = { workspace = true }
+exacto-qc = { workspace = true }
+exacto-quantifier = { workspace = true }
+exacto-stitcher = { workspace = true }
 exacto-translator = { workspace = true }

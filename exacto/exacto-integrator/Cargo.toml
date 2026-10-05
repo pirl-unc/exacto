@@ -11,7 +11,8 @@ csv = { workspace = true }
 exacto-annotator = { workspace = true }
 exacto-caller = { workspace = true }
 exacto-core = { workspace = true }
-indicatif = { workspace = true }
 polars = { workspace = true }
+log = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
+thiserror = { workspace = true }

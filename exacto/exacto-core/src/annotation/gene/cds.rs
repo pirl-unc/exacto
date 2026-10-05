@@ -13,7 +13,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use crate::common::constants::Strand;
+use crate::common::enums::Strand;
 
 
 #[derive(Debug, Serialize, Deserialize)]

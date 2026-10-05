@@ -19,6 +19,34 @@ use std::fs::File;
 use std::str;
 use std::sync::Arc;
 use std::io::{BufReader, Read};
+use std::path::Path;
+use tempfile::TempPath;
+
+
+pub fn file_exists(file: &str) -> bool {
+    Path::new(file).exists() && Path::new(file).is_file()
+}
+
+
+/// True only for BGZF (block gzip, as written by `bgzip`): gzip magic + FEXTRA flag +
+/// the BGZF `BC` extra subfield. Plain gzip (from `gzip`) also starts `1F 8B` but lacks
+/// the `BC` subfield and is *not* randomly seekable, so this returns false for it.
+pub fn is_bgzipped(file: &str) -> bool {
+    let mut header = [0u8; 16];
+    let mut file = match File::open(file) {
+        Ok(file) => file,
+        Err(_) => return false
+    };
+    if file.read_exact(&mut header).is_err() {
+        return false;                                       // shorter than a BGZF header
+    }
+    header[0] == 0x1F                                       // gzip magic
+        && header[1] == 0x8B
+        && header[2] == 0x08                                // CM = deflate
+        && (header[3] & 0x04) != 0                          // FLG.FEXTRA set
+        && header[12] == b'B'                               // BGZF 'BC' subfield id
+        && header[13] == b'C'
+}
 
 
 /// Check if file is gzipped.
@@ -32,6 +60,20 @@ pub fn is_gzipped(file_path: &str) -> bool {
     false
 }
 
+
+pub fn load_bincode_temp_files<T: serde::de::DeserializeOwned>(temp_paths: &[TempPath]) -> Vec<T> {
+    let mut items: Vec<T> = Vec::new();
+    for temp_path in temp_paths.iter() {
+        let file: File = File::open(temp_path).unwrap();
+        let mut reader: BufReader<File> = BufReader::new(file);
+        let chunk_items: Vec<T> = bincode::deserialize_from(&mut reader)
+            .expect("Failed to deserialize data.");
+        items.extend(chunk_items);
+    }
+    items
+}
+
+
 /// Read a BED file.
 pub fn read_bed_file(bed_file: &str) -> Vec<bed::Record> {
     let file = File::open(bed_file).unwrap();
@@ -44,6 +86,7 @@ pub fn read_bed_file(bed_file: &str) -> Vec<bed::Record> {
     }
     records
 }
+
 
 /// Read a TSV file.
 ///
@@ -64,6 +107,7 @@ pub fn read_tsv_file(tsv_file: &str) -> DataFrame {
         .unwrap();
     df
 }
+
 
 pub fn read_fasta_file(fasta_file: &str) -> Vec<(Box<str>, Box<str>)> {
     let mut sequences: Vec<(Box<str>, Box<str>)> = Vec::new();

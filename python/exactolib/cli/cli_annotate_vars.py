@@ -35,7 +35,11 @@ def add_cli_annotate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
     Returns:
         sub_parsers     :   argparse.ArgumentParser subparsers
     """
-    parser = sub_parsers.add_parser('annotate-vars', help='Annotate variants.')
+    parser = sub_parsers.add_parser(
+        'annotate-vars',
+        help='Annotate variants.',
+        description="Annotate variants with the genes, transcripts and exons at four positions: position_1, position_1 + 1, position_2 - 1 and position_2. position_1 and position_2 are the unchanged bases on each side of a variant. For an SNV, an MNV or a deletion, position_1 + 1 is the first altered base and position_2 - 1 is the last. For every other variant type, position_1 and position_2 describe the variant. A deletion is annotated at its two ends only: a gene or an exon that lies entirely inside it is not listed."
+    )
     parser._action_groups.pop()
 
     # Required arguments
@@ -45,7 +49,7 @@ def add_cli_annotate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         dest="tsv_file",
         type=str,
         required=True,
-        help="Input TSV file. Expected columns: 'variant_call_id', 'chromosome_1', 'position_1', 'chromosome_2', 'position_2', 'variant_type', 'variant_sequence'",
+        help="Input TSV file. Expected columns: 'variant_id', 'chromosome_1', 'position_1', 'chromosome_2', 'position_2', 'variant_type', 'sequence'. Each 'variant_id' is on exactly one row. Each chromosome name starts with 'chr'. At least one chromosome name is in the gene annotation; a warning is written for each name that is not, and its positions are annotated as intergenic. A file without rows, or of zero bytes, gives an output file without rows.",
     )
     parser_required.add_argument(
         "--reference-gene-annotation-file",
@@ -99,41 +103,37 @@ def add_cli_annotate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction:
         "--gene-types",
         dest="gene_types",
         type=str,
-        nargs="+",
+        nargs="*",
         default=['protein_coding'],
-        action="extend",
         required=False,
-        help="Reference gene types to include in annotation (default: ['protein_coding'])."
+        help="Reference gene types to include in annotation; give the flag with no values for no filter (default: ['protein_coding'])."
     )
     parser_optional.add_argument(
         "--gene-levels",
         dest="gene_levels",
         type=int,
-        nargs="+",
+        nargs="*",
         default=[1,2],
-        action="extend",
         required=False,
-        help="Reference gene levels to include in annotation (default: [1,2])."
+        help="Reference gene levels to include in annotation; give the flag with no values for no filter (default: [1,2])."
     )
     parser_optional.add_argument(
         "--transcript-types",
         dest="transcript_types",
         type=str,
-        nargs="+",
+        nargs="*",
         default=['protein_coding'],
-        action="extend",
         required=False,
-        help="Reference transcript types to include in annotation (default: ['protein_coding'])."
+        help="Reference transcript types to include in annotation; give the flag with no values for no filter (default: ['protein_coding'])."
     )
     parser_optional.add_argument(
         "--transcript-levels",
         dest="transcript_levels",
         type=int,
-        nargs="+",
+        nargs="*",
         default=[1,2],
-        action="extend",
         required=False,
-        help="Reference transcript levels to include in annotation (default: [1,2])."
+        help="Reference transcript levels to include in annotation; give the flag with no values for no filter (default: [1,2])."
     )
     parser.set_defaults(which='annotate-vars')
     return sub_parsers

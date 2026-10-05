@@ -1,0 +1,61 @@
+
+[INFO] Check environment variables
+[INFO] --include_all_ctgs not enabled, use chr{1..22,X,Y} and {1..22,X,Y} by default
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/log
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/pileup_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/merge_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/phase_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/gvcf_tmp_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/full_alignment_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/phase_output/phase_vcf
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/phase_output/phase_bam
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/full_alignment_output/candidate_bed
+[93m[WARNING] Contig name chr18 provided but no mapped reads in BAM, skip![0m
+[INFO] Call variant in contigs: chr17
+[INFO] Chunk number for each contig: 2
+[INFO] 1/7 Call variants using pileup model
+Calling variants ...
+Total processed positions in chr17 (chunk 1/2) : 0
+Total time elapsed: 0.04 s
+[INFO] No vcf output for file /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/tmp/pileup_output/pileup_chr17_1.vcf, remove empty file
+Calling variants ...
+Total processed positions in chr17 (chunk 2/2) : 133
+Total time elapsed: 0.22 s
+
+[INFO] 2/7 Select heterozygous SNP variants for Whatshap phasing and haplotagging
+[93m[WARNING] Cannot find any 0/1 variant in pileup output using variant quality cut-off proportion: 0.30000000000000004, total heterozygous variants: 0[0m
+[93m[WARNING] Set low variant quality score cut-off to 0.0[0m
+[INFO] Select heterozygous pileup variants exceeding phasing quality cutoff 0
+[INFO] Total heterozygous SNP positions selected: chr17: 0
+
+[INFO] 3/7 Phase VCF file using Whatshap
+This is WhatsHap 2.8 running under Python 3.11.15
+Working on 1 sample from 1 family
+
+# Resource usage
+Maximum memory usage: 0.070 GB
+Time spent reading BAM/CRAM:                    0.0 s
+Time spent parsing VCF:                         0.0 s
+Time spent selecting reads:                     0.0 s
+Time spent phasing:                             0.0 s
+Time spent writing VCF:                         0.0 s
+Time spent finding components:                  0.0 s
+Time spent on rest:                             0.0 s
+Total elapsed time:                             0.0 s
+
+[INFO] 5/7 Select candidates for full-alignment calling
+[INFO] Set variants quality cutoff 11.0
+[INFO] Set reference calls quality cutoff 23.0
+[INFO] Low quality reference calls to be processed in chr17: 32
+[INFO] Low quality variants to be processed in chr17: 5
+
+[INFO] 6/7 Call low-quality variants using full-alignment model
+Calling variants ...
+Total processed positions in chr17 (chunk 1/1) : 37
+Total time elapsed: 0.26 s
+
+[INFO] 7/7 Merge pileup VCF and full-alignment VCF
+[INFO] Pileup variants processed in chr17: 16
+[INFO] Full-alignment variants processed in chr17: 4
+
+[INFO] Finish calling, output file: /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/5a/8a5121e3ace469669f8c3d40f9c274/clair3/merge_output.vcf.gz

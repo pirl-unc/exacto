@@ -21,7 +21,6 @@ where
     I: IntoIterator<Item = IntegratedVariantRecord>
 {
     let mut assembled_transcript_name: Vec<String> = Vec::new();
-    let mut transcript_model_id: Vec<u32> = Vec::new();
     let mut reference_gene_name: Vec<String> = Vec::new();
     let mut reference_transcript_id: Vec<String> = Vec::new();
     let mut rna_variant_id: Vec<u32> = Vec::new();
@@ -32,7 +31,6 @@ where
 
     for r in records {
         assembled_transcript_name.push(r.assembled_transcript_name.to_string());
-        transcript_model_id.push(r.transcript_model_id);
         reference_gene_name.push(r.reference_gene_name.to_string());
         reference_transcript_id.push(r.reference_transcript_id.to_string());
         rna_variant_id.push(r.rna_variant_id);
@@ -44,7 +42,6 @@ where
 
     DataFrame::new(vec![
         Column::from(Series::new("assembled_transcript_name".into(), assembled_transcript_name)),
-        Column::from(Series::new("transcript_model_id".into(), transcript_model_id)),
         Column::from(Series::new("reference_gene_name".into(), reference_gene_name)),
         Column::from(Series::new("reference_transcript_id".into(), reference_transcript_id)),
         Column::from(Series::new("rna_variant_id".into(), rna_variant_id)),

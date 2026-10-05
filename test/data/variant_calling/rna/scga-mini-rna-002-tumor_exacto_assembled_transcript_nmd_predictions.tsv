@@ -1,0 +1,73 @@
+assembled_transcript_name	orf_start	orf_end	nmd_predicted	distance_to_last_junction
+1	142	1335	false	
+1	207	224	true	1029
+1	259	1335	false	
+1	263	271	true	982
+1	271	1335	false	
+1	297	308	true	945
+1	323	508	true	745
+1	337	1335	false	
+1	538	1335	false	
+1	619	1335	false	
+1	646	1335	false	
+1	677	892	true	361
+1	698	892	true	361
+1	761	892	true	361
+1	800	892	true	361
+1	850	1335	false	
+1	868	1335	false	
+1	877	1335	false	
+1	1124	1186	true	67
+1	1171	1335	false	
+1	1187	1261	false	
+1	1208	1261	false	
+1	1303	1335	false	
+1	1530	1562	false	
+1	1580	1615	false	
+1	1591	1596	false	
+1	1600	1644	false	
+1	1729	1767	false	
+1	1774	1782	false	
+1	1782	1799	false	
+1	1816	1833	false	
+1	2034	2510	false	
+1	2037	2510	false	
+1	2244	2510	false	
+1	2252	2281	false	
+1	2271	2510	false	
+2	142	1323	false	
+2	207	224	true	1017
+2	259	1323	false	
+2	263	271	true	970
+2	271	1323	false	
+2	297	308	true	933
+2	323	508	true	733
+2	337	1323	false	
+2	538	1323	false	
+2	619	1323	false	
+2	646	1323	false	
+2	677	880	true	361
+2	698	880	true	361
+2	761	880	true	361
+2	800	880	true	361
+2	850	1323	false	
+2	868	1323	false	
+2	877	1323	false	
+2	1112	1174	true	67
+2	1159	1323	false	
+2	1175	1249	false	
+2	1196	1249	false	
+2	1291	1323	false	
+2	1518	1550	false	
+2	1568	1603	false	
+2	1579	1584	false	
+2	1588	1632	false	
+2	1717	1755	false	
+2	1762	1770	false	
+2	1770	1787	false	
+2	1804	1821	false	
+2	2022	2498	false	
+2	2025	2498	false	
+2	2232	2498	false	
+2	2240	2269	false	
+2	2259	2498	false	

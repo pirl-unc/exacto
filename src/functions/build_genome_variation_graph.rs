@@ -15,22 +15,24 @@ extern crate exacto;
 extern crate noodles_fasta;
 extern crate polars;
 extern crate pyo3;
-extern crate rayon;
 
 use exacto::core::prelude as core;
 use exacto::graph::prelude as graph;
-use noodles_fasta::{self as fasta, record::{Definition, Record, Sequence}};
+use noodles_fasta::record::{Definition, Record, Sequence};
 use noodles_fasta::io::Writer;
 use polars::prelude::*;
 use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
-use rayon::prelude::*;
-use std::collections::HashSet;
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufWriter, Write};
+
+use super::{graph_error, io_error};
 
 
-/// This function builds a genome variation graph.
+/// This function builds a genome variation graph and writes its sequences: the variant sequences,
+/// then (unless `only_variant_sequences`) the reference sequence of every contig. Records are named
+/// `<sequence_prefix>_<n>` in that order; with `remove_unknown_bases` each run of bases between
+/// N or n is a record of its own.
 #[pyfunction]
 pub fn build_genome_variation_graph(
     py: Python,
@@ -47,234 +49,70 @@ pub fn build_genome_variation_graph(
 ) -> PyResult<PyObject> {
     core::init_logging(verbose);
 
-    let mut df_variants_: DataFrame = df_variants.into();
+    let df_variants_: DataFrame = df_variants.into();
 
-    let graph_type: graph::VarGraphTypes = graph_type.as_str().parse().unwrap();
+    let graph_type: graph::VarGraphTypes = graph_type.as_str().parse().map_err(|_| {
+        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Unsupported value for graph_type: {}", graph_type))
+    })?;
+    let mut writer = match output_type.as_str() {
+        "file" => Some(Writer::new(BufWriter::new(File::create(&output_fasta_file).map_err(io_error)?))),
+        "dataframe" | "vector" => None,
+        other => {
+            let error_message = format!("Unsupported value for output_type: {}", other);
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(error_message));
+        }
+    };
 
-    // Step 1. Build a variation graph with the variants
-    let vargraphs: Vec<graph::VarGraph> = graph::build_genome_variation_graph(
+    // (id, sequence, is_variant) of each record, when they are returned rather than written
+    let mut rows: Vec<(String, String, bool)> = Vec::new();
+    let mut idx: usize = 1;
+    graph::find_genome_variation_graph_sequences(
         &fasta_file,
         &df_variants_,
         graph_type,
-        num_threads
-    );
-
-    // Step 2. Find paths
-    let thread_pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(num_threads)
-        .build()
-        .unwrap();
-    let mut paths_list: Vec<HashSet<graph::VarGraphPath>> = thread_pool.install(|| {
-        vargraphs
-            .par_iter()
-            .map(|vargraph| {
-                vargraph.find_genome_paths(&vargraph.get_variant_node_ids().into_iter().collect(), &HashSet::new())
-            })
-            .collect()
-    });
-
-    match output_type.as_str() {
-        "dataframe" => {
-            let mut rows: Vec<(String, String, bool)> = Vec::new();
-            let mut idx: usize = 1;
-
-            // Variant sequences
-            for paths in paths_list.iter() {
-                for path in paths.iter() {
-                    let sequence = path.get_sequence();
-                    if remove_unknown_bases {
-                        for sub_sequence in sequence.split(|c| c == 'N' || c == 'n').filter(|s| !s.is_empty()) {
-                            let name = format!("{sequence_prefix}_{idx}");
-                            rows.push((name.to_string(), sub_sequence.to_string(), true));
-                            idx += 1;
-                        }
-                    } else {
-                        let name: String = format!("{sequence_prefix}_{idx}");
-                        rows.push((name.to_string(), sequence.to_string(), true));
-                        idx += 1;
-                    }
+        !only_variant_sequences,
+        num_threads,
+        |sequence, is_variant| {
+            let pieces: Vec<&str> = if remove_unknown_bases {
+                sequence.split(|c| c == 'N' || c == 'n').filter(|s| !s.is_empty()).collect()
+            } else {
+                vec![&*sequence]
+            };
+            for piece in pieces {
+                let name: String = format!("{sequence_prefix}_{idx}");
+                idx += 1;
+                match writer.as_mut() {
+                    Some(writer) => {
+                        let record = Record::new(Definition::new(name, None), Sequence::from(piece.as_bytes().to_vec()));
+                        writer.write_record(&record).map_err(|error| graph::GraphError::File {
+                            file: output_fasta_file.as_str().into(),
+                            reason: error.to_string().into()
+                        })?;
+                    },
+                    None => rows.push((name, piece.to_string(), is_variant))
                 }
             }
+            Ok(())
+        }
+    ).map_err(graph_error)?;
 
-            if only_variant_sequences == false {
-                // Reference chromosomes without variants
-                let mut included_chromosomes: HashSet<Box<str>> = HashSet::new();
-                let col_chromosome_1 = df_variants_.column("chromosome_1").unwrap().str().unwrap();
-                let col_chromosome_2 = df_variants_.column("chromosome_2").unwrap().str().unwrap();
-                for i in 0..df_variants_.height() {
-                    let chromosome_1: Box<str> = col_chromosome_1.get(i).unwrap().into();
-                    let chromosome_2: Box<str> = col_chromosome_2.get(i).unwrap().into();
-                    included_chromosomes.insert(chromosome_1);
-                    included_chromosomes.insert(chromosome_2);
-                }
-                let fasta_sequence_ids: Vec<(Box<str>, u32)> = core::get_fasta_sequence_ids(fasta_file.as_str());
-                for (sequence_id, length) in fasta_sequence_ids.iter() {
-                    if included_chromosomes.contains(sequence_id) == false {
-                        let sequence: Box<str> = core::get_fasta_sequence(&*sequence_id, 1, *length, fasta_file.as_str());
-                        if remove_unknown_bases {
-                            for sub_sequence in sequence
-                                .split(|c| c == 'N' || c == 'n')
-                                .filter(|s| !s.is_empty()) {
-                                let name: String = format!("{sequence_prefix}_{idx}");
-                                rows.push((name.to_string(), sub_sequence.to_string(), false));
-                                idx += 1;
-                            }
-                        } else {
-                            let name: String = format!("{sequence_prefix}_{idx}");
-                            rows.push((name.to_string(), sequence.to_string(), false));
-                            idx += 1;
-                        }
-                    }
-                }
-            }
-
+    match writer {
+        Some(mut writer) => {
+            writer.get_mut().flush().map_err(io_error)?;
+            Ok(py.None().into_py(py))
+        },
+        None if output_type == "dataframe" => {
             let df = DataFrame::new(vec![
                 Column::from(Series::new("id".into(), rows.iter().map(|r| r.0.clone()).collect::<Vec<_>>())),
                 Column::from(Series::new("sequence".into(), rows.iter().map(|r| r.1.clone()).collect::<Vec<_>>())),
                 Column::from(Series::new("is_variant".into(), rows.iter().map(|r| r.2).collect::<Vec<_>>()))
             ]).unwrap();
-
             Ok(PyDataFrame(df).into_py(py))
         },
-        "file" => {
-            // Write the variant sequences to FASTA file
-            let f = File::create(output_fasta_file).unwrap();
-            let mut writer = Writer::new(BufWriter::new(f));
-            let mut idx: usize = 1;
-            for paths in paths_list.iter() {
-                for path in paths.iter() {
-                    let sequence = path.get_sequence();
-                    if remove_unknown_bases {
-                        for sub_sequence in sequence.split(|c| c == 'N' || c == 'n').filter(|s| !s.is_empty()) {
-                            let name = format!("{sequence_prefix}_{idx}");
-                            let def = Definition::new(name, None);
-                            let sequence_ = Sequence::from(sub_sequence.as_bytes().to_vec());
-                            let record = Record::new(def, sequence_);
-                            writer.write_record(&record).unwrap();
-                            idx += 1;
-                        }
-                    } else {
-                        let name: String = format!("{sequence_prefix}_{idx}");
-                        let def = Definition::new(name, None);
-                        let sequence_ = Sequence::from(sequence.as_bytes().to_vec());
-                        let record = Record::new(def, sequence_);
-                        writer.write_record(&record).unwrap();
-                        idx += 1;
-                    }
-                }
-            }
-
-            // Write reference chromosomes without variants
-            let mut included_chromosomes: HashSet<Box<str>> = HashSet::new();
-            let col_chromosome_1 = df_variants_.column("chromosome_1").unwrap().str().unwrap();
-            let col_chromosome_2 = df_variants_.column("chromosome_2").unwrap().str().unwrap();
-            for i in 0..df_variants_.height() {
-                let chromosome_1: Box<str> = col_chromosome_1.get(i).unwrap().into();
-                let chromosome_2: Box<str> = col_chromosome_2.get(i).unwrap().into();
-                included_chromosomes.insert(chromosome_1);
-                included_chromosomes.insert(chromosome_2);
-            }
-            let fasta_sequence_ids: Vec<(Box<str>, u32)> = core::get_fasta_sequence_ids(fasta_file.as_str());
-            for (sequence_id, length) in fasta_sequence_ids.iter() {
-                if included_chromosomes.contains(sequence_id) == false {
-                    let sequence: Box<str> = core::get_fasta_sequence(&*sequence_id, 1, *length, fasta_file.as_str());
-                    if remove_unknown_bases {
-                        for sub_sequence in sequence
-                            .split(|c| c == 'N' || c == 'n')
-                            .filter(|s| !s.is_empty()) {
-                            let name: String = format!("{sequence_prefix}_{idx}");
-                            let def = Definition::new(name, None);
-                            let sequence_ = Sequence::from(sub_sequence.as_bytes().to_vec());
-                            let record = Record::new(def, sequence_);
-                            writer.write_record(&record).unwrap();
-                            idx += 1;
-                        }
-                    } else {
-                        let name: String = format!("{sequence_prefix}_{idx}");
-                        let def = Definition::new(name, None);
-                        let sequence_ = Sequence::from(sequence.as_bytes().to_vec());
-                        let record = Record::new(def, sequence_);
-                        writer.write_record(&record).unwrap();
-                        idx += 1;
-                    }
-                }
-            }
-
-            Ok(py.None().into_py(py))
-        },
-        "vector" => {
+        None => {
             // Return: Vec<(id, is_variant, sequence)>
-            let mut rows: Vec<(String, bool, String)> = Vec::new();
-            let mut idx: usize = 1;
-
-            // Variant sequences
-            for paths in paths_list.iter() {
-                for path in paths.iter() {
-                    let sequence = path.get_sequence();
-                    if remove_unknown_bases {
-                        for sub_sequence in sequence
-                            .split(|c| c == 'N' || c == 'n')
-                            .filter(|s| !s.is_empty())
-                        {
-                            let name = format!("{sequence_prefix}_{idx}");
-                            rows.push((name, true, sub_sequence.to_string()));
-                            idx += 1;
-                        }
-                    } else {
-                        let name = format!("{sequence_prefix}_{idx}");
-                        rows.push((name, true, sequence.to_string()));
-                        idx += 1;
-                    }
-                }
-            }
-
-            if only_variant_sequences == false {
-                // Reference chromosomes without variants
-                let mut included_chromosomes: HashSet<Box<str>> = HashSet::new();
-                let col_chromosome_1 = df_variants_.column("chromosome_1").unwrap().str().unwrap();
-                let col_chromosome_2 = df_variants_.column("chromosome_2").unwrap().str().unwrap();
-                for i in 0..df_variants_.height() {
-                    let chromosome_1: Box<str> = col_chromosome_1.get(i).unwrap().into();
-                    let chromosome_2: Box<str> = col_chromosome_2.get(i).unwrap().into();
-                    included_chromosomes.insert(chromosome_1);
-                    included_chromosomes.insert(chromosome_2);
-                }
-
-                let fasta_sequence_ids: Vec<(Box<str>, u32)> =
-                    core::get_fasta_sequence_ids(fasta_file.as_str());
-
-                for (sequence_id, length) in fasta_sequence_ids.iter() {
-                    if !included_chromosomes.contains(sequence_id) {
-                        let sequence: Box<str> = core::get_fasta_sequence(
-                            &*sequence_id,
-                            1,
-                            *length,
-                            fasta_file.as_str(),
-                        );
-
-                        if remove_unknown_bases {
-                            for sub_sequence in sequence
-                                .split(|c| c == 'N' || c == 'n')
-                                .filter(|s| !s.is_empty())
-                            {
-                                let name = format!("{sequence_prefix}_{idx}");
-                                rows.push((name, false, sub_sequence.to_string()));
-                                idx += 1;
-                            }
-                        } else {
-                            let name = format!("{sequence_prefix}_{idx}");
-                            rows.push((name, false, sequence.to_string()));
-                            idx += 1;
-                        }
-                    }
-                }
-            }
-
+            let rows: Vec<(String, bool, String)> = rows.into_iter().map(|(id, sequence, is_variant)| (id, is_variant, sequence)).collect();
             Ok(rows.into_py(py))
-        },
-        other => {
-            let error_message = format!("Unsupported value for output_type: {}", other);
-            Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(error_message))
         }
     }
 }

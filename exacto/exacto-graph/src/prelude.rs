@@ -1,5 +1,8 @@
+pub use crate::pipeline::variation_graph::*;
+
 pub use crate::common::constants::*;
-pub use crate::algorithms::variation_graph::*;
+pub use crate::common::error::GraphError;
+
 pub use crate::graph::multidigraph::MultiDiGraph;
 pub use crate::graph::vargraph::VarGraph;
 pub use crate::graph::vargraph_edge::VarGraphEdge;

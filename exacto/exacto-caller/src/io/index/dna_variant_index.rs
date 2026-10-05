@@ -11,6 +11,7 @@
 // limitations under the License.
 
 
+use exacto_core::prelude::{ReferenceChromosomeName, ReferencePosition};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::prelude::*;
@@ -23,17 +24,17 @@ pub struct DNAVariantIndex<'a> {
     by_variant_id: HashMap<u32, usize>,
 
     /// HashMap<chromosome_1, BTreeMap<position_1, Vec<records index>>>
-    by_chromosome_1: HashMap<Box<str>, BTreeMap<u32, Vec<usize>>>,
+    by_chromosome_1: HashMap<ReferenceChromosomeName, BTreeMap<ReferencePosition, Vec<usize>>>,
 
     /// HashMap<chromosome_2, BTreeMap<position_2, Vec<records index>>>
-    by_chromosome_2: HashMap<Box<str>, BTreeMap<u32, Vec<usize>>>
+    by_chromosome_2: HashMap<ReferenceChromosomeName, BTreeMap<ReferencePosition, Vec<usize>>>
 }
 
 impl<'a> DNAVariantIndex<'a> {
     pub fn new(records: &'a [DNAVariantRecord]) -> Self {
         let mut by_variant_id: HashMap<u32, usize> = HashMap::new();
-        let mut by_chromosome_1: HashMap<Box<str>, BTreeMap<u32, Vec<usize>>> = HashMap::new();
-        let mut by_chromosome_2: HashMap<Box<str>, BTreeMap<u32, Vec<usize>>> = HashMap::new();
+        let mut by_chromosome_1: HashMap<ReferenceChromosomeName, BTreeMap<ReferencePosition, Vec<usize>>> = HashMap::new();
+        let mut by_chromosome_2: HashMap<ReferenceChromosomeName, BTreeMap<ReferencePosition, Vec<usize>>> = HashMap::new();
 
         for (i, r) in records.iter().enumerate() {
             if by_variant_id.insert(r.variant_id, i).is_some() {
@@ -85,8 +86,8 @@ impl<'a> DNAVariantIndex<'a> {
     pub fn get_by_range(
         &self,
         chromosome: &str,
-        lo: u32,
-        hi: u32
+        lo: ReferencePosition,
+        hi: ReferencePosition
     ) -> Vec<&'a DNAVariantRecord> {
         let mut seen: HashSet<usize> = HashSet::new();
         let mut out: Vec<&'a DNAVariantRecord> = Vec::new();

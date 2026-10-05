@@ -35,7 +35,11 @@ def add_cli_build_genome_var_graph_arg_parser(sub_parsers) -> argparse._SubParse
     Returns:
         sub_parsers     :   argparse.ArgumentParser subparsers
     """
-    parser = sub_parsers.add_parser('build-genome-var-graph', help='Build a genome variation graph.')
+    parser = sub_parsers.add_parser(
+        'build-genome-var-graph',
+        help='Build a genome variation graph.',
+        description="Build a genome variation graph and write its sequences. The variant sequences come first: between them they carry every variant allele, and a site with several alternative alleles gives one sequence per allele rather than one per combination of alleles. With --graph-type individual, adjacent variants are joined into one haplotype; with population they are not. Unless --only-variant-sequences yes, the reference sequence of every contig follows, so each variant's reference allele is written too. Records are named <sequence-prefix>_<n> in that order."
+    )
     parser._action_groups.pop()
 
     # Required arguments
@@ -45,7 +49,7 @@ def add_cli_build_genome_var_graph_arg_parser(sub_parsers) -> argparse._SubParse
         dest="variants_tsv_file",
         type=str,
         required=True,
-        help="Variants TSV file. Expected columns: 'variant_id', 'chromosome_1', 'position_1', 'operation_1', 'strand_1', 'chromosome_2', 'position_2', 'operation_2', 'strand_2', 'sequence'.",
+        help="Variants TSV file, as call-germline-dna-vars or call-somatic-dna-vars write it. Required columns: 'variant_id', 'chromosome_1', 'position_1', 'operation_1', 'strand_1', 'chromosome_2', 'position_2', 'operation_2', 'strand_2', 'sequence' (genome-forward, whatever the strand). Optional: 'num_cycles', the number of copies of a duplicated span; a duplication without it is taken as 2 copies.",
     )
     parser_required.add_argument(
         "--fasta-file",
@@ -86,7 +90,7 @@ def add_cli_build_genome_var_graph_arg_parser(sub_parsers) -> argparse._SubParse
         type=str2bool,
         default=BUILD_GENOME_VAR_GRAPH_ONLY_VARIANT_SEQUENCES,
         required=False,
-        help="If 'yes', then only variant sequences will be output (default: %s)."
+        help="If 'yes', then only variant sequences will be output; otherwise the reference sequence of every contig follows them (default: %s)."
              % BUILD_GENOME_VAR_GRAPH_ONLY_VARIANT_SEQUENCES
     )
     parser_optional.add_argument(

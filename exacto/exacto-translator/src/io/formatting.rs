@@ -11,18 +11,34 @@
 // limitations under the License.
 
 
+use exacto_core::prelude::LIST_SEPARATOR;
+
+
 pub fn join_box_strs(items: &Vec<Box<str>>) -> Box<str> {
     items.iter().map(|s| s.as_ref()).collect::<Vec<&str>>()
-        .join(",").into_boxed_str()
+        .join(LIST_SEPARATOR).into_boxed_str()
 }
+
+
+pub fn split_read_names(read_names: &str) -> Vec<Box<str>> {
+    split_read_names_borrowed(read_names).into_iter().map(|name| name.into()).collect()
+}
+
+
+pub fn split_read_names_borrowed(read_names: &str) -> Vec<&str> {
+    read_names
+        .split(|character: char| character == ',' || LIST_SEPARATOR.contains(character))
+        .map(|name| name.trim())
+        .filter(|name| !name.is_empty())
+        .collect()
+}
+
 
 pub fn join_u32_ids(ids: &[u32]) -> String {
-    ids.iter().map(|id| id.to_string()).collect::<Vec<String>>().join(",")
+    ids.iter().map(|id| id.to_string()).collect::<Vec<String>>().join(LIST_SEPARATOR)
 }
 
-/// Collapse a sorted slice of indices into a compact interval string.
-/// Example: `[3, 4, 5, 12, 20, 21]` -> `"3-5,12,20-21"`.
-/// Input must be sorted ascending; duplicates are tolerated.
+
 pub fn format_intervals(indices: &[u32]) -> String {
     if indices.is_empty() {
         return String::new();
@@ -34,19 +50,11 @@ pub fn format_intervals(indices: &[u32]) -> String {
         if i == run_end || i == run_end + 1 {
             run_end = i;
         } else {
-            parts.push(if run_start == run_end {
-                run_start.to_string()
-            } else {
-                format!("{}-{}", run_start, run_end)
-            });
+            parts.push(format!("{}:{}", run_start, run_end));
             run_start = i;
             run_end = i;
         }
     }
-    parts.push(if run_start == run_end {
-        run_start.to_string()
-    } else {
-        format!("{}-{}", run_start, run_end)
-    });
-    parts.join(",")
+    parts.push(format!("{}:{}", run_start, run_end));
+    parts.join(LIST_SEPARATOR)
 }

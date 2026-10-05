@@ -11,66 +11,46 @@
 // limitations under the License.
 
 
-use exacto_core::prelude::*;
-use serde::{Deserialize,Serialize};
-
 use crate::prelude::*;
 
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Clone,Debug)]
 pub struct AminoAcid {
     pub index: u32,
-    pub amino_acid: Box<str>,
-    pub nucleotides: Vec<TranscriptNucleotide>
+    pub amino_acid: char,
+    pub nucleotides: [AssembledTranscriptNucleotide; 3]
 }
 
 impl AminoAcid {
     pub fn new(
         index: u32,
-        nucleotides: Vec<TranscriptNucleotide>,
+        amino_acid: char,
+        nucleotides: [AssembledTranscriptNucleotide; 3]
     ) -> Self {
-        assert!(nucleotides.len() == 3);
-        let codon: String = nucleotides.iter()
-            .map(|n| n.get_nucleotide().as_str())
-            .collect::<String>()
-            .to_uppercase()
-            .replace('T', "U");
-        let amino_acid: &str = CODON_TABLE[codon.as_str()];
         Self {
             index: index,
-            amino_acid: amino_acid.into(),
+            amino_acid: amino_acid,
             nucleotides: nucleotides
         }
     }
 
-    pub fn get_amino_acid(&self) -> &str {
-        &*self.amino_acid
+    pub fn get_amino_acid(&self) -> char {
+        self.amino_acid
     }
 
     pub fn get_index(&self) -> u32 {
         self.index
     }
 
-    pub fn get_nucleotides(&self) -> &Vec<TranscriptNucleotide> {
+    pub fn get_nucleotides(&self) -> &[AssembledTranscriptNucleotide; 3] {
         &self.nucleotides
     }
 
     pub fn is_variant(&self) -> bool {
-        for nucleotide in self.nucleotides.iter() {
-            if nucleotide.is_variant() {
-                return true;
-            }
-        }
-        false
+        self.nucleotides.iter().any(|nucleotide| nucleotide.is_variant())
     }
-}
 
-impl Clone for AminoAcid {
-    fn clone(&self) -> Self {
-        AminoAcid {
-            index: self.index,
-            amino_acid: self.amino_acid.clone(),
-            nucleotides: self.nucleotides.clone()
-        }
+    pub fn is_reference_stitched(&self) -> bool {
+        self.nucleotides.iter().any(|nucleotide| nucleotide.is_reference_stitched())
     }
 }

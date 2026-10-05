@@ -1,9 +1,12 @@
+extern crate abpoa_rs;
 extern crate bimap;
+extern crate bio;
 extern crate bstr;
 extern crate chrono;
 extern crate edit_distance;
 extern crate env_logger;
 extern crate exacto_core;
+extern crate exacto_consensus;
 extern crate flate2;
 extern crate interavl;
 extern crate indicatif;
@@ -18,16 +21,25 @@ extern crate noodles_sam;
 extern crate once_cell;
 extern crate polars;
 extern crate rayon;
+extern crate rand;
+extern crate rand_pcg;
 extern crate regex;
 extern crate serde;
 extern crate statrs;
 extern crate sysinfo;
 extern crate tempfile;
+extern crate thiserror;
+
 
 #[cfg(test)]
 mod tests;
-pub mod algorithms;
+pub mod alignment;
 pub mod common;
-pub mod prelude;
-pub mod structs;
 pub mod io;
+pub mod pipeline;
+pub mod prelude;
+pub mod reference;
+pub mod variant;
+pub mod transcript;
+pub mod calling;
+pub mod filtering;

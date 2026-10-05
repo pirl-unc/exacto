@@ -17,7 +17,8 @@ use exacto_core::prelude::*;
 use exacto_core::log_info;
 use std::any::Any;
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::borrow::Cow;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::ops::Bound::Included;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -360,7 +361,14 @@ impl VarGraph {
         }
     }
 
-    pub fn find_genome_paths(&self, target_node_ids: &HashSet<usize>, excluded_node_ids: &HashSet<usize>) -> HashSet<VarGraphPath> {
+    /// Finds paths that between them carry every target node.
+    ///
+    /// Each path starts at the first target not yet on a path and is walked downstream, then
+    /// upstream (`walk_path`). At a branch the walk takes a target over a non-target, and a target
+    /// not yet on a path over one that is. A site with n alleles therefore gives n paths, not one
+    /// path per combination of alleles across sites. Paths are returned in the order they are
+    /// found, which depends only on the graph.
+    pub fn find_genome_paths(&self, target_node_ids: &HashSet<usize>, excluded_node_ids: &HashSet<usize>) -> Vec<VarGraphPath> {
         log_info!("Started finding paths for {} node IDs.", target_node_ids.len());
 
         // Step 1. Collapse the variation graph
@@ -370,56 +378,43 @@ impl VarGraph {
         // Step 2. Get all node IDs in the collapsed graph
         let collapsed_node_ids: &HashSet<usize> = vargraph.get_node_ids();
 
-        // Step 3. Identify intersecting node IDs
-        let mut isec_node_ids: HashSet<usize> = target_node_ids.intersection(collapsed_node_ids).cloned().collect();
+        // Step 3. Target node IDs not yet on a path
+        let mut uncovered_node_ids: BTreeSet<usize> = target_node_ids.intersection(collapsed_node_ids).cloned().collect();
 
-        // Step 4. Extend paths
+        // Step 4. Walk one path from each target not yet on a path
         log_info!("\tExtending paths");
         let mut terminal_states: Vec<VarGraphTraversalState> = Vec::new();
-        while isec_node_ids.len() > 0 {
-            let node_id: usize = isec_node_ids.iter().next().unwrap().clone();
-            log_info!("\t\tExtending paths for node ID: {}. Remaining number of nodes: {}.", node_id, isec_node_ids.len());
-            let mut queue: Vec<VarGraphTraversalState> = Vec::new();
-            queue.push(VarGraphTraversalState {
+        while let Some(&node_id) = uncovered_node_ids.iter().next() {
+            let mut state: VarGraphTraversalState = VarGraphTraversalState {
                 visited: HashSet::from([node_id]),
                 path: VecDeque::from([node_id]),
                 prev_edge: None
-            });
-
-            // Extend in the forward (downstream) direction
-            log_info!("\t\tExtending in the downstream direction.");
-            let mut states_forward: Vec<VarGraphTraversalState> = vargraph.extend_paths(
-                queue,
+            };
+            vargraph.walk_path(
+                &mut state,
                 target_node_ids,
                 excluded_node_ids,
-                VarGraphOrientations::Downstream,
-                None
+                &uncovered_node_ids,
+                VarGraphOrientations::Downstream
             );
-
-            // Extend in the backward (upstream) direction
-            log_info!("\t\tExtending in the upstream direction.");
-            for state in states_forward.iter_mut() {
-                state.prev_edge = None;
-            }
-            let states_backward: Vec<VarGraphTraversalState> = vargraph.extend_paths(
-                states_forward,
+            state.prev_edge = None;
+            vargraph.walk_path(
+                &mut state,
                 target_node_ids,
                 excluded_node_ids,
-                VarGraphOrientations::Upstream,
-                None
+                &uncovered_node_ids,
+                VarGraphOrientations::Upstream
             );
 
-            for state in states_backward {
-                for node_id in state.path.iter() {
-                    if cyclic_paths.contains_key(node_id) {
-                        for nested_node_id in cyclic_paths.get(node_id).unwrap() {
-                            isec_node_ids.remove(nested_node_id);
-                        }
+            for node_id in state.path.iter() {
+                if let Some(nested_node_ids) = cyclic_paths.get(node_id) {
+                    for nested_node_id in nested_node_ids {
+                        uncovered_node_ids.remove(nested_node_id);
                     }
-                    isec_node_ids.remove(node_id);
                 }
-                terminal_states.push(state);
+                uncovered_node_ids.remove(node_id);
             }
+            terminal_states.push(state);
         }
 
         // Step 6. Replace cyclic variant node IDs with the node IDs pertaining to the path
@@ -474,9 +469,8 @@ impl VarGraph {
 
         // Step 6. Convert VarGraphTraversalState to VarGraphPath
         log_info!("\tConverting traversal states to paths.");
-        let mut vargraph_paths: HashSet<VarGraphPath> = HashSet::new();
-        let terminal_states_set: HashSet<VarGraphTraversalState> = terminal_states.into_iter().collect();
-        for state in terminal_states_set.iter() {
+        let mut vargraph_paths: Vec<VarGraphPath> = Vec::new();
+        for state in terminal_states.iter() {
             let mut path: VarGraphPath = VarGraphPath::new();
             match state.path.len() {
                 0 => {
@@ -589,20 +583,21 @@ impl VarGraph {
                 }
             }
 
-            vargraph_paths.insert(path);
+            vargraph_paths.push(path);
         }
 
-        log_info!("Finished finding {} unique paths for {} node IDs.", vargraph_paths.len(), target_node_ids.len());
+        log_info!("Finished finding {} paths for {} node IDs.", vargraph_paths.len(), target_node_ids.len());
 
         vargraph_paths
     }
 
+    /// Finds the one path of a transcript model. A model whose rows do not join into exactly one
+    /// path is an error that names the transcript, so the caller can skip it and go on.
     pub fn find_transcript_path(
         &self,
-        transcript_model_id: usize,
-        reference_transcript_ids: &str,
+        transcript_name: &str,
         node_ids: &HashSet<usize>
-    ) -> VarGraphPath {
+    ) -> Result<VarGraphPath, GraphError> {
         log_info!("Started finding transcript path for {} node IDs.", node_ids.len());
 
         // Get all exonic reference node IDs
@@ -652,16 +647,17 @@ impl VarGraph {
         }
         non_exonic_reference_node_ids.retain(|x| !bridge_node_ids.contains(x));
 
-        let paths: HashSet<VarGraphPath> = self.find_genome_paths(
+        let paths: Vec<VarGraphPath> = self.find_genome_paths(
             &target_node_ids,
             &non_exonic_reference_node_ids
         );
 
-        assert!(
-            paths.len() == 1,
-            "Expected to find exactly 1 path. Found {} paths for transcript model ID {} and reference transcript IDs {}.",
-            paths.len(), transcript_model_id, reference_transcript_ids
-        );
+        if paths.len() != 1 {
+            return Err(GraphError::Transcript {
+                name: transcript_name.into(),
+                reason: format!("its rows join into {} paths, not 1", paths.len()).into()
+            });
+        }
 
         let mut path: VarGraphPath = paths.into_iter().next().unwrap();
 
@@ -720,12 +716,16 @@ impl VarGraph {
                     std::mem::swap(&mut segment.prev_node_id, &mut segment.next_node_id);
                 }
             }
+            // Reversing the path swapped each segment's entry and exit, so a segment walked forward
+            // is now entered at its downstream side and reverse-complemented, and one walked in
+            // reverse (a U-to-D junction) is now read forward. A segment with no entry (the path's
+            // first) is entered at its downstream side.
             for segment in path.segments.iter_mut() {
-                segment.entry_orientation = Some(VarGraphOrientations::Downstream);
+                segment.entry_orientation.get_or_insert(VarGraphOrientations::Downstream);
             }
         }
 
-        path
+        Ok(path)
     }
 
     pub fn get_incoming_node_ids(&self, id: usize) -> &HashSet<usize> {
@@ -1051,12 +1051,16 @@ impl VarGraph {
                     for &variant_id_2 in variant_ids.iter() {
                         let gov_2: &GraphOperationView = self.get_graph_operation_view(variant_id_2);
 
-                        // Determine how the adjacency should be directed (5' A --> B 3')
-                        if gov_2.get_position_2() == gov_1.get_position_1() + 1 {
+                        // Determine how the adjacency should be directed (5' A --> B 3'). The two
+                        // positions must be on one chromosome: a translocation's position_2 is on
+                        // its partner chromosome.
+                        if gov_2.get_chromosome_2() == gov_1.get_chromosome_1() &&
+                            gov_2.get_position_2() == gov_1.get_position_1() + 1 {
                             pairs.push((variant_id_2, variant_id_1));
                             continue;
                         }
-                        if gov_1.get_position_2() == gov_2.get_position_1() + 1 {
+                        if gov_1.get_chromosome_2() == gov_2.get_chromosome_1() &&
+                            gov_1.get_position_2() == gov_2.get_position_1() + 1 {
                             pairs.push((variant_id_1, variant_id_2));
                             continue;
                         }
@@ -1067,6 +1071,10 @@ impl VarGraph {
                 active.entry(e).or_default().push(variant_id_1);
             }
         }
+
+        // A pair on two chromosomes is found in the sweep of each.
+        pairs.sort_unstable();
+        pairs.dedup();
 
         // Step 2. Add edges between variant nodes and disable edges to reference nodes
         for (variant_id_a, variant_id_b) in pairs.iter() {
@@ -1256,13 +1264,18 @@ impl VarGraph {
         consolidated_paths
     }
 
-    fn collapse(&self, node_ids: &HashSet<usize>) -> (VarGraph, HashMap<usize, Vec<usize>>) {
+    /// Replaces each cyclic path with its cyclic variant node. Without a cyclic target node there
+    /// is nothing to replace, and the graph is borrowed rather than copied.
+    fn collapse(&self, node_ids: &HashSet<usize>) -> (Cow<'_, VarGraph>, HashMap<usize, Vec<usize>>) {
         // Step 1. Identify cyclic nodes
         let mut cyclic_node_ids: HashSet<usize> = HashSet::new();
         for node_id in node_ids.iter() {
             if self.is_cyclic_variant_node(*node_id) {
                 cyclic_node_ids.insert(*node_id);
             }
+        }
+        if cyclic_node_ids.is_empty() {
+            return (Cow::Borrowed(self), HashMap::new());
         }
 
         // Step 2. Build macro paths
@@ -1329,7 +1342,7 @@ impl VarGraph {
             }
         }
 
-        (vargraph, cyclic_paths)
+        (Cow::Owned(vargraph), cyclic_paths)
     }
 
     fn disable_edge(&mut self, from: usize, to: usize) {
@@ -1372,9 +1385,9 @@ impl VarGraph {
                 }
             }
 
-            // Update the state
-            let mut target_states: Vec<VarGraphTraversalState> = Vec::new();
-            let mut all_states: Vec<VarGraphTraversalState> = Vec::new();
+            // Candidate steps: (next node ID, edge taken, cyclic variant node and mate crossed)
+            let mut target_steps: Vec<(usize, VarGraphEdge, Option<(usize, usize)>)> = Vec::new();
+            let mut all_steps: Vec<(usize, VarGraphEdge, Option<(usize, usize)>)> = Vec::new();
             if cyclic_variant_node_id.is_some() {
                 // Find the cyclic path start or end (mate) node ID
                 let variant_node_id: usize = cyclic_variant_node_id.unwrap();
@@ -1422,27 +1435,11 @@ impl VarGraph {
                         }
                     }
 
-                    // Create a new traversal state
-                    let mut new_state: VarGraphTraversalState = state.clone();
-                    if direction == VarGraphOrientations::Downstream {
-                        new_state.path.pop_back();
-                        new_state.path.push_back(variant_node_id);
-                        new_state.path.push_back(outgoing_node_id);
-                    } else {
-                        new_state.path.pop_front();
-                        new_state.path.push_front(variant_node_id);
-                        new_state.path.push_front(outgoing_node_id);
-                    }
-                    new_state.visited.insert(curr_node_id);
-                    new_state.visited.insert(variant_node_id);
-                    new_state.visited.insert(mate_node_id);
-                    new_state.visited.insert(outgoing_node_id);
-                    new_state.prev_edge = Some(edge.clone());
-
+                    let step = (outgoing_node_id, edge.clone(), Some((variant_node_id, mate_node_id)));
                     if target_node_ids.contains(&outgoing_node_id) {
-                        target_states.push(new_state);
+                        target_steps.push(step);
                     } else {
-                        all_states.push(new_state);
+                        all_steps.push(step);
                     }
                 }
 
@@ -1481,75 +1478,80 @@ impl VarGraph {
                         }
                     }
 
-                    // Create a new traversal state
-                    let mut new_state: VarGraphTraversalState = state.clone();
-                    if direction == VarGraphOrientations::Downstream {
-                        new_state.path.push_back(outgoing_node_id);
-                    } else {
-                        new_state.path.push_front(outgoing_node_id);
-                    }
-                    new_state.visited.insert(outgoing_node_id);
-                    new_state.prev_edge = Some(edge.clone());
-
+                    let step = (outgoing_node_id, edge.clone(), None);
                     if target_node_ids.contains(&outgoing_node_id) {
-                        target_states.push(new_state);
+                        target_steps.push(step);
                     } else {
-                        all_states.push(new_state);
+                        all_steps.push(step);
                     }
                 }
             }
 
-            assert!(target_states.len() <= 1);
-            assert!(all_states.len() <= 1);
+            assert!(target_steps.len() <= 1);
+            assert!(all_steps.len() <= 1);
 
-            let next_states: Vec<VarGraphTraversalState> = if target_states.is_empty() {
-                all_states
+            // Take the step in place rather than cloning the state
+            let step = if target_steps.is_empty() {
+                all_steps.pop()
             } else {
-                target_states
+                target_steps.pop()
             };
-
-            if next_states.is_empty() {
+            let Some((outgoing_node_id, edge, crossed)) = step else {
                 break 'extension_loop;
-            } else {
-                state = next_states.get(0).unwrap().clone();
+            };
+            match crossed {
+                Some((variant_node_id, mate_node_id)) => {
+                    if direction == VarGraphOrientations::Downstream {
+                        state.path.pop_back();
+                        state.path.push_back(variant_node_id);
+                        state.path.push_back(outgoing_node_id);
+                    } else {
+                        state.path.pop_front();
+                        state.path.push_front(variant_node_id);
+                        state.path.push_front(outgoing_node_id);
+                    }
+                    state.visited.insert(curr_node_id);
+                    state.visited.insert(variant_node_id);
+                    state.visited.insert(mate_node_id);
+                },
+                None => {
+                    if direction == VarGraphOrientations::Downstream {
+                        state.path.push_back(outgoing_node_id);
+                    } else {
+                        state.path.push_front(outgoing_node_id);
+                    }
+                }
             }
+            state.visited.insert(outgoing_node_id);
+            state.prev_edge = Some(edge);
         }
 
         None
     }
 
-    fn extend_paths(
+    /// Extends `state` in `direction` one node at a time until no edge can be taken.
+    ///
+    /// Of the nodes an enabled edge leads to (not excluded, not yet visited, a variant node only if
+    /// it is a target, and entered on the other side from the one the previous edge left by), the
+    /// walk takes a target not yet on a path, else a target, else a non-target; ties go to the
+    /// smallest node ID. The state is changed in place, so a path of L nodes costs O(L).
+    fn walk_path(
         &self,
-        mut queue: Vec<VarGraphTraversalState>,
+        state: &mut VarGraphTraversalState,
         target_node_ids: &HashSet<usize>,
         excluded_node_ids: &HashSet<usize>,
-        direction: VarGraphOrientations,
-        to: Option<usize>
-    ) -> Vec<VarGraphTraversalState> {
-        let mut terminal_states: Vec<VarGraphTraversalState> = Vec::new();
-
-        if to.is_some() {
-            assert_eq!(target_node_ids.contains(&to.unwrap()), true);
-        }
-
-        while let Some(state) = queue.pop() {
+        uncovered_node_ids: &BTreeSet<usize>,
+        direction: VarGraphOrientations
+    ) {
+        loop {
             let curr_node_id: usize = if direction == VarGraphOrientations::Downstream {
                 *state.path.back().unwrap()
             } else {
                 *state.path.front().unwrap()
             };
 
-            // If we're already at the destination, treat this as terminal and don't extend
-            if let Some(dest) = to {
-                if curr_node_id == dest {
-                    terminal_states.push(state);
-                    continue;
-                }
-            }
-
-            // Push new states to the queue
-            let mut all_states: Vec<VarGraphTraversalState> = Vec::new();
-            let mut traversable_states: Vec<VarGraphTraversalState> = Vec::new();
+            // (rank, node ID) of the best next node; a lower rank is preferred
+            let mut next: Option<(u8, usize)> = None;
             for &outgoing_node_id in self.get_outgoing_node_ids(curr_node_id) {
                 if self.is_edge_enabled(curr_node_id, outgoing_node_id) == false {
                     continue;
@@ -1581,44 +1583,30 @@ impl VarGraph {
                     continue;
                 }
 
-                // Create a new traversal state
-                let mut new_state: VarGraphTraversalState = state.clone();
-                if direction == VarGraphOrientations::Downstream {
-                    new_state.path.push_back(outgoing_node_id);
+                let rank: u8 = if uncovered_node_ids.contains(&outgoing_node_id) {
+                    0
+                } else if target_node_ids.contains(&outgoing_node_id) {
+                    1
                 } else {
-                    new_state.path.push_front(outgoing_node_id);
+                    2
+                };
+                if next.map_or(true, |best| (rank, outgoing_node_id) < best) {
+                    next = Some((rank, outgoing_node_id));
                 }
-                new_state.visited.insert(outgoing_node_id);
-                new_state.prev_edge = Some(edge.clone());
-
-                if target_node_ids.contains(&outgoing_node_id) {
-                    traversable_states.push(new_state.clone());
-                }
-                all_states.push(new_state);
             }
 
-            let next_states: Vec<VarGraphTraversalState> = if traversable_states.is_empty() {
-                all_states
-            } else {
-                traversable_states
+            let Some((_, next_node_id)) = next else {
+                break;
             };
-
-            if next_states.is_empty() {
-                if let Some(dest) = to {
-                    if state.path.contains(&dest) {
-                        terminal_states.push(state);
-                    }
-                } else {
-                    terminal_states.push(state);
-                }
+            let edge: VarGraphEdge = self.get_edge_data(curr_node_id, next_node_id).clone();
+            if direction == VarGraphOrientations::Downstream {
+                state.path.push_back(next_node_id);
             } else {
-                for s in next_states {
-                    queue.push(s);
-                }
+                state.path.push_front(next_node_id);
             }
+            state.visited.insert(next_node_id);
+            state.prev_edge = Some(edge);
         }
-
-        terminal_states
     }
 
     fn get_edge_data(&self, from: usize, to: usize) -> &VarGraphEdge {
@@ -1831,14 +1819,10 @@ impl VarGraph {
                 let edge: VarGraphEdge = self.get_edge_data(node_id, outgoing_node_id).clone();
                 if edge.orientation_from == VarGraphOrientations::Upstream {
                     // Add edges
-                    let edge_1: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_from.clone(),
-                        edge.orientation_to.clone()
-                    );
-                    let edge_2: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_to.clone(),
-                        edge.orientation_from.clone()
-                    );
+                    // The new edges keep the old ones' state: an edge an earlier variant
+                    // disabled stays disabled, whatever order the variants are added in.
+                    let edge_1: VarGraphEdge = edge;
+                    let edge_2: VarGraphEdge = self.get_edge_data(outgoing_node_id, node_id).clone();
                     self.add_edge(new_node_id_1, outgoing_node_id, edge_1);
                     self.add_edge(outgoing_node_id, new_node_id_1, edge_2);
                 }
@@ -1861,14 +1845,10 @@ impl VarGraph {
                 let edge: VarGraphEdge = self.get_edge_data(node_id, outgoing_node_id).clone();
                 if edge.orientation_from == VarGraphOrientations::Downstream {
                     // Add edges
-                    let edge_1: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_from.clone(),
-                        edge.orientation_to.clone()
-                    );
-                    let edge_2: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_to.clone(),
-                        edge.orientation_from.clone()
-                    );
+                    // The new edges keep the old ones' state: an edge an earlier variant
+                    // disabled stays disabled, whatever order the variants are added in.
+                    let edge_1: VarGraphEdge = edge;
+                    let edge_2: VarGraphEdge = self.get_edge_data(outgoing_node_id, node_id).clone();
                     self.add_edge(new_node_id_2, outgoing_node_id, edge_1);
                     self.add_edge(outgoing_node_id, new_node_id_2, edge_2);
                 }
@@ -1926,14 +1906,10 @@ impl VarGraph {
                 let edge: VarGraphEdge = self.get_edge_data(node_id, outgoing_node_id).clone();
                 if edge.orientation_from == VarGraphOrientations::Upstream {
                     // Add edges
-                    let edge_1: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_from.clone(),
-                        edge.orientation_to.clone()
-                    );
-                    let edge_2: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_to.clone(),
-                        edge.orientation_from.clone()
-                    );
+                    // The new edges keep the old ones' state: an edge an earlier variant
+                    // disabled stays disabled, whatever order the variants are added in.
+                    let edge_1: VarGraphEdge = edge;
+                    let edge_2: VarGraphEdge = self.get_edge_data(outgoing_node_id, node_id).clone();
                     self.add_edge(new_node_id_1, outgoing_node_id, edge_1);
                     self.add_edge(outgoing_node_id, new_node_id_1, edge_2);
                 }
@@ -1956,14 +1932,10 @@ impl VarGraph {
                 let edge: VarGraphEdge = self.get_edge_data(node_id, outgoing_node_id).clone();
                 if edge.orientation_from == VarGraphOrientations::Downstream {
                     // Add edges
-                    let edge_1: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_from.clone(),
-                        edge.orientation_to.clone()
-                    );
-                    let edge_2: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_to.clone(),
-                        edge.orientation_from.clone()
-                    );
+                    // The new edges keep the old ones' state: an edge an earlier variant
+                    // disabled stays disabled, whatever order the variants are added in.
+                    let edge_1: VarGraphEdge = edge;
+                    let edge_2: VarGraphEdge = self.get_edge_data(outgoing_node_id, node_id).clone();
                     self.add_edge(new_node_id_2, outgoing_node_id, edge_1);
                     self.add_edge(outgoing_node_id, new_node_id_2, edge_2);
                 }
@@ -2041,14 +2013,10 @@ impl VarGraph {
                 let edge: VarGraphEdge = self.get_edge_data(node_id, outgoing_node_id).clone();
                 if edge.orientation_from == VarGraphOrientations::Upstream {
                     // Add edges
-                    let edge_1: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_from.clone(),
-                        edge.orientation_to.clone()
-                    );
-                    let edge_2: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_to.clone(),
-                        edge.orientation_from.clone()
-                    );
+                    // The new edges keep the old ones' state: an edge an earlier variant
+                    // disabled stays disabled, whatever order the variants are added in.
+                    let edge_1: VarGraphEdge = edge;
+                    let edge_2: VarGraphEdge = self.get_edge_data(outgoing_node_id, node_id).clone();
                     self.add_edge(new_node_id_1, outgoing_node_id, edge_1);
                     self.add_edge(outgoing_node_id, new_node_id_1, edge_2);
                 }
@@ -2082,14 +2050,10 @@ impl VarGraph {
                 let edge: VarGraphEdge = self.get_edge_data(node_id, outgoing_node_id).clone();
                 if edge.orientation_from == VarGraphOrientations::Downstream {
                     // Add edges
-                    let edge_1: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_from.clone(),
-                        edge.orientation_to.clone()
-                    );
-                    let edge_2: VarGraphEdge = VarGraphEdge::new(
-                        edge.orientation_to.clone(),
-                        edge.orientation_from.clone()
-                    );
+                    // The new edges keep the old ones' state: an edge an earlier variant
+                    // disabled stays disabled, whatever order the variants are added in.
+                    let edge_1: VarGraphEdge = edge;
+                    let edge_2: VarGraphEdge = self.get_edge_data(outgoing_node_id, node_id).clone();
                     self.add_edge(new_node_id_3, outgoing_node_id, edge_1);
                     self.add_edge(outgoing_node_id, new_node_id_3, edge_2);
                 }
@@ -2166,3 +2130,8 @@ impl Clone for VarGraph {
         }
     }
 }
+
+
+#[cfg(test)]
+#[path = "../tests/graph/vargraph.rs"]
+mod tests;

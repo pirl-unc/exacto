@@ -17,7 +17,6 @@ use std::collections::{HashMap,HashSet,VecDeque};
 use crate::prelude::*;
 
 
-/// MultiDiGraph
 #[derive(Clone,Debug)]
 pub struct MultiDiGraph<N, E> {
     /// Node IDs in the graph.
@@ -426,18 +425,26 @@ impl<N, E> MultiDiGraph<N, E> {
     ///
     /// Parameters:
     ///     id    :   Node ID.
+    /// Only the node's own neighbours are visited, so a removal costs O(degree), not O(edges).
     pub fn remove_node(&mut self, id: usize) {
         self.node_ids.remove(&id);
-        self.outgoing_edges.remove(&id);
-        self.incoming_edges.remove(&id);
-        for (_, set) in &mut self.outgoing_edges {
-            set.retain(|x| *x != id);
+        if let Some(destinations) = self.outgoing_edges.remove(&id) {
+            for destination in destinations {
+                if let Some(set) = self.incoming_edges.get_mut(&destination) {
+                    set.remove(&id);
+                }
+                self.edge_data.remove(&(id, destination));
+            }
         }
-        for (_, set) in &mut self.incoming_edges {
-            set.retain(|x| *x != id);
+        if let Some(sources) = self.incoming_edges.remove(&id) {
+            for source in sources {
+                if let Some(set) = self.outgoing_edges.get_mut(&source) {
+                    set.remove(&id);
+                }
+                self.edge_data.remove(&(source, id));
+            }
         }
         self.node_data.remove(&id);
-        self.edge_data.retain(|(first, second), _| *first != id && *second != id);
     }
 }
 
@@ -476,3 +483,8 @@ impl<N, E> MultiDiGraph<N, E> {
         }
     }
 }
+
+
+#[cfg(test)]
+#[path = "../tests/graph/multidigraph.rs"]
+mod tests;

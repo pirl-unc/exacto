@@ -3,10 +3,14 @@ title: "Exacto"
 subtitle: "EXacto Accurate Characterization of Transcriptomes and genOmes"
 ---
 
-A long-read toolkit for mutant proteoform prediction. Exacto identifies
-somatic and germline DNA variants, RNA variants, integrates them, and
-translates full-length transcripts with variant annotation at the
-amino-acid level.
+Exacto is a long-read toolkit for mutant proteoform prediction. Using long-read DNA and RNA sequencing data, Exacto:
+
+* Identifies somatic and germline DNA variants.
+* Performs variant-aware assembly of full-length transcripts.
+* Identifies RNA variants.
+* Links DNA and RNA variants.
+* Translates transcripts into predicted proteoforms with amino acid-level annotations of DNA and RNA variants.
+* Identifies mutant peptides against a reference proteome.
 
 ## Quick Start
 
@@ -16,10 +20,12 @@ amino-acid level.
 conda create -n exacto python=3.10
 conda activate exacto
 pip install pysam==0.23.0
-conda install -c conda-forge rust==1.88.0
+conda install -c conda-forge rust==1.95.0
+conda install -c conda-forge clangdev=21.1.8
 conda install -c anaconda pandas==2.2.3
 conda install -c conda-forge polars==1.26.0
 conda install -c conda-forge pyarrow==19.0.1
+export LIBCLANG_PATH=$CONDA_PREFIX/lib
 pip install exacto-<version>.tar.gz --verbose
 ```
 
@@ -39,7 +45,7 @@ and its options.
 
 ### 3. Pipelines
 
-Exacto supports pipelines for mutant proteoform prediction and individualized graph genome / transcriptome construction.
+Exacto supports pipelines for mutant proteoform prediction, variant-aware transcriptome assembly, and individualized genome / transcriptome graph construction.
 See [Pipelines](pipelines/index.qmd) for more.
 
 ## How Exacto is Organized
@@ -47,40 +53,39 @@ See [Pipelines](pipelines/index.qmd) for more.
 ::: {.grid}
 
 ::: {.g-col-4}
-### DNA / RNA variant calling / annotation
-`call-germline-dna-vars`, `call-somatic-dna-vars`, and `call-rna-vars` identify
-variants from long-read alignments; `annotate-vars` adds gene-level context.
+### Variant-aware transcriptome assembly
+`cluster-rna-reads`, `correct-rna-reads` and `determine-rna-consensus` turn long RNA reads into one
+consensus sequence per transcript; `stitch-reference-transcripts` restores degraded ends;
+`quantify-rna-abundances` estimates abundances.
+:::
+
+::: {.g-col-4}
+### DNA / RNA variant calling
+`call-germline-dna-vars` and `call-somatic-dna-vars` call DNA variants from long-read alignments;
+`call-rna-transcript-vars` calls RNA variants and transcript structures on assembled
+transcripts; `annotate-vars` adds gene-level context.
 :::
 
 ::: {.g-col-4}
 ### DNA + RNA variant integration
-`integrate-vars` merges DNA and RNA variant evidence into a single
-unified callset.
+`integrate-vars` links each RNA variant to the DNA variants that explain it.
 :::
 
 ::: {.g-col-4}
-### Peptide translation
-`translate-seqs` and `translate-structs` translate transcripts and
-transcript structures to mutant proteoform sequences.
+### Variant-aware translation
+`translate-transcripts` translates transcripts to proteoforms that record, per amino acid, the
+variants they came from; `translate-seqs` translates plain sequences.
 :::
 
 ::: {.g-col-4}
 ### Mutant peptide calling
-`call-peptide-vars` identifies peptide-level variants in mutant
-proteoforms produced by translation.
+`call-peptide-vars` calls the mutant peptides of the proteoforms against a reference proteome.
 :::
 
 ::: {.g-col-4}
-### Individualized genome / transcriptome graph construction
-`build-genome-var-graph` and `build-transcriptome-var-graph` produce
-personalized graphs that encode the sample's variants
-alongside the linear reference.
-:::
-
-::: {.g-col-4}
-### Quality control
-`remove-unspliced-rnas` filters out background unspliced contigs before
-RNA variant calling.
+### Individualized genome / transcriptome graphs
+`build-genome-var-graph` and `build-transcriptome-var-graph` produce personalized graphs that encode
+the sample's variants alongside the linear reference.
 :::
 
 :::
@@ -88,7 +93,8 @@ RNA variant calling.
 ## Dependencies
 
 * python (>=3.10)
-* rust (1.88.0 tested)
+* rust (1.95.0 tested)
+* libclang (>=9.0, build-time only — required by `bindgen` for the abPOA bindings)
 * numpy (>=1.22.3)
 * pandas (>=2.0.3)
 * polars (>=1.12.0)

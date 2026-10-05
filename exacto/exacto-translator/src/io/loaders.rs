@@ -16,14 +16,21 @@ use csv::ReaderBuilder;
 use crate::prelude::*;
 
 
-pub fn load_assembled_transcript_support_records(tsv_file: &str) -> Vec<AssembledTranscriptSupportRecord> {
+pub fn load_assembled_transcript_support_records(
+    tsv_file: &str
+) -> Result<Vec<AssembledTranscriptSupportRecord>, TranslatorError> {
     let mut reader = ReaderBuilder::new()
         .delimiter(b'\t')
         .has_headers(true)
         .from_path(tsv_file)
-        .expect("Failed to open TSV file");
+        .map_err(|error| TranslatorError::File { file: tsv_file.into(), reason: error.to_string().into_boxed_str() })?;
     reader
         .deserialize()
-        .map(|result| result.expect("Failed to deserialize AssembledTranscriptSupportRecord row"))
+        .enumerate()
+        .map(|(record, result)| result.map_err(|error| TranslatorError::Record {
+            file: tsv_file.into(),
+            record: record + 1,
+            reason: error.to_string().into_boxed_str()
+        }))
         .collect()
 }

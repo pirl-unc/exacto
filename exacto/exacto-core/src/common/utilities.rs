@@ -11,7 +11,6 @@
 // limitations under the License.
 
 
-use bitvec::prelude::*;
 use std::any::Any;
 use std::collections::HashMap;
 use sysinfo::System;
@@ -144,63 +143,101 @@ pub fn count_union_bases(
     unioned_len
 }
 
+/// Count the bases covered by exactly one of the two interval sets.
+///
+/// Returns `(bases only in a, bases only in b)`. Endpoints are inclusive, a position is
+/// counted once however many intervals cover it, and chromosomes are kept apart. An
+/// interval whose start is past its end covers nothing.
+///
+/// Interval arithmetic rather than a coordinate bitmap. The bitmap version allocated one
+/// bit per position from 0 to the highest end on the chromosome, so a locus a few megabases
+/// into chr17 cost about a megabyte per side and twice that again for the clones the
+/// AND/NOT needed — around 5 ms per call, which made this single function 86% of the RNA
+/// read-modelling pass. Merging a few dozen exons gives the same answer from a sort.
 pub fn count_non_overlapping_bases(
     a: &Vec<(Box<str>, u32, u32)>,
     b: &Vec<(Box<str>, u32, u32)>
 ) -> (u32, u32) {
-    // Step 1. Determine max end per chromosome
-    let mut chromosome_max_end: HashMap<&str, u32> = HashMap::new();
-    for (chromosome, start, end) in a.iter().chain(b.iter()) {
-        let entry = chromosome_max_end
+    let a_merged: HashMap<&str, Vec<(u32, u32)>> = merge_regions_by_chromosome(a);
+    let b_merged: HashMap<&str, Vec<(u32, u32)>> = merge_regions_by_chromosome(b);
+
+    let count_private = |
+        these: &HashMap<&str, Vec<(u32, u32)>>,
+        those: &HashMap<&str, Vec<(u32, u32)>>
+    | -> u32 {
+        these
+            .iter()
+            .map(|(chromosome, intervals)| {
+                let covered: u32 = intervals
+                    .iter()
+                    .map(|(start, end)| end - start + 1)
+                    .sum();
+                let shared: u32 = those
+                    .get(chromosome)
+                    .map_or(0, |other| count_intersecting_bases(intervals, other));
+                covered - shared
+            })
+            .sum()
+    };
+
+    (count_private(&a_merged, &b_merged), count_private(&b_merged, &a_merged))
+}
+
+/// Group regions by chromosome and reduce each group to sorted, disjoint intervals.
+///
+/// Abutting intervals are merged along with overlapping ones. That does not change which
+/// positions are covered, only how few pieces they are described in, which is what makes
+/// the sweep in `count_intersecting_bases` linear.
+fn merge_regions_by_chromosome(regions: &[(Box<str>, u32, u32)]) -> HashMap<&str, Vec<(u32, u32)>> {
+    let mut by_chromosome: HashMap<&str, Vec<(u32, u32)>> = HashMap::new();
+    for (chromosome, start, end) in regions.iter() {
+        if start > end {
+            continue;
+        }
+        by_chromosome
             .entry(chromosome.as_ref())
-            .or_insert(0);
-        *entry = (*entry).max(*end);
+            .or_default()
+            .push((*start, *end));
     }
 
-    // Step 2. Allocate bitvectors
-    let mut a_map: HashMap<&str, BitVec> = HashMap::new();
-    let mut b_map: HashMap<&str, BitVec> = HashMap::new();
-    for (chromosome, start, end) in a.iter() {
-        let length = (chromosome_max_end[chromosome.as_ref()] + 1) as usize;
-        let bv = a_map.entry(chromosome).or_insert_with(|| bitvec![0; length]);
-        for i in *start as usize..=*end as usize {
-            bv.set(i, true);
-        }
-    }
-    for (chromosome, start, end) in b.iter() {
-        let length = (chromosome_max_end[chromosome.as_ref()] + 1) as usize;
-        let bv = b_map.entry(chromosome).or_insert_with(|| bitvec![0; length]);
-        for i in *start as usize..=*end as usize {
-            bv.set(i, true);
-        }
-    }
+    for intervals in by_chromosome.values_mut() {
+        intervals.sort_unstable();
 
-    // Step 3. Count unique bases
-    let mut a_only = 0u32;
-    for (chromosome, a_bits) in &a_map {
-        match b_map.get(chromosome) {
-            Some(b_bits) => {
-                a_only += (a_bits.clone() & !b_bits.clone()).count_ones() as u32;
-            },
-            None => {
-                a_only += a_bits.count_ones() as u32;
+        let mut merged: Vec<(u32, u32)> = Vec::with_capacity(intervals.len());
+        for &(start, end) in intervals.iter() {
+            match merged.last_mut() {
+                Some(last) if start <= last.1.saturating_add(1) => last.1 = last.1.max(end),
+                _ => merged.push((start, end))
             }
         }
+        *intervals = merged;
     }
 
-    let mut b_only = 0u32;
-    for (chromosome, b_bits) in &b_map {
-        match a_map.get(chromosome) {
-            Some(a_bits) => {
-                b_only += (b_bits.clone() & !a_bits.clone()).count_ones() as u32;
-            },
-            None => {
-                b_only += b_bits.count_ones() as u32;
-            }
+    by_chromosome
+}
+
+/// Bases covered by both interval lists, each of which must be sorted and disjoint.
+fn count_intersecting_bases(a: &[(u32, u32)], b: &[(u32, u32)]) -> u32 {
+    let mut total: u32 = 0;
+    let mut i: usize = 0;
+    let mut j: usize = 0;
+
+    while i < a.len() && j < b.len() {
+        let start: u32 = a[i].0.max(b[j].0);
+        let end: u32 = a[i].1.min(b[j].1);
+        if start <= end {
+            total += end - start + 1;
+        }
+
+        // Retire whichever interval ends first; the other may still meet the next one.
+        if a[i].1 < b[j].1 {
+            i += 1;
+        } else {
+            j += 1;
         }
     }
 
-    (a_only, b_only)
+    total
 }
 
 /// Find overlapping regions between two regions.

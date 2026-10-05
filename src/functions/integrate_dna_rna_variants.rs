@@ -26,6 +26,8 @@ use pyo3::types::{PyDict, PyList};
 use pyo3_polars::PyDataFrame;
 use std::path::Path;
 
+use crate::functions::io_error;
+
 
 /// This function integrates DNA and RNA variants.
 #[pyfunction]
@@ -47,7 +49,7 @@ pub fn integrate_dna_rna_variants(
     let dna_variant_records: Vec<caller::DNAVariantRecord> = caller::load_dna_variant_records(
         dna_variants_tsv_file.as_str()
     );
-    let rna_variant_records: Vec<caller::RNAVariantRecord> = caller::load_rna_variant_records(
+    let rna_variant_records: Vec<caller::AssembledTranscriptVariantRecord> = caller::load_assembled_transcript_variant_records(
         rna_variants_tsv_file.as_str()
     );
 
@@ -61,7 +63,7 @@ pub fn integrate_dna_rna_variants(
         panic!("Unsupported annotation source: {}", reference_gene_annotation_source);
     };
 
-    let integrated_variants: Vec<integrator::IntegratedVariant> = integrator::integrate_dna_rna_variants(
+    let integrated_variants: Vec<integrator::RNAVariantIntegration> = integrator::integrate_dna_rna_variants(
         &dna_variant_records,
         &rna_variant_records,
         &gene_annotator,
@@ -69,7 +71,16 @@ pub fn integrate_dna_rna_variants(
         max_transcript_boundary_offset,
         max_intergenic_distance,
         num_threads
-    );
+    ).map_err(|error| {
+        let file: &str = match &error {
+            integrator::IntegratorError::DuplicateDNAVariantId { .. } => dna_variants_tsv_file.as_str(),
+            integrator::IntegratorError::UnknownTranscript { .. } => reference_gene_annotation_file.as_str(),
+            integrator::IntegratorError::ThreadPool { .. } => {
+                return PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(error.to_string());
+            }
+        };
+        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("{}: {}", file, error))
+    })?;
 
     match output_type.as_str() {
         "dataframe" => {
@@ -82,7 +93,7 @@ pub fn integrate_dna_rna_variants(
             core::write_tsv_file(
                 integrator::build_integrated_variant_records(&integrated_variants),
                 Path::new(output_tsv_file.as_str())
-            );
+            ).map_err(io_error)?;
             Ok((PyDataFrame(DataFrame::new(vec![]).unwrap())))
         },
         other => {

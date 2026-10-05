@@ -165,3 +165,103 @@ fn test_overlaps_1() {
 }
 
 
+
+#[test]
+fn test_count_non_overlapping_bases_2() {
+    // Positions covered by neither list, one list, or both, plus abutting and
+    // duplicated intervals and a chromosome that appears on one side only.
+    let a = vec![
+        (Box::from("chr1"), 10u32, 20u32),
+        (Box::from("chr1"), 21, 25),   // abuts the interval above
+        (Box::from("chr1"), 12, 18),   // wholly inside it
+        (Box::from("chr2"), 100, 109),
+    ];
+    let b = vec![
+        (Box::from("chr1"), 20, 22),
+        (Box::from("chr3"), 1, 5),
+    ];
+
+    // chr1: a covers 10-25 (16), b covers 20-22 (3), shared 3 -> a-only 13, b-only 0
+    // chr2: a only, 10 bases
+    // chr3: b only, 5 bases
+    let (num_a_only_bases, num_b_only_bases) = count_non_overlapping_bases(&a, &b);
+    assert_eq!(num_a_only_bases, 23);
+    assert_eq!(num_b_only_bases, 5);
+}
+
+#[test]
+fn test_count_non_overlapping_bases_3() {
+    // Randomised agreement with a per-position oracle. The production implementation is
+    // interval arithmetic; this is the definition it has to match, checked over a coordinate
+    // range small enough to enumerate. Deterministic PRNG so a failure is reproducible.
+    use std::collections::HashSet;
+
+    fn oracle(
+        a: &Vec<(Box<str>, u32, u32)>,
+        b: &Vec<(Box<str>, u32, u32)>
+    ) -> (u32, u32) {
+        fn positions(regions: &Vec<(Box<str>, u32, u32)>) -> HashSet<(Box<str>, u32)> {
+            let mut covered: HashSet<(Box<str>, u32)> = HashSet::new();
+            for (chromosome, start, end) in regions.iter() {
+                for position in *start..=*end {
+                    covered.insert((chromosome.clone(), position));
+                }
+            }
+            covered
+        }
+
+        let a_positions: HashSet<(Box<str>, u32)> = positions(a);
+        let b_positions: HashSet<(Box<str>, u32)> = positions(b);
+        (
+            a_positions.difference(&b_positions).count() as u32,
+            b_positions.difference(&a_positions).count() as u32
+        )
+    }
+
+    fn next(seed: &mut u64, bound: u32) -> u32 {
+        *seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        ((*seed >> 33) as u32) % bound
+    }
+
+    fn build(seed: &mut u64) -> Vec<(Box<str>, u32, u32)> {
+        let num_regions: u32 = next(seed, 6);
+        let mut regions: Vec<(Box<str>, u32, u32)> = Vec::new();
+        for _ in 0..num_regions {
+            let chromosome: Box<str> = if next(seed, 3) == 0 { "chr2".into() } else { "chr1".into() };
+            let start: u32 = next(seed, 60);
+            let end: u32 = start + next(seed, 20);
+            regions.push((chromosome, start, end));
+        }
+        regions
+    }
+
+    let mut seed: u64 = 0x5DEECE66D;
+    for _trial in 0..500 {
+        let a: Vec<(Box<str>, u32, u32)> = build(&mut seed);
+        let b: Vec<(Box<str>, u32, u32)> = build(&mut seed);
+
+        assert_eq!(
+            count_non_overlapping_bases(&a, &b),
+            oracle(&a, &b),
+            "disagreement on a={:?} b={:?}",
+            a, b
+        );
+    }
+}
+
+#[test]
+fn test_write_tsv_table_empty() {
+    // A table without rows is written as its header line, which any TSV reader reads back as an
+    // empty table; write_tsv_file leaves a file of 0 bytes.
+    #[derive(serde::Serialize, Default)]
+    struct Row {
+        variant_id: Box<str>,
+        depth: u32
+    }
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let table_file = temp_dir.path().join("table.tsv");
+    write_tsv_table(Vec::<Row>::new(), &table_file).unwrap();
+    assert_eq!(std::fs::read_to_string(&table_file).unwrap(), "variant_id\tdepth\n");
+    write_tsv_table(vec![Row { variant_id: "v1".into(), depth: 3 }], &table_file).unwrap();
+    assert_eq!(std::fs::read_to_string(&table_file).unwrap(), "variant_id\tdepth\nv1\t3\n");
+}

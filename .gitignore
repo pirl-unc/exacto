@@ -19,6 +19,11 @@ Cargo.lock
 .nojekyll
 *.nextflow.log*
 **/.nextflow/
-references/
+/references/
 tasks/
 CLAUDE.md
+.claude/
+.cargo/
+code_reviews/
+**/clair3/log/
+**/clair3/tmp/

@@ -17,6 +17,7 @@ use log::LevelFilter;
 use once_cell::sync::OnceCell;
 use std::io::Write;
 
+use crate::log_info;
 
 static INIT_LOGGER: OnceCell<()> = OnceCell::new();
 
@@ -43,4 +44,25 @@ pub fn init_logging(verbose: bool) {
             .filter(None, level)
             .init();
     });
+}
+
+
+pub fn log_memory(label: &str) {
+    let Ok(status) = std::fs::read_to_string("/proc/self/status") else {
+        return;
+    };
+    let field = |name: &str| -> f64 {
+        status
+            .lines()
+            .find(|line| line.starts_with(name))
+            .and_then(|line| line.split_whitespace().nth(1))
+            .and_then(|kb| kb.parse::<f64>().ok())
+            .unwrap_or(0.0) / (1024.0 * 1024.0)
+    };
+    log_info!(
+        "[memory] {}: current {:.1} GiB, peak {:.1} GiB",
+        label,
+        field("VmRSS:"),
+        field("VmHWM:")
+    );
 }

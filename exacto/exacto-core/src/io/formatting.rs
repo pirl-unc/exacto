@@ -11,6 +11,10 @@
 // limitations under the License.
 
 
+pub const LIST_SEPARATOR: &str = ";";
+pub const SECTION_SEPARATOR: &str = "|";
+
+
 pub fn join_ids<I, T>(ids: I) -> String
 where
     I: IntoIterator<Item = T>,
@@ -19,5 +23,5 @@ where
     ids.into_iter()
         .map(|id| id.to_string())
         .collect::<Vec<_>>()
-        .join(",")
+        .join(LIST_SEPARATOR)
 }

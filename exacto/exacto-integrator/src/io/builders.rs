@@ -11,13 +11,13 @@
 // limitations under the License.
 
 
-use exacto_core::prelude::join_ids;
+use exacto_core::prelude::{join_ids, LIST_SEPARATOR};
 
 use crate::prelude::*;
 
 
 pub fn build_integrated_variant_records<'a>(
-    integrated_variants: &'a Vec<IntegratedVariant>
+    integrated_variants: &'a Vec<RNAVariantIntegration>
 ) -> impl Iterator<Item = IntegratedVariantRecord> + 'a {
     let mut integrated_variant_records: Vec<IntegratedVariantRecord> = Vec::new();
     for integrated_variant in integrated_variants {
@@ -25,18 +25,17 @@ pub fn build_integrated_variant_records<'a>(
             let reference_transcript_ids_string: String = integrated_variant.reference_transcript_ids.iter()
                 .map(|s| s.as_ref()) // &Box<str> -> &str
                 .collect::<Vec<&str>>()
-                .join(",");
+                .join(LIST_SEPARATOR);
             integrated_variant_records.push(
                 IntegratedVariantRecord {
                     assembled_transcript_name: integrated_variant.assembled_transcript_name.clone(),
-                    transcript_model_id: integrated_variant.transcript_model_id,
                     reference_gene_name: join_ids(integrated_variant.reference_gene_names.clone()).into(),
                     reference_transcript_id: join_ids(integrated_variant.reference_transcript_ids.clone()).into(),
                     rna_variant_id: integrated_variant.rna_variant_id,
                     dna_variant_id: *dna_variant_id,
-                    distance: integrated_variant_distance.distance,
-                    rna_variant_position: integrated_variant_distance.rna_variant_position_used.as_str().into(),
-                    dna_variant_position: integrated_variant_distance.dna_variant_position_used.as_str().into()
+                    distance: integrated_variant_distance.get_distance(),
+                    rna_variant_position: integrated_variant_distance.get_rna_variant_position_index().as_str().into(),
+                    dna_variant_position: integrated_variant_distance.get_dna_variant_position_index().as_str().into()
                 }
             )
         }

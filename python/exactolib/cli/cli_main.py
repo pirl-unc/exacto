@@ -22,12 +22,17 @@ from .cli_build_genome_var_graph import *
 from .cli_build_transcriptome_var_graph import *
 from .cli_call_germline_dna_vars import *
 from .cli_call_somatic_dna_vars import *
-from .cli_call_rna_vars import *
+from .cli_call_rna_transcript_vars import *
 from .cli_call_peptide_vars import *
+from .cli_cluster_rna_reads import *
+from .cli_correct_rna_reads import *
+from .cli_determine_rna_consensus import *
 from .cli_integrate_vars import *
+from .cli_quantify_rna_abundances import *
 from .cli_remove_unspliced_rnas import *
+from .cli_stitch_reference_transcripts import *
 from .cli_translate_seqs import *
-from .cli_translate_structs import *
+from .cli_translate_transcripts import *
 from ..logging import get_logger
 
 
@@ -62,12 +67,17 @@ def run():
     sub_parsers = add_cli_build_transcriptome_var_graph_arg_parser(sub_parsers=sub_parsers)     # build-transcriptome-var-graph
     sub_parsers = add_cli_call_germline_dna_vars_arg_parser(sub_parsers=sub_parsers)            # call-germline-dna-vars
     sub_parsers = add_cli_call_somatic_dna_vars_arg_parser(sub_parsers=sub_parsers)             # call-somatic-dna-vars
-    sub_parsers = add_cli_call_rna_vars_arg_parser(sub_parsers=sub_parsers)                     # call-rna-vars
+    sub_parsers = add_cli_call_rna_transcript_vars_arg_parser(sub_parsers=sub_parsers)          # call-rna-transcript-vars
     sub_parsers = add_cli_call_peptide_vars_arg_parser(sub_parsers=sub_parsers)                 # call-peptide-vars
+    sub_parsers = add_cli_cluster_rna_reads_arg_parser(sub_parsers=sub_parsers)                 # cluster-rna-reads
+    sub_parsers = add_cli_correct_rna_reads_arg_parser(sub_parsers=sub_parsers)                 # correct-rna-reads
+    sub_parsers = add_cli_determine_rna_consensus_arg_parser(sub_parsers=sub_parsers)           # determine-rna-consensus
     sub_parsers = add_cli_integrate_vars_arg_parser(sub_parsers=sub_parsers)                    # integrate-vars
+    sub_parsers = add_cli_quantify_rna_abundances_arg_parser(sub_parsers=sub_parsers)           # quantify-rna-abundances
     sub_parsers = add_cli_remove_unspliced_rnas_arg_parser(sub_parsers=sub_parsers)             # remove-unspliced-rnas
+    sub_parsers = add_cli_stitch_reference_transcripts_arg_parser(sub_parsers=sub_parsers)      # stitch-reference-transcripts
     sub_parsers = add_cli_translate_seqs_arg_parser(sub_parsers=sub_parsers)                    # translate-seqs
-    sub_parsers = add_cli_translate_structs_arg_parser(sub_parsers=sub_parsers)                 # translate-structs
+    sub_parsers = add_cli_translate_transcripts_arg_parser(sub_parsers=sub_parsers)             # translate-transcripts
     args = arg_parser.parse_args()
 
     # Step 2. Execute function based on CLI arguments
@@ -81,17 +91,27 @@ def run():
         run_cli_call_germline_dna_vars_from_parsed_args(args=args)
     elif args.which == 'call-somatic-dna-vars':
         run_cli_call_somatic_dna_vars_from_parsed_args(args=args)
-    elif args.which == 'call-rna-vars':
-        run_cli_call_rna_vars_from_parsed_args(args=args)
+    elif args.which == 'call-rna-transcript-vars':
+        run_cli_call_rna_transcript_vars_from_parsed_args(args=args)
     elif args.which == 'call-peptide-vars':
         run_cli_call_peptide_vars_from_parsed_args(args=args)
+    elif args.which == 'cluster-rna-reads':
+        run_cli_cluster_rna_reads_vars_from_parsed_args(args=args)
+    elif args.which == 'correct-rna-reads':
+        run_cli_correct_rna_reads_from_parsed_args(args=args)
+    elif args.which == 'determine-rna-consensus':
+        run_cli_determine_rna_consensus_from_parsed_args(args=args)
     elif args.which == 'integrate-vars':
         run_cli_integrate_vars_from_parsed_args(args=args)
+    elif args.which == 'quantify-rna-abundances':
+        run_cli_quantify_rna_abundances_vars_from_parsed_args(args=args)
     elif args.which == 'remove-unspliced-rnas':
         run_cli_remove_unspliced_rnas_from_parsed_args(args=args)
+    elif args.which == 'stitch-reference-transcripts':
+        run_cli_stitch_reference_transcripts_from_parsed_args(args=args)
     elif args.which == 'translate-seqs':
         run_cli_translate_seqs_from_parsed_args(args=args)
-    elif args.which == 'translate-structs':
-        run_cli_translate_structs_from_parsed_args(args=args)
+    elif args.which == 'translate-transcripts':
+        run_cli_translate_transcripts_from_parsed_args(args=args)
     else:
         raise Exception("Invalid command: %s" % args.which)

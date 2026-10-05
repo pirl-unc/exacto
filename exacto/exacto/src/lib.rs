@@ -1,7 +1,12 @@
 pub extern crate exacto_annotator as annotator;
 pub extern crate exacto_caller as caller;
+pub extern crate exacto_cluster as cluster;
+pub extern crate exacto_consensus as consensus;
 pub extern crate exacto_core as core;
+pub extern crate exacto_correction as correction;
 pub extern crate exacto_graph as graph;
 pub extern crate exacto_integrator as integrator;
 pub extern crate exacto_qc as qc;
+pub extern crate exacto_quantifier as quantifier;
+pub extern crate exacto_stitcher as stitcher;
 pub extern crate exacto_translator as translator;

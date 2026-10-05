@@ -13,3 +13,4 @@ log = { workspace = true }
 polars = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
+thiserror = { workspace = true }

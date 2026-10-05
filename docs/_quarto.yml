@@ -26,6 +26,7 @@ website:
         contents:
           - pipelines/index.qmd
           - pipelines/mutant-proteoform-prediction.qmd
+          - pipelines/variant-aware-transcriptome-assembly.qmd
           - pipelines/variation-graph-construction.qmd
       - section: Commands
         contents:

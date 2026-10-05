@@ -66,12 +66,26 @@ impl VarGraphVariantNode {
         self.graph_operation_view.get_strand_2()
     }
     
+    /// The node's bases, read from its position_1 side to its position_2 side.
+    ///
+    /// The variant tables spell a sequence genome-forward, in the order a forward read passes the
+    /// junction (exacto-caller writes `get_standardized_sequence`), so the strand does not change
+    /// it. A forward read passes a D-to-U junction from position_1 to position_2, but a U-to-D
+    /// junction (a tandem duplication, or a translocation joined that way) from position_2 to
+    /// position_1. A path walks such a node from its position_2 side and reverse-complements it,
+    /// so the node holds the reverse complement and the path writes the bases as stored.
     pub fn get_sequence(&self) -> Box<str> {
-        self.graph_operation_view.get_standardized_sequence()
+        let sequence: String = self.graph_operation_view.get_sequence().to_uppercase();
+        if *self.get_operation_1() == GraphOperationType::Upstream &&
+            *self.get_operation_2() == GraphOperationType::Downstream {
+            reverse_complement(&sequence)
+        } else {
+            sequence.into_boxed_str()
+        }
     }
-    
+
     pub fn get_sequence_length(&self) -> u32 {
-        self.graph_operation_view.get_standardized_sequence().len() as u32
+        self.graph_operation_view.get_sequence_length() as u32
     }
     
     pub fn get_variant_id(&self) -> usize {

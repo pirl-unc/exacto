@@ -99,7 +99,7 @@ impl VarGraphNode {
                 node.get_sequence().into()
             },
             Self::Variant(node) => {
-                node.graph_operation_view.get_standardized_sequence()
+                node.get_sequence()
             }
         }
     }
@@ -110,7 +110,7 @@ impl VarGraphNode {
                 node.get_sequence_length()
             },
             Self::Variant(node) => {
-                node.graph_operation_view.get_standardized_sequence().len() as u32
+                node.get_sequence_length()
             }
         }
     }

@@ -48,8 +48,8 @@ def add_cli_call_germline_dna_vars_arg_parser(sub_parsers) -> argparse._SubParse
         help="Input BAM file."
     )
     parser_required.add_argument(
-        "--bam-bai-file",
-        dest="bam_bai_file",
+        "--bai-file",
+        dest="bai_file",
         type=str,
         required=True,
         help="Input BAM.BAI file."
@@ -79,7 +79,8 @@ def add_cli_call_germline_dna_vars_arg_parser(sub_parsers) -> argparse._SubParse
         default=None,
         required=False,
         help="Sequencing-platform preset that fills platform-typical defaults "
-             "for --expected-sequencing-error, and --expected-slippage-probability. Choices: 'pb' (PacBio HiFi) or "
+             "for --expected-sequencing-error, --expected-slippage-probability, --min-reads, and "
+             "--min-total-depth. Choices: 'pb' (PacBio HiFi) or "
              "'ont' (Oxford Nanopore). Any explicit parameter wins over the preset."
     )
     parser_optional.add_argument(
@@ -106,9 +107,10 @@ def add_cli_call_germline_dna_vars_arg_parser(sub_parsers) -> argparse._SubParse
         "--min-reads",
         dest="min_reads",
         type=int,
-        default=CALL_GERMLINE_DNA_VARS_MIN_READS,
+        default=None,
         required=False,
-        help="Minimum number of supporting reads (default: %i)."
+        help="Minimum number of supporting reads (default: preset-dependent, pb 4 / ont 5; "
+             "%i with no preset)."
              % CALL_GERMLINE_DNA_VARS_MIN_READS
     )
     parser_optional.add_argument(
@@ -133,9 +135,9 @@ def add_cli_call_germline_dna_vars_arg_parser(sub_parsers) -> argparse._SubParse
         "--min-total-depth",
         dest="min_total_depth",
         type=int,
-        default=CALL_GERMLINE_DNA_VARS_MIN_TOTAL_DEPTH,
+        default=None,
         required=False,
-        help="Minimum total depth (default: %i)."
+        help="Minimum total depth (default: preset-dependent, pb 4 / ont 5; %i with no preset)."
              % CALL_GERMLINE_DNA_VARS_MIN_TOTAL_DEPTH
     )
     parser_optional.add_argument(
@@ -175,24 +177,6 @@ def add_cli_call_germline_dna_vars_arg_parser(sub_parsers) -> argparse._SubParse
         required=False,
         help="Maximum distance for clustering intrachromomsomal variants (default: %i)."
              % CALL_GERMLINE_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE
-    )
-    parser_optional.add_argument(
-        "--max-intrachromosomal-distance-tau",
-        dest="max_intrachromosomal_distance_tau",
-        type=int,
-        default=CALL_GERMLINE_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU,
-        required=False,
-        help="Maximum distance tau for clustering intrachromomsomal variants (default: %i)."
-             % CALL_GERMLINE_DNA_VARS_MAX_INTRACHROMOSOMAL_DISTANCE_TAU
-    )
-    parser_optional.add_argument(
-        "--max-interchromosomal-distance",
-        dest="max_interchromosomal_distance",
-        type=int,
-        default=CALL_GERMLINE_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE,
-        required=False,
-        help="Maximum distance for clustering intrachromomsomal variants (default: %i)."
-             % CALL_GERMLINE_DNA_VARS_MAX_INTERCHROMOSOMAL_DISTANCE
     )
     parser_optional.add_argument(
         "--max-slippage-repeat-length",
@@ -262,15 +246,6 @@ def add_cli_call_germline_dna_vars_arg_parser(sub_parsers) -> argparse._SubParse
                 CALL_DNA_VARS_PRESETS["ont"]["expected_slippage_probability"])
     )
     parser_optional.add_argument(
-        "--max-f1-fraction",
-        dest="max_f1_fraction",
-        type=float,
-        default=CALL_GERMLINE_DNA_VARS_MAX_F1_FRACTION,
-        required=False,
-        help="Maximum F1 value fraction (default: %f)."
-             % CALL_GERMLINE_DNA_VARS_MAX_F1_FRACTION
-    )
-    parser_optional.add_argument(
         "--max-fpr",
         dest="max_fpr",
         type=float,
@@ -286,6 +261,192 @@ def add_cli_call_germline_dna_vars_arg_parser(sub_parsers) -> argparse._SubParse
         default="",
         required=False,
         help="Temp directory (default: TMPDIR)."
+    )
+    parser_optional.add_argument(
+        "--min-terminal-softclip-length",
+        dest="min_terminal_softclip_length",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_MIN_TERMINAL_SOFTCLIP_LENGTH,
+        required=False,
+        help="Terminal soft-clip runs shorter than this many bases emit no variant record; 1-2 bp "
+             "terminal clips are aligner anchor jitter, not junction or insertion evidence. Set 0 to "
+             "disable (default: %i)."
+             % CALL_GERMLINE_DNA_VARS_MIN_TERMINAL_SOFTCLIP_LENGTH
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue",
+        dest="bkpt_rescue",
+        type=str2bool,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE,
+        required=False,
+        help="Whether to rescue breakpoints from insertions by re-aligning long insertion sequences "
+             "(default: %s)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-min-ins-len",
+        dest="bkpt_rescue_min_ins_len",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_MIN_INS_LEN,
+        required=False,
+        help="Minimum insertion length to be considered for re-alignment (to rescue breakpoints) "
+             "(default: %i)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_MIN_INS_LEN
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-max-ins-len",
+        dest="bkpt_rescue_max_ins_len",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_MAX_INS_LEN,
+        required=False,
+        help="Maximum insertion length to be considered for re-alignment (to rescue breakpoints) "
+             "(default: %i)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_MAX_INS_LEN
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-search-distance",
+        dest="bkpt_rescue_search_distance",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_SEARCH_DISTANCE,
+        required=False,
+        help="Search distance in bases around an insertion for re-alignment (to rescue breakpoints) "
+             "(default: %i)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_SEARCH_DISTANCE
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-realignment-gap-open-score",
+        dest="bkpt_rescue_realignment_gap_open_score",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_GAP_OPEN_SCORE,
+        required=False,
+        help="Gap open score for insertion re-alignment (to rescue breakpoints) (default: %i)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_GAP_OPEN_SCORE
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-realignment-gap-extend-score",
+        dest="bkpt_rescue_realignment_gap_extend_score",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_GAP_EXTEND_SCORE,
+        required=False,
+        help="Gap extend score for insertion re-alignment (to rescue breakpoints) (default: %i)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_GAP_EXTEND_SCORE
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-realignment-k",
+        dest="bkpt_rescue_realignment_k",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_K,
+        required=False,
+        help="K-mer size for insertion re-alignment (to rescue breakpoints) (default: %i)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_K
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-realignment-band-width",
+        dest="bkpt_rescue_realignment_band_width",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_BAND_WIDTH,
+        required=False,
+        help="Band width for insertion re-alignment (to rescue breakpoints) (default: %i)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_BAND_WIDTH
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-realignment-min-score-fraction",
+        dest="bkpt_rescue_realignment_min_score_fraction",
+        type=float,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_MIN_SCORE_FRACTION,
+        required=False,
+        help="Minimum score fraction for insertion re-alignment (to rescue breakpoints) (default: %f)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_MIN_SCORE_FRACTION
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-realignment-min-query-coverage",
+        dest="bkpt_rescue_realignment_min_query_coverage",
+        type=float,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_MIN_QUERY_COVERAGE,
+        required=False,
+        help="Minimum query coverage for insertion re-alignment (to rescue breakpoints) (default: %f)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_MIN_QUERY_COVERAGE
+    )
+    parser_optional.add_argument(
+        "--bkpt-rescue-realignment-min-span-proportion",
+        dest="bkpt_rescue_realignment_min_span_proportion",
+        type=float,
+        default=CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_MIN_SPAN_PROPORTION,
+        required=False,
+        help="Minimum span proportion for insertion re-alignment (to rescue breakpoints): the shorter "
+             "of the insertion length and the reference span its re-aligned sequence covers, over the "
+             "longer (default: %f)."
+             % CALL_GERMLINE_DNA_VARS_BKPT_RESCUE_REALIGNMENT_MIN_SPAN_PROPORTION
+    )
+    parser_optional.add_argument(
+        "--poa-match-score",
+        dest="poa_match_score",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_POA_MATCH_SCORE,
+        required=False,
+        help="Partial order alignment match score (to determine consensus insertion sequence) "
+             "(default: %i)."
+             % CALL_GERMLINE_DNA_VARS_POA_MATCH_SCORE
+    )
+    parser_optional.add_argument(
+        "--poa-mismatch-score",
+        dest="poa_mismatch_score",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_POA_MISMATCH_SCORE,
+        required=False,
+        help="Partial order alignment mismatch score (to determine consensus insertion sequence) "
+             "(default: %i)."
+             % CALL_GERMLINE_DNA_VARS_POA_MISMATCH_SCORE
+    )
+    parser_optional.add_argument(
+        "--poa-gap-open-score",
+        dest="poa_gap_open_score",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_POA_GAP_OPEN_SCORE,
+        required=False,
+        help="Partial order alignment gap open score (to determine consensus insertion sequence) "
+             "(default: %i)."
+             % CALL_GERMLINE_DNA_VARS_POA_GAP_OPEN_SCORE
+    )
+    parser_optional.add_argument(
+        "--poa-gap-extend-score",
+        dest="poa_gap_extend_score",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_POA_GAP_EXTEND_SCORE,
+        required=False,
+        help="Partial order alignment gap extend score (to determine consensus insertion sequence) "
+             "(default: %i)."
+             % CALL_GERMLINE_DNA_VARS_POA_GAP_EXTEND_SCORE
+    )
+    parser_optional.add_argument(
+        "--read-depth-max-merge-distance",
+        dest="read_depth_max_merge_distance",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_READ_DEPTH_MAX_MERGE_DISTANCE,
+        required=False,
+        help="Positions less than this many bases apart have their read depths counted from one query "
+             "of the BAM file. Only the number of queries depends on it, not the depths (default: %i)."
+             % CALL_GERMLINE_DNA_VARS_READ_DEPTH_MAX_MERGE_DISTANCE
+    )
+    parser_optional.add_argument(
+        "--min-homopolymer-len",
+        dest="min_homopolymer_len",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_MIN_HOMOPOLYMER_LEN,
+        required=False,
+        help="Minimum homopolymer length for a variant to be treated as homopolymer-context (default: "
+             "%i)."
+             % CALL_GERMLINE_DNA_VARS_MIN_HOMOPOLYMER_LEN
+    )
+    parser_optional.add_argument(
+        "--min-dinucleotide-context-len",
+        dest="min_dinucleotide_context_len",
+        type=int,
+        default=CALL_GERMLINE_DNA_VARS_MIN_DINUCLEOTIDE_CONTEXT_LEN,
+        required=False,
+        help="Minimum dinucleotide repeat context length for a variant to be treated as "
+             "dinucleotide-context (default: %i)."
+             % CALL_GERMLINE_DNA_VARS_MIN_DINUCLEOTIDE_CONTEXT_LEN
     )
     parser.set_defaults(which='call-germline-dna-vars')
     return sub_parsers
@@ -309,12 +470,10 @@ def run_cli_call_germline_dna_vars_from_parsed_args(args):
                     min_size_proportion
                     max_ins_norm_edit_distance
                     max_intrachromosomal_distance
-                    max_intrachromosomal_distance_tau
-                    max_interchromosomal_distance
                     temp_dir
     """
     # Resolve preset-affected parameters: explicit flag > preset > built-in default.
-    preset_values: dict[str, float] = CALL_DNA_VARS_PRESETS.get(args.preset, {})
+    preset_values: dict[str, int | float] = CALL_DNA_VARS_PRESETS.get(args.preset, {})
     expected_sequencing_error = (
         args.expected_sequencing_error
         if args.expected_sequencing_error is not None
@@ -324,6 +483,16 @@ def run_cli_call_germline_dna_vars_from_parsed_args(args):
         args.expected_slippage_probability
         if args.expected_slippage_probability is not None
         else preset_values.get("expected_slippage_probability", CALL_GERMLINE_DNA_VARS_EXPECTED_SLIPPAGE_PROBABILITY)
+    )
+    min_reads = (
+        args.min_reads
+        if args.min_reads is not None
+        else preset_values.get("min_reads", CALL_GERMLINE_DNA_VARS_MIN_READS)
+    )
+    min_total_depth = (
+        args.min_total_depth
+        if args.min_total_depth is not None
+        else preset_values.get("min_total_depth", CALL_GERMLINE_DNA_VARS_MIN_TOTAL_DEPTH)
     )
 
     if len(args.regions) == 0:
@@ -344,21 +513,38 @@ def run_cli_call_germline_dna_vars_from_parsed_args(args):
 
     identify_germline_dna_variants(
         bam_file=args.bam_file,
-        bam_bai_file=args.bam_bai_file,
+        bam_bai_file=args.bai_file,
         fasta_file=args.fasta_file,
         output_tsv_file=args.output_tsv_file,
         regions=regions,
-        min_reads=args.min_reads,
+        min_reads=min_reads,
         min_mapping_quality=args.min_mapping_quality,
         min_base_quality=args.min_base_quality,
-        min_total_depth=args.min_total_depth,
+        min_total_depth=min_total_depth,
         min_alt_allele_fraction=args.min_alt_allele_fraction,
         min_size_proportion=args.min_size_proportion,
         max_ins_norm_edit_distance=args.max_ins_norm_edit_distance,
         max_intrachromosomal_distance=args.max_intrachromosomal_distance,
-        max_intrachromosomal_distance_tau=args.max_intrachromosomal_distance_tau,
-        max_interchromosomal_distance=args.max_interchromosomal_distance,
         max_slippage_repeat_length=args.max_slippage_repeat_length,
+        min_terminal_softclip_length=args.min_terminal_softclip_length,
+        bkpt_rescue=args.bkpt_rescue,
+        bkpt_rescue_min_ins_len=args.bkpt_rescue_min_ins_len,
+        bkpt_rescue_max_ins_len=args.bkpt_rescue_max_ins_len,
+        bkpt_rescue_search_distance=args.bkpt_rescue_search_distance,
+        bkpt_rescue_realignment_gap_open_score=args.bkpt_rescue_realignment_gap_open_score,
+        bkpt_rescue_realignment_gap_extend_score=args.bkpt_rescue_realignment_gap_extend_score,
+        bkpt_rescue_realignment_k=args.bkpt_rescue_realignment_k,
+        bkpt_rescue_realignment_band_width=args.bkpt_rescue_realignment_band_width,
+        bkpt_rescue_realignment_min_score_fraction=args.bkpt_rescue_realignment_min_score_fraction,
+        bkpt_rescue_realignment_min_query_coverage=args.bkpt_rescue_realignment_min_query_coverage,
+        bkpt_rescue_realignment_min_span_proportion=args.bkpt_rescue_realignment_min_span_proportion,
+        poa_match_score=args.poa_match_score,
+        poa_mismatch_score=args.poa_mismatch_score,
+        poa_gap_open_score=args.poa_gap_open_score,
+        poa_gap_extend_score=args.poa_gap_extend_score,
+        read_depth_max_merge_distance=args.read_depth_max_merge_distance,
+        min_homopolymer_len=args.min_homopolymer_len,
+        min_dinucleotide_context_len=args.min_dinucleotide_context_len,
         num_threads=args.num_threads,
         chunk_size=args.chunk_size,
         max_records=args.max_records,
@@ -366,6 +552,6 @@ def run_cli_call_germline_dna_vars_from_parsed_args(args):
         expected_mutation_rate=args.expected_mutation_rate,
         expected_sequencing_error=expected_sequencing_error,
         expected_slippage_probability=expected_slippage_probability,
-        max_f1_fraction=args.max_f1_fraction,
+        max_fpr=args.max_fpr,
         temp_dir=args.temp_dir
     )

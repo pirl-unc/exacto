@@ -45,7 +45,12 @@ def add_cli_integrate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
         dest="dna_variants_tsv_file",
         type=str,
         required=True,
-        help="DNA variant callset TSV file."
+        help="DNA variant callset TSV file. Accepts either the full exacto "
+             "somatic-variants schema (from call-somatic-dna-vars) or a "
+             "bare-bones variant grammar with just the columns: origin, variant_id, "
+             "chromosome_1, position_1, strand_1, operation_1, chromosome_2, "
+             "position_2, strand_2, operation_2, sequence. Columns are matched "
+             "by header name; any omitted trailing columns default to empty/0."
     )
     parser_required.add_argument(
         "--rna-variants-tsv-file",
@@ -108,7 +113,8 @@ def add_cli_integrate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
         type=int,
         default=INTEGRATE_VARS_MAX_EXON_OFFSET,
         required=False,
-        help="Maximum exon offset (default: %i)."
+        help="Maximum difference in exon number between an RNA and a DNA position in or near "
+             "one listed reference transcript (default: %i)."
              % INTEGRATE_VARS_MAX_EXON_OFFSET
     )
     parser_optional.add_argument(
@@ -117,7 +123,8 @@ def add_cli_integrate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
         type=int,
         default=INTEGRATE_VARS_MAX_TRANSCRIPT_BOUNDARY_OFFSET,
         required=False,
-        help="Maximum transcript boundary offset (default: %i)."
+        help="Maximum distance outside a reference transcript end at which a position counts "
+             "as in the exon at that end (default: %i)."
              % INTEGRATE_VARS_MAX_TRANSCRIPT_BOUNDARY_OFFSET
     )
     parser_optional.add_argument(
@@ -126,7 +133,8 @@ def add_cli_integrate_vars_arg_parser(sub_parsers) -> argparse._SubParsersAction
         type=int,
         default=INTEGRATE_VARS_MAX_INTERGENIC_DISTANCE,
         required=False,
-        help="Maximum intergenic distance (default: %i)."
+        help="Maximum distance between an RNA and a DNA position that both lie outside every "
+             "listed reference transcript (default: %i)."
              % INTEGRATE_VARS_MAX_INTERGENIC_DISTANCE
     )
     parser.set_defaults(which='integrate-vars')

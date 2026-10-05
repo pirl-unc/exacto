@@ -1,0 +1,6 @@
+row_type	gene_id	transcript_id	exon_id	exon_number	strand	chromosome	start	end
+gene	g1				+	chrT	1	200
+transcript	g1	t1			+	chrT	1	200
+exon	g1	t1	e1	1	+	chrT	1	60
+exon	g1	t1	e2	2	+	chrT	101	130
+exon	g1	t1	e3	3	+	chrT	171	200

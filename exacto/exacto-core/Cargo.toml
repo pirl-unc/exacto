@@ -7,6 +7,7 @@ rust-version.workspace = true
 
 [dependencies]
 bimap = { workspace = true }
+bincode = { workspace = true }
 bio = { workspace = true }
 bitvec = { workspace = true }
 bstr = { workspace = true }
@@ -19,12 +20,16 @@ noodles-bam = { workspace = true }
 noodles-bgzf = { workspace = true }
 noodles-core = { workspace = true }
 noodles-fasta = { workspace = true }
+noodles-fastq = { workspace = true }
 noodles-util = { workspace = true }
 noodles-sam = { workspace = true }
 once_cell = { workspace = true }
 phf = { workspace = true }
 polars = { workspace = true }
+rand = { workspace = true }
+rand_pcg = { workspace = true }
 rayon = { workspace = true }
 serde = { workspace = true }
+statrs = { workspace = true }
 sysinfo = { workspace = true }
 tempfile = { workspace = true }

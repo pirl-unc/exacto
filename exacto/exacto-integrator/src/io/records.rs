@@ -17,7 +17,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct IntegratedVariantRecord {
     pub assembled_transcript_name: Box<str>,
-    pub transcript_model_id: u32,
     pub reference_gene_name: Box<str>,
     pub reference_transcript_id: Box<str>,
     pub rna_variant_id: u32,

@@ -1,0 +1,6 @@
+assembled_transcript_name	reference_gene_id	reference_gene_name	reference_transcript_id	num_splice_junction_matches	num_overlapping_bases	num_reference_only_bases	num_query_only_bases	num_terminal_query_only_bases	num_internal_query_only_bases
+1	ENSG00000108381.11	ASPA	ENST00000263080.3	5	5422	0	0	0	0
+2	ENSG00000179314.16	WSCD1	ENST00000574946.5	6	5066	818	795	795	0
+2	ENSG00000108381.11	ASPA	ENST00000263080.3	3	795	4627	5066	5066	0
+3	ENSG00000179314.16	WSCD1	ENST00000317744.10	8	6056	0	0	0	0
+3	ENSG00000285471.1	ENSG00000285471	ENST00000573619.1	0	422	337	5634	5360	274

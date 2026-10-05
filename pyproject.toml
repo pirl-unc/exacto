@@ -24,7 +24,7 @@ build-backend = "maturin"
 
 [project]
 name = "exacto"
-version = "0.4.6a2"
+version = "0.5.0a1"
 requires-python = ">=3.10"
 keywords = [
     "long-read",
@@ -52,12 +52,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-polars = [
-    "polars==1.18.0"
-]
-polars-ltu = [
-    "polars-ltu-cpu==1.18.0"
-]
+polars = ["polars==1.18.0"]
+polars-lts = ["polars-lts-cpu==1.18.0"]
 
 [tool.maturin]
 python-source = "python"

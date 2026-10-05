@@ -16,6 +16,15 @@ use csv::ReaderBuilder;
 use crate::io::records::*;
 
 
+/// Loads DNA variant records from a tab-separated file.
+///
+/// Accepts either the full exacto somatic-variants schema (16 columns) or a
+/// bare-bones variant-grammar schema providing only the first 11 columns
+/// (`variant_id`, `chromosome_1`, `position_1`, `strand_1`, `operation_1`,
+/// `chromosome_2`, `position_2`, `strand_2`, `operation_2`, `sequence`, `origin`). csv maps
+/// columns by header name, and the trailing `DNAVariantRecord` fields are
+/// `#[serde(default)]`, so a bare-bones file's missing columns default to empty
+/// strings / `0`. Column order is irrelevant; extra columns are ignored.
 pub fn load_dna_variant_records(tsv_file: &str) -> Vec<DNAVariantRecord> {
     let mut reader = ReaderBuilder::new()
         .delimiter(b'\t')
@@ -29,7 +38,7 @@ pub fn load_dna_variant_records(tsv_file: &str) -> Vec<DNAVariantRecord> {
 }
 
 
-pub fn load_rna_variant_records(tsv_file: &str) -> Vec<RNAVariantRecord> {
+pub fn load_assembled_transcript_variant_records(tsv_file: &str) -> Vec<AssembledTranscriptVariantRecord> {
     let mut reader = ReaderBuilder::new()
         .delimiter(b'\t')
         .has_headers(true)
@@ -42,7 +51,7 @@ pub fn load_rna_variant_records(tsv_file: &str) -> Vec<RNAVariantRecord> {
 }
 
 
-pub fn load_transcript_model_structure_records(tsv_file: &str) -> Vec<TranscriptModelStructureRecord> {
+pub fn load_assembled_transcript_model_alignment_records(tsv_file: &str) -> Vec<AssembledTranscriptModelAlignmentRecord> {
     let mut reader = ReaderBuilder::new()
         .delimiter(b'\t')
         .has_headers(true)
@@ -50,6 +59,24 @@ pub fn load_transcript_model_structure_records(tsv_file: &str) -> Vec<Transcript
         .expect("Failed to open TSV file");
     reader
         .deserialize()
-        .map(|result| result.expect("Failed to deserialize TranscriptModelStructureRecord row"))
+        .map(|result| result.expect("Failed to deserialize TranscriptModelAlignmentRecord row"))
         .collect()
 }
+
+
+pub fn load_assembled_transcript_reference_transcript_match_records(tsv_file: &str) -> Vec<AssembledTranscriptReferenceTranscriptMatchRecord> {
+    let mut reader = ReaderBuilder::new()
+        .delimiter(b'\t')
+        .has_headers(true)
+        .from_path(tsv_file)
+        .expect("Failed to open TSV file");
+    reader
+        .deserialize()
+        .map(|result| result.expect("Failed to deserialize AssembledTranscriptReferenceTranscriptMatchRecord row"))
+        .collect()
+}
+
+
+#[cfg(test)]
+#[path = "../tests/io/loaders.rs"]
+mod tests;

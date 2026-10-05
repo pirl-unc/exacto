@@ -1,0 +1,67 @@
+assembled_transcript_name	reference_gene_name	reference_transcript_id	index	read_start	read_end	sequence	type	kind	context	chromosome_1	position_1	operation_1	strand_1	chromosome_2	position_2	operation_2	strand_2	reference_gene_id_1	reference_transcript_id_1	reference_exon_id_1	reference_gene_id_2	reference_transcript_id_2	reference_exon_id_2	skipped
+t1_plus_internal_priming	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t1_plus_internal_priming	G	t1	1	50	69		base	match	intronic	chrT	151	I	+	chrT	170	I	+	g1	t1		g1	t1		
+t1b_plus_tract_consumed	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t1b_plus_tract_consumed	G	t1	1	50	89		base	match	intronic	chrT	151	I	+	chrT	190	I	+	g1	t1		g1	t1		
+t2_plus_intronic_polyadenylation	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t2_plus_intronic_polyadenylation	G	t1	1	49	50		event	splicing	canonical	chrT	150	D	+	chrT	251	U	+	g1	t1		g1	t1		
+t2_plus_intronic_polyadenylation	G	t1	2	50	99		base	match	exonic	chrT	251	I	+	chrT	300	I	+	g1	t1	t1_e2	g1	t1	t1_e2	
+t2_plus_intronic_polyadenylation	G	t1	3	100	119		base	match	intronic	chrT	301	I	+	chrT	320	I	+	g1	t1		g1	t1		
+t3_plus_degradation	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t3_plus_degradation	G	t1	1	49	50		event	splicing	canonical	chrT	150	D	+	chrT	251	U	+	g1	t1		g1	t1		
+t3_plus_degradation	G	t1	2	50	99		base	match	exonic	chrT	251	I	+	chrT	300	I	+	g1	t1	t1_e2	g1	t1	t1_e2	
+t3_plus_degradation	G	t1	3	99	100		event	splicing	canonical	chrT	300	D	+	chrT	401	U	+	g1	t1		g1	t1		
+t3_plus_degradation	G	t1	4	100	149		base	match	exonic	chrT	401	I	+	chrT	450	I	+	g1	t1	t1_e3	g1	t1	t1_e3	
+t3_plus_degradation	G	t1	5	150	169		base	match	intronic	chrT	451	I	+	chrT	470	I	+	g1	t1		g1	t1		
+t4_plus_complete	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t4_plus_complete	G	t1	1	49	50		event	splicing	canonical	chrT	150	D	+	chrT	251	U	+	g1	t1		g1	t1		
+t4_plus_complete	G	t1	2	50	99		base	match	exonic	chrT	251	I	+	chrT	300	I	+	g1	t1	t1_e2	g1	t1	t1_e2	
+t4_plus_complete	G	t1	3	99	100		event	splicing	canonical	chrT	300	D	+	chrT	401	U	+	g1	t1		g1	t1		
+t4_plus_complete	G	t1	4	100	149		base	match	exonic	chrT	401	I	+	chrT	450	I	+	g1	t1	t1_e3	g1	t1	t1_e3	
+t4_plus_complete	G	t1	5	149	150		event	splicing	canonical	chrT	450	D	+	chrT	551	U	+	g1	t1		g1	t1		
+t4_plus_complete	G	t1	6	150	189		base	match	exonic	chrT	551	I	+	chrT	590	I	+	g1	t1	t1_e4	g1	t1	t1_e4	
+t5_plus_exonic_internal_priming	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t5_plus_exonic_internal_priming	G	t1	1	49	50		event	splicing	canonical	chrT	150	D	+	chrT	251	U	+	g1	t1		g1	t1		
+t5_plus_exonic_internal_priming	G	t1	2	50	99		base	match	exonic	chrT	251	I	+	chrT	300	I	+	g1	t1	t1_e2	g1	t1	t1_e2	
+t5_plus_exonic_internal_priming	G	t1	3	99	100		event	splicing	canonical	chrT	300	D	+	chrT	401	U	+	g1	t1		g1	t1		
+t5_plus_exonic_internal_priming	G	t1	4	100	129		base	match	exonic	chrT	401	I	+	chrT	430	I	+	g1	t1	t1_e3	g1	t1	t1_e3	
+t6_plus_deletion_then_mismatch	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t6_plus_deletion_then_mismatch	G	t1	1	49	50		event	deletion	canonical	chrT	150	D	+	chrT	171	U	+	g1	t1		g1	t1		
+t6_plus_deletion_then_mismatch	G	t1	2	50	54		base	mismatch	intronic	chrT	170	D	+	chrT	176	U	+	g1	t1		g1	t1		
+t7_plus_no_reference			0	0	49		base	match	intergenic	chrT	701	I	+	chrT	750	I	+							
+t8_plus_trailing_insertion	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t8_plus_trailing_insertion	G	t1	1	50	69		base	match	intronic	chrT	151	I	+	chrT	170	I	+	g1	t1		g1	t1		
+t8_plus_trailing_insertion	G	t1	2	70	74		base	insertion	intronic	chrT	170	D	+	chrT	171	U	+	g1	t1		g1	t1		
+t9_plus_offset_read_start	G	t1	0	30	79		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t9_plus_offset_read_start	G	t1	1	80	99		base	match	intronic	chrT	151	I	+	chrT	170	I	+	g1	t1		g1	t1		
+t10_plus_alternate_hexamer	G	t1	0	0	49		base	match	exonic	chrT	101	I	+	chrT	150	I	+	g1	t1	t1_e1	g1	t1	t1_e1	
+t10_plus_alternate_hexamer	G	t1	1	49	50		event	splicing	canonical	chrT	150	D	+	chrT	251	U	+	g1	t1		g1	t1		
+t10_plus_alternate_hexamer	G	t1	2	50	99		base	match	exonic	chrT	251	I	+	chrT	300	I	+	g1	t1	t1_e2	g1	t1	t1_e2	
+t10_plus_alternate_hexamer	G	t1	3	100	179		base	match	intronic	chrT	301	I	+	chrT	380	I	+	g1	t1		g1	t1		
+t11_plus_no_reference_a_rich			0	0	49		base	match	intergenic	chrT	771	I	+	chrT	820	I	+							
+t12_plus_a_dense_no_run			0	0	50		base	match	intergenic	chrT	811	I	+	chrT	861	I	+							
+v1_plus_a_rich_terminal_exon	G1;G3	t1;t3	0	0	49		base	match	exonic	chrV	101	I	+	chrV	150	I	+	g3	t3	t3_e1	g3	t3	t3_e1	
+v1_plus_a_rich_terminal_exon	G1;G3	t1;t3	1	49	50		event	splicing	canonical	chrV	150	D	+	chrV	251	U	+	g3	t3		g3	t3		
+v1_plus_a_rich_terminal_exon	G1;G3	t1;t3	2	50	89		base	match	exonic	chrV	251	I	+	chrV	290	I	+	g3	t3	t3_e2	g3	t3	t3_e2	
+v2_plus_ends_on_exon_end	G	t3	0	0	49		base	match	exonic	chrV	101	I	+	chrV	150	I	+	g3	t3	t3_e1	g3	t3	t3_e1	
+v3_plus_ends_on_intron_start	G	t3	0	0	49		base	match	exonic	chrV	101	I	+	chrV	150	I	+	g3	t3	t3_e1	g3	t3	t3_e1	
+v3_plus_ends_on_intron_start	G	t3	1	50	50		base	match	intronic	chrV	151	I	+	chrV	151	I	+	g3	t3		g3	t3		
+u1_minus_internal_priming	G	t2	0	0	49		base	match	exonic	chrU	751	I	-	chrU	800	I	-	g2	t2	t2_e1	g2	t2	t2_e1	
+u1_minus_internal_priming	G	t2	1	50	69		base	match	intronic	chrU	731	I	-	chrU	750	I	-	g2	t2		g2	t2		
+u2_minus_intronic_polyadenylation	G	t2	0	0	49		base	match	exonic	chrU	751	I	-	chrU	800	I	-	g2	t2	t2_e1	g2	t2	t2_e1	
+u2_minus_intronic_polyadenylation	G	t2	1	49	50		event	splicing	canonical	chrU	650	D	-	chrU	751	U	-	g2	t2		g2	t2		
+u2_minus_intronic_polyadenylation	G	t2	2	50	99		base	match	exonic	chrU	601	I	-	chrU	650	I	-	g2	t2	t2_e2	g2	t2	t2_e2	
+u2_minus_intronic_polyadenylation	G	t2	3	100	119		base	match	intronic	chrU	581	I	-	chrU	600	I	-	g2	t2		g2	t2		
+u3_minus_degradation	G	t2	0	0	49		base	match	exonic	chrU	751	I	-	chrU	800	I	-	g2	t2	t2_e1	g2	t2	t2_e1	
+u3_minus_degradation	G	t2	1	49	50		event	splicing	canonical	chrU	650	D	-	chrU	751	U	-	g2	t2		g2	t2		
+u3_minus_degradation	G	t2	2	50	99		base	match	exonic	chrU	601	I	-	chrU	650	I	-	g2	t2	t2_e2	g2	t2	t2_e2	
+u3_minus_degradation	G	t2	3	99	100		event	splicing	canonical	chrU	500	D	-	chrU	601	U	-	g2	t2		g2	t2		
+u3_minus_degradation	G	t2	4	100	149		base	match	exonic	chrU	451	I	-	chrU	500	I	-	g2	t2	t2_e3	g2	t2	t2_e3	
+u3_minus_degradation	G	t2	5	150	169		base	match	intronic	chrU	431	I	-	chrU	450	I	-	g2	t2		g2	t2		
+u4_minus_complete	G	t2	0	0	49		base	match	exonic	chrU	751	I	-	chrU	800	I	-	g2	t2	t2_e1	g2	t2	t2_e1	
+u4_minus_complete	G	t2	1	49	50		event	splicing	canonical	chrU	650	D	-	chrU	751	U	-	g2	t2		g2	t2		
+u4_minus_complete	G	t2	2	50	99		base	match	exonic	chrU	601	I	-	chrU	650	I	-	g2	t2	t2_e2	g2	t2	t2_e2	
+u4_minus_complete	G	t2	3	99	100		event	splicing	canonical	chrU	500	D	-	chrU	601	U	-	g2	t2		g2	t2		
+u4_minus_complete	G	t2	4	100	149		base	match	exonic	chrU	451	I	-	chrU	500	I	-	g2	t2	t2_e3	g2	t2	t2_e3	
+u4_minus_complete	G	t2	5	149	150		event	splicing	canonical	chrU	350	D	-	chrU	451	U	-	g2	t2		g2	t2		
+u4_minus_complete	G	t2	6	150	189		base	match	exonic	chrU	311	I	-	chrU	350	I	-	g2	t2	t2_e4	g2	t2	t2_e4	

@@ -23,6 +23,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 use pyo3_polars::PyDataFrame;
 use std::collections::HashSet;
+use std::fs::File;
 
 
 #[pyfunction]
@@ -58,28 +59,24 @@ pub fn annotate_variant_calls(
     } else {
         panic!("Unsupported annotation source: {}", reference_gene_annotation_source);
     };
-    let parse_options = CsvParseOptions::default()
-        .with_separator(b'\t');
-    let df_variant_calls = CsvReadOptions::default()
-        .with_parse_options(parse_options)
-        .with_has_header(true)
-        .try_into_reader_with_file_path(Some(tsv_file.into()))
-        .unwrap()
-        .finish()
-        .unwrap();
-    let variant_call_annotation_set: annotator::VariantCallAnnotationSet = annotator::annotate_variant_calls(
+    let df_variant_calls: DataFrame = annotator::read_variant_calls_tsv_file(tsv_file.as_str());
+    let mut df_annotated: DataFrame = annotator::append_variant_call_annotations(
         &df_variant_calls,
         &gene_annotator,
         num_threads
     );
     match output_type.as_str() {
         "dataframe" => {
-            Ok(PyDataFrame(variant_call_annotation_set.to_dataframe()))
+            Ok(PyDataFrame(df_annotated))
         }
         "file" => {
-            variant_call_annotation_set.to_tsv_file(
-                output_tsv_file.as_str()
-            );
+            let mut file = File::create(output_tsv_file.as_str())
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("{}: {}", output_tsv_file, e)))?;
+            CsvWriter::new(&mut file)
+                .include_header(true)
+                .with_separator(b'\t')
+                .finish(&mut df_annotated)
+                .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(format!("{}: {}", output_tsv_file, e)))?;
             Ok(PyDataFrame(DataFrame::new(vec![]).unwrap()))
         },
         other => {
