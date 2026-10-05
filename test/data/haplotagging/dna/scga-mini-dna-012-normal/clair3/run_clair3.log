@@ -1,15 +1,15 @@
 
 [INFO] Check environment variables
 [INFO] --include_all_ctgs not enabled, use chr{1..22,X,Y} and {1..22,X,Y} by default
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/log
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/pileup_output
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/merge_output
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/phase_output
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/gvcf_tmp_output
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/full_alignment_output
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/phase_output/phase_vcf
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/phase_output/phase_bam
-[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/full_alignment_output/candidate_bed
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/log
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/pileup_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/merge_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/phase_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/gvcf_tmp_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/full_alignment_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/phase_output/phase_vcf
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/phase_output/phase_bam
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/full_alignment_output/candidate_bed
 [93m[WARNING] Contig name chr18 provided but no mapped reads in BAM, skip![0m
 [INFO] Call variant in contigs: chr17
 [INFO] Chunk number for each contig: 2
@@ -17,10 +17,10 @@
 Calling variants ...
 Total processed positions in chr17 (chunk 1/2) : 0
 Total time elapsed: 0.04 s
-[INFO] No vcf output for file /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/tmp/pileup_output/pileup_chr17_1.vcf, remove empty file
+[INFO] No vcf output for file /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/tmp/pileup_output/pileup_chr17_1.vcf, remove empty file
 Calling variants ...
-Total processed positions in chr17 (chunk 2/2) : 211
-Total time elapsed: 0.29 s
+Total processed positions in chr17 (chunk 2/2) : 279
+Total time elapsed: 0.35 s
 
 [INFO] 2/7 Select heterozygous SNP variants for Whatshap phasing and haplotagging
 [93m[WARNING] Cannot find any 0/1 variant in pileup output using variant quality cut-off proportion: 0.30000000000000004, total heterozygous variants: 0[0m
@@ -44,18 +44,18 @@ Time spent on rest:                             0.0 s
 Total elapsed time:                             0.0 s
 
 [INFO] 5/7 Select candidates for full-alignment calling
-[INFO] Set variants quality cutoff 12.0
-[INFO] Set reference calls quality cutoff 22.0
-[INFO] Low quality reference calls to be processed in chr17: 56
-[INFO] Low quality variants to be processed in chr17: 5
+[INFO] Set variants quality cutoff 8.0
+[INFO] Set reference calls quality cutoff 23.0
+[INFO] Low quality reference calls to be processed in chr17: 74
+[INFO] Low quality variants to be processed in chr17: 7
 
 [INFO] 6/7 Call low-quality variants using full-alignment model
 Calling variants ...
-Total processed positions in chr17 (chunk 1/1) : 61
-Total time elapsed: 0.36 s
+Total processed positions in chr17 (chunk 1/1) : 81
+Total time elapsed: 0.43 s
 
 [INFO] 7/7 Merge pileup VCF and full-alignment VCF
-[INFO] Pileup variants processed in chr17: 15
-[INFO] Full-alignment variants processed in chr17: 6
+[INFO] Pileup variants processed in chr17: 20
+[INFO] Full-alignment variants processed in chr17: 1
 
-[INFO] Finish calling, output file: /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/83/7be1a37c9b46aaa11d42c7ea5824e2/clair3/merge_output.vcf.gz
+[INFO] Finish calling, output file: /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/b8/c2f8783fdbefd403dde044a0253f7e/clair3/merge_output.vcf.gz

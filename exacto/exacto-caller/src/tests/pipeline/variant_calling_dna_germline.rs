@@ -888,7 +888,7 @@ fn scga_mini_dna_007_identify_germline_dna_variants_reads_hard_clipped_supplemen
     writer.try_finish().unwrap();
     drop(writer);
     bai::fs::write(&hard_clipped_bam_bai_file, &bam::fs::index(&hard_clipped_bam_file).unwrap()).unwrap();
-    assert_eq!(num_hard_clipped, 39);
+    assert_eq!(num_hard_clipped, 38);
 
     let options: IdentifyGermlineDNAVariantsOptions = IdentifyGermlineDNAVariantsOptions::default();
     let soft_clipped: DNAVariantCallSet = identify_germline_dna_variants(bam_file, bam_bai_file, fasta_file, &vec![], &options, 1, "");
@@ -933,8 +933,8 @@ fn scga_mini_dna_001_identify_germline_dna_variants_reads_an_index_stored_under_
 
 
 /// A region subset of scga-mini-dna-007 (the records overlapping chr17:3,489,001-3,492,000). The
-/// 20 supplementary records there belong to reads whose primary record lies past the breakend, at
-/// chr17:6.07-6.09 Mb, so those reads keep only a supplementary record. The run goes through: a
+/// 22 supplementary records there belong to reads whose primary record lies past the breakend, from
+/// chr17:6,085,001, so those reads keep only a supplementary record. The run goes through: a
 /// read without its primary record has no read sequence and is left out.
 #[test]
 fn scga_mini_dna_007_identify_germline_dna_variants_runs_on_a_region_subset() {
@@ -970,8 +970,8 @@ fn scga_mini_dna_007_identify_germline_dna_variants_runs_on_a_region_subset() {
     writer.try_finish().unwrap();
     drop(writer);
     bai::fs::write(&subset_bam_bai_file, &bam::fs::index(&subset_bam_file).unwrap()).unwrap();
-    assert_eq!(num_records, 85);
-    assert_eq!(num_supplementary, 20);
+    assert_eq!(num_records, 83);
+    assert_eq!(num_supplementary, 22);
 
     let options: IdentifyGermlineDNAVariantsOptions = IdentifyGermlineDNAVariantsOptions::default();
     let variant_call_set: DNAVariantCallSet = identify_germline_dna_variants(

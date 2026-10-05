@@ -54,7 +54,7 @@ fn scga_mini_dna_001_alignment_model_returns_matches() {
     );
 
     // The first read in the file that carries the SNV (an `X` at chr17:7674225) in its single record.
-    let read_name: &str = "scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs";
+    let read_name: &str = "scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/17/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -65,7 +65,7 @@ fn scga_mini_dna_001_alignment_model_returns_matches() {
         &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect::<Vec<_>>()
     );
     assert_eq!(alignment.get_records().len(), 1);
-    assert_eq!(alignment.iter_base_quality_scores().len(), 19034);
+    assert_eq!(alignment.iter_base_quality_scores().len(), 19057);
     assert_eq!(alignment.get_read_id(), read_id);
     assert_eq!(alignment.get_read_sequence().len(), alignment.iter_base_quality_scores().len());
     assert_eq!(alignment.get_read_sequence().len(), alignment.iter_base_quality_scores().len());
@@ -183,7 +183,7 @@ fn scga_mini_dna_002_alignment_model_returns_matches() {
     );
 
     // The first read in the file that carries the 12-base insertion after chr17:7674224.
-    let read_name: &str = "scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/33/ccs";
+    let read_name: &str = "scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/9/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -246,7 +246,7 @@ fn scga_mini_dna_003_alignment_model_returns_matches() {
     );
 
     // The first read in the file that carries the 30-base deletion of chr17:7674201-7674230.
-    let read_name: &str = "scga-mini-dna-003-tumor_scga-mini-dna-003-tumor-1_1/11/ccs";
+    let read_name: &str = "scga-mini-dna-003-tumor_scga-mini-dna-003-tumor-1_1/1/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -308,9 +308,9 @@ fn scga_mini_dna_013_alignment_model_returns_matches() {
         1
     );
 
-    // A read across the inverted duplication: forward to chr17:7679895, the inverted copy of
-    // 7673301-7679900, then forward again from 7679901.
-    let read_name: &str = "scga-mini-dna-013-tumor_scga-mini-dna-013-tumor-1_1/19/ccs";
+    // The one read across the whole inverted duplication, from the other strand: chr17:7687109 down
+    // to 7679901, the inverted copy forward from 7673301 to 7679895, then 7679900 down to 7678934.
+    let read_name: &str = "scga-mini-dna-013-tumor_scga-mini-dna-013-tumor-1_1/14/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -323,9 +323,9 @@ fn scga_mini_dna_013_alignment_model_returns_matches() {
     );
 
     assert_eq!(alignment.get_records().len(), 3);
-    assert_eq!(alignment.get_records().get(0).unwrap().reference_strand, Strand::Forward);
-    assert_eq!(alignment.get_records().get(1).unwrap().reference_strand, Strand::Reverse);
-    assert_eq!(alignment.get_records().get(2).unwrap().reference_strand, Strand::Forward);
+    assert_eq!(alignment.get_records().get(0).unwrap().reference_strand, Strand::Reverse);
+    assert_eq!(alignment.get_records().get(1).unwrap().reference_strand, Strand::Forward);
+    assert_eq!(alignment.get_records().get(2).unwrap().reference_strand, Strand::Reverse);
 
     let mut num_breakpoint: usize = 0;
     for event in alignment.get_events().values() {
@@ -345,7 +345,7 @@ fn scga_mini_dna_013_multi_record_base_placements() {
 
     let bam_path =
         Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-013-tumor_minimap2_sorted.bam");
-    let read_name = "scga-mini-dna-013-tumor_scga-mini-dna-013-tumor-1_1/19/ccs";
+    let read_name = "scga-mini-dna-013-tumor_scga-mini-dna-013-tumor-1_1/14/ccs";
 
     let mut reader = bam::io::reader::Builder::default()
         .build_from_path(bam_path)
@@ -376,7 +376,7 @@ fn scga_mini_dna_013_multi_record_base_placements() {
 
     let model = AlignmentModel::new(0, &sequence, &qualities, &records);
 
-    assert_eq!(model.get_bases().len(), 14_215);
+    assert_eq!(model.get_bases().len(), 14_569);
 
     let spans: Vec<_> = model
         .get_records()
@@ -391,9 +391,9 @@ fn scga_mini_dna_013_multi_record_base_placements() {
     assert_eq!(
         spans,
         vec![
-            (0, 7_278, Strand::Forward),
-            (7_285, 13_872, Strand::Reverse),
-            (13_873, 14_214, Strand::Forward),
+            (0, 7_100, Strand::Reverse),
+            (7_101, 13_606, Strand::Forward),
+            (13_611, 14_568, Strand::Reverse),
         ]
     );
 
@@ -445,16 +445,16 @@ fn scga_mini_dna_013_multi_record_base_placements() {
         assert_eq!(offset, record.read_end - record.read_start + 1);
     }
 
-    // The record ends land where the records say: the forward arm from 7,672,599 to
-    // 7,679,895, the inverted copy from 7,679,900 down to 7,673,301, the forward arm on
-    // from 7,679,901 to 7,680,247.
+    // The record ends land where the records say: the reverse arm from 7,687,109 down to
+    // 7,679,901, the inverted copy from 7,673,301 to 7,679,895, the reverse arm on from
+    // 7,679,900 down to 7,678,934.
     for (read_position, position, strand) in [
-        (0u32, 7_672_599u32, Strand::Forward),
-        (7_278, 7_679_895, Strand::Forward),
-        (7_285, 7_679_900, Strand::Reverse),
-        (13_872, 7_673_301, Strand::Reverse),
-        (13_873, 7_679_901, Strand::Forward),
-        (14_214, 7_680_247, Strand::Forward),
+        (0u32, 7_687_109u32, Strand::Reverse),
+        (7_100, 7_679_901, Strand::Reverse),
+        (7_101, 7_673_301, Strand::Forward),
+        (13_606, 7_679_895, Strand::Forward),
+        (13_611, 7_679_900, Strand::Reverse),
+        (14_568, 7_678_934, Strand::Reverse),
     ] {
         assert_eq!(
             model.get_base(read_position).get_placement().get_coordinate(),
@@ -463,9 +463,9 @@ fn scga_mini_dna_013_multi_record_base_placements() {
         );
     }
 
-    // The gap between the first and second records is soft-clipped
+    // The gap between the second and third records is soft-clipped
     // and has no reference placement.
-    for read_position in 7_279..7_285 {
+    for read_position in 13_607..13_611 {
         let base = model.get_base(read_position);
         assert_eq!(base.get_kind(), &AlignmentModelBaseKind::Softclip);
         assert!(!base.get_placement().is_placed());
@@ -484,20 +484,21 @@ fn scga_mini_dna_013_multi_record_base_placements() {
         .find(|record| !record.record.flags().is_supplementary())
         .unwrap();
 
-    assert_eq!((primary.read_start, primary.read_end), (0, 7_278));
-    assert!(model.get_base(7_285).is_aligned());
-    assert!(model.get_base(14_214).is_aligned());
+    assert_eq!((primary.read_start, primary.read_end), (0, 7_100));
+    assert!(model.get_base(7_101).is_aligned());
+    assert!(model.get_base(14_568).is_aligned());
 }
 
 #[test]
-fn scga_mini_dna_013_multi_record_placements_are_independent_of_input_order() {
+fn scga_mini_dna_012_multi_record_placements_are_independent_of_input_order() {
     use noodles_sam::alignment::Record as _;
 
-    // Two of this read's three records share read positions 590 and 591, so which record
-    // places them depends on the order the records are applied in.
+    // This read's three records share read positions twice: the primary and the first
+    // supplementary at 9244, the two supplementaries at 10462-10676. Which record places
+    // them depends on the order the records are applied in.
     let bam_path =
-        Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-013-tumor_minimap2_sorted.bam");
-    let read_name = "scga-mini-dna-013-tumor_scga-mini-dna-013-tumor-1_1/16/ccs";
+        Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-012-tumor_minimap2_sorted.bam");
+    let read_name = "scga-mini-dna-012-tumor_scga-mini-dna-012-tumor-1_1/7/ccs";
 
     let mut reader = bam::io::reader::Builder::default()
         .build_from_path(bam_path)
@@ -644,17 +645,17 @@ fn scga_mini_dna_013_alignment_model_is_input_order_insensitive() {
         assert_eq!(forward_events, reversed_events, "read {read_id}");
     }
 
-    // scga-mini-dna-013 carries eighteen split reads, eight of two records and ten of three;
+    // scga-mini-dna-013 carries nine split reads, eight of two records and one of three;
     // without them the comparison above is vacuous.
-    assert_eq!(num_multi_record_reads, 18);
+    assert_eq!(num_multi_record_reads, 9);
 }
 
 #[test]
-fn scga_mini_dna_013_alignment_model_places_contested_base_by_last_record() {
-    let bam_path = Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-013-tumor_minimap2_sorted.bam");
+fn scga_mini_dna_012_alignment_model_places_contested_bases_by_last_record() {
+    let bam_path = Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-012-tumor_minimap2_sorted.bam");
     let bam_full_path = fs::canonicalize(bam_path).unwrap();
     let bam_file: &str = bam_full_path.to_str().unwrap();
-    let bam_bai_path = Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-013-tumor_minimap2_sorted.bam.bai");
+    let bam_bai_path = Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-012-tumor_minimap2_sorted.bam.bai");
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
 
@@ -687,9 +688,10 @@ fn scga_mini_dna_013_alignment_model_places_contested_base_by_last_record() {
         1
     );
 
-    // A read across the inverted duplication from the other strand: the reference after it reversed,
-    // the inverted copy forward, the reference before it reversed. The first two records share two bases.
-    let read_name: &str = "scga-mini-dna-013-tumor_scga-mini-dna-013-tumor-1_1/16/ccs";
+    // A read across the tandem duplication in three forward records: the copy ending at chr17:7679900,
+    // then the copy starting at 7673301 split in two. The primary and the first supplementary share one
+    // base, and the two supplementaries share 215.
+    let read_name: &str = "scga-mini-dna-012-tumor_scga-mini-dna-012-tumor-1_1/7/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -701,7 +703,7 @@ fn scga_mini_dna_013_alignment_model_places_contested_base_by_last_record() {
         &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect::<Vec<_>>()
     );
 
-    // Sorted by read start: reverse arm, forward middle, reverse arm (the primary).
+    // Sorted by read start: the primary, then the two supplementaries.
     let spans: Vec<(u32, u32, Strand)> = alignment
         .get_records()
         .iter()
@@ -710,22 +712,22 @@ fn scga_mini_dna_013_alignment_model_places_contested_base_by_last_record() {
     assert_eq!(
         spans,
         vec![
-            (0, 591, Strand::Reverse),
-            (590, 7120, Strand::Forward),
-            (7121, 17022, Strand::Reverse)
+            (0, 9244, Strand::Forward),
+            (9244, 10676, Strand::Forward),
+            (10462, 15494, Strand::Forward)
         ]
     );
-    assert!(alignment.get_records()[0].record.flags().is_supplementary());
+    assert!(!alignment.get_records()[0].record.flags().is_supplementary());
     assert!(alignment.get_records()[1].record.flags().is_supplementary());
-    assert!(!alignment.get_records()[2].record.flags().is_supplementary());
-    assert_eq!(get_alignment_start_position(&alignment.get_records()[0].record), 7679900);
-    assert_eq!(get_alignment_end_position(&alignment.get_records()[0].record), 7680498);
-    assert_eq!(get_alignment_start_position(&alignment.get_records()[1].record), 7673301);
-    assert_eq!(get_alignment_end_position(&alignment.get_records()[1].record), 7679900);
-    assert_eq!(get_alignment_start_position(&alignment.get_records()[2].record), 7669893);
-    assert_eq!(get_alignment_end_position(&alignment.get_records()[2].record), 7679900);
+    assert!(alignment.get_records()[2].record.flags().is_supplementary());
+    assert_eq!(get_alignment_start_position(&alignment.get_records()[0].record), 7670657);
+    assert_eq!(get_alignment_end_position(&alignment.get_records()[0].record), 7679901);
+    assert_eq!(get_alignment_start_position(&alignment.get_records()[1].record), 7673300);
+    assert_eq!(get_alignment_end_position(&alignment.get_records()[1].record), 7674732);
+    assert_eq!(get_alignment_start_position(&alignment.get_records()[2].record), 7674519);
+    assert_eq!(get_alignment_end_position(&alignment.get_records()[2].record), 7679553);
 
-    // Exactly two read positions lie in two record spans: the seam between the first and the middle record.
+    // 216 read positions lie in two record spans: the seam at 9244, and 10462-10676.
     let mut contested: Vec<u32> = Vec::new();
     for base in alignment.get_bases().iter() {
         let p: u32 = base.get_read_position();
@@ -738,37 +740,28 @@ fn scga_mini_dna_013_alignment_model_places_contested_base_by_last_record() {
             contested.push(p);
         }
     }
-    assert_eq!(contested, vec![590, 591]);
+    assert_eq!(contested, [9244].into_iter().chain(10462..=10676).collect::<Vec<u32>>());
 
-    // The later record in read-start order owns the seam: forward strand, from its own alignment start.
-    // Both bases are flagged soft-clips so neither record can read them as aligned bases.
-    for (p, expected_position) in [(590u32, 7673301u32), (591, 7673302)] {
+    // The later record in read-start order owns each shared base, placed from its own alignment start.
+    // All of them are flagged soft-clips so no record can read them as aligned bases.
+    for (p, expected_position) in [(9244u32, 7673300u32), (10462, 7674519), (10676, 7674732)] {
         let (chromosome_id, position, strand) = alignment.get_base(p).get_placement().get_coordinate().unwrap();
         assert_eq!(&*chromosome_names[chromosome_id as usize], "chr17");
         assert_eq!(position, expected_position);
         assert_eq!(*strand, Strand::Forward);
-        assert_eq!(*alignment.get_base(p).get_kind(), AlignmentModelBaseKind::Softclip);
+    }
+    assert!(contested.iter().all(|p| *alignment.get_base(*p).get_kind() == AlignmentModelBaseKind::Softclip));
+
+    // The earlier record keeps the base before each shared run, and the later one resumes after it.
+    for (p, expected_position) in [(9243u32, 7679900u32), (9245, 7673301), (10461, 7674518), (10677, 7674733)] {
+        let (_chromosome_id, position, strand) = alignment.get_base(p).get_placement().get_coordinate().unwrap();
+        assert_eq!(position, expected_position);
+        assert_eq!(*strand, Strand::Forward);
+        assert_eq!(*alignment.get_base(p).get_kind(), AlignmentModelBaseKind::Match);
     }
 
-    // The first record keeps the base before the seam, two past its alignment start on the reverse strand.
-    let (_chromosome_id, position, strand) = alignment.get_base(589).get_placement().get_coordinate().unwrap();
-    assert_eq!(position, 7679902);
-    assert_eq!(*strand, Strand::Reverse);
-    assert_eq!(*alignment.get_base(589).get_kind(), AlignmentModelBaseKind::Match);
-
-    // The middle record resumes past the seam, its third base on the forward strand.
-    let (_chromosome_id, position, strand) = alignment.get_base(592).get_placement().get_coordinate().unwrap();
-    assert_eq!(position, 7673303);
-    assert_eq!(*strand, Strand::Forward);
-    assert_eq!(*alignment.get_base(592).get_kind(), AlignmentModelBaseKind::Match);
-
-    // The middle record and the primary abut, so no base between them is contested.
-    assert_eq!(alignment.get_base(7120).get_placement().get_coordinate().unwrap().1, 7679900);
-    assert_eq!(*alignment.get_base(7120).get_placement().get_coordinate().unwrap().2, Strand::Forward);
-    assert_eq!(alignment.get_base(7121).get_placement().get_coordinate().unwrap().1, 7679900);
-    assert_eq!(*alignment.get_base(7121).get_placement().get_coordinate().unwrap().2, Strand::Reverse);
-
-    // Kind census, and the reach beyond the primary: both supplementary records are aligned but for the seam.
+    // Kind census, and the reach beyond the primary: both supplementary records are aligned but for
+    // the shared bases.
     let mut num_match: usize = 0;
     let mut num_mismatch: usize = 0;
     let mut num_insertion: usize = 0;
@@ -789,29 +782,29 @@ fn scga_mini_dna_013_alignment_model_places_contested_base_by_last_record() {
             other => panic!("unexpected kind {:?} at position {}", other, base.get_read_position())
         }
         let p: u32 = base.get_read_position();
-        if p < 7121 && base.is_aligned() {
+        if p > 9244 && base.is_aligned() {
             num_aligned_outside_primary += 1;
         }
     }
-    assert_eq!(num_match, 16987);
-    assert_eq!(num_mismatch, 14);
-    assert_eq!(num_insertion, 20);
-    assert_eq!(num_softclip, 2);
-    assert_eq!(num_softclip_placed, 2);
-    assert_eq!(num_aligned_outside_primary, 7121 - 2);
+    assert_eq!(num_match, 15270);
+    assert_eq!(num_mismatch, 0);
+    assert_eq!(num_insertion, 9);
+    assert_eq!(num_softclip, 216);
+    assert_eq!(num_softclip_placed, 216);
+    assert_eq!(num_aligned_outside_primary, (15494 - 9244) - 215);
 
-    // One breakpoint flanks the seam, one joins the middle record to the primary. Every other event is
-    // one of the 190 deletions the three CIGARs hold (7 + 74 + 109).
+    // One breakpoint flanks each shared run. Every other event is one of the 13 deletions the three
+    // CIGARs hold.
     let mut num_deletion: usize = 0;
     for event in alignment.get_events().values() {
         if *event.get_kind() == AlignmentModelEventKind::Deletion {
             num_deletion += 1;
         }
     }
-    assert_eq!(alignment.get_events().len(), 192);
-    assert_eq!(num_deletion, 190);
-    assert_eq!(*alignment.get_event(589, 592).unwrap().get_kind(), AlignmentModelEventKind::Breakpoint);
-    assert_eq!(*alignment.get_event(7120, 7121).unwrap().get_kind(), AlignmentModelEventKind::Breakpoint);
+    assert_eq!(alignment.get_events().len(), 15);
+    assert_eq!(num_deletion, 13);
+    assert_eq!(*alignment.get_event(9243, 9245).unwrap().get_kind(), AlignmentModelEventKind::Breakpoint);
+    assert_eq!(*alignment.get_event(10461, 10677).unwrap().get_kind(), AlignmentModelEventKind::Breakpoint);
 }
 
 #[test]
@@ -935,8 +928,8 @@ fn scga_mini_dna_013_alignment_model_walks_reference_in_strand_direction() {
         }
     }
 
-    // 57 single-record reads, 8 split reads of two records and 10 of three.
-    assert_eq!(num_records_checked, 103);
+    // 64 single-record reads, 8 split reads of two records and 1 of three.
+    assert_eq!(num_records_checked, 83);
     assert!(num_reverse_records_checked > 0, "no reverse-strand record exercised");
 }
 
@@ -1029,8 +1022,8 @@ fn scga_mini_dna_013_alignment_model_leaves_no_unaligned_base() {
         }
     }
 
-    assert_eq!(num_reads, 75);
-    assert_eq!(num_multi_record_reads, 18);
+    assert_eq!(num_reads, 73);
+    assert_eq!(num_multi_record_reads, 9);
 }
 
 #[test]
@@ -1072,7 +1065,7 @@ fn scga_mini_dna_016_alignment_model_returns_matches() {
 
     // The first read in the file with both records forward and its junction on the true breakends:
     // chr17:3491600 joined to chr17:6085001 across the 12 inserted bases.
-    let read_name: &str = "scga-mini-dna-016-tumor_scga-mini-dna-016-tumor-3_1/69/ccs";
+    let read_name: &str = "scga-mini-dna-016-tumor_scga-mini-dna-016-tumor-3_1/29/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -1146,7 +1139,7 @@ fn scga_mini_dna_007_alignment_model_returns_matches() {
     );
 
     // The first read in the file with both records forward: chr17:3491600 joined to chr17:6085001.
-    let read_name: &str = "scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/87/ccs";
+    let read_name: &str = "scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/97/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -1213,7 +1206,7 @@ fn scga_mini_dna_012_alignment_model_places_contested_base_on_last_record_locus(
 
     // The first read in the file across the tandem duplication with both records forward and no
     // terminal clip: the copy ending at chr17:7679900, then the copy starting at 7673301.
-    let read_name: &str = "scga-mini-dna-012-tumor_scga-mini-dna-012-tumor-1_1/3/ccs";
+    let read_name: &str = "scga-mini-dna-012-tumor_scga-mini-dna-012-tumor-1_1/5/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -1225,20 +1218,20 @@ fn scga_mini_dna_012_alignment_model_places_contested_base_on_last_record_locus(
         &records_map.get(&read_id).unwrap().iter().map(|record| Arc::new(record.clone())).collect::<Vec<_>>()
     );
 
-    // A supplementary arm followed by the primary 6.6 kb upstream, sharing read position 7469: the
+    // The primary followed by a supplementary arm 6.6 kb upstream, sharing read position 9164: the
     // read base there matches both chr17:7679901 and chr17:7673300.
     let spans: Vec<(u32, u32, Strand)> = alignment
         .get_records()
         .iter()
         .map(|record| (record.read_start, record.read_end, record.reference_strand.clone()))
         .collect();
-    assert_eq!(spans, vec![(0, 7469, Strand::Forward), (7469, 20250, Strand::Forward)]);
-    assert!(alignment.get_records()[0].record.flags().is_supplementary());
-    assert!(!alignment.get_records()[1].record.flags().is_supplementary());
-    assert_eq!(get_alignment_start_position(&alignment.get_records()[0].record), 7672427);
+    assert_eq!(spans, vec![(0, 9164, Strand::Forward), (9164, 14520, Strand::Forward)]);
+    assert!(!alignment.get_records()[0].record.flags().is_supplementary());
+    assert!(alignment.get_records()[1].record.flags().is_supplementary());
+    assert_eq!(get_alignment_start_position(&alignment.get_records()[0].record), 7670737);
     assert_eq!(get_alignment_end_position(&alignment.get_records()[0].record), 7679901);
     assert_eq!(get_alignment_start_position(&alignment.get_records()[1].record), 7673300);
-    assert_eq!(get_alignment_end_position(&alignment.get_records()[1].record), 7686101);
+    assert_eq!(get_alignment_end_position(&alignment.get_records()[1].record), 7678658);
 
     let mut contested: Vec<u32> = Vec::new();
     for base in alignment.get_bases().iter() {
@@ -1252,29 +1245,29 @@ fn scga_mini_dna_012_alignment_model_places_contested_base_on_last_record_locus(
             contested.push(p);
         }
     }
-    assert_eq!(contested, vec![7469]);
+    assert_eq!(contested, vec![9164]);
 
     // The seam goes to the last record: its alignment start, not the first record's end, flagged a soft-clip.
-    let (chromosome_id, position, strand) = alignment.get_base(7469).get_placement().get_coordinate().unwrap();
+    let (chromosome_id, position, strand) = alignment.get_base(9164).get_placement().get_coordinate().unwrap();
     assert_eq!(&*chromosome_names[chromosome_id as usize], "chr17");
     assert_eq!(position, 7673300);
     assert_eq!(*strand, Strand::Forward);
-    assert_eq!(*alignment.get_base(7469).get_kind(), AlignmentModelBaseKind::Softclip);
+    assert_eq!(*alignment.get_base(9164).get_kind(), AlignmentModelBaseKind::Softclip);
 
     // The base before the seam is the first record's, one short of its alignment end.
-    let (chromosome_id, position, strand) = alignment.get_base(7468).get_placement().get_coordinate().unwrap();
+    let (chromosome_id, position, strand) = alignment.get_base(9163).get_placement().get_coordinate().unwrap();
     assert_eq!(&*chromosome_names[chromosome_id as usize], "chr17");
     assert_eq!(position, 7679900);
     assert_eq!(*strand, Strand::Forward);
-    assert_eq!(*alignment.get_base(7468).get_kind(), AlignmentModelBaseKind::Match);
+    assert_eq!(*alignment.get_base(9163).get_kind(), AlignmentModelBaseKind::Match);
 
-    // The base after the seam continues the primary.
-    let (chromosome_id, position, _strand) = alignment.get_base(7470).get_placement().get_coordinate().unwrap();
+    // The base after the seam continues the supplementary.
+    let (chromosome_id, position, _strand) = alignment.get_base(9165).get_placement().get_coordinate().unwrap();
     assert_eq!(&*chromosome_names[chromosome_id as usize], "chr17");
     assert_eq!(position, 7673301);
-    assert_eq!(*alignment.get_base(7470).get_kind(), AlignmentModelBaseKind::Match);
+    assert_eq!(*alignment.get_base(9165).get_kind(), AlignmentModelBaseKind::Match);
 
-    // Every other base is aligned (20,226 matches, 1 mismatch, 23 inserted bases in the two CIGARs);
+    // Every other base is aligned (14,504 matches, 1 mismatch, 15 inserted bases in the two CIGARs);
     // the seam is the only soft-clip, and it stays placed.
     let num_softclip: usize = alignment
         .get_bases()
@@ -1292,19 +1285,19 @@ fn scga_mini_dna_012_alignment_model_places_contested_base_on_last_record_locus(
         .filter(|base| base.is_aligned())
         .count();
     assert_eq!(num_softclip, 1);
-    assert_eq!(num_match, 20226);
-    assert_eq!(num_aligned, 20250);
+    assert_eq!(num_match, 14504);
+    assert_eq!(num_aligned, 14520);
     assert!(alignment.get_bases().iter().all(|base| base.get_placement().is_placed()));
 
-    // The single breakpoint flanks the seam; the other events are the 45 deletions in the two CIGARs (18 + 27).
+    // The single breakpoint flanks the seam; the other events are the 15 deletions in the two CIGARs.
     let num_breakpoints: usize = alignment
         .get_events()
         .values()
         .filter(|event| *event.get_kind() == AlignmentModelEventKind::Breakpoint)
         .count();
-    assert_eq!(alignment.get_events().len(), 46);
+    assert_eq!(alignment.get_events().len(), 16);
     assert_eq!(num_breakpoints, 1);
-    assert_eq!(*alignment.get_event(7468, 7470).unwrap().get_kind(), AlignmentModelEventKind::Breakpoint);
+    assert_eq!(*alignment.get_event(9163, 9165).unwrap().get_kind(), AlignmentModelEventKind::Breakpoint);
 }
 
 #[test]
@@ -1344,9 +1337,9 @@ fn scga_mini_dna_006_alignment_model_returns_matches() {
         1
     );
 
-    // The first read in the file across the inversion forward then reverse: chr17:7713014-7717000
-    // forward, then chr17:7701200 down to 7687976.
-    let read_name: &str = "scga-mini-dna-006-tumor_scga-mini-dna-006-tumor-1_1/68/ccs";
+    // The first read in the file across the inversion forward then reverse: chr17:7687771-7701200
+    // forward, then chr17:7717000 down to 7713906.
+    let read_name: &str = "scga-mini-dna-006-tumor_scga-mini-dna-006-tumor-1_1/89/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -1362,7 +1355,7 @@ fn scga_mini_dna_006_alignment_model_returns_matches() {
     assert_eq!(alignment.get_records().get(0).unwrap().reference_strand, Strand::Forward);
     assert_eq!(alignment.get_records().get(1).unwrap().reference_strand, Strand::Reverse);
 
-    let read_name: &str = "scga-mini-dna-006-tumor_scga-mini-dna-006-tumor-1_1/68/ccs";
+    let read_name: &str = "scga-mini-dna-006-tumor_scga-mini-dna-006-tumor-1_1/89/ccs";
     let read_id: usize = *read_names_map.get_by_left(read_name).unwrap();
     let read_sequence: Box<str> = get_bam_fastx_read_sequence(records_map.get(&read_id).unwrap());
     let quality_scores: Vec<u8> = get_bam_fastx_base_quality_scores(records_map.get(&read_id).unwrap());
@@ -1433,17 +1426,19 @@ fn scga_mini_dna_002_alignment_model_returns_terminal_softclips() {
         1
     );
 
-    // Every read here is a single record; seven carry a terminal soft-clip. From their CIGARs: the read
+    // Every read here is a single record; nine carry a terminal soft-clip. From their CIGARs: the read
     // length, the record's read span, its reference span, the clip runs in read orientation, and the
-    // number of `=` bases. They cover both ends of the read on both strands; 2_1/18 is clipped at both.
+    // number of `=` bases. They cover both ends of the read on both strands.
     let expected: HashMap<&str, (u32, (u32, u32), (u32, u32), Vec<(u32, u32)>, usize)> = HashMap::from([
-        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/26/ccs", (16545, (0, 16542), (7669107, 7685686), vec![(16543, 16544)], 16479)),
-        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-2_1/18/ccs", (17199, (7, 17195), (7669354, 7686885), vec![(0, 6), (17196, 17198)], 17109)),
-        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/23/ccs", (17346, (0, 17339), (7669507, 7686869), vec![(17340, 17345)], 17303)),
-        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/11/ccs", (17769, (0, 17767), (7669558, 7687486), vec![(17768, 17768)], 17702)),
-        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-2_1/19/ccs", (14846, (0, 14844), (7671273, 7686239), vec![(14845, 14845)], 14694)),
-        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/1/ccs", (14363, (5, 14362), (7672066, 7686459), vec![(0, 4)], 14324)),
-        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-2_1/32/ccs", (13092, (0, 13082), (7673021, 7686531), vec![(13083, 13091)], 13030))
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/7/ccs", (18989, (2, 18988), (7668422, 7687490), vec![(0, 1)], 18917)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/16/ccs", (16290, (0, 16286), (7668460, 7684927), vec![(16287, 16289)], 16195)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-2_1/8/ccs", (15784, (4, 15783), (7668545, 7684305), vec![(0, 3)], 15743)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-2_1/10/ccs", (17495, (8, 17494), (7669588, 7687044), vec![(0, 7)], 17432)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/15/ccs", (16798, (2, 16797), (7669709, 7686506), vec![(0, 1)], 16769)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-2_1/2/ccs", (15715, (7, 15714), (7669734, 7685429), vec![(0, 6)], 15672)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/19/ccs", (16268, (0, 16260), (7670194, 7686462), vec![(16261, 16267)], 16223)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-1_1/24/ccs", (14628, (0, 14624), (7671489, 7686116), vec![(14625, 14627)], 14584)),
+        ("scga-mini-dna-002-tumor_scga-mini-dna-002-tumor-2_1/22/ccs", (14414, (4, 14413), (7672217, 7686608), vec![(0, 3)], 14376))
     ]);
     let mut num_reads: usize = 0;
     let mut num_clipped_forward: usize = 0;
@@ -1546,7 +1541,7 @@ fn scga_mini_dna_002_alignment_model_returns_terminal_softclips() {
         }
     }
 
-    assert_eq!(num_reads, 68);
+    assert_eq!(num_reads, 66);
     assert_eq!(num_clipped_forward + num_clipped_reverse, expected.len());
     // Both strand branches of the anchor rule must actually run.
     assert!(num_clipped_forward > 0, "no forward-strand clipped read exercised");

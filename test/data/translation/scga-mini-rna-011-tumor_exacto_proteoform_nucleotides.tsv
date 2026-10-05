@@ -389,11 +389,11 @@ proteoform_id	assembled_transcript_name	amino_acid_index	amino_acid	codon_index	
 1	1	129	S	0	T	false	false	423	6									false
 1	1	129	S	1	C	false	false	424	6									false
 1	1	129	S	2	C	false	false	425	6									false
-1	1	130	R	0	A	true	true	426		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1	chr17:7673533:+:D:chr17:7673535:+:U:A					false
-1	1	130	R	1	G	true	true	427		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1	chr17:7673533:+:D:chr17:7673535:+:U:A					false
-1	1	130	R	2	G	true	true	428		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1	chr17:7673533:+:D:chr17:7673535:+:U:A					false
-1	1	131	L	0	T	true	true	429		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1	chr17:7673533:+:D:chr17:7673535:+:U:A					false
-1	1	131	L	1	T	true	true	430	8					1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1	chr17:7673533:+:D:chr17:7673535:+:U:A	false
+1	1	130	R	0	A	true	true	426		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1;2	chr17:7668488:-:U:chr17:7668488:-:N:AGGA;chr17:7673533:+:D:chr17:7673535:+:U:A					false
+1	1	130	R	1	G	true	true	427		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1;2	chr17:7668488:-:U:chr17:7668488:-:N:AGGA;chr17:7673533:+:D:chr17:7673535:+:U:A					false
+1	1	130	R	2	G	true	true	428		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1;2	chr17:7668488:-:U:chr17:7668488:-:N:AGGA;chr17:7673533:+:D:chr17:7673535:+:U:A					false
+1	1	131	L	0	T	true	true	429		1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1;2	chr17:7668488:-:U:chr17:7668488:-:N:AGGA;chr17:7673533:+:D:chr17:7673535:+:U:A					false
+1	1	131	L	1	T	true	true	430	8					1	chr17:7670611:-:U:chr17:7674288:-:D:ACCT	1;2	chr17:7668488:-:U:chr17:7668488:-:N:AGGA;chr17:7673533:+:D:chr17:7673535:+:U:A	false
 1	1	131	L	2	G	true	false	431	8									false
 1	1	132	A	0	G	false	false	432	8									false
 1	1	132	A	1	C	false	false	433	8									false

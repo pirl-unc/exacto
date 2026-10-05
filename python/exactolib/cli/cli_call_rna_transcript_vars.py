@@ -18,6 +18,7 @@ and run Exacto 'call-rna-transcript-vars' command.
 
 
 import argparse
+import os
 
 from ..main import *
 from ..utilities import *

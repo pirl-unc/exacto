@@ -18,6 +18,7 @@ and run Exacto 'stitch-reference-transcripts' command.
 
 
 import argparse
+import os
 
 from ..main import *
 from ..utilities import *

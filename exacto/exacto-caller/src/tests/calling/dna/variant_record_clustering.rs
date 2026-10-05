@@ -724,26 +724,75 @@ fn softclip_breakend(read_id: usize, position: u32) -> Arc<VariantRecord> {
     ))
 }
 
+/// Reads crossing one junction whose partner did not align: each is clipped at the breakend,
+/// its tail as long as the read runs past it (2,055 and 6,977 bases), and alignment wobble puts
+/// one clip 3 bp off. The tails are too unlike in size to be one insertion, so the pool stays a
+/// breakpoint cluster. A clip of 2,055 bases may lie 88 bp off at an error of 0.01 and a
+/// clustering distance of 100.
 #[test]
-fn cluster_breakpoint_dna_variant_records_pools_nearby_orphan_clips_as_one_breakpoint() {
-    let clusters: Vec<VariantRecordCluster> = cluster_breakpoint_dna_variant_records(
-        vec![softclip_breakend(1, 1000), softclip_breakend(2, 1050)],
-        100,
-        0.5f64,
-        0.5f64,
-        0.01f64,
-        1
-    );
+fn cluster_breakpoint_dna_variant_records_pools_orphan_clips_at_one_breakend_as_one_breakpoint() {
+    let mut records: Vec<Arc<VariantRecord>> = Vec::new();
+    for (read_id, position, clip_length) in [(1usize, 1_000u32, 2_055usize), (2, 1_003, 6_977)] {
+        records.push(Arc::new(VariantRecord::new(
+            read_id,
+            0,
+            clip_length as u32,
+            GraphOperation::new(
+                0, position, Strand::Forward, GraphOperationType::Downstream,
+                0, position, Strand::Forward, GraphOperationType::Noop,
+                "ACGT".repeat(clip_length / 4 + 1)[..clip_length].into(),
+                VariantType::Breakpoint
+            )
+        )));
+    }
+
+    let clusters: Vec<VariantRecordCluster> = cluster_breakpoint_dna_variant_records(records, 100, 0.5, 0.5, 0.01, 1);
+
     assert_eq!(clusters.len(), 1);
     assert_eq!(clusters[0].get_variant_records().len(), 2);
-
-    // The rebuilt insertions sit 50 bp apart, outside the size-scaled tolerance,
-    // so the orphan pool is kept as a breakpoint cluster rather than collapsed
-    // to a terminal insertion.
     assert!(clusters[0]
         .get_variant_records()
         .iter()
         .all(|vr| vr.get_variant_type() == &VariantType::Breakpoint));
+}
+
+/// Short end clips that share only the position-1 chain are not one breakend. scga-mini-dna-011's
+/// tumour has three, each on one molecule written twice: 4 bases at chr17:7,668,488, 2 at
+/// 7,668,760 and 3 at 7,669,009, all within 1 kb of the next. A clip of 4 bases may lie 2 bp off
+/// at an error of 0.01, so each pair is its own pool, and none reaches 4 reads.
+#[test]
+fn cluster_breakpoint_dna_variant_records_keeps_orphan_clips_apart_beyond_their_clip_length_distance() {
+    let mut records: Vec<Arc<VariantRecord>> = Vec::new();
+    for (read_id, position, sequence) in [
+        (1usize, 7_668_488u32, "TCCT"), (2, 7_668_488, "TCCT"),
+        (3, 7_668_760, "GC"), (4, 7_668_760, "GC"),
+        (5, 7_669_009, "CCC"), (6, 7_669_009, "CCC")
+    ] {
+        records.push(Arc::new(VariantRecord::new(
+            read_id,
+            0,
+            sequence.len() as u32,
+            GraphOperation::new(
+                0, position, Strand::Reverse, GraphOperationType::Upstream,
+                0, position, Strand::Reverse, GraphOperationType::Noop,
+                sequence.into(),
+                VariantType::Breakpoint
+            )
+        )));
+    }
+
+    let clusters: Vec<VariantRecordCluster> = cluster_breakpoint_dna_variant_records(records, 1_000, 0.5, 0.5, 0.01, 1);
+
+    let mut read_ids: Vec<Vec<usize>> = clusters
+        .iter()
+        .map(|cluster| {
+            let mut ids: Vec<usize> = cluster.get_variant_records().iter().map(|vr| vr.get_read_id()).collect();
+            ids.sort();
+            ids
+        })
+        .collect();
+    read_ids.sort();
+    assert_eq!(read_ids, vec![vec![1, 2], vec![3, 4], vec![5, 6]]);
 }
 
 #[test]
@@ -955,8 +1004,8 @@ fn cluster_breakpoint_dna_variant_records_joins_a_clip_at_the_partner_breakend_o
 }
 
 /// scga-mini-dna-001 covers chr17:7,668,421-7,687,490 and nothing else (chr18 carries no reads).
-/// The depths, as `samtools depth -a` counts them: 0 at 7,668,420, 10 at 7,668,421, 66 at
-/// 7,674,224 and 7,674,226, and 65 at 7,674,225, where one read holds a deletion. A local
+/// The depths, as `samtools depth -a` counts them: 0 at 7,668,420, 8 at 7,668,421, 68 at
+/// 7,674,222 and 7,674,224, and 67 at 7,674,223, where one read holds a deletion. A local
 /// variant's denominator is the depth at the base(s) it replaces: one base for an SNV, the
 /// deepest of the replaced run for an MNV, the deepest of the two flanks for an insertion.
 #[test]
@@ -970,15 +1019,15 @@ fn get_dna_variant_position_total_depth_returns_matches() {
     ]);
     let read_depths: BAMReadDepths = BAMReadDepths::new(bam_file, &format!("{bam_file}.bai"), &positions, 1_000);
 
-    // SNV at 7,674,225, inside the covered span: its own base, not its deeper flanks.
+    // SNV at 7,674,223, inside the covered span: its own base, not its deeper flanks.
     assert_eq!(
         get_dna_variant_position_total_depth(
             &read_depths,
-            "chr17", 7_674_224, &GraphOperationType::Downstream,
-            "chr17", 7_674_226, &GraphOperationType::Upstream,
+            "chr17", 7_674_222, &GraphOperationType::Downstream,
+            "chr17", 7_674_224, &GraphOperationType::Upstream,
             "A"
         ),
-        65
+        67
     );
 
     // SNV at 7,660,001, outside it.
@@ -1000,7 +1049,7 @@ fn get_dna_variant_position_total_depth_returns_matches() {
             "chr17", 7_668_422, &GraphOperationType::Upstream,
             "AA"
         ),
-        10
+        8
     );
 
     // Insertion between 7,668,420 and 7,668,421: one flank uncovered, one covered.
@@ -1011,13 +1060,13 @@ fn get_dna_variant_position_total_depth_returns_matches() {
             "chr17", 7_668_421, &GraphOperationType::Upstream,
             "A"
         ),
-        10
+        8
     );
 }
 
 /// A deletion's denominator is the deeper of its two flanking bases, whichever side is
 /// deeper, and never the bases it removes. In scga-mini-dna-001 7,668,415 and 7,687,495 are
-/// uncovered, and 7,668,425 and 7,687,485 are both at depth 12 (`samtools depth -a`).
+/// uncovered, 7,668,425 is at depth 10 and 7,687,485 at 8 (`samtools depth -a`).
 #[test]
 fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_deletion() {
     let bam_path = Path::new(env!("EXACTO_TEST_DATA")).join("alignment/scga-mini-dna-001-tumor_minimap2_sorted.bam");
@@ -1037,7 +1086,7 @@ fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_deletion() {
             "chr17", 7_668_425, &GraphOperationType::Upstream,
             ""
         ),
-        12
+        10
     );
 
     // Deep end first: 7,687,485 is covered, 7,687,495 is not.
@@ -1048,7 +1097,7 @@ fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_deletion() {
             "chr17", 7_687_495, &GraphOperationType::Upstream,
             ""
         ),
-        12
+        8
     );
 
     // Both ends uncovered with the whole covered span deleted between them: the interior is
@@ -1065,7 +1114,7 @@ fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_deletion() {
 }
 
 /// A breakend's denominator is the deeper of its two sides, on one chromosome or two. In
-/// scga-mini-dna-001 7,668,415 is uncovered, 7,668,425 is at depth 12 and 7,674,224 at 66
+/// scga-mini-dna-001 7,668,415 is uncovered, 7,668,425 is at depth 10 and 7,674,224 at 68
 /// (`samtools depth -a`); chr18 carries no reads.
 #[test]
 fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_breakend() {
@@ -1087,7 +1136,7 @@ fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_breakend() {
             "chr17", 7_668_425, &GraphOperationType::Downstream,
             ""
         ),
-        12
+        10
     );
 
     // Across chromosomes: chr18 carries no reads, so the chr17 side decides either way round.
@@ -1098,7 +1147,7 @@ fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_breakend() {
             "chr18", 5_170_100, &GraphOperationType::Upstream,
             ""
         ),
-        66
+        68
     );
     assert_eq!(
         get_dna_variant_position_total_depth(
@@ -1107,7 +1156,7 @@ fn get_dna_variant_position_total_depth_takes_the_deeper_end_of_a_breakend() {
             "chr17", 7_674_224, &GraphOperationType::Downstream,
             ""
         ),
-        66
+        68
     );
 
     // Neither side covered.

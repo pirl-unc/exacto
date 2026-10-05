@@ -86,7 +86,7 @@ fn test_bam_create_read_names_map() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
-    assert!(read_names_map.len() == 66);
+    assert!(read_names_map.len() == 68);
 }
 
 #[test]
@@ -100,8 +100,8 @@ fn test_bam_fetch_all_bam_records() {
     let read_names: HashSet<Box<str>> = get_read_names(bam_file, bam_bai_file, 1);
     let read_names_map: BiMap<Box<str>, usize> = create_read_names_map(bam_file, bam_bai_file, 1);
     let records: HashMap<usize, Vec<Record>> = fetch_all_bam_records(bam_file, bam_bai_file, &read_names_map, 1);
-    assert!(read_names_map.len() == 66);
-    assert!(records.keys().len() == 66);
+    assert!(read_names_map.len() == 68);
+    assert!(records.keys().len() == 68);
     for (read_id, records) in records.iter() {
         let read_name: Box<str> = read_names_map.get_by_right(read_id).unwrap().clone();
         assert!(records.len() == 1);
@@ -143,8 +143,8 @@ fn test_bam_fetch_bam_records_1() {
         7,
         1
     );
-    assert!(read_names_map.len() == 66);
-    assert!(records.keys().len() == 66);
+    assert!(read_names_map.len() == 68);
+    assert!(records.keys().len() == 68);
     for (read_id, records) in records.iter() {
         let read_name: Box<str> = read_names_map.get_by_right(read_id).unwrap().clone();
         assert!(records.len() == 1);
@@ -185,12 +185,12 @@ fn test_bam_fetch_bam_records_2() {
         7,
         1
     );
-    // dna-006 holds an inversion of chr17:7,701,201-7,717,000; 25 of the 60 reads in the region
-    // are split by it into a primary and a supplementary record.
-    assert!(read_names_map.len() == 165);
-    assert!(records.keys().len() == 60);
-    assert_eq!(records.values().filter(|records| records.len() == 2).count(), 25);
-    assert_eq!(records.values().filter(|records| records.len() == 1).count(), 35);
+    // dna-006 holds an inversion of chr17:7,701,201-7,717,000; 32 of the 57 reads in the region
+    // are split by it into a primary and a supplementary record. Its one unmapped read is left out.
+    assert!(read_names_map.len() == 164);
+    assert!(records.keys().len() == 57);
+    assert_eq!(records.values().filter(|records| records.len() == 2).count(), 32);
+    assert_eq!(records.values().filter(|records| records.len() == 1).count(), 25);
 }
 
 #[test]
@@ -328,7 +328,7 @@ fn test_bam_get_alignment_end_position() {
     let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(0).unwrap();
     let alignment_end: u32 = get_alignment_end_position(record);
-    assert!(alignment_end == 7687488);
+    assert!(alignment_end == 7686329);
 }
 
 #[test]
@@ -409,7 +409,8 @@ fn test_bam_get_aligned_sequence_from_cigar() {
     let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs").unwrap();
     let record: &bam::Record = records.get(&read_id).unwrap().get(0).unwrap();
     let aligned_sequence: Box<str> = get_aligned_sequence_from_cigar(record);
-    assert!(aligned_sequence.len() == 19034);
+    // The read's 15,879 bases less its 4 soft-clipped ones.
+    assert!(aligned_sequence.len() == 15875);
 }
 
 #[test]
@@ -468,7 +469,7 @@ fn test_bam_get_alignment_start_position() {
     let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(0).unwrap();
     let alignment_start: u32 = get_alignment_start_position(record);
-    assert!(alignment_start == 7668421);
+    assert!(alignment_start == 7670402);
 }
 
 #[test]
@@ -537,13 +538,13 @@ fn test_bam_get_cigar_operations() {
     let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs").unwrap();
     let record: &bam::Record = records.get(&read_id).unwrap().get(0).unwrap();
     let cigar_ops: Vec<(Kind, u32)> = get_cigar_operations(record);
-    assert!(cigar_ops.len() == 713);
-    assert!(cigar_ops[0].0 == Kind::SequenceMatch);
-    assert!(cigar_ops[0].1 == 11);
-    assert!(cigar_ops[1].0 == Kind::Deletion);
-    assert!(cigar_ops[1].1 == 1);
-    assert!(cigar_ops[2].0 == Kind::SequenceMatch);
-    assert!(cigar_ops[2].1 == 13);
+    assert!(cigar_ops.len() == 177);
+    assert!(cigar_ops[0].0 == Kind::SoftClip);
+    assert!(cigar_ops[0].1 == 4);
+    assert!(cigar_ops[1].0 == Kind::SequenceMatch);
+    assert!(cigar_ops[1].1 == 144);
+    assert!(cigar_ops[2].0 == Kind::Deletion);
+    assert!(cigar_ops[2].1 == 1);
 }
 
 #[test]
@@ -564,7 +565,7 @@ fn test_bam_get_fastx_base_quality_scores() {
     let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs").unwrap();
     let record: Record = records.get(&read_id).unwrap().get(0).unwrap().clone();
     let scores: Vec<u8> = get_bam_fastx_base_quality_scores(&vec![record]);
-    assert!(scores.len() == 19034);
+    assert!(scores.len() == 15879);
 }
 
 #[test]
@@ -585,7 +586,7 @@ fn test_bam_get_fastx_read_sequence() {
     let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs").unwrap();
     let records: &Vec<Record> = records.get(&read_id).unwrap();
     let sequence: Box<str> = get_bam_fastx_read_sequence(&records);
-    assert!(sequence.len() == 19034);
+    assert!(sequence.len() == 15879);
 }
 
 #[test]
@@ -603,7 +604,7 @@ fn test_bam_get_left_softclipping_1() {
         &read_names_map,
         1
     );
-    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/11/ccs").unwrap();
+    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/2/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(0).unwrap();
     assert!(get_left_softclipping(record).0 == false);
 }
@@ -623,7 +624,7 @@ fn test_bam_get_left_softclipping_2() {
         &read_names_map,
         1
     );
-    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/11/ccs").unwrap();
+    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/2/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(1).unwrap();
     assert!(get_left_softclipping(record).0 == true);
 }
@@ -643,7 +644,7 @@ fn test_bam_get_right_softclipping_1() {
         &read_names_map,
         1
     );
-    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/11/ccs").unwrap();
+    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/2/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(0).unwrap();
     assert!(get_right_softclipping(record).0 == true);
 }
@@ -663,7 +664,7 @@ fn test_bam_get_right_softclipping_2() {
         &read_names_map,
         1
     );
-    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/11/ccs").unwrap();
+    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-007-tumor_scga-mini-dna-007-tumor-3_1/2/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(1).unwrap();
     assert!(get_right_softclipping(record).0 == false);
 }
@@ -687,7 +688,7 @@ fn test_bam_get_primary_alignment_base_quality_scores() {
     let records: &Vec<Record> = records.get(&read_id).unwrap();
     let record_refs: Vec<&Record> = records.iter().collect();
     let scores: Vec<u8> = get_primary_alignment_base_quality_scores(&record_refs);
-    assert!(scores.len() == 19034);
+    assert!(scores.len() == 15879);
 }
 
 #[test]
@@ -709,7 +710,7 @@ fn test_bam_get_primary_alignment_read_sequence() {
     let records: &Vec<Record> = records.get(&read_id).unwrap();
     let record_refs: Vec<&Record> = records.iter().collect();
     let sequence: Box<str> = get_primary_alignment_read_sequence(&record_refs);
-    assert!(sequence.len() == 19034);
+    assert!(sequence.len() == 15879);
 }
 
 #[test]
@@ -721,7 +722,7 @@ fn test_bam_get_read_names() {
     let bam_bai_full_path = fs::canonicalize(bam_bai_path).unwrap();
     let bam_bai_file: &str = bam_bai_full_path.to_str().unwrap();
     let read_names: HashSet<Box<str>> = get_read_names(bam_file, bam_bai_file, 1);
-    assert!(read_names.len() == 66);
+    assert!(read_names.len() == 68);
 }
 
 #[test]
@@ -738,7 +739,7 @@ fn test_bam_get_read_names_passing_mapping_quality_1() {
         1,
         60
     );
-    assert!(read_names.len() == 66);
+    assert!(read_names.len() == 68);
 }
 
 #[test]
@@ -834,7 +835,7 @@ fn test_bam_get_read_sequence() {
     let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-001-tumor_scga-mini-dna-001-tumor-1_1/25/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(0).unwrap();
     let sequence: Box<str> = get_read_sequence(record);
-    assert!(sequence.len() == 19034);
+    assert!(sequence.len() == 15879);
 }
 
 #[test]
@@ -894,7 +895,7 @@ fn test_bam_has_soft_clipping_2() {
         &read_names_map,
         1
     );
-    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-004-tumor_scga-mini-dna-004-tumor-1_1/32/ccs").unwrap();
+    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-004-tumor_scga-mini-dna-004-tumor-2_1/1/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(0).unwrap();
     assert!(has_soft_clipping(record) == true);
 }
@@ -914,7 +915,7 @@ fn test_bam_has_splicing_1() {
         &read_names_map,
         1
     );
-    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-004-tumor_scga-mini-dna-004-tumor-1_1/32/ccs").unwrap();
+    let read_id: usize = *read_names_map.get_by_left("scga-mini-dna-004-tumor_scga-mini-dna-004-tumor-2_1/1/ccs").unwrap();
     let record: &Record = records.get(&read_id).unwrap().get(0).unwrap();
     assert!(has_splicing(record) == false);
 }
@@ -969,8 +970,8 @@ fn test_bam_index_bam_records_1() {
         true,
         2
     );
-    assert!(record_positions_map.len() == 66);
-    assert!(read_names_map.len() == 66);
+    assert!(record_positions_map.len() == 68);
+    assert!(read_names_map.len() == 68);
 }
 
 #[test]
@@ -1074,8 +1075,8 @@ fn test_bam_read_depths_get_strands() {
     let positions_map: HashMap<Box<str>, Vec<u32>> = HashMap::from([("chr17".into(), vec![7_673_000])]);
     let read_depths: BAMReadDepths = BAMReadDepths::new(bam_file, bam_bai_file, &positions_map, 1_000);
     let (fwd_count, rev_count): (u32, u32) = read_depths.get_strands("chr17", 7_673_000);
-    assert!(fwd_count == 34);
-    assert!(rev_count == 32);
+    assert!(fwd_count == 36);
+    assert!(rev_count == 30);
 }
 
 #[test]
@@ -1133,7 +1134,7 @@ fn test_bam_write_bam_file() {
 
 #[test]
 fn test_bam_read_depths_match_the_whole_contig_maps() {
-    // dna-004 holds a 120 bp insertion (soft-clipped reads), dna-006 an inversion (supplementary records).
+    // dna-004 holds a 120 bp insertion (long I operations), dna-006 an inversion (supplementary records).
     for name in ["dna-004-tumor", "dna-006-tumor"] {
         let bam_path = fs::canonicalize(Path::new(env!("EXACTO_TEST_DATA")).join(format!("alignment/scga-mini-{name}_minimap2_sorted.bam"))).unwrap();
         let bam_file: &str = bam_path.to_str().unwrap();

@@ -5,11 +5,10 @@ from exactolib.constants import GeneAnnotationSource, OutputType
 from exactolib.main import integrate_variants
 
 
-# scga-mini-dna-014 has no somatic call (see test_call_somatic_dna_variants.py), so nothing integrates.
-SAMPLE_NUMBERS = ['%03i' % i for i in range(1, 17) if i != 14]
+SAMPLE_NUMBERS = ['%03i' % i for i in range(1, 17)]
 
 # The RNA variant is the DNA variant itself (or, for 005, the splice site it deletes).
-SAME_SITE_SAMPLE_NUMBERS = ['001', '002', '003', '004', '005', '010']
+SAME_SITE_SAMPLE_NUMBERS = ['001', '002', '003', '004', '005', '010', '014']
 
 COLUMNS = [
     'assembled_transcript_name', 'reference_gene_name', 'reference_transcript_id', 'rna_variant_id',
@@ -52,8 +51,24 @@ def test_integrate_variants_links_same_site_variants_at_distance_zero(sample_num
     assert df_integrations[['rna_variant_position', 'dna_variant_position']].values.tolist() == [['position_1', 'position_1']]
 
 
-def test_integrate_variants_returns_header_for_dna_table_without_rows():
-    df_integrations = _integrate_variants(sample_number='014')
+def test_integrate_variants_returns_header_for_dna_table_without_rows(tmp_path):
+    # A sample with no somatic call: the DNA table is its header alone.
+    with open(get_data_path(name='variant_calling/dna/scga-mini-dna-001-tumor_exacto_somatic_dna_variants.tsv')) as handle:
+        header = handle.readline()
+    dna_variants_tsv_file = str(tmp_path / 'scga-mini-dna-001-tumor_exacto_somatic_dna_variants.tsv')
+    with open(dna_variants_tsv_file, 'w') as handle:
+        handle.write(header)
+    df_integrations = integrate_variants(
+        dna_variants_tsv_file=dna_variants_tsv_file,
+        rna_variants_tsv_file=get_data_path(name='variant_calling/rna/scga-mini-rna-001-tumor_exacto_assembled_transcript_variants.tsv'),
+        reference_gene_annotation_file=get_data_path(name='references/gencode.v41.annotation.chr17-18.gtf.gz'),
+        reference_gene_annotation_source=GeneAnnotationSource.GENCODE,
+        reference_gene_annotation_assembly='hg38',
+        reference_gene_annotation_version='v41',
+        output_tsv_file='',
+        num_threads=1,
+        output_type=OutputType.DATAFRAME
+    )
 
     assert list(df_integrations.columns) == COLUMNS
     assert len(df_integrations) == 0

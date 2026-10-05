@@ -18,6 +18,8 @@ and run Exacto 'correct-rna-reads' command.
 
 
 import argparse
+import os
+
 from ..main import *
 from ..utilities import *
 

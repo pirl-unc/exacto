@@ -918,41 +918,41 @@ proteoform_id	assembled_transcript_name	amino_acid_index	amino_acid	codon_index	
 1	1	305	R	1	G	false	false	1058	14									false
 1	1	305	R	2	A	false	false	1059	14									false
 1	1	306	A	0	G	true	false	1060	14									false
-1	1	306	A	1	C	true	true	1061	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	306	A	2	T	true	true	1062	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	307	R	0	C	true	true	1063	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	307	R	1	G	true	true	1064	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	307	R	2	C	true	true	1065	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	308	L	0	T	true	true	1066	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	308	L	1	T	true	true	1067	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	308	L	2	A	true	true	1068	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	309	V	0	G	true	true	1069	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	309	V	1	T	true	true	1070	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	309	V	2	G	true	true	1071	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	310	L	0	C	true	true	1072	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	310	L	1	T	true	true	1073	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	310	L	2	C	true	true	1074	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	311	P	0	C	true	true	1075	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	311	P	1	C	true	true	1076	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	311	P	2	T	true	true	1077	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	312	G	0	G	true	true	1078	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	312	G	1	G	true	true	1079	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	312	G	2	G	true	true	1080	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	313	G	0	G	true	true	1081	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	313	G	1	G	true	true	1082	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	313	G	2	C	true	true	1083	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	314	S	0	A	true	true	1084	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	314	S	1	G	true	true	1085	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	314	S	2	C	true	true	1086	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	315	S	0	T	true	true	1087	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	315	S	1	C	true	true	1088	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	315	S	2	G	true	true	1089	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	316	W	0	T	true	true	1090	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	316	W	1	G	true	true	1091	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	316	W	2	G	true	true	1092	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	317	*	0	T	true	true	1093	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	317	*	1	G	true	true	1094	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
-1	1	317	*	2	A	true	true	1095	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:+:U:chr17:7679901:-:U:					false
+1	1	306	A	1	C	true	true	1061	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	306	A	2	T	true	true	1062	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	307	R	0	C	true	true	1063	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	307	R	1	G	true	true	1064	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	307	R	2	C	true	true	1065	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	308	L	0	T	true	true	1066	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	308	L	1	T	true	true	1067	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	308	L	2	A	true	true	1068	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	309	V	0	G	true	true	1069	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	309	V	1	T	true	true	1070	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	309	V	2	G	true	true	1071	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	310	L	0	C	true	true	1072	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	310	L	1	T	true	true	1073	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	310	L	2	C	true	true	1074	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	311	P	0	C	true	true	1075	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	311	P	1	C	true	true	1076	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	311	P	2	T	true	true	1077	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	312	G	0	G	true	true	1078	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	312	G	1	G	true	true	1079	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	312	G	2	G	true	true	1080	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	313	G	0	G	true	true	1081	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	313	G	1	G	true	true	1082	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	313	G	2	C	true	true	1083	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	314	S	0	A	true	true	1084	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	314	S	1	G	true	true	1085	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	314	S	2	C	true	true	1086	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	315	S	0	T	true	true	1087	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	315	S	1	C	true	true	1088	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	315	S	2	G	true	true	1089	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	316	W	0	T	true	true	1090	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	316	W	1	G	true	true	1091	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	316	W	2	G	true	true	1092	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	317	*	0	T	true	true	1093	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	317	*	1	G	true	true	1094	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
+1	1	317	*	2	A	true	true	1095	16	1	chr17:7669660:-:U:chr17:7673701:+:U:	1	chr17:7673301:-:U:chr17:7679901:-:U:					false
 2	2	0	M	0	A	false	false	142	2									false
 2	2	0	M	1	T	false	false	143	2									false
 2	2	0	M	2	G	false	false	144	2									false

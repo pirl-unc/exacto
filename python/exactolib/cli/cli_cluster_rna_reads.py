@@ -18,6 +18,8 @@ and run Exacto 'cluster-rna-reads' command.
 
 
 import argparse
+import os
+
 from ..main import *
 from ..utilities import *
 

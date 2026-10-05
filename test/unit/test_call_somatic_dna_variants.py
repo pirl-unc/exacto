@@ -7,12 +7,9 @@ from exactolib.main import identify_somatic_dna_variants
 
 
 SAMPLE_NUMBERS = [
-    '001', '002', '003', '004', '005', '006', '007', '008', '009', '010', '011', '012', '013',
-    # The 24 bp insertion at chr17:7669650 is in the tumor genome only, and call-germline-dna-vars finds
-    # it in the tumor BAM, but the somatic caller emits nothing (with or without the infinite sites
-    # assumption, at any max_control_reads). exacto-caller has no 014 somatic test.
-    pytest.param('014', marks=pytest.mark.xfail(strict=True, reason='somatic caller misses the scga-mini-dna-014 insertion')),
-    '015', '016'
+    '001', '002', '003', '004', '005',
+    '006', '007', '008', '009', '010',
+    '011', '012', '013', '014', '015', '016'
 ]
 
 # The two copies of the 012 duplication meet across a G that both sides hold, so the junction can be

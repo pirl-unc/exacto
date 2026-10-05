@@ -491,9 +491,51 @@ fn cluster_breakpoint_dna_variant_records(
         }
     }
 
-    // Step 12. Create variant record clusters.
+    // Step 12. Split each orphan pool by position 1. Its members chained within
+    // max_clustering_distance in Step 6, which joins unrelated end clips; two clips stay together
+    // only within the distance an insertion of either clip's bases may lie off (as in Step 11).
+    let split_orphan_pool = |indices: &Vec<usize>| -> Vec<Vec<usize>> {
+        let mut sorted: Vec<usize> = indices.clone();
+        sorted.sort_unstable_by_key(|&i| variant_records[i].get_position_1());
+        let max_distance = |i: usize| -> u32 {
+            calculate_max_dna_clustering_distance(
+                variant_records[i].get_graph_operation().get_sequence_length() as u32,
+                sequencing_error,
+                max_clustering_distance
+            )
+        };
+        let mut uf: UnionFind = UnionFind::new();
+        for (k, &i) in sorted.iter().enumerate() {
+            uf.union(i as u32, i as u32);
+            for &j in &sorted[k + 1..] {
+                let distance: u32 = variant_records[j].get_position_1() - variant_records[i].get_position_1();
+                if distance > max_clustering_distance {
+                    break;
+                }
+                if distance <= max_distance(i).max(max_distance(j)) {
+                    uf.union(i as u32, j as u32);
+                }
+            }
+        }
+        uf.get_clusters()
+            .into_iter()
+            .map(|cluster| cluster.into_iter().map(|i| i as usize).collect())
+            .collect()
+    };
+    let groups: Vec<(usize, Vec<usize>)> = groups
+        .into_iter()
+        .flat_map(|((_, group_2_id), indices)| {
+            if group_2_id == 0 {
+                split_orphan_pool(&indices).into_iter().map(|pool| (0, pool)).collect::<Vec<_>>()
+            } else {
+                vec![(group_2_id, indices)]
+            }
+        })
+        .collect();
+
+    // Step 13. Create variant record clusters.
     let mut clusters: Vec<VariantRecordCluster> = Vec::new();
-    for ((_, group_2_id), indices) in groups.iter() {
+    for (group_2_id, indices) in groups.iter() {
         if *group_2_id == 0 && indices.len() > 1 {
             // Orphan pool: no member resolved a mate. If the clipped tails agree on one
             // inserted allele this is a terminal insertion, not a junction.

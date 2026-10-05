@@ -1,5 +1,5 @@
 ##fileformat=VCFv4.2
-##fileDate=2026-09-23T17:52:25.14Z
+##fileDate=2026-10-05T17:44:23.648Z
 ##source=pbsv 2.9.0 (commit v2.9.0-2-gce1559a)
 ##PG="pbsv call --num-threads 2 hg38_chr17-18.fa scga-mini-dna-014-tumor_pbsv.svsig.gz scga-mini-dna-014-tumor_pbsv.vcf"
 ##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
@@ -26,4 +26,4 @@
 ##contig=<ID=chr17,length=10000000>
 ##contig=<ID=chr18,length=10000000>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	scga-mini-dna-014-tumor
-chr17	7669650	pbsv.INS.0	T	TTTAACTGAGTCTCAAAAAAATAAA	.	PASS	SVTYPE=INS;END=7669650;SVLEN=24	GT:AD:DP:SAC	0/1:13,5:18:6,7,3,2
+chr17	7669650	pbsv.INS.0	T	TTTAACTGAGTCTCAAAAAAATAAA	.	PASS	SVTYPE=INS;END=7669650;SVLEN=24	GT:AD:DP:SAC	0/1:25,25:50:12,13,10,15

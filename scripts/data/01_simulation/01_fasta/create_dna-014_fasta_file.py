@@ -12,8 +12,8 @@ if __name__ == "__main__":
 
     # Step 2. Fetch TP53 (chr17:7668421-7687490) sequence
     chromosome = 'chr17'
-    start = 7668421
-    end = 7687490 + 10000
+    start = 7660000
+    end = 7700000
     length = end - start + 1
     sequence_normal = str(fasta.fetch(chromosome, start - 1, end))
 

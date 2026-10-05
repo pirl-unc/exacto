@@ -631,6 +631,54 @@ fn scga_mini_dna_013_identify_somatic_dna_variants_returns_matches() {
 }
 
 #[test]
+fn scga_mini_dna_014_identify_somatic_dna_variants_returns_matches() {
+    let data_dir = Path::new(env!("EXACTO_TEST_DATA"));
+    let tumor_bam_file = data_dir.join("alignment/scga-mini-dna-014-tumor_minimap2_sorted.bam");
+    let tumor_bam_bai_file = data_dir.join("alignment/scga-mini-dna-014-tumor_minimap2_sorted.bam.bai");
+    let normal_bam_file = data_dir.join("alignment/scga-mini-dna-014-normal_minimap2_sorted.bam");
+    let normal_bam_bai_file = data_dir.join("alignment/scga-mini-dna-014-normal_minimap2_sorted.bam.bai");
+    let fasta_file = data_dir.join("references/hg38_chr17-18.fa.gz");
+
+    let options: IdentifySomaticDNAVariantsOptions = IdentifySomaticDNAVariantsOptions::default();
+    let variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
+        tumor_bam_file.to_str().unwrap(),
+        tumor_bam_bai_file.to_str().unwrap(),
+        vec![normal_bam_file.to_str().unwrap()],
+        vec![normal_bam_bai_file.to_str().unwrap()],
+        fasta_file.to_str().unwrap(),
+        &vec![],
+        &options,
+        1,
+        ""
+    );
+    let records: Vec<DNAVariantRecord> = build_dna_variant_records(&variant_call_set).collect();
+
+    // Compare against the ground truth: each row is exactly one call, with the same
+    // chromosomes, operations, positions and sequence.
+    let tsv_file = data_dir.join("simulation/ground_truth/scga-mini-dna-014-tumor_ground_truth.tsv");
+    let mut reader = ReaderBuilder::new().delimiter(b'\t').from_path(tsv_file).unwrap();
+    let mut num_rows: usize = 0;
+    for result in reader.records() {
+        let row = result.unwrap();
+        num_rows += 1;
+        let num_matches: usize = records
+            .iter()
+            .filter(|r| {
+                &*r.chromosome_1 == &row[1]
+                && &*r.operation_1 == &row[4]
+                && &*r.chromosome_2 == &row[5]
+                && &*r.operation_2 == &row[8]
+                && r.position_1 == row[2].parse::<u32>().unwrap()
+                && r.position_2 == row[6].parse::<u32>().unwrap()
+                && r.sequence.to_uppercase() == row[11].to_uppercase()
+            })
+            .count();
+        assert_eq!(num_matches, 1, "ground truth row {:?} must match exactly one call", row);
+    }
+    assert_eq!(records.len(), num_rows);
+}
+
+#[test]
 fn scga_mini_dna_015_identify_somatic_dna_variants_returns_matches() {
     let data_dir = Path::new(env!("EXACTO_TEST_DATA"));
     let tumor_bam_file = data_dir.join("alignment/scga-mini-dna-015-tumor_minimap2_sorted.bam");
@@ -926,7 +974,7 @@ fn scga_mini_dna_013_identify_somatic_dna_variants_returns_no_call_when_control_
     writer.try_finish().unwrap();
     drop(writer);
     bai::fs::write(&control_bam_bai_file, &bam::fs::index(&control_bam_file).unwrap()).unwrap();
-    assert_eq!(num_control_reads, 14);
+    assert_eq!(num_control_reads, 20);
 
     let options: IdentifySomaticDNAVariantsOptions = IdentifySomaticDNAVariantsOptions::default();
     let variant_call_set: DNAVariantCallSet = identify_somatic_dna_variants(
@@ -947,7 +995,9 @@ fn scga_mini_dna_013_identify_somatic_dna_variants_returns_no_call_when_control_
 
 /// `max_control_reads` is the most control reads a variant may have and still be called
 /// somatic. The control holds two of the tumour's reads that carry its SNV, both read from one
-/// strand: with 2 the call stays, with 1 it is subtracted.
+/// strand: with 2 the call stays, with 1 it is subtracted. Only the SNV is counted: the control
+/// lacks the normal's reads, so a 1-base deletion at 7,679,230 that the normal subtracts is
+/// called against it either way.
 #[test]
 fn scga_mini_dna_001_identify_somatic_dna_variants_allows_max_control_reads_in_the_control() {
     use noodles_sam::alignment::io::Write;
@@ -1010,7 +1060,13 @@ fn scga_mini_dna_001_identify_somatic_dna_variants_allows_max_control_reads_in_t
             tumor_bam_file, &tumor_bam_bai_file, vec![control_bam_file.as_str()], vec![control_bam_bai_file.as_str()],
             fasta_file, &vec![], &options, 1, ""
         );
-        num_calls.push(variant_call_set.get_size());
+        num_calls.push(
+            variant_call_set
+                .get_variant_calls()
+                .iter()
+                .filter(|variant_call| variant_call.get_consensus_graph_operation().get_position_1() == 7_674_224)
+                .count()
+        );
     }
 
     assert_eq!(num_calls, vec![1, 0]);
