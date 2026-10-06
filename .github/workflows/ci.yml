@@ -62,7 +62,7 @@ jobs:
 
       - name: Install Rust toolchain
         run: |
-          conda install -y rust=1.95.0 clangdev=21.1.8
+          conda install -y rust=1.95.0 clangdev=21.1.8 zlib
           echo "LIBCLANG_PATH=$CONDA_PREFIX/lib" >> $GITHUB_ENV
 
       - name: Run Rust unit tests
