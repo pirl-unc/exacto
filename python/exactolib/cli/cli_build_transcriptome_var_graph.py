@@ -35,7 +35,11 @@ def add_cli_build_transcriptome_var_graph_arg_parser(sub_parsers) -> argparse._S
     Returns:
         sub_parsers     :   argparse.ArgumentParser subparsers
     """
-    parser = sub_parsers.add_parser('build-transcriptome-var-graph', help='Build a transcriptome variation graph.')
+    parser = sub_parsers.add_parser(
+        'build-transcriptome-var-graph',
+        help='Build a transcriptome variation graph.',
+        description="Build a transcriptome variation graph: one sequence per transcript model of the call-rna-transcript-vars model alignments table, named by its assembled_transcript_name, in the order of the table. A model whose rows do not join into one path is logged and skipped."
+    )
     parser._action_groups.pop()
 
     # Required arguments
@@ -45,7 +49,7 @@ def add_cli_build_transcriptome_var_graph_arg_parser(sub_parsers) -> argparse._S
         dest="transcript_structures_tsv_file",
         type=str,
         required=True,
-        help="Transcript structures TSV file. Expected columns: 'transcript_model_id', 'index', 'chromosome_1', 'position_1', 'operation_1', 'strand_1', 'chromosome_2', 'position_2', 'operation_2', 'strand_2', 'sequence', 'num_cycles'.",
+        help="Transcript model alignments TSV file, the '*_exacto_assembled_transcript_model_alignments.tsv' of call-rna-transcript-vars. Required columns: 'assembled_transcript_name', 'index', 'chromosome_1', 'position_1', 'operation_1', 'strand_1', 'chromosome_2', 'position_2', 'operation_2', 'strand_2', 'sequence' (genome-forward). Optional: 'num_cycles'; a model with a row that walks back (a duplication or back-splice) needs it and is skipped otherwise. Each output record is named by its 'assembled_transcript_name'.",
     )
     parser_required.add_argument(
         "--fasta-file",

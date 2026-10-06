@@ -35,7 +35,7 @@ def add_cli_translate_seqs_arg_parser(sub_parsers) -> argparse._SubParsersAction
     Returns:
         sub_parsers     :   argparse.ArgumentParser subparsers
     """
-    parser = sub_parsers.add_parser('translate-seqs', help='Translate transcript sequences in a long-read RNA-seq FASTA or FASTQ file to peptide sequences.')
+    parser = sub_parsers.add_parser('translate-seqs', help='Translate transcript sequences in a long-read RNA-seq FASTX file or RNA sequence to peptide sequences.')
     parser._action_groups.pop()
 
     # Required arguments
@@ -44,16 +44,10 @@ def add_cli_translate_seqs_arg_parser(sub_parsers) -> argparse._SubParsersAction
     # Mutually exclusive group for input
     input_group = parser_required.add_mutually_exclusive_group(required=True)
     input_group.add_argument(
-        "--fastq-file",
-        dest="fastq_file",
+        "--fastx-file",
+        dest="fastx_file",
         type=str,
-        help="Input FASTQ or FASTQ.GZ file."
-    )
-    input_group.add_argument(
-        "--fasta-file",
-        dest="fasta_file",
-        type=str,
-        help="Input FASTA or FASTA.GZ file."
+        help="Input FASTA or FASTQ file."
     )
     input_group.add_argument(
         "--sequence",
@@ -73,6 +67,15 @@ def add_cli_translate_seqs_arg_parser(sub_parsers) -> argparse._SubParsersAction
 
     # Optional arguments
     parser_optional = parser.add_argument_group('optional arguments')
+    parser_optional.add_argument(
+        "--start-codons",
+        dest="start_codons",
+        type=str,
+        nargs='+',
+        default=["AUG"],
+        required=False,
+        help="One or more start codons (default: AUG). Pass multiple as: --start-codons AUG GUG CUG."
+    )
     parser_optional.add_argument(
         "--output-tsv-file",
         dest="output_tsv_file",
@@ -96,23 +99,7 @@ def add_cli_translate_seqs_arg_parser(sub_parsers) -> argparse._SubParsersAction
         help="Number of threads (default: %i)."
              % TRANSLATE_NUM_THREADS
     )
-    parser_optional.add_argument(
-        "--temp-dir",
-        dest="temp_dir",
-        type=str,
-        default="",
-        required=False,
-        help="Temp directory (default: TMPDIR)."
-    )
-    parser_optional.add_argument(
-        "--gzip",
-        dest="gzip",
-        type=str2bool,
-        default=TRANSLATE_GZIP,
-        required=False,
-        help="If 'yes', gzip the output TSV and FASTA file (default: %s)."
-             % TRANSLATE_GZIP
-    )
+
     parser.set_defaults(which='translate-seqs')
     return sub_parsers
 
@@ -120,88 +107,31 @@ def add_cli_translate_seqs_arg_parser(sub_parsers) -> argparse._SubParsersAction
 def run_cli_translate_seqs_from_parsed_args(args) -> None:
     """
     Run Exacto 'translate-seqs' command using parameters from parsed arguments.
-
-    Parameters:
-        args    :   An instance of argparse.ArgumentParser with the following variables:
-                    fastq_file
-                    strategy
-                    output_tsv_file
-                    output_fasta_file
-                    num_threads
-                    gzip
     """
-    if args.fasta_file or args.fastq_file:
+    if args.fastx_file:
         if args.output_tsv_file is None:
             raise Exception('--output-tsv-file must be specified.')
         if args.output_fasta_file is None:
             raise Exception('--output-fasta-file must be specified.')
+        logger.info("%i reads in total in the FASTX file." % count_reads_in_fastx_file(fastx_file=args.fastx_file))
 
-        # Step 1. Translate
-        if args.fasta_file:
-            logger.info("%i reads in total in the FASTA file." % count_reads_in_fastx_file(fastx_file=args.fasta_file))
-            df_translations = translate_fasta_file(
-                fasta_file=args.fasta_file,
-                strategy=TranslationStrategy(args.strategy),
-                num_threads=args.num_threads,
-                temp_dir=args.temp_dir
-            )
-        elif args.fastq_file:
-            logger.info("%i reads in total in the FASTQ file." % count_reads_in_fastx_file(fastx_file=args.fastq_file))
-            df_translations = translate_fastq_file(
-                fastq_file=args.fastq_file,
-                strategy=TranslationStrategy(args.strategy),
-                num_threads=args.num_threads,
-                temp_dir=args.temp_dir
-            )
-        else:
-            raise Exception("Unexpected error - either a FASTA or FASTQ file should have been specified.")
-        logger.info("%i translated reads." % len(df_translations))
-        logger.info('%i unique rna IDs in the translated peptides.' % len(df_translations['rna_id'].unique()))
-
-        # Step 2. Prepare file paths with appropriate extensions
-        if args.gzip:
-            if args.output_tsv_file.endswith('.gz'):
-                output_tsv_file = args.output_tsv_file
-            else:
-                output_tsv_file = args.output_tsv_file + '.gz'
-            if args.output_fasta_file.endswith('.gz'):
-                output_fasta_file = args.output_fasta_file
-            else:
-                output_fasta_file = args.output_fasta_file + '.gz'
-        else:
-            output_tsv_file = args.output_tsv_file
-            output_fasta_file = args.output_fasta_file
-
-        # Step 3. Output TSV file
-        df_translations.to_csv(
-            output_tsv_file,
-            sep='\t',
-            index=False,
-            compression='gzip' if args.gzip else None
+        translate_fastx_file(
+            fastx_file=args.fastx_file,
+            output_fasta_file=args.output_fasta_file,
+            output_tsv_file=args.output_tsv_file,
+            strategy=TranslationStrategy(args.strategy),
+            start_codons=args.start_codons,
+            num_threads=args.num_threads
         )
-
-        # Step 4. Output FASTA file
-        df_peptides_unique = df_translations.loc[:, ['peptide_id', 'peptide_sequence']].drop_duplicates()
-        if args.gzip:
-            with pysam.BGZFile(output_fasta_file, "wb") as fasta:
-                for index,row in df_peptides_unique.iterrows():
-                    curr_peptide_id = str(row['peptide_id']).encode()
-                    curr_peptide_sequence = str(row['peptide_sequence']).encode()
-                    fasta.write(b">%s\n" % curr_peptide_id)
-                    fasta.write(b"%s\n" % curr_peptide_sequence)
-        else:
-            with open(output_fasta_file, "w") as file:
-                for index,row in df_peptides_unique.iterrows():
-                    curr_peptide_id = str(row['peptide_id'])
-                    curr_peptide_sequence = str(row['peptide_sequence'])
-                    file.write(">%s\n" % curr_peptide_id)
-                    file.write("%s\n" % curr_peptide_sequence)
-        pysam.faidx(output_fasta_file, rebuild=True)
     elif args.sequence:
-        translations = translate_sequence(rna_sequence=args.sequence, strategy=args.strategy)
-        print('Translated peptide sequence(s):')
-        print('[orf_start:orf_end] [sequence]')
+        translations = translate_sequence(
+            rna_sequence=args.sequence,
+            strategy=args.strategy,
+            start_codons=args.start_codons,
+        )
+        logger.info('Translated peptide sequence(s):')
+        logger.info('[orf_start:orf_end] [sequence]')
         for (sequence, orf_start, orf_end) in translations:
-            print('%i:%i %s' % (orf_start, orf_end, sequence))
+            logger.info('%i:%i %s' % (orf_start, orf_end, sequence))
     else:
-        raise Exception("Unexpected error: one of the following should have been specified: --fasta-file, --fastq-file, or --sequence.")
+        raise Exception("Unexpected error: one of the following should have been specified: --fastx-file or --sequence.")

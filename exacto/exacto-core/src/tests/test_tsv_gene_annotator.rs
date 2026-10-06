@@ -6,7 +6,7 @@ use crate::prelude::*;
 
 #[test]
 fn test_tsv_gene_annotator_1() {
-    let tsv_path = Path::new("src/tests/data/tsv/sample_gene_annotations.tsv");
+    let tsv_path = Path::new(env!("EXACTO_TEST_DATA")).join("exacto/exacto-core/sample_gene_annotations.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let tsv_file: &str = tsv_full_path.to_str().unwrap();
     let tsv_gene_annotator: TsvGeneAnnotator = TsvGeneAnnotator::new(tsv_file, "custom", "v1");
@@ -36,7 +36,7 @@ fn test_tsv_gene_annotator_1() {
 
 #[test]
 fn test_tsv_gene_annotator_2() {
-    let tsv_path = Path::new("src/tests/data/tsv/sample_gene_annotations.tsv");
+    let tsv_path = Path::new(env!("EXACTO_TEST_DATA")).join("exacto/exacto-core/sample_gene_annotations.tsv");
     let tsv_full_path = fs::canonicalize(tsv_path).unwrap();
     let tsv_file: &str = tsv_full_path.to_str().unwrap();
     let tsv_gene_annotator: TsvGeneAnnotator = TsvGeneAnnotator::new(tsv_file, "custom", "v1");

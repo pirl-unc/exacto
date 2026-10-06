@@ -1,0 +1,1232 @@
+cluster_id	chromosome_1	position_1	strand_1	operation_type_1	chromosome_2	position_2	strand_2	operation_type_2	sequence	variant_type	failure_reason	alt_count	reference_count	coverage	p_value	p_value_cutoff	expected_error_rate	slippage_repeat_length	junction_homology
+1	chr17	7668428	-	D	chr17	7668429	-	U	GCTGCCA	INS	too_few_reads	7	149	156				0	
+1	chr17	7668431	-	D	chr17	7668432	-	U	A	INS	too_few_reads	1	155	156					
+1	chr17	7668431	-	D	chr17	7668433	-	U		DEL	too_few_reads	5	151	156				4	
+1	chr17	7668436	-	D	chr17	7668438	-	U	T	SNV	too_few_reads	1	155	156					
+1	chr17	7668436	-	D	chr17	7668438	-	U		DEL	too_few_reads	1	155	156					
+1	chr17	7668439	-	D	chr17	7668440	-	U	A	INS	too_few_reads	1	155	156					
+1	chr17	7668440	-	D	chr17	7668442	-	U		DEL	too_few_reads	12	145	157				4	
+1	chr17	7668441	-	D	chr17	7668442	-	U	ACATAAAACTTGCTGCCA	INS	too_few_reads	1	156	157					
+1	chr17	7668444	-	D	chr17	7668446	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668445	-	D	chr17	7668447	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668455	-	D	chr17	7668457	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668457	-	D	chr17	7668459	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668458	-	D	chr17	7668460	-	U		DEL	too_few_reads	22	135	157				5	
+1	chr17	7668464	-	D	chr17	7668466	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668468	-	D	chr17	7668470	-	U		DEL	too_few_reads	6	151	157				0	
+1	chr17	7668468	-	D	chr17	7668470	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7668469	-	D	chr17	7668471	-	U	G	SNV	too_few_reads	1	156	157					
+1	chr17	7668470	-	D	chr17	7668472	-	U		DEL	too_few_reads	3	154	157				7	
+1	chr17	7668471	-	D	chr17	7668473	-	U		DEL	too_few_reads	16	141	157				5	
+1	chr17	7668475	-	D	chr17	7668477	-	U	C	SNV	too_few_reads	1	156	157					
+1	chr17	7668476	-	D	chr17	7668478	-	U		DEL	too_few_reads	4	153	157				7	
+1	chr17	7668481	-	D	chr17	7668483	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668483	-	D	chr17	7668485	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7668486	-	D	chr17	7668487	-	U	C	INS	too_few_reads	3	154	157				5	
+1	chr17	7668486	-	D	chr17	7668488	-	U		DEL	too_few_reads	5	152	157				4	
+1	chr17	7668487	-	D	chr17	7668488	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668492	-	D	chr17	7668493	-	U	C	INS	too_few_reads	2	155	157					
+1	chr17	7668492	-	D	chr17	7668494	-	U		DEL	too_few_reads	5	152	157				0	
+1	chr17	7668496	-	D	chr17	7668498	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668500	-	D	chr17	7668504	-	U	CAC	MNV	too_few_reads	1	156	157					
+1	chr17	7668502	-	D	chr17	7668504	-	U		DEL	too_few_reads	8	149	157				4	
+1	chr17	7668509	-	D	chr17	7668511	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668514	-	D	chr17	7668519	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668517	-	D	chr17	7668518	-	U	A	INS	too_few_reads	1	156	157					
+1	chr17	7668523	-	D	chr17	7668525	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668526	-	D	chr17	7668528	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668527	-	D	chr17	7668529	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668528	-	D	chr17	7668530	-	U		DEL	too_few_reads	10	147	157				4	
+1	chr17	7668540	-	D	chr17	7668541	-	U	G	INS	too_few_reads	4	153	157				4	
+1	chr17	7668543	-	D	chr17	7668545	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668545	-	D	chr17	7668547	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668547	-	D	chr17	7668548	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668556	-	D	chr17	7668558	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7668557	-	D	chr17	7668559	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668560	-	D	chr17	7668562	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668567	-	D	chr17	7668568	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668569	-	D	chr17	7668571	-	U		DEL	too_few_reads	4	153	157				0	
+1	chr17	7668576	-	D	chr17	7668577	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7668576	-	D	chr17	7668578	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7668579	-	D	chr17	7668581	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668587	-	D	chr17	7668588	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668587	-	D	chr17	7668589	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668595	-	D	chr17	7668598	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668597	-	D	chr17	7668598	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668598	-	D	chr17	7668600	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668601	-	D	chr17	7668602	-	U	C	INS	too_few_reads	2	155	157					
+1	chr17	7668601	-	D	chr17	7668603	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668610	-	D	chr17	7668612	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668614	-	D	chr17	7668616	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668616	-	D	chr17	7668617	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7668619	-	D	chr17	7668621	-	U	G	SNV	too_few_reads	1	156	157					
+1	chr17	7668620	-	D	chr17	7668622	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668624	-	D	chr17	7668626	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668628	-	D	chr17	7668630	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668635	-	D	chr17	7668637	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668638	-	D	chr17	7668640	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668642	-	D	chr17	7668644	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668647	-	D	chr17	7668650	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668654	-	D	chr17	7668655	-	U	G	INS	too_few_reads	6	151	157				5	
+1	chr17	7668654	-	D	chr17	7668656	-	U		DEL	too_few_reads	3	154	157				4	
+1	chr17	7668659	-	D	chr17	7668661	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668660	-	D	chr17	7668662	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7668664	-	D	chr17	7668668	-	U	GTA	MNV	too_few_reads	1	156	157					
+1	chr17	7668666	-	D	chr17	7668668	-	U		DEL	too_few_reads	22	135	157				4	
+1	chr17	7668671	-	D	chr17	7668673	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668672	-	D	chr17	7668674	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668675	-	D	chr17	7668676	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668675	-	D	chr17	7668677	-	U		DEL	too_few_reads	13	144	157				4	
+1	chr17	7668680	-	D	chr17	7668682	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668682	-	D	chr17	7668684	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668686	-	D	chr17	7668688	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668688	-	D	chr17	7668689	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7668688	-	D	chr17	7668690	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668695	-	D	chr17	7668696	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668695	-	D	chr17	7668697	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668701	-	D	chr17	7668703	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668702	-	D	chr17	7668705	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668703	-	D	chr17	7668704	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7668708	-	D	chr17	7668709	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668708	-	D	chr17	7668710	-	U		DEL	too_few_reads	4	153	157				0	
+1	chr17	7668711	-	D	chr17	7668712	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7668711	-	D	chr17	7668713	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7668721	-	D	chr17	7668722	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7668721	-	D	chr17	7668723	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668723	-	D	chr17	7668725	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668748	-	D	chr17	7668750	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668750	-	D	chr17	7668751	-	U	C	INS	too_few_reads	3	154	157				5	
+1	chr17	7668750	-	D	chr17	7668752	-	U		DEL	too_few_reads	6	151	157				4	
+1	chr17	7668755	-	D	chr17	7668756	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668758	-	D	chr17	7668760	-	U		DEL	too_few_reads	4	153	157				0	
+1	chr17	7668761	-	D	chr17	7668762	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668761	-	D	chr17	7668763	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668766	-	D	chr17	7668768	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668778	-	D	chr17	7668779	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668784	-	D	chr17	7668786	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668789	-	D	chr17	7668791	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668794	-	D	chr17	7668796	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668797	-	D	chr17	7668799	-	U	G	SNV	too_few_reads	1	156	157					
+1	chr17	7668798	-	D	chr17	7668800	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668801	-	D	chr17	7668802	-	U	C	INS	too_few_reads	2	155	157					
+1	chr17	7668801	-	D	chr17	7668803	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7668803	-	D	chr17	7668806	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668805	-	D	chr17	7668807	-	U	G	SNV	too_few_reads	1	156	157					
+1	chr17	7668805	-	D	chr17	7668807	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7668808	-	D	chr17	7668810	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7668810	-	D	chr17	7668812	-	U	C	SNV	too_few_reads	1	156	157					
+1	chr17	7668813	-	D	chr17	7668816	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668826	-	D	chr17	7668828	-	U		DEL	too_few_reads	11	146	157				7	
+1	chr17	7668828	-	D	chr17	7668830	-	U	C	SNV	too_few_reads	1	156	157					
+1	chr17	7668828	-	D	chr17	7668831	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668830	-	D	chr17	7668832	-	U		DEL	too_few_reads	9	148	157				5	
+1	chr17	7668830	-	D	chr17	7668832	-	U	C	SNV	too_few_reads	1	156	157					
+1	chr17	7668833	-	D	chr17	7668837	-	U		DEL	too_few_reads	18	139	157				5	
+1	chr17	7668836	-	D	chr17	7668838	-	U		DEL	too_few_reads	97	60	157				18	
+1	chr17	7668836	-	D	chr17	7668838	-	U	C	SNV	too_few_reads	7	150	157				18	
+1	chr17	7668837	-	D	chr17	7668839	-	U	C	SNV	too_few_reads	8	149	157				18	
+1	chr17	7668838	-	D	chr17	7668840	-	U	C	SNV	too_few_reads	3	154	157				18	
+1	chr17	7668852	-	D	chr17	7668856	-	U		DEL	too_few_reads	36	121	157				18	
+1	chr17	7668855	-	D	chr17	7668857	-	U	C	SNV	too_few_reads	36	121	157				6	
+1	chr17	7668855	-	D	chr17	7668857	-	U		DEL	too_few_reads	3	154	157				6	
+1	chr17	7668860	-	D	chr17	7668863	-	U		DEL	too_few_reads	3	154	157				6	
+1	chr17	7668862	-	D	chr17	7668864	-	U	C	SNV	too_few_reads	3	154	157				0	
+1	chr17	7668862	-	D	chr17	7668864	-	U		DEL	too_few_reads	4	153	157				0	
+1	chr17	7668869	-	D	chr17	7668870	-	U	G	INS	too_few_reads	5	152	157				4	
+1	chr17	7668869	-	D	chr17	7668871	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668878	-	D	chr17	7668880	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668879	-	D	chr17	7668881	-	U		DEL	too_few_reads	15	142	157				4	
+1	chr17	7668886	-	D	chr17	7668887	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668891	-	D	chr17	7668893	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668894	-	D	chr17	7668896	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668898	-	D	chr17	7668899	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7668902	-	D	chr17	7668906	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668903	-	D	chr17	7668905	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668905	-	D	chr17	7668907	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668907	-	D	chr17	7668910	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668909	-	D	chr17	7668911	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7668914	-	D	chr17	7668916	-	U		DEL	too_few_reads	4	153	157				7	
+1	chr17	7668915	-	D	chr17	7668918	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668918	-	D	chr17	7668920	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668922	-	D	chr17	7668924	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668926	-	D	chr17	7668928	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668929	-	D	chr17	7668931	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668931	-	D	chr17	7668932	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668932	-	D	chr17	7668933	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668935	-	D	chr17	7668937	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7668938	-	D	chr17	7668939	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668938	-	D	chr17	7668940	-	U		DEL	too_few_reads	4	153	157				7	
+1	chr17	7668943	-	D	chr17	7668944	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668943	-	D	chr17	7668945	-	U		DEL	too_few_reads	5	152	157				4	
+1	chr17	7668947	-	D	chr17	7668950	-	U	TC	MNV	too_few_reads	1	156	157					
+1	chr17	7668951	-	D	chr17	7668952	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668952	-	D	chr17	7668954	-	U		DEL	too_few_reads	3	154	157				7	
+1	chr17	7668954	-	D	chr17	7668957	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668957	-	D	chr17	7668958	-	U	A	INS	too_few_reads	2	155	157					
+1	chr17	7668957	-	D	chr17	7668959	-	U		DEL	too_few_reads	3	154	157				4	
+1	chr17	7668957	-	D	chr17	7668959	-	U	G	SNV	too_few_reads	1	156	157					
+1	chr17	7668958	-	D	chr17	7668960	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7668962	-	D	chr17	7668963	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668962	-	D	chr17	7668964	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668970	-	D	chr17	7668971	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7668970	-	D	chr17	7668972	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668976	-	D	chr17	7668978	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668978	-	D	chr17	7668980	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668984	-	D	chr17	7668986	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7668994	-	D	chr17	7668995	-	U	C	INS	too_few_reads	4	153	157				4	
+1	chr17	7668997	-	D	chr17	7668998	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7668997	-	D	chr17	7668999	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7668998	-	D	chr17	7668999	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669000	-	D	chr17	7669002	-	U	A	SNV	too_few_reads	1	156	157					
+1	chr17	7669004	-	D	chr17	7669005	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669004	-	D	chr17	7669006	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669007	-	D	chr17	7669009	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669017	-	D	chr17	7669018	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669023	-	D	chr17	7669025	-	U		DEL	too_few_reads	6	151	157				0	
+1	chr17	7669027	-	D	chr17	7669028	-	U	G	INS	too_few_reads	3	154	157				4	
+1	chr17	7669030	-	D	chr17	7669031	-	U	A	INS	too_few_reads	1	156	157					
+1	chr17	7669034	-	D	chr17	7669035	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669034	-	D	chr17	7669036	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669036	-	D	chr17	7669037	-	U	A	INS	too_few_reads	1	156	157					
+1	chr17	7669039	-	D	chr17	7669041	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669046	-	D	chr17	7669047	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669049	-	D	chr17	7669051	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669054	-	D	chr17	7669056	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669057	-	D	chr17	7669059	-	U		DEL	too_few_reads	5	152	157				0	
+1	chr17	7669063	-	D	chr17	7669065	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669069	-	D	chr17	7669072	-	U	GT	MNV	too_few_reads	1	156	157					
+1	chr17	7669071	-	D	chr17	7669072	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669071	-	D	chr17	7669073	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669075	-	D	chr17	7669077	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669077	-	D	chr17	7669079	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669081	-	D	chr17	7669082	-	U	C	INS	too_few_reads	3	154	157				4	
+1	chr17	7669081	-	D	chr17	7669083	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669087	-	D	chr17	7669089	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669090	-	D	chr17	7669092	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669091	-	D	chr17	7669094	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669093	-	D	chr17	7669095	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669098	-	D	chr17	7669099	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669098	-	D	chr17	7669100	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669105	-	D	chr17	7669106	-	U	C	INS	too_few_reads	6	151	157				6	
+1	chr17	7669105	-	D	chr17	7669107	-	U		DEL	too_few_reads	3	154	157				5	
+1	chr17	7669112	-	D	chr17	7669114	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669115	-	D	chr17	7669117	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669119	-	D	chr17	7669120	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669122	-	D	chr17	7669123	-	U	G	INS	too_few_reads	11	146	157				5	
+1	chr17	7669122	-	D	chr17	7669124	-	U		DEL	too_few_reads	4	153	157				4	
+1	chr17	7669132	-	D	chr17	7669134	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669133	-	D	chr17	7669135	-	U		DEL	too_few_reads	11	146	157				4	
+1	chr17	7669142	-	D	chr17	7669143	-	U	A	INS	too_few_reads	1	156	157					
+1	chr17	7669142	-	D	chr17	7669144	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669146	-	D	chr17	7669148	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669148	-	D	chr17	7669150	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669161	-	D	chr17	7669163	-	U		DEL	too_few_reads	4	153	157				0	
+1	chr17	7669163	-	D	chr17	7669164	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669164	-	D	chr17	7669166	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669164	-	D	chr17	7669166	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7669169	-	D	chr17	7669171	-	U		DEL	too_few_reads	4	153	157				0	
+1	chr17	7669173	-	D	chr17	7669174	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7669173	-	D	chr17	7669175	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669175	-	D	chr17	7669176	-	U	A	INS	too_few_reads	1	156	157					
+1	chr17	7669179	-	D	chr17	7669181	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669203	-	D	chr17	7669205	-	U		DEL	too_few_reads	7	150	157				0	
+1	chr17	7669206	-	D	chr17	7669208	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7669214	-	D	chr17	7669216	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669223	-	D	chr17	7669225	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669226	-	D	chr17	7669227	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669226	-	D	chr17	7669228	-	U		DEL	too_few_reads	3	154	157				7	
+1	chr17	7669231	-	D	chr17	7669233	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669237	-	D	chr17	7669239	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669240	-	D	chr17	7669242	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669243	-	D	chr17	7669245	-	U		DEL	too_few_reads	8	149	157				4	
+1	chr17	7669247	-	D	chr17	7669249	-	U		DEL	too_few_reads	4	153	157				7	
+1	chr17	7669258	-	D	chr17	7669259	-	U	C	INS	too_few_reads	2	155	157					
+1	chr17	7669258	-	D	chr17	7669260	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669262	-	D	chr17	7669264	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669266	-	D	chr17	7669268	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669268	-	D	chr17	7669269	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7669268	-	D	chr17	7669270	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669274	-	D	chr17	7669276	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669281	-	D	chr17	7669282	-	U	C	INS	too_few_reads	2	155	157					
+1	chr17	7669281	-	D	chr17	7669283	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669285	-	D	chr17	7669286	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669289	-	D	chr17	7669291	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669291	-	D	chr17	7669293	-	U	G	SNV	too_few_reads	1	156	157					
+1	chr17	7669292	-	D	chr17	7669293	-	U	G	INS	too_few_reads	11	146	157				5	
+1	chr17	7669296	-	D	chr17	7669298	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669298	-	D	chr17	7669300	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669300	-	D	chr17	7669302	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669303	-	D	chr17	7669305	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669305	-	D	chr17	7669306	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669305	-	D	chr17	7669307	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669307	-	D	chr17	7669309	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669314	-	D	chr17	7669316	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669318	-	D	chr17	7669320	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669323	-	D	chr17	7669325	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669324	-	D	chr17	7669326	-	U	G	SNV	too_few_reads	2	155	157					
+1	chr17	7669325	-	D	chr17	7669326	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669328	-	D	chr17	7669330	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669330	-	D	chr17	7669332	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669332	-	D	chr17	7669333	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669339	-	D	chr17	7669341	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669342	-	D	chr17	7669344	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669343	-	D	chr17	7669345	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669349	-	D	chr17	7669350	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669350	-	D	chr17	7669352	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669352	-	D	chr17	7669356	-	U	GAG	MNV	too_few_reads	1	156	157					
+1	chr17	7669355	-	D	chr17	7669356	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7669355	-	D	chr17	7669357	-	U		DEL	too_few_reads	6	151	157				0	
+1	chr17	7669358	-	D	chr17	7669360	-	U		DEL	too_few_reads	6	151	157				0	
+1	chr17	7669361	-	D	chr17	7669363	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669364	-	D	chr17	7669365	-	U	G	INS	too_few_reads	3	154	157				4	
+1	chr17	7669368	-	D	chr17	7669370	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669373	-	D	chr17	7669375	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669374	-	D	chr17	7669376	-	U		DEL	too_few_reads	35	122	157				5	
+1	chr17	7669378	-	D	chr17	7669381	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669381	-	D	chr17	7669383	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669381	-	D	chr17	7669383	-	U	G	SNV	too_few_reads	2	155	157					
+1	chr17	7669383	-	D	chr17	7669385	-	U		DEL	too_few_reads	11	146	157				4	
+1	chr17	7669387	-	D	chr17	7669389	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669395	-	D	chr17	7669397	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669399	-	D	chr17	7669401	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7669402	-	D	chr17	7669403	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7669408	-	D	chr17	7669409	-	U	G	INS	too_few_reads	5	152	157				5	
+1	chr17	7669413	-	D	chr17	7669415	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669414	-	D	chr17	7669416	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669417	-	D	chr17	7669418	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669420	-	D	chr17	7669421	-	U	G	INS	too_few_reads	11	146	157				5	
+1	chr17	7669420	-	D	chr17	7669422	-	U		DEL	too_few_reads	6	151	157				4	
+1	chr17	7669423	-	D	chr17	7669426	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669429	-	D	chr17	7669431	-	U		DEL	too_few_reads	21	136	157				4	
+1	chr17	7669434	-	D	chr17	7669436	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669435	-	D	chr17	7669437	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669458	-	D	chr17	7669460	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669459	-	D	chr17	7669461	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669463	-	D	chr17	7669464	-	U	G	INS	too_few_reads	8	149	157				5	
+1	chr17	7669463	-	D	chr17	7669465	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669467	-	D	chr17	7669469	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669472	-	D	chr17	7669474	-	U		DEL	too_few_reads	6	151	157				0	
+1	chr17	7669474	-	D	chr17	7669475	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669477	-	D	chr17	7669479	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669481	-	D	chr17	7669482	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669485	-	D	chr17	7669487	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669487	-	D	chr17	7669488	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7669490	-	D	chr17	7669491	-	U	C	INS	too_few_reads	3	154	157				4	
+1	chr17	7669490	-	D	chr17	7669492	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669500	-	D	chr17	7669502	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669508	-	D	chr17	7669509	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669508	-	D	chr17	7669510	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669512	-	D	chr17	7669514	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669516	-	D	chr17	7669518	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669522	-	D	chr17	7669523	-	U	C	INS	too_few_reads	3	154	157				4	
+1	chr17	7669522	-	D	chr17	7669524	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669525	-	D	chr17	7669527	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669528	-	D	chr17	7669530	-	U		DEL	too_few_reads	6	151	157				0	
+1	chr17	7669533	-	D	chr17	7669535	-	U		DEL	too_few_reads	3	154	157				0	
+1	chr17	7669533	-	D	chr17	7669534	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7669536	-	D	chr17	7669538	-	U		DEL	too_few_reads	13	144	157				4	
+1	chr17	7669536	-	D	chr17	7669538	-	U	G	SNV	too_few_reads	4	153	157				4	
+1	chr17	7669539	-	D	chr17	7669542	-	U		DEL	too_few_reads	3	154	157				4	
+1	chr17	7669540	-	D	chr17	7669541	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669543	-	D	chr17	7669545	-	U		DEL	too_few_reads	13	144	157				4	
+1	chr17	7669543	-	D	chr17	7669545	-	U	G	SNV	too_few_reads	4	153	157				4	
+1	chr17	7669552	-	D	chr17	7669553	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669552	-	D	chr17	7669554	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669556	-	D	chr17	7669557	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669557	-	D	chr17	7669559	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669559	-	D	chr17	7669562	-	U		DEL	too_few_reads	3	154	157				6	
+1	chr17	7669562	-	D	chr17	7669563	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669562	-	D	chr17	7669564	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669564	-	D	chr17	7669565	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669566	-	D	chr17	7669568	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669572	-	D	chr17	7669574	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669576	-	D	chr17	7669577	-	U	C	INS	too_few_reads	2	155	157					
+1	chr17	7669576	-	D	chr17	7669578	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669582	-	D	chr17	7669583	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669586	-	D	chr17	7669587	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669586	-	D	chr17	7669588	-	U		DEL	too_few_reads	6	151	157				4	
+1	chr17	7669591	-	D	chr17	7669594	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669593	-	D	chr17	7669594	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669593	-	D	chr17	7669595	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669596	-	D	chr17	7669598	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669600	-	D	chr17	7669602	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669623	-	D	chr17	7669624	-	U	G	INS	too_few_reads	4	153	157				4	
+1	chr17	7669623	-	D	chr17	7669625	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669626	-	D	chr17	7669628	-	U		DEL	too_few_reads	5	152	157				0	
+1	chr17	7669630	-	D	chr17	7669632	-	U	A	SNV	too_few_reads	1	156	157					
+1	chr17	7669631	-	D	chr17	7669633	-	U	T	SNV	too_few_reads	1	156	157					
+1	chr17	7669633	-	D	chr17	7669635	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669635	-	D	chr17	7669636	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7669640	-	D	chr17	7669642	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669641	-	D	chr17	7669644	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669643	-	D	chr17	7669645	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669644	-	D	chr17	7669645	-	U	A	INS	too_few_reads	2	155	157					
+1	chr17	7669644	-	D	chr17	7669646	-	U		DEL	too_few_reads	7	150	157				6	
+1	chr17	7669644	-	D	chr17	7669646	-	U	C	SNV	too_few_reads	1	156	157					
+1	chr17	7669648	-	D	chr17	7669649	-	U	G	INS	too_few_reads	1	156	157					
+1	chr17	7669649	-	D	chr17	7669653	-	U	CAT	MNV	too_few_reads	1	156	157					
+1	chr17	7669650	-	D	chr17	7669651	-	U	T	INS	too_few_reads	1	156	157					
+1	chr17	7669655	-	D	chr17	7669656	-	U	C	INS	too_few_reads	3	154	157				4	
+1	chr17	7669661	-	D	chr17	7669663	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669669	-	D	chr17	7669670	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7669669	-	D	chr17	7669671	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669672	-	D	chr17	7669673	-	U	A	INS	too_few_reads	5	152	157				6	
+1	chr17	7669672	-	D	chr17	7669674	-	U		DEL	too_few_reads	5	152	157				5	
+1	chr17	7669677	-	D	chr17	7669679	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7669681	-	D	chr17	7669683	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7669684	-	D	chr17	7669686	-	U	C	SNV	too_few_reads	1	156	157					
+1	chr17	7670608	-	D	chr17	7670609	-	U	C	INS	too_few_reads	1	156	157					
+1	chr17	7670610	-	D	chr17	7670612	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7670613	-	D	chr17	7670615	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7670615	-	D	chr17	7670617	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7670624	-	D	chr17	7670626	-	U	G	SNV	too_few_reads	1	156	157					
+1	chr17	7670625	-	D	chr17	7670626	-	U	G	INS	too_few_reads	40	117	157				7	
+1	chr17	7670625	-	D	chr17	7670627	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7670631	-	D	chr17	7670632	-	U	A	INS	too_few_reads	1	156	157					
+1	chr17	7670640	-	D	chr17	7670641	-	U	G	INS	too_few_reads	2	155	157					
+1	chr17	7670640	-	D	chr17	7670642	-	U		DEL	too_few_reads	4	153	157				0	
+1	chr17	7670648	-	D	chr17	7670650	-	U		DEL	too_few_reads	2	155	157					
+1	chr17	7670652	-	D	chr17	7670654	-	U		DEL	too_few_reads	1	156	157					
+1	chr17	7670663	-	D	chr17	7670664	-	U	G	INS	too_few_reads	1	155	156					
+1	chr17	7670667	-	D	chr17	7670668	-	U	C	INS	too_few_reads	1	155	156					
+1	chr17	7670669	-	D	chr17	7670670	-	U	G	INS	too_few_reads	1	155	156					
+1	chr17	7670669	-	D	chr17	7670671	-	U		DEL	too_few_reads	2	154	156					
+1	chr17	7670674	-	D	chr17	7670676	-	U		DEL	too_few_reads	1	154	155					
+1	chr17	7670679	-	D	chr17	7670680	-	U	G	INS	too_few_reads	1	153	154					
+1	chr17	7670684	-	D	chr17	7670685	-	U	C	INS	too_few_reads	1	153	154					
+1	chr17	7670684	-	D	chr17	7670686	-	U		DEL	too_few_reads	3	151	154				7	
+1	chr17	7670695	-	D	chr17	7670697	-	U	C	SNV	too_few_reads	1	153	154					
+1	chr17	7670700	-	D	chr17	7670703	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7670702	-	D	chr17	7670703	-	U	G	INS	too_few_reads	1	153	154					
+1	chr17	7670706	-	D	chr17	7670707	-	U	G	INS	too_few_reads	4	150	154				4	
+1	chr17	7670706	-	D	chr17	7670708	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673537	-	D	chr17	7673539	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673544	-	D	chr17	7673546	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673546	-	D	chr17	7673549	-	U		DEL	too_few_reads	2	152	154					
+1	chr17	7673549	-	D	chr17	7673550	-	U	A	INS	too_few_reads	1	153	154					
+1	chr17	7673553	-	D	chr17	7673555	-	U		DEL	too_few_reads	2	152	154					
+1	chr17	7673556	-	D	chr17	7673558	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673557	-	D	chr17	7673559	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673562	-	D	chr17	7673564	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673564	-	D	chr17	7673566	-	U		DEL	too_few_reads	3	151	154				0	
+1	chr17	7673568	-	D	chr17	7673569	-	U	A	INS	too_few_reads	1	153	154					
+1	chr17	7673568	-	D	chr17	7673570	-	U		DEL	too_few_reads	2	152	154					
+1	chr17	7673569	-	D	chr17	7673572	-	U	AG	MNV	too_few_reads	1	153	154					
+1	chr17	7673570	-	D	chr17	7673573	-	U	GA	MNV	too_few_reads	1	153	154					
+1	chr17	7673571	-	D	chr17	7673572	-	U	A	INS	too_few_reads	3	151	154				4	
+1	chr17	7673573	-	D	chr17	7673575	-	U	T	SNV	too_few_reads	1	153	154					
+1	chr17	7673574	-	D	chr17	7673576	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673578	-	D	chr17	7673580	-	U		DEL	too_few_reads	6	148	154				4	
+1	chr17	7673585	-	D	chr17	7673586	-	U	C	INS	too_few_reads	1	153	154					
+1	chr17	7673587	-	D	chr17	7673588	-	U	T	INS	too_few_reads	1	153	154					
+1	chr17	7673591	-	D	chr17	7673593	-	U		DEL	too_few_reads	1	153	154					
+1	chr17	7673595	-	D	chr17	7673597	-	U		DEL	too_few_reads	4	150	154				0	
+1	chr17	7673598	-	D	chr17	7673600	-	U		DEL	too_few_reads	2	152	154					
+1	chr17	7673599	-	D	chr17	7673600	-	U	G	INS	too_few_reads	1	153	154					
+1	chr17	7673600	-	D	chr17	7673601	-	U	C	INS	too_few_reads	2	152	154					
+1	chr17	7673705	-	D	chr17	7673707	-	U		DEL	too_few_reads	1	147	148					
+1	chr17	7673713	-	D	chr17	7673715	-	U		DEL	too_few_reads	1	147	148					
+1	chr17	7673717	-	D	chr17	7673718	-	U	C	INS	too_few_reads	4	144	148				6	
+1	chr17	7673717	-	D	chr17	7673719	-	U	A	SNV	too_few_reads	1	147	148					
+1	chr17	7673717	-	D	chr17	7673719	-	U		DEL	too_few_reads	4	144	148				5	
+1	chr17	7673726	-	D	chr17	7673727	-	U	CGA	INS	too_few_reads	1	147	148					
+1	chr17	7673730	-	D	chr17	7673731	-	U	C	INS	too_few_reads	1	147	148					
+1	chr17	7673734	-	D	chr17	7673735	-	U	T	INS	too_few_reads	1	147	148					
+1	chr17	7673739	-	D	chr17	7673740	-	U	G	INS	too_few_reads	7	141	148				5	
+1	chr17	7673743	-	D	chr17	7673744	-	U	A	INS	too_few_reads	2	146	148					
+1	chr17	7673743	-	D	chr17	7673745	-	U		DEL	too_few_reads	4	144	148				7	
+1	chr17	7673747	-	D	chr17	7673748	-	U	A	INS	too_few_reads	1	147	148					
+1	chr17	7673747	-	D	chr17	7673749	-	U		DEL	too_few_reads	1	147	148					
+1	chr17	7673750	-	D	chr17	7673751	-	U	G	INS	too_few_reads	1	147	148					
+1	chr17	7673751	-	D	chr17	7673753	-	U		DEL	too_few_reads	2	146	148					
+1	chr17	7673756	-	D	chr17	7673758	-	U		DEL	too_few_reads	5	143	148				9	
+1	chr17	7673761	-	D	chr17	7673763	-	U		DEL	too_few_reads	2	146	148					
+1	chr17	7673767	-	D	chr17	7673769	-	U		DEL	too_few_reads	2	146	148					
+1	chr17	7673775	-	D	chr17	7673777	-	U		DEL	too_few_reads	2	146	148					
+1	chr17	7673781	-	D	chr17	7673783	-	U		DEL	too_few_reads	1	147	148					
+1	chr17	7673782	-	D	chr17	7673783	-	U	G	INS	too_few_reads	3	145	148				4	
+1	chr17	7673782	-	D	chr17	7673784	-	U		DEL	too_few_reads	2	146	148					
+1	chr17	7673786	-	D	chr17	7673788	-	U		DEL	too_few_reads	2	146	148					
+1	chr17	7673790	-	D	chr17	7673792	-	U		DEL	too_few_reads	1	147	148					
+1	chr17	7673796	-	D	chr17	7673798	-	U		DEL	too_few_reads	10	138	148				0	
+1	chr17	7673800	-	D	chr17	7673802	-	U		DEL	too_few_reads	1	147	148					
+1	chr17	7673809	-	D	chr17	7673811	-	U		DEL	too_few_reads	5	143	148				0	
+1	chr17	7673811	-	D	chr17	7673812	-	U	GACAGC	INS	too_few_reads	1	147	148					
+1	chr17	7673818	-	D	chr17	7673820	-	U		DEL	too_few_reads	2	145	147					
+1	chr17	7673822	-	D	chr17	7673823	-	U	G	INS	too_few_reads	1	146	147					
+1	chr17	7673822	-	D	chr17	7673824	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7673829	-	D	chr17	7673831	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7673831	-	D	chr17	7673833	-	U		DEL	too_few_reads	3	144	147				0	
+1	chr17	7673833	-	D	chr17	7673834	-	U	T	INS	too_few_reads	1	146	147					
+1	chr17	7674182	-	D	chr17	7674184	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674184	-	D	chr17	7674186	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674188	-	D	chr17	7674190	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674192	-	D	chr17	7674194	-	U	G	SNV	too_few_reads	1	146	147					
+1	chr17	7674193	-	D	chr17	7674196	-	U		DEL	too_few_reads	3	144	147				4	
+1	chr17	7674196	-	D	chr17	7674198	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674202	-	D	chr17	7674206	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674203	-	D	chr17	7674205	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674204	-	D	chr17	7674207	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674206	-	D	chr17	7674207	-	U	C	INS	too_few_reads	1	146	147					
+1	chr17	7674207	-	D	chr17	7674208	-	U	T	INS	too_few_reads	1	146	147					
+1	chr17	7674209	-	D	chr17	7674213	-	U	CAT	MNV	too_few_reads	1	146	147					
+1	chr17	7674212	-	D	chr17	7674213	-	U	C	INS	too_few_reads	2	145	147					
+1	chr17	7674212	-	D	chr17	7674214	-	U		DEL	too_few_reads	2	145	147					
+1	chr17	7674215	-	D	chr17	7674216	-	U	G	INS	too_few_reads	1	146	147					
+1	chr17	7674215	-	D	chr17	7674217	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674220	-	D	chr17	7674221	-	U	C	INS	too_few_reads	2	145	147					
+1	chr17	7674229	-	D	chr17	7674232	-	U	GC	MNV	too_few_reads	1	146	147					
+1	chr17	7674230	-	D	chr17	7674231	-	U	C	INS	too_few_reads	1	146	147					
+1	chr17	7674231	-	D	chr17	7674232	-	U	G	INS	too_few_reads	1	146	147					
+1	chr17	7674231	-	D	chr17	7674233	-	U		DEL	too_few_reads	3	144	147				0	
+1	chr17	7674235	-	D	chr17	7674237	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674239	-	D	chr17	7674241	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674241	-	D	chr17	7674243	-	U		DEL	too_few_reads	2	145	147					
+1	chr17	7674248	-	D	chr17	7674250	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674258	-	D	chr17	7674260	-	U		DEL	too_few_reads	1	146	147					
+1	chr17	7674261	-	D	chr17	7674262	-	U	A	INS	too_few_reads	1	146	147					
+1	chr17	7674265	-	D	chr17	7674266	-	U	C	INS	too_few_reads	1	146	147					
+1	chr17	7674267	-	D	chr17	7674268	-	U	T	INS	too_few_reads	1	146	147					
+1	chr17	7674268	-	D	chr17	7674270	-	U	T	SNV	too_few_reads	1	146	147					
+1	chr17	7674279	-	D	chr17	7674280	-	U	CTGCT	INS	too_few_reads	1	146	147					
+1	chr17	7674283	-	D	chr17	7674284	-	U	T	INS	too_few_reads	1	145	146					
+1	chr17	7674285	-	D	chr17	7674287	-	U		DEL	too_few_reads	2	144	146					
+1	chr17	7674287	-	D	chr17	7674289	-	U		DEL	too_few_reads	1	145	146					
+1	chr17	7674865	-	D	chr17	7674866	-	U	C	INS	too_few_reads	1	141	142					
+1	chr17	7674873	-	D	chr17	7674875	-	U		DEL	too_few_reads	3	139	142				0	
+1	chr17	7674877	-	D	chr17	7674879	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674878	-	D	chr17	7674879	-	U	G	INS	too_few_reads	1	141	142					
+1	chr17	7674878	-	D	chr17	7674880	-	U		DEL	too_few_reads	3	139	142				0	
+1	chr17	7674881	-	D	chr17	7674883	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674882	-	D	chr17	7674885	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674884	-	D	chr17	7674886	-	U	T	SNV	too_few_reads	1	141	142					
+1	chr17	7674885	-	D	chr17	7674887	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674888	-	D	chr17	7674889	-	U	T	INS	too_few_reads	1	141	142					
+1	chr17	7674894	-	D	chr17	7674896	-	U		DEL	too_few_reads	14	128	142				4	
+1	chr17	7674899	-	D	chr17	7674901	-	U		DEL	too_few_reads	2	140	142					
+1	chr17	7674901	-	D	chr17	7674902	-	U	A	INS	too_few_reads	2	140	142					
+1	chr17	7674901	-	D	chr17	7674903	-	U		DEL	too_few_reads	3	139	142				0	
+1	chr17	7674911	-	D	chr17	7674913	-	U		DEL	too_few_reads	2	140	142					
+1	chr17	7674913	-	D	chr17	7674915	-	U		DEL	too_few_reads	3	139	142				0	
+1	chr17	7674916	-	D	chr17	7674918	-	U		DEL	too_few_reads	3	139	142				0	
+1	chr17	7674918	-	D	chr17	7674919	-	U	G	INS	too_few_reads	1	141	142					
+1	chr17	7674920	-	D	chr17	7674921	-	U	G	INS	too_few_reads	1	141	142					
+1	chr17	7674920	-	D	chr17	7674922	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674922	-	D	chr17	7674923	-	U	T	INS	too_few_reads	1	141	142					
+1	chr17	7674922	-	D	chr17	7674924	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674924	-	D	chr17	7674926	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674928	-	D	chr17	7674930	-	U		DEL	too_few_reads	3	139	142				0	
+1	chr17	7674931	-	D	chr17	7674933	-	U		DEL	too_few_reads	5	137	142				0	
+1	chr17	7674934	-	D	chr17	7674935	-	U	G	INS	too_few_reads	2	140	142					
+1	chr17	7674936	-	D	chr17	7674938	-	U		DEL	too_few_reads	2	140	142					
+1	chr17	7674937	-	D	chr17	7674938	-	U	G	INS	too_few_reads	1	141	142					
+1	chr17	7674938	-	D	chr17	7674940	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674947	-	D	chr17	7674949	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674958	-	D	chr17	7674960	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674959	-	D	chr17	7674962	-	U	CT	MNV	too_few_reads	1	141	142					
+1	chr17	7674961	-	D	chr17	7674962	-	U	C	INS	too_few_reads	1	141	142					
+1	chr17	7674965	-	D	chr17	7674967	-	U		DEL	too_few_reads	1	141	142					
+1	chr17	7674965	-	D	chr17	7674967	-	U	C	SNV	too_few_reads	1	141	142					
+1	chr17	7675053	-	D	chr17	7675055	-	U	G	SNV	too_few_reads	1	137	138					
+1	chr17	7675058	-	D	chr17	7675060	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675067	-	D	chr17	7675069	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675075	-	D	chr17	7675077	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675079	-	D	chr17	7675080	-	U	C	INS	too_few_reads	3	135	138				6	
+1	chr17	7675079	-	D	chr17	7675081	-	U		DEL	too_few_reads	7	131	138				5	
+1	chr17	7675083	-	D	chr17	7675085	-	U	G	SNV	too_few_reads	1	137	138					
+1	chr17	7675089	-	D	chr17	7675091	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675092	-	D	chr17	7675094	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675095	-	D	chr17	7675097	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675097	-	D	chr17	7675098	-	U	G	INS	too_few_reads	3	135	138				0	
+1	chr17	7675111	-	D	chr17	7675114	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675117	-	D	chr17	7675119	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675120	-	D	chr17	7675122	-	U		DEL	too_few_reads	2	136	138					
+1	chr17	7675124	-	D	chr17	7675125	-	U	T	INS	too_few_reads	1	137	138					
+1	chr17	7675128	-	D	chr17	7675130	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675130	-	D	chr17	7675132	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675135	-	D	chr17	7675138	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675139	-	D	chr17	7675140	-	U	C	INS	too_few_reads	1	137	138					
+1	chr17	7675139	-	D	chr17	7675141	-	U		DEL	too_few_reads	2	136	138					
+1	chr17	7675145	-	D	chr17	7675147	-	U		DEL	too_few_reads	3	135	138				0	
+1	chr17	7675150	-	D	chr17	7675151	-	U	G	INS	too_few_reads	1	137	138					
+1	chr17	7675152	-	D	chr17	7675153	-	U	C	INS	too_few_reads	2	136	138					
+1	chr17	7675156	-	D	chr17	7675157	-	U	C	INS	too_few_reads	5	133	138				6	
+1	chr17	7675156	-	D	chr17	7675158	-	U		DEL	too_few_reads	4	134	138				5	
+1	chr17	7675161	-	D	chr17	7675163	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675166	-	D	chr17	7675168	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675169	-	D	chr17	7675170	-	U	G	INS	too_few_reads	1	137	138					
+1	chr17	7675170	-	D	chr17	7675172	-	U		DEL	too_few_reads	1	137	138					
+1	chr17	7675172	-	D	chr17	7675173	-	U	G	INS	too_few_reads	3	135	138				4	
+1	chr17	7675172	-	D	chr17	7675174	-	U		DEL	too_few_reads	3	135	138				0	
+1	chr17	7675186	-	D	chr17	7675188	-	U		DEL	too_few_reads	2	136	138					
+1	chr17	7675191	-	D	chr17	7675192	-	U	C	INS	too_few_reads	1	131	132					
+1	chr17	7675191	-	D	chr17	7675193	-	U		DEL	too_few_reads	1	131	132					
+1	chr17	7675197	-	D	chr17	7675199	-	U		DEL	too_few_reads	1	131	132					
+1	chr17	7675203	-	D	chr17	7675204	-	U	A	INS	too_few_reads	1	131	132					
+1	chr17	7675203	-	D	chr17	7675205	-	U		DEL	too_few_reads	2	130	132					
+1	chr17	7675208	-	D	chr17	7675210	-	U		DEL	too_few_reads	15	117	132				4	
+1	chr17	7675216	-	D	chr17	7675218	-	U		DEL	too_few_reads	3	129	132				0	
+1	chr17	7675219	-	D	chr17	7675221	-	U		DEL	too_few_reads	2	130	132					
+1	chr17	7675222	-	D	chr17	7675223	-	U	T	INS	too_few_reads	1	131	132					
+1	chr17	7675223	-	D	chr17	7675224	-	U	C	INS	too_few_reads	2	130	132					
+1	chr17	7675223	-	D	chr17	7675225	-	U		DEL	too_few_reads	3	129	132				0	
+1	chr17	7675228	-	D	chr17	7675229	-	U	C	INS	too_few_reads	2	130	132					
+1	chr17	7675228	-	D	chr17	7675230	-	U		DEL	too_few_reads	4	128	132				4	
+1	chr17	7675998	-	D	chr17	7676000	-	U		DEL	too_few_reads	2	130	132					
+1	chr17	7676000	-	D	chr17	7676001	-	U	C	INS	too_few_reads	1	131	132					
+1	chr17	7676003	-	D	chr17	7676005	-	U		DEL	too_few_reads	1	131	132					
+1	chr17	7676007	-	D	chr17	7676009	-	U		DEL	too_few_reads	1	131	132					
+1	chr17	7676009	-	D	chr17	7676011	-	U		DEL	too_few_reads	1	131	132					
+1	chr17	7676011	-	D	chr17	7676013	-	U		DEL	too_few_reads	2	130	132					
+1	chr17	7676017	-	D	chr17	7676018	-	U	G	INS	too_few_reads	2	130	132					
+1	chr17	7676020	-	D	chr17	7676021	-	U	T	INS	too_few_reads	1	131	132					
+1	chr17	7676033	-	D	chr17	7676034	-	U	G	INS	too_few_reads	1	131	132					
+1	chr17	7676033	-	D	chr17	7676035	-	U		DEL	too_few_reads	1	131	132					
+1	chr17	7676035	-	D	chr17	7676037	-	U	T	SNV	too_few_reads	1	131	132					
+1	chr17	7676037	-	D	chr17	7676038	-	U	G	INS	too_few_reads	1	131	132					
+1	chr17	7676042	-	D	chr17	7676044	-	U		DEL	too_few_reads	11	121	132				0	
+1	chr17	7676054	-	D	chr17	7676055	-	U	G	INS	too_few_reads	4	128	132				4	
+1	chr17	7676062	-	D	chr17	7676064	-	U		DEL	too_few_reads	1	131	132					
+1	chr17	7676064	-	D	chr17	7676066	-	U		DEL	too_few_reads	3	129	132				4	
+1	chr17	7676070	-	D	chr17	7676071	-	U	C	INS	too_few_reads	1	129	130					
+1	chr17	7676070	-	D	chr17	7676072	-	U		DEL	too_few_reads	2	128	130					
+1	chr17	7676075	-	D	chr17	7676077	-	U		DEL	too_few_reads	2	124	126					
+1	chr17	7676082	-	D	chr17	7676084	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676091	-	D	chr17	7676092	-	U	C	INS	too_few_reads	2	124	126					
+1	chr17	7676091	-	D	chr17	7676093	-	U		DEL	too_few_reads	2	124	126					
+1	chr17	7676095	-	D	chr17	7676096	-	U	G	INS	too_few_reads	1	125	126					
+1	chr17	7676095	-	D	chr17	7676097	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676098	-	D	chr17	7676100	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676101	-	D	chr17	7676102	-	U	C	INS	too_few_reads	4	122	126				6	
+1	chr17	7676101	-	D	chr17	7676103	-	U		DEL	too_few_reads	4	122	126				5	
+1	chr17	7676114	-	D	chr17	7676115	-	U	C	INS	too_few_reads	2	124	126					
+1	chr17	7676114	-	D	chr17	7676116	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676118	-	D	chr17	7676119	-	U	G	INS	too_few_reads	1	125	126					
+1	chr17	7676121	-	D	chr17	7676122	-	U	G	INS	too_few_reads	1	125	126					
+1	chr17	7676144	-	D	chr17	7676145	-	U	C	INS	too_few_reads	5	121	126				5	
+1	chr17	7676144	-	D	chr17	7676146	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676152	-	D	chr17	7676153	-	U	C	INS	too_few_reads	5	121	126				7	
+1	chr17	7676152	-	D	chr17	7676154	-	U		DEL	too_few_reads	5	121	126				6	
+1	chr17	7676162	-	D	chr17	7676164	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676168	-	D	chr17	7676169	-	U	C	INS	too_few_reads	1	125	126					
+1	chr17	7676168	-	D	chr17	7676170	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676171	-	D	chr17	7676172	-	U	T	INS	too_few_reads	1	125	126					
+1	chr17	7676176	-	D	chr17	7676177	-	U	C	INS	too_few_reads	1	125	126					
+1	chr17	7676176	-	D	chr17	7676178	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676181	-	D	chr17	7676183	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676182	-	D	chr17	7676184	-	U		DEL	too_few_reads	2	124	126					
+1	chr17	7676189	-	D	chr17	7676191	-	U		DEL	too_few_reads	1	125	126					
+1	chr17	7676198	-	D	chr17	7676200	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676200	-	D	chr17	7676202	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676207	-	D	chr17	7676209	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676209	-	D	chr17	7676211	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676212	-	D	chr17	7676214	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676219	-	D	chr17	7676221	-	U	G	SNV	too_few_reads	1	114	115					
+1	chr17	7676220	-	D	chr17	7676222	-	U		DEL	too_few_reads	2	113	115					
+1	chr17	7676222	-	D	chr17	7676224	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676226	-	D	chr17	7676227	-	U	G	INS	too_few_reads	1	114	115					
+1	chr17	7676226	-	D	chr17	7676228	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676228	-	D	chr17	7676229	-	U	C	INS	too_few_reads	1	114	115					
+1	chr17	7676228	-	D	chr17	7676230	-	U		DEL	too_few_reads	6	109	115				4	
+1	chr17	7676231	-	D	chr17	7676233	-	U	T	SNV	too_few_reads	1	114	115					
+1	chr17	7676240	-	D	chr17	7676242	-	U		DEL	too_few_reads	2	113	115					
+1	chr17	7676243	-	D	chr17	7676245	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676250	-	D	chr17	7676251	-	U	A	INS	too_few_reads	1	114	115					
+1	chr17	7676250	-	D	chr17	7676252	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676254	-	D	chr17	7676255	-	U	A	INS	too_few_reads	1	114	115					
+1	chr17	7676256	-	D	chr17	7676258	-	U		DEL	too_few_reads	2	113	115					
+1	chr17	7676259	-	D	chr17	7676261	-	U	G	SNV	too_few_reads	1	114	115					
+1	chr17	7676266	-	D	chr17	7676268	-	U		DEL	too_few_reads	3	112	115				5	
+1	chr17	7676382	-	D	chr17	7676384	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676384	-	D	chr17	7676386	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676388	-	D	chr17	7676390	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676391	-	D	chr17	7676392	-	U	A	INS	too_few_reads	1	114	115					
+1	chr17	7676391	-	D	chr17	7676393	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676399	-	D	chr17	7676401	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676522	-	D	chr17	7676523	-	U	A	INS	too_few_reads	1	114	115					
+1	chr17	7676522	-	D	chr17	7676524	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676528	-	D	chr17	7676530	-	U		DEL	too_few_reads	1	114	115					
+1	chr17	7676530	-	D	chr17	7676531	-	U	C	INS	too_few_reads	2	113	115					
+1	chr17	7676536	-	D	chr17	7676537	-	U	T	INS	too_few_reads	1	114	115					
+1	chr17	7676536	-	D	chr17	7676538	-	U		DEL	too_few_reads	7	108	115				4	
+1	chr17	7676540	-	D	chr17	7676541	-	U	AGGAAAC	INS	too_few_reads	1	114	115					
+1	chr17	7676542	-	D	chr17	7676544	-	U		DEL	too_few_reads	1	113	114					
+1	chr17	7676556	-	D	chr17	7676557	-	U	C	INS	too_few_reads	2	99	101					
+1	chr17	7676569	-	D	chr17	7676571	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7676571	-	D	chr17	7676573	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7676574	-	D	chr17	7676576	-	U	T	SNV	too_few_reads	1	100	101					
+1	chr17	7676578	-	D	chr17	7676579	-	U	T	INS	too_few_reads	1	100	101					
+1	chr17	7676585	-	D	chr17	7676586	-	U	G	INS	too_few_reads	1	100	101					
+1	chr17	7676587	-	D	chr17	7676588	-	U	G	INS	too_few_reads	3	98	101				0	
+1	chr17	7676587	-	D	chr17	7676589	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7676589	-	D	chr17	7676591	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7676590	-	D	chr17	7676592	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7676593	-	D	chr17	7676595	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7676602	-	D	chr17	7676603	-	U	G	INS	too_few_reads	4	97	101				4	
+1	chr17	7676605	-	D	chr17	7676606	-	U	C	INS	too_few_reads	1	100	101					
+1	chr17	7676617	-	D	chr17	7676619	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7687397	-	D	chr17	7687398	-	U	G	INS	too_few_reads	1	100	101					
+1	chr17	7687404	-	D	chr17	7687406	-	U		DEL	too_few_reads	2	99	101					
+1	chr17	7687406	-	D	chr17	7687408	-	U		DEL	too_few_reads	4	97	101				0	
+1	chr17	7687416	-	D	chr17	7687417	-	U	G	INS	too_few_reads	1	100	101					
+1	chr17	7687421	-	D	chr17	7687422	-	U	G	INS	too_few_reads	1	100	101					
+1	chr17	7687421	-	D	chr17	7687423	-	U		DEL	too_few_reads	1	100	101					
+1	chr17	7687424	-	D	chr17	7687425	-	U	TTCGGGACTTCG	INS	too_few_reads	1	98	99					
+1	chr17	7687430	-	D	chr17	7687432	-	U		DEL	too_few_reads	2	64	66					
+1	chr17	7687435	-	D	chr17	7687438	-	U	GA	MNV	too_few_reads	1	65	66					
+1	chr17	7687437	-	D	chr17	7687438	-	U	G	INS	too_few_reads	4	62	66				5	
+1	chr17	7687441	-	D	chr17	7687442	-	U	C	INS	too_few_reads	1	65	66					
+1	chr17	7687445	-	D	chr17	7687446	-	U	G	INS	too_few_reads	2	64	66					
+1	chr17	7687445	-	D	chr17	7687447	-	U		DEL	too_few_reads	1	65	66					
+1	chr17	7687448	-	D	chr17	7687449	-	U	T	INS	too_few_reads	1	65	66					
+1	chr17	7687456	-	D	chr17	7687457	-	U	G	INS	too_few_reads	1	65	66					
+1	chr17	7687462	-	D	chr17	7687463	-	U	G	INS	too_few_reads	1	65	66					
+1	chr17	7687462	-	D	chr17	7687464	-	U		DEL	too_few_reads	1	65	66					
+1	chr17	7687466	-	D	chr17	7687468	-	U		DEL	too_few_reads	1	65	66					
+1	chr17	7687487	-	D	chr17	7687488	-	U	CTCA	INS	too_few_reads	1	65	66					
+2	chr17	7668428	-	D	chr17	7668429	-	U	GCTGCCA	INS	too_few_reads	3	127	130				0	
+2	chr17	7668431	-	D	chr17	7668432	-	U	A	INS	too_few_reads	1	129	130					
+2	chr17	7668431	-	D	chr17	7668433	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668432	-	D	chr17	7668433	-	U	GACT	INS	too_few_reads	1	130	131					
+2	chr17	7668434	-	D	chr17	7668436	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7668435	-	D	chr17	7668436	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7668436	-	D	chr17	7668438	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668440	-	D	chr17	7668442	-	U		DEL	too_few_reads	13	118	131				4	
+2	chr17	7668444	-	D	chr17	7668446	-	U		DEL	too_few_reads	3	128	131				7	
+2	chr17	7668445	-	D	chr17	7668447	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668454	-	D	chr17	7668456	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7668455	-	D	chr17	7668457	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668455	-	D	chr17	7668457	-	U	C	SNV	too_few_reads	1	130	131					
+2	chr17	7668457	-	D	chr17	7668459	-	U		DEL	too_few_reads	4	127	131				7	
+2	chr17	7668458	-	D	chr17	7668460	-	U		DEL	too_few_reads	11	120	131				5	
+2	chr17	7668467	-	D	chr17	7668470	-	U		DEL	too_few_reads	3	128	131				4	
+2	chr17	7668468	-	D	chr17	7668472	-	U	TAT	MNV	too_few_reads	1	130	131					
+2	chr17	7668470	-	D	chr17	7668472	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668471	-	D	chr17	7668473	-	U		DEL	too_few_reads	20	111	131				5	
+2	chr17	7668475	-	D	chr17	7668479	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668476	-	D	chr17	7668477	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668476	-	D	chr17	7668478	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7668476	-	D	chr17	7668478	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668479	-	D	chr17	7668481	-	U	C	SNV	too_few_reads	1	130	131					
+2	chr17	7668483	-	D	chr17	7668484	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668483	-	D	chr17	7668485	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668484	-	D	chr17	7668486	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7668486	-	D	chr17	7668488	-	U		DEL	too_few_reads	3	128	131				4	
+2	chr17	7668490	-	D	chr17	7668491	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7668490	-	D	chr17	7668492	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668492	-	D	chr17	7668493	-	U	C	INS	too_few_reads	3	128	131				4	
+2	chr17	7668494	-	D	chr17	7668497	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668496	-	D	chr17	7668497	-	U	C	INS	too_few_reads	3	128	131				5	
+2	chr17	7668496	-	D	chr17	7668498	-	U	A	SNV	too_few_reads	1	130	131					
+2	chr17	7668496	-	D	chr17	7668498	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668502	-	D	chr17	7668504	-	U		DEL	too_few_reads	9	122	131				4	
+2	chr17	7668506	-	D	chr17	7668508	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668512	-	D	chr17	7668514	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668513	-	D	chr17	7668515	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668514	-	D	chr17	7668516	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668516	-	D	chr17	7668517	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7668525	-	D	chr17	7668527	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668528	-	D	chr17	7668530	-	U		DEL	too_few_reads	11	120	131				4	
+2	chr17	7668538	-	D	chr17	7668539	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668540	-	D	chr17	7668541	-	U	G	INS	too_few_reads	2	129	131					
+2	chr17	7668540	-	D	chr17	7668542	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668543	-	D	chr17	7668545	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7668545	-	D	chr17	7668547	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668550	-	D	chr17	7668551	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7668551	-	D	chr17	7668553	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668560	-	D	chr17	7668561	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668560	-	D	chr17	7668562	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668567	-	D	chr17	7668568	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7668569	-	D	chr17	7668571	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668573	-	D	chr17	7668575	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668576	-	D	chr17	7668577	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7668576	-	D	chr17	7668578	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668582	-	D	chr17	7668584	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668587	-	D	chr17	7668589	-	U		DEL	too_few_reads	4	127	131				7	
+2	chr17	7668589	-	D	chr17	7668592	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668591	-	D	chr17	7668593	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7668591	-	D	chr17	7668593	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668604	-	D	chr17	7668606	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668606	-	D	chr17	7668607	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7668616	-	D	chr17	7668618	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668620	-	D	chr17	7668622	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668624	-	D	chr17	7668625	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7668631	-	D	chr17	7668632	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7668631	-	D	chr17	7668633	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668635	-	D	chr17	7668637	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668638	-	D	chr17	7668640	-	U		DEL	too_few_reads	4	127	131				0	
+2	chr17	7668642	-	D	chr17	7668644	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668647	-	D	chr17	7668650	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668654	-	D	chr17	7668655	-	U	G	INS	too_few_reads	5	126	131				5	
+2	chr17	7668661	-	D	chr17	7668663	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668666	-	D	chr17	7668668	-	U		DEL	too_few_reads	18	113	131				4	
+2	chr17	7668675	-	D	chr17	7668677	-	U		DEL	too_few_reads	18	113	131				4	
+2	chr17	7668682	-	D	chr17	7668684	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668688	-	D	chr17	7668689	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7668688	-	D	chr17	7668690	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668708	-	D	chr17	7668710	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668710	-	D	chr17	7668711	-	U	AC	INS	too_few_reads	1	130	131					
+2	chr17	7668710	-	D	chr17	7668712	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7668711	-	D	chr17	7668712	-	U	G	INS	too_few_reads	3	128	131				4	
+2	chr17	7668714	-	D	chr17	7668716	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668721	-	D	chr17	7668723	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668726	-	D	chr17	7668728	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668732	-	D	chr17	7668734	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668747	-	D	chr17	7668748	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668750	-	D	chr17	7668752	-	U		DEL	too_few_reads	4	127	131				4	
+2	chr17	7668758	-	D	chr17	7668760	-	U		DEL	too_few_reads	4	127	131				0	
+2	chr17	7668773	-	D	chr17	7668774	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7668773	-	D	chr17	7668775	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668778	-	D	chr17	7668779	-	U	T	INS	too_few_reads	2	129	131					
+2	chr17	7668784	-	D	chr17	7668786	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668800	-	D	chr17	7668802	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7668805	-	D	chr17	7668807	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668808	-	D	chr17	7668810	-	U		DEL	too_few_reads	7	124	131				0	
+2	chr17	7668817	-	D	chr17	7668818	-	U	G	INS	too_few_reads	2	129	131					
+2	chr17	7668817	-	D	chr17	7668819	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668822	-	D	chr17	7668825	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668826	-	D	chr17	7668828	-	U		DEL	too_few_reads	5	126	131				7	
+2	chr17	7668828	-	D	chr17	7668831	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668830	-	D	chr17	7668832	-	U	C	SNV	too_few_reads	2	129	131					
+2	chr17	7668830	-	D	chr17	7668832	-	U		DEL	too_few_reads	9	122	131				5	
+2	chr17	7668833	-	D	chr17	7668837	-	U		DEL	too_few_reads	17	114	131				5	
+2	chr17	7668836	-	D	chr17	7668838	-	U	C	SNV	too_few_reads	8	123	131				18	
+2	chr17	7668836	-	D	chr17	7668838	-	U		DEL	too_few_reads	78	53	131				18	
+2	chr17	7668837	-	D	chr17	7668839	-	U	C	SNV	too_few_reads	9	122	131				18	
+2	chr17	7668844	-	D	chr17	7668846	-	U	C	SNV	too_few_reads	1	130	131					
+2	chr17	7668852	-	D	chr17	7668856	-	U		DEL	too_few_reads	30	101	131				18	
+2	chr17	7668855	-	D	chr17	7668857	-	U	C	SNV	too_few_reads	30	101	131				6	
+2	chr17	7668855	-	D	chr17	7668857	-	U		DEL	too_few_reads	3	128	131				6	
+2	chr17	7668860	-	D	chr17	7668863	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668862	-	D	chr17	7668864	-	U	C	SNV	too_few_reads	2	129	131					
+2	chr17	7668865	-	D	chr17	7668867	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668869	-	D	chr17	7668870	-	U	G	INS	too_few_reads	7	124	131				4	
+2	chr17	7668879	-	D	chr17	7668881	-	U		DEL	too_few_reads	14	117	131				4	
+2	chr17	7668884	-	D	chr17	7668886	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668889	-	D	chr17	7668891	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668891	-	D	chr17	7668893	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668894	-	D	chr17	7668895	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668898	-	D	chr17	7668899	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7668902	-	D	chr17	7668903	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7668903	-	D	chr17	7668904	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7668909	-	D	chr17	7668911	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668911	-	D	chr17	7668913	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668913	-	D	chr17	7668916	-	U	GT	MNV	too_few_reads	1	130	131					
+2	chr17	7668914	-	D	chr17	7668916	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668915	-	D	chr17	7668918	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668918	-	D	chr17	7668920	-	U	A	SNV	too_few_reads	1	130	131					
+2	chr17	7668920	-	D	chr17	7668922	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668922	-	D	chr17	7668924	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7668926	-	D	chr17	7668928	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668929	-	D	chr17	7668931	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668932	-	D	chr17	7668933	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668932	-	D	chr17	7668934	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668934	-	D	chr17	7668937	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668938	-	D	chr17	7668940	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668943	-	D	chr17	7668944	-	U	C	INS	too_few_reads	2	129	131					
+2	chr17	7668943	-	D	chr17	7668945	-	U		DEL	too_few_reads	3	128	131				4	
+2	chr17	7668952	-	D	chr17	7668954	-	U		DEL	too_few_reads	3	128	131				7	
+2	chr17	7668954	-	D	chr17	7668957	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668955	-	D	chr17	7668956	-	U	G	INS	too_few_reads	2	129	131					
+2	chr17	7668957	-	D	chr17	7668958	-	U	A	INS	too_few_reads	2	129	131					
+2	chr17	7668957	-	D	chr17	7668959	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7668957	-	D	chr17	7668959	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7668961	-	D	chr17	7668962	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7668964	-	D	chr17	7668966	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668972	-	D	chr17	7668974	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668975	-	D	chr17	7668977	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7668975	-	D	chr17	7668977	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668976	-	D	chr17	7668977	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7668978	-	D	chr17	7668980	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668982	-	D	chr17	7668984	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7668994	-	D	chr17	7668995	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7668997	-	D	chr17	7668999	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669000	-	D	chr17	7669002	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669004	-	D	chr17	7669005	-	U	C	INS	too_few_reads	3	128	131				4	
+2	chr17	7669004	-	D	chr17	7669006	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669007	-	D	chr17	7669008	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669007	-	D	chr17	7669009	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669023	-	D	chr17	7669025	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669027	-	D	chr17	7669028	-	U	G	INS	too_few_reads	5	126	131				4	
+2	chr17	7669027	-	D	chr17	7669029	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669034	-	D	chr17	7669035	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669039	-	D	chr17	7669041	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669046	-	D	chr17	7669047	-	U	G	INS	too_few_reads	2	129	131					
+2	chr17	7669046	-	D	chr17	7669048	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669057	-	D	chr17	7669059	-	U		DEL	too_few_reads	7	124	131				0	
+2	chr17	7669063	-	D	chr17	7669064	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669065	-	D	chr17	7669067	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669067	-	D	chr17	7669069	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669071	-	D	chr17	7669072	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669075	-	D	chr17	7669077	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669078	-	D	chr17	7669082	-	U	CTG	MNV	too_few_reads	1	130	131					
+2	chr17	7669079	-	D	chr17	7669080	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669081	-	D	chr17	7669083	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669087	-	D	chr17	7669088	-	U	C	INS	too_few_reads	2	129	131					
+2	chr17	7669087	-	D	chr17	7669089	-	U		DEL	too_few_reads	3	128	131				7	
+2	chr17	7669093	-	D	chr17	7669095	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669098	-	D	chr17	7669099	-	U	G	INS	too_few_reads	4	127	131				4	
+2	chr17	7669098	-	D	chr17	7669100	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669105	-	D	chr17	7669106	-	U	C	INS	too_few_reads	4	127	131				6	
+2	chr17	7669105	-	D	chr17	7669107	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669112	-	D	chr17	7669114	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669121	-	D	chr17	7669123	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7669122	-	D	chr17	7669123	-	U	G	INS	too_few_reads	4	127	131				5	
+2	chr17	7669122	-	D	chr17	7669124	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669129	-	D	chr17	7669131	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669133	-	D	chr17	7669135	-	U		DEL	too_few_reads	12	119	131				4	
+2	chr17	7669140	-	D	chr17	7669141	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669142	-	D	chr17	7669144	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669150	-	D	chr17	7669151	-	U	G	INS	too_few_reads	3	128	131				0	
+2	chr17	7669154	-	D	chr17	7669155	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7669158	-	D	chr17	7669160	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669161	-	D	chr17	7669163	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7669162	-	D	chr17	7669164	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7669164	-	D	chr17	7669166	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669165	-	D	chr17	7669166	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669169	-	D	chr17	7669171	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669173	-	D	chr17	7669174	-	U	G	INS	too_few_reads	2	129	131					
+2	chr17	7669178	-	D	chr17	7669180	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669180	-	D	chr17	7669182	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669189	-	D	chr17	7669192	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669203	-	D	chr17	7669205	-	U		DEL	too_few_reads	8	123	131				0	
+2	chr17	7669206	-	D	chr17	7669208	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669214	-	D	chr17	7669216	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669222	-	D	chr17	7669223	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7669223	-	D	chr17	7669225	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669226	-	D	chr17	7669228	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669231	-	D	chr17	7669232	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7669231	-	D	chr17	7669233	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669237	-	D	chr17	7669239	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669237	-	D	chr17	7669239	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7669239	-	D	chr17	7669240	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7669239	-	D	chr17	7669241	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669243	-	D	chr17	7669244	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7669243	-	D	chr17	7669245	-	U		DEL	too_few_reads	9	122	131				4	
+2	chr17	7669247	-	D	chr17	7669249	-	U		DEL	too_few_reads	6	125	131				7	
+2	chr17	7669250	-	D	chr17	7669252	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669255	-	D	chr17	7669257	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669257	-	D	chr17	7669258	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7669258	-	D	chr17	7669260	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669266	-	D	chr17	7669268	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669268	-	D	chr17	7669269	-	U	G	INS	too_few_reads	6	125	131				4	
+2	chr17	7669272	-	D	chr17	7669273	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669274	-	D	chr17	7669276	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7669274	-	D	chr17	7669276	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669280	-	D	chr17	7669281	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669285	-	D	chr17	7669287	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669289	-	D	chr17	7669290	-	U	C	INS	too_few_reads	2	129	131					
+2	chr17	7669289	-	D	chr17	7669291	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669292	-	D	chr17	7669293	-	U	G	INS	too_few_reads	9	122	131				5	
+2	chr17	7669305	-	D	chr17	7669307	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669308	-	D	chr17	7669309	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669314	-	D	chr17	7669316	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669318	-	D	chr17	7669320	-	U		DEL	too_few_reads	5	126	131				0	
+2	chr17	7669325	-	D	chr17	7669326	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669328	-	D	chr17	7669330	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669330	-	D	chr17	7669332	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669338	-	D	chr17	7669340	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669343	-	D	chr17	7669345	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669347	-	D	chr17	7669349	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669355	-	D	chr17	7669356	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669355	-	D	chr17	7669357	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669358	-	D	chr17	7669360	-	U		DEL	too_few_reads	8	123	131				0	
+2	chr17	7669358	-	D	chr17	7669360	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7669363	-	D	chr17	7669365	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669364	-	D	chr17	7669365	-	U	G	INS	too_few_reads	4	127	131				4	
+2	chr17	7669368	-	D	chr17	7669369	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669369	-	D	chr17	7669371	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669374	-	D	chr17	7669376	-	U		DEL	too_few_reads	35	96	131				5	
+2	chr17	7669381	-	D	chr17	7669383	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7669381	-	D	chr17	7669383	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669383	-	D	chr17	7669385	-	U		DEL	too_few_reads	8	123	131				4	
+2	chr17	7669395	-	D	chr17	7669396	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669408	-	D	chr17	7669409	-	U	G	INS	too_few_reads	10	121	131				5	
+2	chr17	7669408	-	D	chr17	7669410	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669411	-	D	chr17	7669414	-	U	GT	MNV	too_few_reads	1	130	131					
+2	chr17	7669412	-	D	chr17	7669414	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669414	-	D	chr17	7669415	-	U	G	INS	too_few_reads	2	129	131					
+2	chr17	7669417	-	D	chr17	7669418	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669420	-	D	chr17	7669421	-	U	G	INS	too_few_reads	5	126	131				5	
+2	chr17	7669420	-	D	chr17	7669422	-	U		DEL	too_few_reads	5	126	131				4	
+2	chr17	7669423	-	D	chr17	7669426	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669424	-	D	chr17	7669426	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7669426	-	D	chr17	7669428	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669427	-	D	chr17	7669430	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669429	-	D	chr17	7669431	-	U		DEL	too_few_reads	20	111	131				4	
+2	chr17	7669435	-	D	chr17	7669437	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669445	-	D	chr17	7669447	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669447	-	D	chr17	7669449	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669450	-	D	chr17	7669452	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669453	-	D	chr17	7669455	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669457	-	D	chr17	7669458	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669459	-	D	chr17	7669461	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669463	-	D	chr17	7669464	-	U	G	INS	too_few_reads	4	127	131				5	
+2	chr17	7669467	-	D	chr17	7669469	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669471	-	D	chr17	7669473	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669472	-	D	chr17	7669474	-	U		DEL	too_few_reads	6	125	131				0	
+2	chr17	7669477	-	D	chr17	7669479	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669481	-	D	chr17	7669483	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669487	-	D	chr17	7669488	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669490	-	D	chr17	7669491	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669496	-	D	chr17	7669498	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669505	-	D	chr17	7669507	-	U	C	SNV	too_few_reads	1	130	131					
+2	chr17	7669507	-	D	chr17	7669509	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669508	-	D	chr17	7669509	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669512	-	D	chr17	7669513	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669512	-	D	chr17	7669514	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669516	-	D	chr17	7669518	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669522	-	D	chr17	7669524	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7669525	-	D	chr17	7669527	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669526	-	D	chr17	7669529	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669528	-	D	chr17	7669530	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7669528	-	D	chr17	7669530	-	U		DEL	too_few_reads	4	127	131				0	
+2	chr17	7669530	-	D	chr17	7669533	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669532	-	D	chr17	7669534	-	U	C	SNV	too_few_reads	1	130	131					
+2	chr17	7669533	-	D	chr17	7669534	-	U	G	INS	too_few_reads	4	127	131				4	
+2	chr17	7669533	-	D	chr17	7669535	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669536	-	D	chr17	7669538	-	U		DEL	too_few_reads	15	116	131				4	
+2	chr17	7669539	-	D	chr17	7669541	-	U	G	SNV	too_few_reads	1	130	131					
+2	chr17	7669539	-	D	chr17	7669542	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669540	-	D	chr17	7669541	-	U	G	INS	too_few_reads	3	128	131				4	
+2	chr17	7669543	-	D	chr17	7669545	-	U		DEL	too_few_reads	5	126	131				4	
+2	chr17	7669543	-	D	chr17	7669545	-	U	G	SNV	too_few_reads	2	129	131					
+2	chr17	7669552	-	D	chr17	7669553	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669552	-	D	chr17	7669554	-	U		DEL	too_few_reads	4	127	131				4	
+2	chr17	7669557	-	D	chr17	7669559	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669559	-	D	chr17	7669562	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669563	-	D	chr17	7669565	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669565	-	D	chr17	7669568	-	U	AT	MNV	too_few_reads	1	130	131					
+2	chr17	7669566	-	D	chr17	7669567	-	U	C	INS	too_few_reads	3	128	131				6	
+2	chr17	7669566	-	D	chr17	7669568	-	U		DEL	too_few_reads	6	125	131				5	
+2	chr17	7669572	-	D	chr17	7669574	-	U		DEL	too_few_reads	4	127	131				0	
+2	chr17	7669576	-	D	chr17	7669577	-	U	C	INS	too_few_reads	2	129	131					
+2	chr17	7669581	-	D	chr17	7669583	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669586	-	D	chr17	7669588	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669590	-	D	chr17	7669592	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669600	-	D	chr17	7669602	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669602	-	D	chr17	7669603	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7669612	-	D	chr17	7669614	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669620	-	D	chr17	7669622	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669623	-	D	chr17	7669624	-	U	G	INS	too_few_reads	3	128	131				4	
+2	chr17	7669626	-	D	chr17	7669627	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7669634	-	D	chr17	7669637	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669636	-	D	chr17	7669638	-	U	C	SNV	too_few_reads	1	130	131					
+2	chr17	7669636	-	D	chr17	7669638	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669644	-	D	chr17	7669645	-	U	A	INS	too_few_reads	6	125	131				7	
+2	chr17	7669644	-	D	chr17	7669646	-	U		DEL	too_few_reads	10	121	131				6	
+2	chr17	7669652	-	D	chr17	7669653	-	U	GCC	INS	too_few_reads	1	130	131					
+2	chr17	7669652	-	D	chr17	7669654	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669655	-	D	chr17	7669656	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7669655	-	D	chr17	7669657	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7669660	-	D	chr17	7669663	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7669662	-	D	chr17	7669664	-	U	A	SNV	too_few_reads	1	130	131					
+2	chr17	7669669	-	D	chr17	7669670	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7669672	-	D	chr17	7669673	-	U	A	INS	too_few_reads	3	128	131				6	
+2	chr17	7669672	-	D	chr17	7669674	-	U		DEL	too_few_reads	3	128	131				5	
+2	chr17	7669688	-	D	chr17	7669690	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670610	-	D	chr17	7670611	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7670610	-	D	chr17	7670612	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670612	-	D	chr17	7670613	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7670617	-	D	chr17	7670619	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670618	-	D	chr17	7670619	-	U	G	INS	too_few_reads	2	129	131					
+2	chr17	7670625	-	D	chr17	7670626	-	U	G	INS	too_few_reads	26	105	131				7	
+2	chr17	7670625	-	D	chr17	7670627	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670632	-	D	chr17	7670634	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670638	-	D	chr17	7670640	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7670640	-	D	chr17	7670641	-	U	G	INS	too_few_reads	4	127	131				4	
+2	chr17	7670640	-	D	chr17	7670642	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670645	-	D	chr17	7670647	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670648	-	D	chr17	7670650	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670656	-	D	chr17	7670658	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670662	-	D	chr17	7670663	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7670663	-	D	chr17	7670664	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7670669	-	D	chr17	7670670	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7670669	-	D	chr17	7670671	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670706	-	D	chr17	7670707	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7670706	-	D	chr17	7670708	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7670713	-	D	chr17	7670714	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7673539	-	D	chr17	7673540	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7673539	-	D	chr17	7673541	-	U		DEL	too_few_reads	3	128	131				0	
+2	chr17	7673547	-	D	chr17	7673549	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7673548	-	D	chr17	7673549	-	U	T	INS	too_few_reads	1	130	131					
+2	chr17	7673549	-	D	chr17	7673551	-	U		DEL	too_few_reads	3	128	131				7	
+2	chr17	7673562	-	D	chr17	7673563	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7673568	-	D	chr17	7673570	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7673571	-	D	chr17	7673572	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7673571	-	D	chr17	7673573	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7673573	-	D	chr17	7673575	-	U	T	SNV	too_few_reads	1	130	131					
+2	chr17	7673574	-	D	chr17	7673576	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7673578	-	D	chr17	7673579	-	U	C	INS	too_few_reads	2	129	131					
+2	chr17	7673578	-	D	chr17	7673580	-	U		DEL	too_few_reads	7	124	131				4	
+2	chr17	7673585	-	D	chr17	7673587	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7673586	-	D	chr17	7673587	-	U	TC	INS	too_few_reads	1	130	131					
+2	chr17	7673598	-	D	chr17	7673600	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7673600	-	D	chr17	7673601	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7673705	-	D	chr17	7673707	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7673706	-	D	chr17	7673707	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7673713	-	D	chr17	7673714	-	U	G	INS	too_few_reads	5	126	131				4	
+2	chr17	7673717	-	D	chr17	7673718	-	U	C	INS	too_few_reads	3	128	131				6	
+2	chr17	7673717	-	D	chr17	7673719	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7673727	-	D	chr17	7673728	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7673734	-	D	chr17	7673736	-	U		DEL	too_few_reads	1	130	131					
+2	chr17	7673739	-	D	chr17	7673740	-	U	G	INS	too_few_reads	5	126	131				5	
+2	chr17	7673743	-	D	chr17	7673745	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7673744	-	D	chr17	7673745	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7673747	-	D	chr17	7673748	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7673751	-	D	chr17	7673752	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7673751	-	D	chr17	7673753	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7673756	-	D	chr17	7673758	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7673761	-	D	chr17	7673762	-	U	A	INS	too_few_reads	1	130	131					
+2	chr17	7673761	-	D	chr17	7673763	-	U		DEL	too_few_reads	3	128	131				7	
+2	chr17	7673763	-	D	chr17	7673764	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7673773	-	D	chr17	7673774	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7673775	-	D	chr17	7673776	-	U	C	INS	too_few_reads	1	130	131					
+2	chr17	7673782	-	D	chr17	7673783	-	U	G	INS	too_few_reads	1	130	131					
+2	chr17	7674913	-	D	chr17	7674915	-	U		DEL	too_few_reads	4	127	131				0	
+2	chr17	7674916	-	D	chr17	7674918	-	U		DEL	too_few_reads	2	129	131					
+2	chr17	7674919	-	D	chr17	7674921	-	U		DEL	too_few_reads	1	123	124					
+2	chr17	7674921	-	D	chr17	7674924	-	U		DEL	too_few_reads	1	123	124					
+2	chr17	7674926	-	D	chr17	7674927	-	U	C	INS	too_few_reads	1	123	124					
+2	chr17	7674928	-	D	chr17	7674930	-	U		DEL	too_few_reads	4	120	124				0	
+2	chr17	7674930	-	D	chr17	7674932	-	U	A	SNV	too_few_reads	1	123	124					
+2	chr17	7674933	-	D	chr17	7674935	-	U	G	SNV	too_few_reads	1	123	124					
+2	chr17	7674944	-	D	chr17	7674946	-	U		DEL	too_few_reads	2	122	124					
+2	chr17	7674946	-	D	chr17	7674947	-	U	T	INS	too_few_reads	1	123	124					
+2	chr17	7674947	-	D	chr17	7674949	-	U		DEL	too_few_reads	1	123	124					
+2	chr17	7674948	-	D	chr17	7674950	-	U		DEL	too_few_reads	1	123	124					
+2	chr17	7674961	-	D	chr17	7674963	-	U		DEL	too_few_reads	6	118	124				4	
+2	chr17	7675067	-	D	chr17	7675068	-	U	T	INS	too_few_reads	1	123	124					
+2	chr17	7675068	-	D	chr17	7675071	-	U		DEL	too_few_reads	1	123	124					
+2	chr17	7675071	-	D	chr17	7675074	-	U		DEL	too_few_reads	1	123	124					
+2	chr17	7675072	-	D	chr17	7675073	-	U	TGA	INS	too_few_reads	1	123	124					
+2	chr17	7675074	-	D	chr17	7675075	-	U	T	INS	too_few_reads	1	123	124					
+2	chr17	7675079	-	D	chr17	7675080	-	U	C	INS	too_few_reads	1	123	124					
+2	chr17	7675079	-	D	chr17	7675081	-	U		DEL	too_few_reads	5	119	124				5	
+2	chr17	7675089	-	D	chr17	7675090	-	U	G	INS	too_few_reads	1	123	124					
+2	chr17	7675092	-	D	chr17	7675093	-	U	G	INS	too_few_reads	1	123	124					
+2	chr17	7675093	-	D	chr17	7675095	-	U		DEL	too_few_reads	1	123	124					
+2	chr17	7675095	-	D	chr17	7675097	-	U		DEL	too_few_reads	2	122	124					
+2	chr17	7675100	-	D	chr17	7675101	-	U	G	INS	too_few_reads	1	123	124					
+2	chr17	7675128	-	D	chr17	7675129	-	U	C	INS	too_few_reads	1	117	118					
+2	chr17	7675130	-	D	chr17	7675132	-	U		DEL	too_few_reads	2	116	118					
+2	chr17	7675134	-	D	chr17	7675136	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675136	-	D	chr17	7675138	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675139	-	D	chr17	7675141	-	U		DEL	too_few_reads	2	116	118					
+2	chr17	7675140	-	D	chr17	7675144	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675144	-	D	chr17	7675145	-	U	G	INS	too_few_reads	1	117	118					
+2	chr17	7675145	-	D	chr17	7675146	-	U	C	INS	too_few_reads	3	115	118				4	
+2	chr17	7675145	-	D	chr17	7675147	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675149	-	D	chr17	7675150	-	U	C	INS	too_few_reads	1	117	118					
+2	chr17	7675152	-	D	chr17	7675154	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675155	-	D	chr17	7675156	-	U	G	INS	too_few_reads	1	117	118					
+2	chr17	7675156	-	D	chr17	7675157	-	U	C	INS	too_few_reads	6	112	118				6	
+2	chr17	7675156	-	D	chr17	7675158	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675164	-	D	chr17	7675166	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675172	-	D	chr17	7675173	-	U	G	INS	too_few_reads	3	115	118				4	
+2	chr17	7675175	-	D	chr17	7675177	-	U	G	SNV	too_few_reads	1	117	118					
+2	chr17	7675186	-	D	chr17	7675187	-	U	C	INS	too_few_reads	2	116	118					
+2	chr17	7675191	-	D	chr17	7675193	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675204	-	D	chr17	7675206	-	U	C	SNV	too_few_reads	1	117	118					
+2	chr17	7675206	-	D	chr17	7675208	-	U	G	SNV	too_few_reads	1	117	118					
+2	chr17	7675208	-	D	chr17	7675210	-	U		DEL	too_few_reads	14	104	118				4	
+2	chr17	7675212	-	D	chr17	7675214	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675216	-	D	chr17	7675217	-	U	A	INS	too_few_reads	1	117	118					
+2	chr17	7675216	-	D	chr17	7675218	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675219	-	D	chr17	7675221	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7675223	-	D	chr17	7675224	-	U	C	INS	too_few_reads	1	117	118					
+2	chr17	7675223	-	D	chr17	7675225	-	U		DEL	too_few_reads	2	116	118					
+2	chr17	7675228	-	D	chr17	7675229	-	U	C	INS	too_few_reads	1	117	118					
+2	chr17	7675228	-	D	chr17	7675230	-	U		DEL	too_few_reads	1	117	118					
+2	chr17	7676008	-	D	chr17	7676009	-	U	G	INS	too_few_reads	1	114	115					
+2	chr17	7676009	-	D	chr17	7676010	-	U	A	INS	too_few_reads	1	114	115					
+2	chr17	7676009	-	D	chr17	7676011	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676011	-	D	chr17	7676013	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676015	-	D	chr17	7676017	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676017	-	D	chr17	7676018	-	U	G	INS	too_few_reads	3	112	115				4	
+2	chr17	7676033	-	D	chr17	7676035	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676040	-	D	chr17	7676042	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676042	-	D	chr17	7676044	-	U		DEL	too_few_reads	2	113	115					
+2	chr17	7676054	-	D	chr17	7676055	-	U	G	INS	too_few_reads	1	114	115					
+2	chr17	7676062	-	D	chr17	7676063	-	U	C	INS	too_few_reads	1	114	115					
+2	chr17	7676062	-	D	chr17	7676064	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676064	-	D	chr17	7676065	-	U	A	INS	too_few_reads	2	113	115					
+2	chr17	7676064	-	D	chr17	7676066	-	U		DEL	too_few_reads	4	111	115				4	
+2	chr17	7676068	-	D	chr17	7676069	-	U	G	INS	too_few_reads	1	114	115					
+2	chr17	7676070	-	D	chr17	7676072	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676072	-	D	chr17	7676075	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676075	-	D	chr17	7676076	-	U	C	INS	too_few_reads	2	113	115					
+2	chr17	7676075	-	D	chr17	7676077	-	U	T	SNV	too_few_reads	1	114	115					
+2	chr17	7676086	-	D	chr17	7676088	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676091	-	D	chr17	7676092	-	U	C	INS	too_few_reads	1	114	115					
+2	chr17	7676091	-	D	chr17	7676093	-	U		DEL	too_few_reads	2	113	115					
+2	chr17	7676100	-	D	chr17	7676102	-	U		DEL	too_few_reads	1	114	115					
+2	chr17	7676101	-	D	chr17	7676102	-	U	C	INS	too_few_reads	6	109	115				6	
+2	chr17	7676110	-	D	chr17	7676112	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676113	-	D	chr17	7676115	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676114	-	D	chr17	7676115	-	U	C	INS	too_few_reads	2	104	106					
+2	chr17	7676114	-	D	chr17	7676116	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676118	-	D	chr17	7676119	-	U	G	INS	too_few_reads	2	104	106					
+2	chr17	7676121	-	D	chr17	7676122	-	U	G	INS	too_few_reads	1	105	106					
+2	chr17	7676121	-	D	chr17	7676123	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676123	-	D	chr17	7676124	-	U	C	INS	too_few_reads	1	105	106					
+2	chr17	7676126	-	D	chr17	7676128	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676127	-	D	chr17	7676129	-	U	T	SNV	too_few_reads	1	105	106					
+2	chr17	7676140	-	D	chr17	7676142	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676144	-	D	chr17	7676145	-	U	C	INS	too_few_reads	1	105	106					
+2	chr17	7676144	-	D	chr17	7676146	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676148	-	D	chr17	7676150	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676152	-	D	chr17	7676153	-	U	C	INS	too_few_reads	1	105	106					
+2	chr17	7676152	-	D	chr17	7676154	-	U		DEL	too_few_reads	2	104	106					
+2	chr17	7676157	-	D	chr17	7676158	-	U	T	INS	too_few_reads	1	105	106					
+2	chr17	7676163	-	D	chr17	7676165	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676168	-	D	chr17	7676169	-	U	C	INS	too_few_reads	1	105	106					
+2	chr17	7676168	-	D	chr17	7676170	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676172	-	D	chr17	7676174	-	U		DEL	too_few_reads	2	104	106					
+2	chr17	7676185	-	D	chr17	7676187	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676186	-	D	chr17	7676188	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676192	-	D	chr17	7676193	-	U	G	INS	too_few_reads	1	105	106					
+2	chr17	7676194	-	D	chr17	7676195	-	U	A	INS	too_few_reads	1	105	106					
+2	chr17	7676195	-	D	chr17	7676196	-	U	C	INS	too_few_reads	2	104	106					
+2	chr17	7676199	-	D	chr17	7676202	-	U	GA	MNV	too_few_reads	1	105	106					
+2	chr17	7676207	-	D	chr17	7676209	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676212	-	D	chr17	7676214	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676215	-	D	chr17	7676217	-	U		DEL	too_few_reads	1	105	106					
+2	chr17	7676220	-	D	chr17	7676222	-	U		DEL	too_few_reads	1	104	105					
+2	chr17	7676228	-	D	chr17	7676230	-	U		DEL	too_few_reads	3	96	99				4	
+2	chr17	7676240	-	D	chr17	7676242	-	U		DEL	too_few_reads	1	98	99					
+2	chr17	7676250	-	D	chr17	7676252	-	U		DEL	too_few_reads	2	97	99					
+2	chr17	7676254	-	D	chr17	7676256	-	U		DEL	too_few_reads	2	97	99					
+2	chr17	7676266	-	D	chr17	7676267	-	U	C	INS	too_few_reads	5	94	99				6	
+2	chr17	7676266	-	D	chr17	7676268	-	U		DEL	too_few_reads	1	98	99					
+2	chr17	7676391	-	D	chr17	7676392	-	U	A	INS	too_few_reads	1	98	99					
+2	chr17	7676391	-	D	chr17	7676393	-	U		DEL	too_few_reads	1	98	99					
+2	chr17	7676522	-	D	chr17	7676524	-	U		DEL	too_few_reads	2	97	99					
+2	chr17	7676529	-	D	chr17	7676530	-	U	T	INS	too_few_reads	2	97	99					
+2	chr17	7676530	-	D	chr17	7676531	-	U	C	INS	too_few_reads	2	97	99					
+2	chr17	7676536	-	D	chr17	7676538	-	U		DEL	too_few_reads	5	94	99				4	
+2	chr17	7676542	-	D	chr17	7676544	-	U		DEL	too_few_reads	3	96	99				0	
+2	chr17	7676556	-	D	chr17	7676557	-	U	C	INS	too_few_reads	2	97	99					
+2	chr17	7676556	-	D	chr17	7676558	-	U		DEL	too_few_reads	2	97	99					
+2	chr17	7676567	-	D	chr17	7676568	-	U	C	INS	too_few_reads	1	85	86					
+2	chr17	7676587	-	D	chr17	7676588	-	U	G	INS	too_few_reads	1	85	86					
+2	chr17	7676587	-	D	chr17	7676589	-	U		DEL	too_few_reads	1	85	86					
+2	chr17	7676602	-	D	chr17	7676603	-	U	G	INS	too_few_reads	2	84	86					
+2	chr17	7676602	-	D	chr17	7676604	-	U		DEL	too_few_reads	1	85	86					
+2	chr17	7687376	-	D	chr17	7687377	-	U	G	INS	too_few_reads	1	85	86					
+2	chr17	7687376	-	D	chr17	7687377	-	U	C	INS	too_few_reads	1	85	86					
+2	chr17	7687384	-	D	chr17	7687385	-	U	C	INS	too_few_reads	1	85	86					
+2	chr17	7687404	-	D	chr17	7687406	-	U		DEL	too_few_reads	1	85	86					
+2	chr17	7687406	-	D	chr17	7687408	-	U		DEL	too_few_reads	2	84	86					
+2	chr17	7687413	-	D	chr17	7687414	-	U	C	INS	too_few_reads	1	85	86					
+2	chr17	7687416	-	D	chr17	7687418	-	U		DEL	too_few_reads	1	85	86					
+2	chr17	7687421	-	D	chr17	7687422	-	U	G	INS	too_few_reads	1	85	86					
+2	chr17	7687430	-	D	chr17	7687432	-	U		DEL	too_few_reads	2	84	86					
+2	chr17	7687434	-	D	chr17	7687436	-	U		DEL	too_few_reads	1	62	63					
+2	chr17	7687437	-	D	chr17	7687438	-	U	G	INS	too_few_reads	3	60	63				5	
+2	chr17	7687445	-	D	chr17	7687446	-	U	G	INS	too_few_reads	1	62	63					
+2	chr17	7687462	-	D	chr17	7687463	-	U	G	INS	too_few_reads	1	62	63					
+2	chr17	7687466	-	D	chr17	7687468	-	U		DEL	too_few_reads	1	62	63					
+2	chr17	7687470	-	D	chr17	7687471	-	U	C	INS	too_few_reads	1	62	63					
+2	chr17	7687479	-	D	chr17	7687480	-	U	AAGTCTC	INS	too_few_reads	1	62	63					
+2	chr17	7687487	-	D	chr17	7687488	-	U	CTCA	INS	too_few_reads	2	60	62					

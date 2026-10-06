@@ -1,0 +1,8 @@
+variant_id	assembled_transcript_name	reference_gene_name	reference_transcript_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence	read_start	read_end	origin
+1	2	WRAP53	ENST00000698742.1	chr17	7700829	+	D	chr17	7716251	-	D	15421	BND		1380	1381	
+2	2	WRAP53	ENST00000698742.1	chr17	7712000	-	I	chr17	7712249	-	I	250	CRX		1887	2136	
+3	2	WRAP53	ENST00000698742.1	chr17	7712249	-	D	chr17	7714999	-	U	2749	NCS		1886	1887	
+4	2	WRAP53	ENST00000698742.1	chr17	7714999	-	D	chr17	7715000	-	U	1	INS	T	1885	1885	
+5	2	WRAP53	ENST00000698742.1	chr17	7714999	-	I	chr17	7715251	-	I	253	CRX		1633	1886	
+6	2	WRAP53	ENST00000698742.1	chr17	7715251	-	D	chr17	7716000	-	U	748	NCS		1632	1633	
+7	2	WRAP53	ENST00000698742.1	chr17	7716000	-	I	chr17	7716251	-	I	252	CRX		1381	1632	

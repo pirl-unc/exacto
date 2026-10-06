@@ -7,7 +7,7 @@ extern crate rayon;
 
 #[cfg(test)]
 mod tests;
-pub mod algorithms;
+pub mod pipeline;
 pub mod common;
 pub mod graph;
 pub mod prelude;

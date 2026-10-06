@@ -1,0 +1,39 @@
+[package]
+name = "exacto-quantifier"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+exacto-core = { workspace = true }
+exacto-cluster = { workspace = true }
+bimap = { workspace = true }
+bstr = { workspace = true }
+chrono = { workspace = true }
+edit-distance = { workspace = true }
+env_logger = { workspace = true }
+flate2 = { workspace = true }
+indicatif = { workspace = true }
+interavl = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
+nalgebra = { workspace = true }
+noodles-bam = { workspace = true }
+noodles-bgzf = { workspace = true }
+noodles-core = { workspace = true }
+noodles-fasta = { workspace = true }
+noodles-sam = { workspace = true }
+once_cell = { workspace = true }
+polars = { workspace = true }
+rayon = { workspace = true }
+rand = { workspace = true }
+rand_pcg = { workspace = true }
+serde = { workspace = true }
+statrs = { workspace = true }
+sysinfo = { workspace = true }
+tempfile = { workspace = true }
+regex = { workspace = true }
+
+[dev-dependencies]
+exacto-caller = { workspace = true }

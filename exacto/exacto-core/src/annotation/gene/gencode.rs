@@ -106,12 +106,14 @@ impl Gencode {
             let source: &str = fields[1];
             let start: u32 = fields[3].parse::<usize>().unwrap_or(0) as u32;
             let end: u32 = fields[4].parse::<usize>().unwrap_or(0) as u32;
-            let strand: Strand = Strand::from_str(fields[6]).unwrap();
+            let strand: Strand = Strand::from_str(fields[6])
+                .unwrap_or_else(|_| panic!("Unknown strand '{}' in {gtf_file}: {line}", fields[6]));
 
             let attrs: &str = fields[8];
             let gene_id: &str = extract_attr(attrs, "gene_id").unwrap_or("");
             let gene_name: &str = extract_attr(attrs, "gene_name").unwrap_or("");
-            let gene_type: &str = extract_attr(attrs, "gene_type").unwrap_or("");
+            // GENCODE names the type gene_type, Ensembl gene_biotype.
+            let gene_type: &str = extract_attr(attrs, "gene_type").or_else(|| extract_attr(attrs, "gene_biotype")).unwrap_or("");
             let level: u8 = extract_attr(attrs, "level").and_then(|s| s.parse::<u8>().ok()).unwrap_or(0);
 
             if gene_types.is_some() && !gene_types.as_ref().unwrap().contains(&gene_type) {
@@ -162,13 +164,14 @@ impl Gencode {
             let source: &str = fields[1];
             let start: u32 = fields[3].parse::<usize>().unwrap_or(0) as u32;
             let end: u32 = fields[4].parse::<usize>().unwrap_or(0) as u32;
-            let strand: Strand = Strand::from_str(fields[6]).unwrap();
+            let strand: Strand = Strand::from_str(fields[6])
+                .unwrap_or_else(|_| panic!("Unknown strand '{}' in {gtf_file}: {line}", fields[6]));
 
             let attrs: &str = fields[8];
             let gene_id: &str = extract_attr(attrs, "gene_id").unwrap_or("");
             let transcript_id: &str = extract_attr(attrs, "transcript_id").unwrap_or("");
             let transcript_name: &str = extract_attr(attrs, "transcript_name").unwrap_or("");
-            let transcript_type: &str = extract_attr(attrs, "transcript_type").unwrap_or("");
+            let transcript_type: &str = extract_attr(attrs, "transcript_type").or_else(|| extract_attr(attrs, "transcript_biotype")).unwrap_or("");
             let transcript_support_level: &str = extract_attr(attrs, "transcript_support_level").unwrap_or("");
             let tags: Vec<Box<str>> = extract_all_attrs(attrs, "tag");
             let level: u8 = extract_attr(attrs, "level").and_then(|s| s.parse::<u8>().ok()).unwrap_or(0);
@@ -205,6 +208,7 @@ impl Gencode {
         }
 
         // Step 4. Load exons, UTRs start codon, stop codon, CDS
+        let mut num_exon_rows: usize = 0;
         let file = File::open(gtf_file).expect("Unable to reopen GTF file");
         let reader: Box<dyn BufRead> = if is_gzipped(gtf_file) {
             let decoder = MultiGzDecoder::new(file);
@@ -232,7 +236,8 @@ impl Gencode {
             let source: &str = fields[1];
             let start: u32 = fields[3].parse::<usize>().unwrap_or(0) as u32;
             let end: u32 = fields[4].parse::<usize>().unwrap_or(0) as u32;
-            let strand: Strand = Strand::from_str(fields[6]).unwrap();
+            let strand: Strand = Strand::from_str(fields[6])
+                .unwrap_or_else(|_| panic!("Unknown strand '{}' in {gtf_file}: {line}", fields[6]));
 
             let attrs: &str = fields[8];
             let gene_id: &str = extract_attr(attrs, "gene_id").unwrap_or("");
@@ -251,6 +256,13 @@ impl Gencode {
 
             match feature_type {
                 "exon" => {
+                    // Exons are keyed by exon_id: without it every exon of a transcript would
+                    // share one key and only the last would be kept.
+                    assert!(
+                        extract_attr(attrs, "exon_id").is_some(),
+                        "Exon without exon_id in {gtf_file}; only GENCODE-style GTF files are supported: {line}"
+                    );
+                    num_exon_rows += 1;
                     let exon = Exon::new(
                         gene_id,
                         transcript_id,
@@ -343,7 +355,26 @@ impl Gencode {
             }
         }
 
-        // Step 5. Build interval trees
+        // Step 5. Stop on a file this loader cannot represent: it needs a gene row for every gene
+        // and a transcript row for every transcript, and keeps one exon per exon_id.
+        let num_transcripts: usize = genes.values().map(|gene| gene.transcripts.len()).sum();
+        let num_exons: usize = genes.values()
+            .flat_map(|gene| gene.transcripts.values())
+            .map(|transcript| transcript.exons.len())
+            .sum();
+        assert!(
+            !genes.is_empty() && num_transcripts > 0 && num_exons > 0,
+            "Loaded {} genes, {num_transcripts} transcripts and {num_exons} exons from {gtf_file}: the file needs \
+             gene, transcript and exon rows (GENCODE layout), and the gene and transcript filters must keep at least one.",
+            genes.len()
+        );
+        assert_eq!(
+            num_exons, num_exon_rows,
+            "{gtf_file} holds {num_exon_rows} exon rows of the loaded transcripts but {num_exons} distinct exons: \
+             an exon_id repeats within a transcript."
+        );
+
+        // Step 6. Build interval trees
         let mut gene_itrees_map: HashMap<Box<str>,IntervalTree<Box<str>>> = HashMap::new();
 
         for gene in genes.values() {
@@ -537,6 +568,11 @@ impl GeneAnnotator for Gencode {
                 })
                 // Priority 5: longer transcript first
                 .then_with(|| b.get_size().cmp(&a.get_size()))
+                // Priority 6: transcript ID, so the order is TOTAL. Without this, transcripts
+                // tying on all five keys (real: TP53 ENST00000619186.4 vs ENST00000504937.5)
+                // keep their HashMap-iteration relative order, which is seeded per process —
+                // the rank then flips between runs and so does every consumer of it.
+                .then_with(|| a.transcript_id.cmp(&b.transcript_id))
         });
         transcripts
     }

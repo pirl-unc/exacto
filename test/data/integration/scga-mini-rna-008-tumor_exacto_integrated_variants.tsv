@@ -1,0 +1,4 @@
+assembled_transcript_name	reference_gene_name	reference_transcript_id	rna_variant_id	dna_variant_id	distance	rna_variant_position	dna_variant_position
+2	TP53	ENST00000269305.9	1	1	594	position_2	position_1
+2	TP53	ENST00000269305.9	2	1	315	position_2	position_1
+2	TP53	ENST00000269305.9	3	1	315	position_1	position_1

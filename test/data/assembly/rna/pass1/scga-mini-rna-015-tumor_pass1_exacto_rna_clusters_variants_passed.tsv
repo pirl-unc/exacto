@@ -1,0 +1,3 @@
+cluster_id	chromosome_1	position_1	strand_1	operation_type_1	chromosome_2	position_2	strand_2	operation_type_2	sequence	variant_type
+2	chr17	3489340	+	D	chr17	6087991	+	U	AGG	FUS
+2	chr17	6110933	+	D	chr17	7341948	+	U	AG	FUS

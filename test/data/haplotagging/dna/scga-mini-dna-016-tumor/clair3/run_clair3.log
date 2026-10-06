@@ -1,0 +1,71 @@
+
+[INFO] Check environment variables
+[INFO] --include_all_ctgs not enabled, use chr{1..22,X,Y} and {1..22,X,Y} by default
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/log
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/pileup_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/merge_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/phase_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/gvcf_tmp_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/full_alignment_output
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/phase_output/phase_vcf
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/phase_output/phase_bam
+[INFO] Create folder /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/tmp/full_alignment_output/candidate_bed
+[93m[WARNING] Contig name chr18 provided but no mapped reads in BAM, skip![0m
+[INFO] Call variant in contigs: chr17
+[INFO] Chunk number for each contig: 2
+[INFO] 1/7 Call variants using pileup model
+Calling variants ...
+Total processed positions in chr17 (chunk 1/2) : 308
+Total time elapsed: 0.38 s
+Calling variants ...
+Total processed positions in chr17 (chunk 2/2) : 461
+Total time elapsed: 0.54 s
+
+[INFO] 2/7 Select heterozygous SNP variants for Whatshap phasing and haplotagging
+[93m[WARNING] Cannot find any 0/1 variant in pileup output using variant quality cut-off proportion: 0.30000000000000004, total heterozygous variants: 0[0m
+[93m[WARNING] Set low variant quality score cut-off to 0.0[0m
+[INFO] Select heterozygous pileup variants exceeding phasing quality cutoff 0
+[INFO] Total heterozygous SNP positions selected: chr17: 2
+
+[INFO] 3/7 Phase VCF file using Whatshap
+This is WhatsHap 2.8 running under Python 3.11.15
+Working on 1 sample from 1 family
+
+# Working on contig chr17 in individual SAMPLE
+Found 2 usable heterozygous variants (0 skipped due to missing genotypes)
+Number of supplementary alignments: 0
+Number of non-singleton groups: 0
+Skipped 0 groups
+Found 23 reads covering 2 variants
+Kept 0 reads that cover at least two variants each
+Selected 0 most phase-informative reads covering 0 variants
+Phasing 1 sample by solving the MEC problem ...
+No. of phased blocks: 0
+
+# Resource usage
+Maximum memory usage: 0.092 GB
+Time spent reading BAM/CRAM:                    0.0 s
+Time spent parsing VCF:                         0.0 s
+Time spent selecting reads:                     0.0 s
+Time spent phasing:                             0.0 s
+Time spent writing VCF:                         0.0 s
+Time spent finding components:                  0.0 s
+Time spent on rest:                             0.0 s
+Total elapsed time:                             0.1 s
+
+[INFO] 5/7 Select candidates for full-alignment calling
+[INFO] Set variants quality cutoff 9.0
+[INFO] Set reference calls quality cutoff 23.0
+[INFO] Low quality reference calls to be processed in chr17: 216
+[INFO] Low quality variants to be processed in chr17: 11
+
+[INFO] 6/7 Call low-quality variants using full-alignment model
+Calling variants ...
+Total processed positions in chr17 (chunk 1/1) : 227
+Total time elapsed: 1.14 s
+
+[INFO] 7/7 Merge pileup VCF and full-alignment VCF
+[INFO] Pileup variants processed in chr17: 32
+[INFO] Full-alignment variants processed in chr17: 5
+
+[INFO] Finish calling, output file: /Users/ajslee/Documents/Research/projects/project_exacto/data/processed/work/haplotagging_long-read-dna/4a/8b0f5506fb704ec22a5489c4c26dba/clair3/merge_output.vcf.gz

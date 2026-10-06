@@ -1,0 +1,5 @@
+assembled_transcript_name	start_chromosome	start	end_chromosome	end	num_exons	num_splice_junctions	is_variant
+1	chr17	3475997	chr17	3503405	6	5	false
+2	chr17	3475997	chr17	6165505	10	8	true
+3	chr17	6070379	chr17	6124427	9	8	true
+4	chr17	7336590	chr17	7343561	5	4	false

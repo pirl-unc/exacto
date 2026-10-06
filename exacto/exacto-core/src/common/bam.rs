@@ -31,10 +31,20 @@ use rayon::prelude::*;
 use rayon::ThreadPool;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufWriter, SeekFrom};
+use std::io::{Read as _, Seek as _};
 use std::num::NonZeroUsize;
+use std::sync::Arc;
 
+use crate::log_info;
 use crate::prelude::*;
+
+
+/// The empty block that ends every complete BGZF file (SAM/BAM specification, section 4.1.2).
+const BGZF_EOF_BLOCK: [u8; 28] = [
+    0x1f, 0x8b, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x06, 0x00, 0x42, 0x43,
+    0x02, 0x00, 0x1b, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+];
 
 
 /// Calculates the average base quality score.
@@ -44,12 +54,37 @@ use crate::prelude::*;
 ///
 /// # Returns
 /// * Average base quality score.
-pub fn calculate_average_base_quality_score(base_quality_scores: &Vec<u8>) -> f32 {
+pub fn calculate_average_base_quality_score(base_quality_scores: &Vec<BaseQuality>) -> f32 {
     assert!(base_quality_scores.is_empty() == false);
     let sum: usize = base_quality_scores.iter().map(|&x| x as usize).sum();
     let count: f32 = base_quality_scores.len() as f32;
     sum as f32 / count
 }
+
+
+/// Checks that a BAM file ends with the BGZF end-of-file block.
+///
+/// A BAM cut short (an interrupted copy, a full disk) otherwise reads as a complete file that
+/// stops at the cut: noodles returns 0 bytes there, as it does at the real end. Every function
+/// here that opens a BAM file by path calls this first.
+///
+/// # Arguments
+/// * `bam_file`: BAM file.
+///
+/// # Panics
+/// * If the file cannot be read or does not end with the end-of-file block.
+pub fn check_bam_end_of_file(bam_file: &str) {
+    let mut file: File = File::open(bam_file).unwrap_or_else(|e| panic!("Could not open {bam_file}: {e}"));
+    let mut last_block: [u8; 28] = [0; 28];
+    let has_eof_block: bool = file.seek(SeekFrom::End(-(BGZF_EOF_BLOCK.len() as i64))).is_ok()
+        && file.read_exact(&mut last_block).is_ok()
+        && last_block == BGZF_EOF_BLOCK;
+    assert!(
+        has_eof_block,
+        "{bam_file} does not end with the BGZF end-of-file block; the file is probably truncated."
+    );
+}
+
 
 /// Creates a BiMap of chromosome names and IDs in a BAM file.
 ///
@@ -58,7 +93,8 @@ pub fn calculate_average_base_quality_score(base_quality_scores: &Vec<u8>) -> f3
 ///
 /// # Returns
 /// * BiMap where the left is chromosome name and the right is chromosome ID.
-pub fn create_chromosome_names_map(bam_file: &str) -> BiMap<Box<str>, u16> {
+pub fn create_chromosome_names_map(bam_file: &str) -> BiMap<ReferenceChromosomeName, ReferenceChromosomeID> {
+    check_bam_end_of_file(bam_file);
     let mut reader = bam::io::reader::Builder::default().build_from_path(bam_file).unwrap();
     let header = reader.read_header().unwrap();
     let mut chromosome_names_map: BiMap<Box<str>, u16> = BiMap::new();
@@ -74,6 +110,7 @@ pub fn create_chromosome_names_map(bam_file: &str) -> BiMap<Box<str>, u16> {
     chromosome_names_map
 }
 
+
 /// Creates a BiMap of read names and IDs in a BAM file.
 ///
 /// # Arguments
@@ -87,12 +124,14 @@ pub fn create_read_names_map(
     bam_file: &str,
     bam_bai_file: &str,
     num_threads: usize
-) -> BiMap<Box<str>, usize> {
+) -> BiMap<ReadName, ReadID> {
+    check_bam_end_of_file(bam_file);
+
     // Step 1. Split the BAM into regions
     let chromosome_names_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
-    let chromosome_names: Vec<&str> = chromosome_names_map
+    let chromosome_names: Vec<ReferenceChromosomeName> = chromosome_names_map
         .left_values()
-        .map(|boxed_str| boxed_str.as_ref())
+        .cloned()
         .collect();
     let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     let regions: HashMap<Box<str>,Vec<(u32, u32)>> = generate_regions(
@@ -156,6 +195,7 @@ pub fn create_read_names_map(
     read_names_map
 }
 
+
 /// Fetches all BAM records in a BAM file.
 ///
 /// # Arguments
@@ -169,9 +209,11 @@ pub fn create_read_names_map(
 pub fn fetch_all_bam_records(
     bam_file: &str,
     bam_bai_file: &str,
-    read_names_map: &BiMap<Box<str>, usize>,
+    read_names_map: &BiMap<ReadName, ReadID>,
     num_threads: usize
-) -> HashMap<usize, Vec<bam::Record>> {
+) -> HashMap<ReadID, Vec<bam::Record>> {
+    check_bam_end_of_file(bam_file);
+
     // Step 1. Read BAM header and index
     let mut reader = bam::io::reader::Builder::default()
         .build_from_path(bam_file)
@@ -179,9 +221,11 @@ pub fn fetch_all_bam_records(
     let header_: Header = reader.read_header().unwrap();
     let index_: Index = bai::fs::read(bam_bai_file).unwrap();
 
-    // Step 2. Read all records into memory
+    // Step 2. Read all records into memory. Secondary records are alternative mappings of
+    // the same read bases and corrupt the merged alignment model — see `index_bam_records`.
     let records: Vec<bam::Record> = reader.records()
-        .filter_map(Result::ok)
+        .map(|result| result.unwrap_or_else(|e| panic!("Could not read a record of {bam_file}: {e}")))
+        .filter(|record| !record.flags().is_secondary())
         .collect();
 
     // Step 3. Process in parallel
@@ -213,6 +257,7 @@ pub fn fetch_all_bam_records(
     records_map
 }
 
+
 /// Fetches BAM records in a genomic region.
 ///
 /// # Arguments
@@ -230,33 +275,37 @@ pub fn fetch_bam_records<R>(
     reader: &mut bam::io::Reader<R>,
     header: &Header,
     index: &Index,
-    chromosome: &str,
-    start: u32,
-    end: u32,
-    record_positions_map: &HashMap<usize, Vec<VirtualPosition>>,
-    read_names_map: &BiMap<Box<str>, usize>,
-    max_records: usize,
+    chromosome: ReferenceChromosomeName,
+    start: ReferencePosition,
+    end: ReferencePosition,
+    record_positions_map: &HashMap<ReadID, Vec<VirtualPosition>>,
+    read_names_map: &BiMap<ReadName, ReadID>,
+    max_records: ReadSupport,
     num_threads: usize
-) -> HashMap<usize, Vec<bam::Record>>
+) -> HashMap<ReadID, Vec<bam::Record>>
 where
     R: BufRead + Seek
 {
-    // Step 1. Collect primary records
+    // Step 1. Collect the records in the region. Secondary records are left out, as in
+    // `index_bam_records`: they belong to no read's records, so they bring no read into the region.
     let start_pos: Position = Position::new(start as usize).unwrap();
     let end_pos: Position = Position::new(end as usize).unwrap();
-    let region: Region = Region::new(chromosome, start_pos..=end_pos);
+    let region: Region = Region::new(&*chromosome, start_pos..=end_pos);
     let primary_records: Vec<bam::Record> = reader
         .query(header, index, &region)
         .unwrap()
-        .filter_map(Result::ok)
+        .map(|result| result.unwrap_or_else(|e| panic!("Could not read a record in {chromosome}:{start}-{end}: {e}")))
+        .filter(|record| !record.flags().is_secondary())
         .collect();
 
-    // Step 2. Identify relevant read IDs
+    // Step 2. Identify relevant read IDs. A read that `index_bam_records` left out (its records
+    // in the file are all unmapped, or all supplementary) is skipped.
     let mut read_ids: HashSet<usize> = HashSet::new();
     for record in primary_records.iter() {
         let read_name: Box<str> = record.name().unwrap().to_string().into_boxed_str();
-        let read_id: usize = *read_names_map.get_by_left(&read_name).unwrap();
-        read_ids.insert(read_id);
+        if let Some(read_id) = read_names_map.get_by_left(&read_name) {
+            read_ids.insert(*read_id);
+        }
     }
 
     // Step 3. Fetch all BAM records
@@ -264,7 +313,7 @@ where
     let mut record: bam::Record = bam::Record::default();
     for read_id in read_ids.iter() {
         let vps: &Vec<VirtualPosition> = record_positions_map.get(read_id).unwrap();
-        if vps.len() <= max_records {
+        if vps.len() <= max_records as usize {
             for &vp in vps {
                 reader.get_mut().seek_to_virtual_position(vp).unwrap();
                 let bytes_read = reader.read_record(&mut record).unwrap();
@@ -311,6 +360,36 @@ where
     })
 }
 
+
+/// Fetches all BAM records for one read ID by seeking to its indexed virtual positions.
+///
+/// `record_positions_map` comes from `index_bam_records`: it maps a read ID to the
+/// virtual positions of all that read's records (primary, secondary, and supplementary),
+/// wherever they align — so this gathers alignments a coordinate `query` would miss.
+pub fn fetch_bam_records_for_read_id<R>(
+    reader: &mut bam::io::Reader<R>,
+    read_id: ReadID,
+    record_positions_map: &HashMap<ReadID, Vec<VirtualPosition>>
+) -> Vec<bam::Record>
+where
+    R: BufRead + Seek
+{
+    let mut records: Vec<bam::Record> = Vec::new();
+    if let Some(vps) = record_positions_map.get(&read_id) {
+        let mut record: bam::Record = bam::Record::default();
+        for &vp in vps {
+            reader.get_mut().seek_to_virtual_position(vp).unwrap();
+            let bytes_read: usize = reader.read_record(&mut record).unwrap();
+            if bytes_read == 0 {
+                continue;
+            }
+            records.push(record.clone());
+        }
+    }
+    records
+}
+
+
 /// Generates a list of regions with buffer.
 ///
 /// # Arguments
@@ -323,10 +402,11 @@ where
 /// * HashMap where the key is a chromosome name and the value is a vector of tuples (start, end).
 pub fn generate_buffered_regions(
     bam_file: &str,
-    chromosomes: &Vec<&str>,
+    chromosomes: &Vec<ReferenceChromosomeName>,
     chunk_size: u32,
     chunk_size_buffer: u32
 ) -> HashMap<Box<str>, Vec<(u32, u32)>> {
+    assert!(chunk_size > 0, "chunk_size must be > 0");
     let mut buffered_regions: HashMap<Box<str>,Vec<(u32, u32)>> = HashMap::new();
     let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
     for chromosome in chromosomes.iter() {
@@ -371,10 +451,11 @@ pub fn generate_buffered_regions(
 /// # Returns
 /// * HashMap where the key is a chromosome name and the value is a vector of tuples (start, end).
 pub fn generate_regions(
-    chromosomes: &Vec<&str>,
-    chromosome_lengths: &HashMap<Box<str>, u32>,
+    chromosomes: &Vec<ReferenceChromosomeName>,
+    chromosome_lengths: &HashMap<ReferenceChromosomeName, ReferenceChromosomeLength>,
     chunk_size: u32
-) -> HashMap<Box<str>, Vec<(u32, u32)>> {
+) -> HashMap<ReferenceChromosomeName, Vec<(ReferencePosition, ReferencePosition)>> {
+    assert!(chunk_size > 0, "chunk_size must be > 0");
     let mut regions: HashMap<Box<str>,Vec<(u32, u32)>> = HashMap::new();
     for chromosome in chromosomes.iter() {
         let chromosome_length: u32 = *chromosome_lengths.get(&chromosome.to_string().into_boxed_str()).unwrap();
@@ -402,6 +483,7 @@ pub fn generate_regions(
     regions
 }
 
+
 /// Gets the alignment end position.
 ///
 /// # Arguments
@@ -424,13 +506,17 @@ pub fn get_alignment_end_position(record: &bam::Record) -> u32 {
 
 /// Gets the alignment mapping quality.
 ///
+/// The SAM specification reserves 255 for "not available" (STAR writes it for every unique
+/// mapper), and noodles reads it as `None`. It is returned as 255, the value in the file, as
+/// samtools and pysam do, so such a record passes any minimum mapping quality.
+///
 /// # Arguments
 /// * `record`: Reference to a `noodles_bam::Record` object.
 ///
 /// # Returns
 /// * Mapping quality.
 pub fn get_alignment_mapping_quality(record: &bam::Record) -> u16 {
-    record.mapping_quality().unwrap().get() as u16
+    record.mapping_quality().map_or(255, |mapping_quality| mapping_quality.get() as u16)
 }
 
 /// Gets the aligned sequence from the CIGAR string.
@@ -457,7 +543,8 @@ pub fn get_aligned_sequence_from_cigar(record: &bam::Record) -> Box<str> {
             Kind::SoftClip => {
                 read_pos += cigar_.len();
             },
-            Kind::Deletion |Kind::Skip => {
+            // A hard clip or a pad holds no base of the stored sequence.
+            Kind::Deletion | Kind::Skip | Kind::HardClip | Kind::Pad => {
             },
             Kind::Insertion => {
                 for _ in 0..cigar_.len() {
@@ -466,9 +553,6 @@ pub fn get_aligned_sequence_from_cigar(record: &bam::Record) -> Box<str> {
                     }
                     read_pos += 1;
                 }
-            },
-            _ => {
-                panic!("Unknown cigar type: {:?}", cigar_.kind());
             }
         }
     }
@@ -517,6 +601,7 @@ pub fn get_alignment_strand(record: &bam::Record) -> Strand {
 /// # Returns
 /// * noodles_sam::Header object.
 pub fn get_bam_header(bam_file: &str) -> Header {
+    check_bam_end_of_file(bam_file);
     let mut reader = File::open(bam_file).map(bam::io::Reader::new).unwrap();
     let header: Header = reader.read_header().unwrap();
     header
@@ -530,6 +615,7 @@ pub fn get_bam_header(bam_file: &str) -> Header {
 /// # Returns
 /// * HashMap where the key is a chromosome name and the value is chromosome length.
 pub fn get_chromosome_lengths(bam_file: &str) -> HashMap<Box<str>, u32> {
+    check_bam_end_of_file(bam_file);
     let mut reader = bam::io::reader::Builder::default().build_from_path(bam_file).unwrap();
     let header: Header = reader.read_header().unwrap();
     let mut chromosome_lengths: HashMap<Box<str>, u32> = HashMap::new();
@@ -547,6 +633,7 @@ pub fn get_chromosome_lengths(bam_file: &str) -> HashMap<Box<str>, u32> {
 /// # Returns
 /// * Vector of chromosome names.
 pub fn get_chromosome_names(bam_file: &str) -> Vec<Box<str>> {
+    check_bam_end_of_file(bam_file);
     let mut reader = bam::io::reader::Builder::default().build_from_path(bam_file).unwrap();
     let header: Header = reader.read_header().unwrap();
     let mut chromosome_names: Vec<Box<str>> = Vec::new();
@@ -603,7 +690,7 @@ pub fn get_cigar_string(record: &bam::Record) -> Box<str> {
 ///
 /// # Panics
 /// This function will panic if no primary (non-supplementary) read is present in
-/// the `records` slice.
+/// the `records` slice. `index_bam_records` leaves out reads that have no such record.
 ///
 /// # Notes
 /// * The `flags` field of the `bam::Record` is used to determine whether a
@@ -612,7 +699,7 @@ pub fn get_cigar_string(record: &bam::Record) -> Box<str> {
 ///   primary read's quality scores.
 /// * Ensure that the provided `records` slice contains reads with valid quality
 ///   scores to avoid potential runtime errors.
-pub fn get_fastx_base_quality_scores(records: &Vec<bam::Record>) -> Vec<u8> {
+pub fn get_bam_fastx_base_quality_scores(records: &Vec<bam::Record>) -> Vec<u8> {
     assert!(records.len() > 0, "records must contain at least one record.");
     let read_name: Box<str> = records[0].name().unwrap().to_string().into_boxed_str();
     for record in records.iter() {
@@ -641,12 +728,13 @@ pub fn get_fastx_base_quality_scores(records: &Vec<bam::Record>) -> Vec<u8> {
 /// # Panics
 /// * The function panics if no non-supplementary record is found in the `records` slice, or if
 ///   there is an issue retrieving the sequence or record name from the BAM record.
+///   `index_bam_records` leaves out reads that have no non-supplementary record.
 ///
 /// # Notes
 /// * The function assumes that the input records are valid and conform to the expected BAM format.
 /// * The method uses `unwrap()` on the sequence conversion and on the record's name retrieval, which
 ///   suggests potential panics if the string is not valid UTF-8 or if a name is missing.
-pub fn get_fastx_read_sequence(records: &Vec<bam::Record>) -> Box<str> {
+pub fn get_bam_fastx_read_sequence(records: &Vec<bam::Record>) -> Box<str> {
     for record in records.iter() {
         if record.flags().is_supplementary() == false {
             let s: Vec<u8> = record.sequence().iter().collect();
@@ -756,6 +844,7 @@ pub fn get_primary_alignment_read_sequence(records: &[&bam::Record]) -> Box<str>
 /// # Returns
 /// * HashSet of all unique read names extracted from the BAM file.
 pub fn get_read_names(bam_file: &str, bam_bai_file: &str, num_threads: usize) -> HashSet<Box<str>> {
+    check_bam_end_of_file(bam_file);
     let mut reader = bam::io::Reader::new(File::open(bam_file).unwrap());
     let header_: Header = reader.read_header().unwrap();
     let index_: Index = bai::fs::read(bam_bai_file).unwrap();
@@ -782,52 +871,42 @@ pub fn get_read_names(bam_file: &str, bam_bai_file: &str, num_threads: usize) ->
 ///
 /// # Arguments
 /// * `bam_file`: BAM file.
-/// * `bam_bai_file`: BAM.BAI file.
-/// * `num_threads`: Number of threads.
+/// * `bam_bai_file`: BAM.BAI file. Not read: the file is read from start to end.
+/// * `num_threads`: Number of threads that decompress the file.
 /// * `min_mapping_quality`: Minimum mapping quality (inclusive).
 ///
 /// # Returns
 /// * HashSet of read names.
+///
+/// # Notes
+/// * The records are read one by one and only the names are held.
 pub fn get_read_names_passing_mapping_quality(
     bam_file: &str,
     bam_bai_file: &str,
     num_threads: usize,
     min_mapping_quality: u16
 ) -> HashSet<Box<str>> {
-    // Step 1. Read BAM header and index
-    let mut reader = bam::io::reader::Builder::default()
-        .build_from_path(bam_file)
-        .unwrap();
-    let header_: Header = reader.read_header().unwrap();
-    let index_: Index = bai::fs::read(bam_bai_file).unwrap();
+    let _ = bam_bai_file;
+    check_bam_end_of_file(bam_file);
 
-    // Step 2. Read all records into memory
-    let records: Vec<bam::Record> = reader.records()
-        .filter_map(Result::ok)
-        .collect();
+    // Step 1. Open the BAM file
+    let file: File = File::open(bam_file).unwrap_or_else(|e| panic!("Could not open {bam_file}: {e}"));
+    let workers: NonZeroUsize = NonZeroUsize::new(num_threads.max(1)).unwrap();
+    let mut reader = bam::io::Reader::from(bgzf::io::MultithreadedReader::with_worker_count(workers, file));
+    reader.read_header().unwrap();
 
-    // Step 3. Create a thread pool
-    let thread_pool: ThreadPool = rayon::ThreadPoolBuilder::new()
-        .num_threads(num_threads)
-        .build()
-        .unwrap();
-
-    // Step 4. Identify read names that pass the minimum mapping quality
+    // Step 2. Identify read names that pass the minimum mapping quality
     // If one record passes the minimum mapping quality,
     // then all records of the same read name pass the minimum mapping quality
-    let read_names_passing_mapq: HashSet<Box<str>> = thread_pool.install(|| {
-        records.par_iter()
-            .filter_map(|record| {
-                if record.mapping_quality().unwrap().get() as u16 >= min_mapping_quality {
-                    record.name().and_then(|name_bytes| {
-                        String::from_utf8(name_bytes.to_vec()).ok().map(|s| s.into_boxed_str())
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect()
-    });
+    let mut read_names_passing_mapq: HashSet<Box<str>> = HashSet::new();
+    for result in reader.records() {
+        let record: bam::Record = result.unwrap_or_else(|e| panic!("Could not read a record of {bam_file}: {e}"));
+        if get_alignment_mapping_quality(&record) >= min_mapping_quality {
+            if let Some(read_name) = record.name().and_then(|name_bytes| std::str::from_utf8(name_bytes).ok()) {
+                read_names_passing_mapq.insert(read_name.into());
+            }
+        }
+    }
 
     read_names_passing_mapq
 }
@@ -837,81 +916,83 @@ pub fn get_read_names_passing_mapping_quality(
 ///
 /// # Arguments
 /// * `bam_file`: BAM file.
-/// * `bam_bai_file`: BAM.BAI file.
+/// * `bam_bai_file`: BAM.BAI file. Not read: the file is read from start to end.
 /// * `gene_annotator`: Gene annotator.
-/// * `num_threads`: Number of threads.
+/// * `num_threads`: Number of threads that decompress the file.
 ///
 /// # Returns
 /// * HashSet of read names that have at least 1 splicing signal or overlaps a single-exon transcript.
+///
+/// # Notes
+/// * The records are read one by one and only the names are held.
 pub fn get_read_names_with_splicing(
     bam_file: &str,
     bam_bai_file: &str,
     gene_annotator: &(impl GeneAnnotator + Sync),
     num_threads: usize
 ) -> HashSet<Box<str>> {
-    // Step 1. Get single-exon transcripts
-    let mut single_exon_transcripts_map: HashMap<Box<str>, Vec<&Transcript>> = HashMap::new();
+    let _ = bam_bai_file;
+    check_bam_end_of_file(bam_file);
+
+    // Step 1. Get single-exon transcripts, one interval tree per chromosome
+    let mut single_exon_transcripts_map: HashMap<Box<str>, IntervalTree<()>> = HashMap::new();
     for transcript in gene_annotator.get_transcripts() {
         if transcript.get_exon_ids().len() == 1 {
             single_exon_transcripts_map
                 .entry(transcript.chromosome.clone())
-                .or_insert_with(Vec::new)
-                .push(transcript);
+                .or_insert_with(IntervalTree::new)
+                .insert(Interval::new(transcript.start as isize, transcript.end as isize, ()));
         }
     }
 
     // Step 2. Create a map of chromosome IDs and names
     let chromosomes_map: BiMap<Box<str>, u16> = create_chromosome_names_map(bam_file);
 
-    // Step 3. Read BAM header and index
-    let mut reader = bam::io::reader::Builder::default()
-        .build_from_path(bam_file)
-        .unwrap();
-    let header_: Header = reader.read_header().unwrap();
-    let index_: Index = bai::fs::read(bam_bai_file).unwrap();
+    // Step 3. Open the BAM file
+    let file: File = File::open(bam_file).unwrap_or_else(|e| panic!("Could not open {bam_file}: {e}"));
+    let workers: NonZeroUsize = NonZeroUsize::new(num_threads.max(1)).unwrap();
+    let mut reader = bam::io::Reader::from(bgzf::io::MultithreadedReader::with_worker_count(workers, file));
+    reader.read_header().unwrap();
 
-    // Step 4. Read all records into memory
-    let records: Vec<bam::Record> = reader.records()
-        .filter_map(Result::ok)
-        .collect();
-
-    // Step 5. Identify read IDs that either have splicing or overlap a single-exon transcript
-    let thread_pool: ThreadPool = rayon::ThreadPoolBuilder::new()
-        .num_threads(num_threads)
-        .build()
-        .unwrap();
-    let read_names_spliced: HashSet<Box<str>> = thread_pool.install(|| {
-        records.par_iter()
-            .filter_map(|record| {
-                if has_splicing(record) {
-                    record.name().and_then(|name_bytes| {
-                        String::from_utf8(name_bytes.to_vec()).ok().map(|s| s.into_boxed_str())
-                    })
-                } else {
-                    // Check if the read overlaps a single-exon transcript
-                    let chromosome_id: usize = record.reference_sequence_id().unwrap().unwrap();
-                    let chromosome_name: Box<str> = chromosomes_map.get_by_right(&(chromosome_id as u16)).unwrap().clone();
-                    let start: usize = record.alignment_start().unwrap().unwrap().get() - 1;
-                    let end: usize = record.alignment_end().unwrap().unwrap().get() - 1;
-
-                    if let Some(transcripts) = single_exon_transcripts_map.get(&chromosome_name) {
-                        for &transcript in transcripts {
-                            if overlaps(transcript.start as isize, transcript.end as isize, start as isize, end as isize) {
-                                return record.name().and_then(|name_bytes| {
-                                    String::from_utf8(name_bytes.to_vec()).ok().map(|s| s.into_boxed_str())
-                                });
-                            }
-                        }
-                    }
-
-                    None
-                }
-            })
-            .collect()
-    });
+    // Step 4. Identify read names that either have splicing or overlap a single-exon transcript
+    let mut read_names_spliced: HashSet<Box<str>> = HashSet::new();
+    for result in reader.records() {
+        let record: bam::Record = result.unwrap_or_else(|e| panic!("Could not read a record of {bam_file}: {e}"));
+        // Skip unmapped reads: they have no reference_sequence_id or
+        // alignment_start/end and should not appear in the output.
+        if record.flags().is_unmapped() {
+            continue;
+        }
+        let Some(read_name) = record.name().and_then(|name_bytes| std::str::from_utf8(name_bytes).ok()) else {
+            continue;
+        };
+        let is_spliced: bool = has_splicing(&record) || {
+            // Check if the read overlaps a single-exon transcript
+            let chromosome_id: usize = record.reference_sequence_id()
+                .unwrap_or_else(|| panic!("reference_sequence_id() returned None for read: {}", read_name))
+                .unwrap_or_else(|e| panic!("reference_sequence_id() returned Err for read {}: {}", read_name, e));
+            let chromosome_name: &Box<str> = chromosomes_map.get_by_right(&(chromosome_id as u16))
+                .unwrap_or_else(|| panic!("chromosome id {} not found in chromosomes_map for read: {}", chromosome_id, read_name));
+            let start: usize = record.alignment_start()
+                .unwrap_or_else(|| panic!("alignment_start() returned None for read: {}", read_name))
+                .unwrap_or_else(|e| panic!("alignment_start() returned Err for read {}: {}", read_name, e))
+                .get() - 1;
+            let end: usize = record.alignment_end()
+                .unwrap_or_else(|| panic!("alignment_end() returned None for read: {}", read_name))
+                .unwrap_or_else(|e| panic!("alignment_end() returned Err for read {}: {}", read_name, e))
+                .get() - 1;
+            single_exon_transcripts_map
+                .get(chromosome_name)
+                .is_some_and(|transcripts| !transcripts.overlaps(start as isize, end as isize).is_empty())
+        };
+        if is_spliced {
+            read_names_spliced.insert(read_name.into());
+        }
+    }
 
     read_names_spliced
 }
+
 
 /// Get read sequence.
 ///
@@ -926,7 +1007,20 @@ pub fn get_read_sequence(record: &bam::Record) -> Box<str> {
     sequence.into()
 }
 
-pub fn get_bam_depths_map(bam_file: &str, num_threads: usize) -> HashMap<Box<str>, Vec<u32>> {
+
+/// Get BAM depths map.
+///
+/// `bam_bai_file` is the index of `bam_file`, wherever it is stored.
+///
+/// # Returns
+/// * `HashMap<chromosome name, Vec<u32>>` where `depths[i]` is the read depth at
+///   1-based genomic position `i + 1`. To look up 1-based position `p`, index with
+///   `p - 1`. Holds 4 bytes for every base of every contig of the header; `ReadDepths` counts at
+///   chosen positions only.
+pub fn get_bam_depths_map(bam_file: &str, bam_bai_file: &str, num_threads: usize) -> HashMap<Box<str>, Vec<u32>> {
+    check_bam_end_of_file(bam_file);
+    let index: Index = bai::fs::read(bam_bai_file)
+        .unwrap_or_else(|e| panic!("Could not read the index {bam_bai_file} of {bam_file}: {e}"));
     let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
 
     let thread_pool = rayon::ThreadPoolBuilder::new()
@@ -939,6 +1033,7 @@ pub fn get_bam_depths_map(bam_file: &str, num_threads: usize) -> HashMap<Box<str
             .into_par_iter()
             .map_init(|| {
                     let mut reader = io::indexed_reader::Builder::default()
+                        .set_index(index.clone())
                         .build_from_path(bam_file)
                         .unwrap();
                     let header = reader.read_header().unwrap();
@@ -969,7 +1064,22 @@ pub fn get_bam_depths_map(bam_file: &str, num_threads: usize) -> HashMap<Box<str
     })
 }
 
-pub fn get_bam_strands_map(bam_file: &str, num_threads: usize) -> HashMap<Box<str>, Vec<(u32, u32)>> {
+
+pub fn get_bam_depths(bam_file: &str, bam_bai_file: &str, num_threads: usize) -> HashSet<u32> {
+    let depths_map: Arc<HashMap<Box<str>, Vec<u32>>> = Arc::new(get_bam_depths_map(bam_file, bam_bai_file, num_threads));
+    depths_map
+        .values()
+        .flat_map(|depths| depths.iter().copied())
+        .collect()
+}
+
+
+/// Get the greatest read depth of a BAM file, over every base of every contig, as
+/// `get_bam_depths_map` counts it, without holding the depths.
+pub fn get_bam_max_depth(bam_file: &str, bam_bai_file: &str, num_threads: usize) -> u32 {
+    check_bam_end_of_file(bam_file);
+    let index: Index = bai::fs::read(bam_bai_file)
+        .unwrap_or_else(|e| panic!("Could not read the index {bam_bai_file} of {bam_file}: {e}"));
     let chromosome_lengths: HashMap<Box<str>, u32> = get_chromosome_lengths(bam_file);
 
     let thread_pool = rayon::ThreadPoolBuilder::new()
@@ -980,74 +1090,194 @@ pub fn get_bam_strands_map(bam_file: &str, num_threads: usize) -> HashMap<Box<st
     thread_pool.install(|| {
         chromosome_lengths
             .into_par_iter()
-            .map_init(
-                || {
+            .map_init(|| {
                     let mut reader = io::indexed_reader::Builder::default()
+                        .set_index(index.clone())
                         .build_from_path(bam_file)
                         .unwrap();
                     let header = reader.read_header().unwrap();
                     (reader, header)
-                }, |(reader, header), (chromosome, length)| {
-                    let start: usize = 1;
-                    let end: usize = length as usize;
-
-                    let region: Region = format!("{chromosome}:{start}-{end}").parse().unwrap();
-
-                    let n: usize = end - start + 1;
-                    let mut strand_counts: Vec<(u32, u32)> = vec![(0, 0); n];
-
-                    let mut query = reader.query(header, &region).unwrap();
-
-                    while let Some(result) = query.next() {
-                        let record = result.unwrap();
-
-                        let flags = record.flags().unwrap();
-                        if flags.is_unmapped() || flags.is_secondary() || flags.is_supplementary() {
-                            continue;
-                        }
-
-                        let is_reverse: bool = flags.is_reverse_complemented();
-
-                        let mut ref_pos: usize = record.alignment_start().unwrap().unwrap().get();
-
-                        for op in record.cigar().iter() {
-                            let op = op.unwrap();
-                            let kind = op.kind();
-                            let oplen = op.len();
-
-                            match kind {
-                                Kind::Match |
-                                Kind::SequenceMatch |
-                                Kind::SequenceMismatch |
-                                Kind::Deletion => {
-                                    for _ in 0..oplen {
-                                        if ref_pos >= start && ref_pos <= end {
-                                            let idx = ref_pos - start;
-                                            if is_reverse {
-                                                strand_counts[idx].1 += 1;
-                                            } else {
-                                                strand_counts[idx].0 += 1;
-                                            }
-                                        }
-                                        ref_pos += 1;
-                                    }
-                                }
-                                Kind::Skip => {
-                                    ref_pos += oplen;
-                                }
-                                Kind::Insertion | Kind::SoftClip | Kind::HardClip | Kind::Pad => {
-                                    // Do nothing
-                                }
-                            }
-                        }
-                    }
-
-                    (chromosome, strand_counts)
-                },
-            )
-            .collect()
+            }, |(reader, header), (chromosome, length)| {
+                let region: Region = format!("{chromosome}:1-{length}").parse().unwrap();
+                let query = reader.query(header, &region).unwrap();
+                Depth::new(header, query)
+                    .map(|result| result.unwrap().1 as u32)
+                    .max()
+                    .unwrap_or(0)
+            })
+            .max()
+            .unwrap_or(0)
     })
 }
+
+
+pub struct BAMReadDepths {
+    contig_lengths: HashMap<ReferenceChromosomeName, ReferenceChromosomeLength>,
+
+    /// HashMap<contig, HashMap<position, (depth, forward reads, reverse reads)>>
+    counts: HashMap<ReferenceChromosomeName, HashMap<ReferencePosition, (ReadDepth, ReadSupport, ReadSupport)>>
+}
+
+impl BAMReadDepths {
+    pub fn new(
+        bam_file: &str,
+        bai_file: &str,
+        positions: &HashMap<ReferenceChromosomeName, Vec<ReferencePosition>>,
+        max_merge_distance: u32
+    ) -> Self {
+        // Step 1. Open the BAM file and get contig lengths.
+        let mut reader = bam::io::reader::Builder::default()
+            .build_from_path(bam_file)
+            .unwrap_or_else(|e| panic!("Could not open {bam_file}: {e}"));
+        let header: Header = reader.read_header().unwrap_or_else(|e| panic!("Could not read the header of {bam_file}: {e}"));
+        let index: Index = bai::fs::read(bai_file).unwrap_or_else(|e| panic!("Could not read {bai_file}: {e}"));
+        let contig_lengths: HashMap<ReferenceChromosomeName, ReferenceChromosomeLength> = header
+            .reference_sequences()
+            .iter()
+            .map(|(name, reference_sequence)| (name.to_string().into_boxed_str(), reference_sequence.length().get() as u32))
+            .collect();
+
+        // Step 2. Initialize BAMReadDepths.
+        let mut read_depths: BAMReadDepths = Self {
+            contig_lengths,
+            counts: HashMap::new()
+        };
+
+        // Step 3. Get depth for each reference position.
+        for (contig, positions) in positions {
+            let mut positions: Vec<ReferencePosition> = positions
+                .iter()
+                .map(|&position| read_depths.clamp(contig, position))
+                .collect();
+            positions.sort_unstable();
+            positions.dedup();
+            for group in positions.chunk_by(|a, b| b - a < max_merge_distance) {
+                let (start, end): (u32, u32) = (group[0], *group.last().unwrap());
+                let region: Region = Region::new(
+                    &**contig,
+                    Position::new(start as usize).unwrap()..=Position::new(end as usize).unwrap()
+                );
+                let length: usize = (end - start + 1) as usize;
+                let mut depths: Vec<u32> = vec![0; length];
+                let mut strand_counts: Vec<(u32, u32)> = vec![(0, 0); length];
+                for result in reader.query(&header, &index, &region).unwrap() {
+                    let record: bam::Record = result.unwrap_or_else(|e| panic!("Could not read a record in {contig}:{start}-{end}: {e}"));
+                    BAMReadDepths::add_depths(&record, start as usize, &mut depths);
+                    BAMReadDepths::add_strand_counts(&record, start as usize, &mut strand_counts);
+                }
+                for &position in group {
+                    let offset: usize = (position - start) as usize;
+                    read_depths.insert(
+                        contig,
+                        position,
+                        depths[offset],
+                        strand_counts[offset].0,
+                        strand_counts[offset].1
+                    );
+                }
+            }
+        }
+        read_depths
+    }
+
+    pub fn get_depth(&self, contig: &str, position: ReferencePosition) -> ReadDepth {
+        self.get(&*contig, position).0
+    }
+
+    /// (forward reads, reverse reads)
+    pub fn get_strands(&self, contig: &str, position: ReferencePosition) -> (ReadSupport, ReadSupport) {
+        let (_, forward, reverse) = self.get(contig, position);
+        (forward, reverse)
+    }
+
+    pub fn insert(&mut self, contig: &str, position: u32, depth: u32, forward: u32, reverse: u32) {
+        self.counts.entry(contig.into()).or_default().insert(position, (depth, forward, reverse));
+    }
+
+    fn clamp(&self, contig: &str, position: u32) -> u32 {
+        let length: u32 = *self.contig_lengths
+            .get(contig)
+            .unwrap_or_else(|| panic!("ReadDepths has no contig {contig}."));
+        position.clamp(1, length)
+    }
+
+    fn get(&self, contig: &str, position: u32) -> (u32, u32, u32) {
+        let position: u32 = self.clamp(contig, position);
+        *self.counts
+            .get(contig)
+            .and_then(|counts| counts.get(&position))
+            .unwrap_or_else(|| panic!("ReadDepths holds no count at {contig}:{position}."))
+    }
+
+    fn add_depths<R: Record + ?Sized>(record: &R, start: usize, depths: &mut [u32]) {
+        let flags = record.flags().unwrap();
+        if flags.is_unmapped() || flags.is_secondary() || flags.is_qc_fail() || flags.is_duplicate() {
+            return;
+        }
+
+        let end: usize = start + depths.len() - 1;
+        let mut ref_pos: usize = record.alignment_start().unwrap().unwrap().get();
+
+        for op in record.cigar().iter() {
+            let op = op.unwrap();
+            match op.kind() {
+                Kind::Match | Kind::SequenceMatch | Kind::SequenceMismatch => {
+                    for _ in 0..op.len() {
+                        if ref_pos >= start && ref_pos <= end {
+                            depths[ref_pos - start] += 1;
+                        }
+                        ref_pos += 1;
+                    }
+                }
+                Kind::Deletion | Kind::Skip => ref_pos += op.len(),
+                Kind::Insertion | Kind::SoftClip | Kind::HardClip | Kind::Pad => {}
+            }
+        }
+    }
+
+    fn add_strand_counts<R: Record + ?Sized>(record: &R, start: usize, strand_counts: &mut [(u32, u32)]) {
+        let flags = record.flags().unwrap();
+        if flags.is_unmapped() || flags.is_secondary() || flags.is_qc_fail() || flags.is_duplicate() {
+            return;
+        }
+
+        let is_reverse: bool = flags.is_reverse_complemented();
+        let end: usize = start + strand_counts.len() - 1;
+
+        let mut ref_pos: usize = record.alignment_start().unwrap().unwrap().get();
+
+        for op in record.cigar().iter() {
+            let op = op.unwrap();
+            let kind = op.kind();
+            let oplen = op.len();
+
+            match kind {
+                Kind::Match |
+                Kind::SequenceMatch |
+                Kind::SequenceMismatch => {
+                    for _ in 0..oplen {
+                        if ref_pos >= start && ref_pos <= end {
+                            let idx = ref_pos - start;
+                            if is_reverse {
+                                strand_counts[idx].1 += 1;
+                            } else {
+                                strand_counts[idx].0 += 1;
+                            }
+                        }
+                        ref_pos += 1;
+                    }
+                }
+                Kind::Deletion | Kind::Skip => {
+                    ref_pos += oplen;
+                }
+                Kind::Insertion | Kind::SoftClip | Kind::HardClip | Kind::Pad => {
+                    // Do nothing
+                }
+            }
+        }
+    }
+}
+
 
 /// Retrieves the value of a specified BAM tag as a `String`.
 ///
@@ -1096,6 +1326,7 @@ pub fn get_tag_value(record: &bam::Record, tag: &str) -> Option<Box<str>> {
     }
 }
 
+
 /// Determines if a given BAM record has soft clipping in its CIGAR string.
 ///
 /// This function inspects the CIGAR string of a BAM record and checks if any of the operations
@@ -1110,6 +1341,7 @@ pub fn get_tag_value(record: &bam::Record, tag: &str) -> Option<Box<str>> {
 pub fn has_soft_clipping(record: &bam::Record) -> bool {
     record.cigar().iter().any(|op| matches!(op.unwrap().kind(), Kind::SoftClip))
 }
+
 
 /// Determines if a BAM record contains splicing.
 ///
@@ -1126,6 +1358,7 @@ pub fn has_soft_clipping(record: &bam::Record) -> bool {
 pub fn has_splicing(record: &bam::Record) -> bool {
     record.cigar().iter().any(|op| matches!(op.unwrap().kind(), Kind::Skip))
 }
+
 
 /// Checks if a BAM record contains a specific tag.
 ///
@@ -1156,10 +1389,13 @@ pub fn has_tag(record: &bam::Record, tag: &str) -> bool {
     }
 }
 
+
 pub fn index_bam_records(
     bam_file: &str,
+    skip_unmapped: bool,
     num_threads: usize
 ) -> (HashMap<usize, Vec<VirtualPosition>>, BiMap<Box<str>, usize>) {
+    check_bam_end_of_file(bam_file);
     let file: File = File::open(bam_file).unwrap();
     let workers = NonZeroUsize::new(num_threads).unwrap();
     let bgzf_reader = bgzf::io::MultithreadedReader::with_worker_count(workers, file);
@@ -1169,6 +1405,8 @@ pub fn index_bam_records(
     let mut record_positions_map: HashMap<usize, Vec<VirtualPosition>> = HashMap::new();
     let mut read_names_map: BiMap<Box<str>, usize> = BiMap::new();
     let mut read_id: usize = 1;
+    // Indexed by read ID (IDs start at 1): whether the read has a record that is not supplementary.
+    let mut has_primary_record: Vec<bool> = vec![false];
 
     let mut record: bam::Record = bam::Record::default();
 
@@ -1179,6 +1417,10 @@ pub fn index_bam_records(
             // End of file
             break;
         }
+        let flags: Flags = record.flags();
+        if (skip_unmapped && flags.is_unmapped()) || flags.is_secondary() {
+            continue;
+        }
         if let Some(name) = record.name() {
             if let Ok(name_str) = std::str::from_utf8(name.as_bytes()) {
                 let curr_read_name: Box<str> = name_str.into();
@@ -1187,11 +1429,13 @@ pub fn index_bam_records(
                     None => {
                         let curr_read_id: usize = read_id;
                         read_names_map.insert(curr_read_name.clone(), curr_read_id);
+                        has_primary_record.push(false);
                         read_id += 1;
                         curr_read_id
                     }
                 };
                 record_positions_map.entry(curr_read_id).or_default().push(vp);
+                has_primary_record[curr_read_id] |= !flags.is_supplementary();
             } else {
                 // If not valid UTF-8, skip
                 continue;
@@ -1199,8 +1443,23 @@ pub fn index_bam_records(
         }
     }
 
+    // A read whose records in the file are all supplementary (its primary record lies outside a
+    // BAM cut to a region) is left out: the primary record holds the read as sequenced, which
+    // every model of a read starts from. The other reads keep their IDs.
+    let num_reads: usize = read_names_map.len();
+    record_positions_map.retain(|read_id, _| has_primary_record[*read_id]);
+    read_names_map.retain(|_, read_id| has_primary_record[*read_id]);
+    if read_names_map.len() < num_reads {
+        log_info!(
+            "Left out {} read(s) of {} with no primary record (supplementary records only).",
+            num_reads - read_names_map.len(),
+            bam_file
+        );
+    }
+
     (record_positions_map, read_names_map)
 }
+
 
 pub fn split_regions(
     regions: &Vec<(&str, u32, u32)>,
@@ -1235,6 +1494,7 @@ pub fn split_regions(
     out
 }
 
+
 /// Converts a `Kind` enum variant to its corresponding single character representation.
 ///
 /// The `Kind` enum represents different types of operations or alignment
@@ -1268,6 +1528,7 @@ pub fn kind_to_char(kind: Kind) -> char {
         Kind::SequenceMismatch => 'X'
     }
 }
+
 
 /// Determines if a BAM record is aligned to the reverse complement strand.
 ///

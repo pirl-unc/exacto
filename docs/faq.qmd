@@ -32,8 +32,11 @@ function faqCollapseAll() {
 ::: {.callout-note collapse="true" icon="false"}
 ## For `integrate-vars` can I supply a DNA variant callset from another method?
 
-Yes, but the variant callset format must be in the Occam's Grammar format (TSV). You can do this using
-[VSTOL](https://github.com/pirl-unc/vstol).
+Yes. `--dna-variants-tsv-file` takes either a `call-somatic-dna-vars` table or a TSV in the variant
+grammar with the columns `origin`, `variant_id`, `chromosome_1`, `position_1`, `strand_1`,
+`operation_1`, `chromosome_2`, `position_2`, `strand_2`, `operation_2` and `sequence`. Columns are
+matched by name. [VSTOL](https://github.com/pirl-unc/vstol) converts the outputs of other variant
+callers to this grammar.
 :::
 
 ::: {.callout-note collapse="true" icon="false"}

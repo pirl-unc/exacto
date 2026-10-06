@@ -17,6 +17,7 @@ use std::sync::Arc;
 use crate::common::fasta::*;
 
 
+/// The sequences of a FASTA file, held in memory, in uppercase as `get_fasta_sequence` returns them.
 pub struct FastaMap {
     contigs: HashMap<Box<str>, Arc<[u8]>>
 }
@@ -40,6 +41,14 @@ impl FastaMap {
         self.contigs.get(contig).unwrap().len()
     }
 
+    pub fn get_lengths(&self) -> HashMap<Box<str>, usize> {
+        let mut lengths: HashMap<Box<str>, usize> = HashMap::new();
+        for contig in self.contigs.keys() {
+            lengths.insert(contig.clone(), self.contigs[contig].len());
+        }
+        lengths
+    }
+
     /// Get a 1-based inclusive slice from a contig as &str.
     /// Example: slice_str("chr1", 1, 3) -> bases 1..3 (inclusive).
     pub fn get_sequence(&self, contig: &str, start_1b: usize, end_1b: usize) -> &str {
@@ -54,5 +63,15 @@ impl FastaMap {
         }
 
         std::str::from_utf8(&seq[start..end]).unwrap()
+    }
+
+    pub fn try_get_sequence(&self, contig: &str, start_1b: usize, end_1b: usize) -> Option<&str> {
+        let seq = self.contigs.get(contig)?;
+        let start: usize = start_1b.max(1) - 1;
+        let end: usize = end_1b.min(seq.len());
+        if start >= end {
+            return Some("");
+        }
+        std::str::from_utf8(&seq[start..end]).ok()
     }
 }

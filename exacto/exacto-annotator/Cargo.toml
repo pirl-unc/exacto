@@ -11,6 +11,7 @@ exacto-core = { workspace = true }
 bio = { workspace = true }
 flate2 = { workspace = true }
 indicatif = { workspace = true }
+log = { workspace = true }
 noodles-bgzf = { workspace = true }
 noodles-fasta = { workspace = true }
 once_cell = { workspace = true }

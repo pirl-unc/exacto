@@ -3,22 +3,22 @@ title: "Variation Graph Construction"
 description: "Build individualized genome and transcriptome variation graphs from Exacto variant calls."
 ---
 
-This pipeline produces individualized genome and transcriptome variation graphs that encode an individual's variants
-alongside the reference sequence. These graphs are useful for downstream variant-aware analyses that benefit from a
-graph reference instead of a linear one.
+This pipeline produces individualized genome and transcriptome variation graphs that encode an
+individual's variants alongside the reference sequence. These graphs are useful for downstream
+variant-aware analyses that benefit from a graph reference instead of a linear one.
 
 ## Workflow
 
 ```{mermaid}
 %%{init: {'securityLevel': 'loose'}}%%
 flowchart LR
-    INTV[/"<span style='white-space:nowrap;color:#414a4c'>DNA variants TSV</span>"/] --> BGV(build‑genome‑var‑graph)
+    DNAV[/"<span style='white-space:nowrap;color:#414a4c'>DNA variants TSV</span>"/] --> BGV(build‑genome‑var‑graph)
     REFG[("<span style='white-space:nowrap;color:#414a4c'>Reference genome FASTA</span>")] --> BGV
-    BGV --> GG[/"<span style='white-space:nowrap;color:#414a4c'>Genome variation graph</span>"/]
+    BGV --> GG[/"<span style='white-space:nowrap;color:#414a4c'>Genome variation graph FASTA</span>"/]
 
-    PRIMS[/"<span style='white-space:nowrap;color:#414a4c'>Transcript structures TSV</span>"/] --> BTV(build‑transcriptome‑var‑graph)
-    REFT[("<span style='white-space:nowrap;color:#414a4c'>Reference transcriptome FASTA</span>")] --> BTV
-    BTV --> TG[/"<span style='white-space:nowrap;color:#414a4c'>Transcriptome variation graph</span>"/]
+    TXS[/"<span style='white-space:nowrap;color:#414a4c'>Transcript model alignments TSV</span>"/] --> BTV(build‑transcriptome‑var‑graph)
+    REFG --> BTV
+    BTV --> TG[/"<span style='white-space:nowrap;color:#414a4c'>Transcriptome variation graph FASTA</span>"/]
 
     click BGV href "../cli/build-genome-var-graph.html" "View build-genome-var-graph docs" _self
     click BTV href "../cli/build-transcriptome-var-graph.html" "View build-transcriptome-var-graph docs" _self
@@ -27,28 +27,33 @@ flowchart LR
     class BGV,BTV linked
 ```
 
-DNA variants TSV can be obtained by running [`call-germline-dna-vars`](../cli/call-germline-dna-vars.qmd) or [`call-somatic-dna-vars`](../cli/call-somatic-dna-vars.qmd).
-
-Transcript structures TSV can be obtained by running [`call-rna-vars`](../cli/call-rna-vars.qmd).
+The DNA variants TSV is the output of [`call-germline-dna-vars`](../cli/call-germline-dna-vars.qmd)
+or [`call-somatic-dna-vars`](../cli/call-somatic-dna-vars.qmd). The transcript model alignments TSV
+is the `*_exacto_assembled_transcript_model_alignments.tsv` that
+[`call-rna-transcript-vars`](../cli/call-rna-transcript-vars.qmd) writes (see
+[Variant-aware Transcriptome Assembly](variant-aware-transcriptome-assembly.qmd)).
 
 ## Genome variation graph
 
-Add germline and/or somatic DNA variants to a reference genome to produce a individualized genome graph:
+Add germline and/or somatic DNA variants to the reference genome. `--only-variant-sequences yes`
+writes only the variant sequences, without the reference contigs:
 
 ```bash
 exacto build-genome-var-graph \
-    --variants-tsv-file dna_variants.tsv \
+    --variants-tsv-file tumor_somatic_dna_variants.tsv \
     --fasta-file reference_genome.fasta \
-    --output-dir genome_var_graph_outputs/
+    --output-fasta-file tumor_genome_var_graph.fasta \
+    --sequence-prefix tumor
 ```
 
 ## Transcriptome variation graph
 
-Add RNA variants to a reference transcriptome to produce a individualized transcriptome graph:
+Build one sequence per assembled transcript from its structure against the reference genome. Each
+record is named by its `assembled_transcript_name`:
 
 ```bash
 exacto build-transcriptome-var-graph \
-    --transcript-structures-tsv-file transcript_structures.tsv \
-    --fasta-file reference_transcriptome.fasta \
-    --output-fasta-file transcriptome_var_graph.fasta
+    --transcript-structures-tsv-file rna_variants/tumor_exacto_assembled_transcript_model_alignments.tsv \
+    --fasta-file reference_genome.fasta \
+    --output-fasta-file tumor_transcriptome_var_graph.fasta
 ```

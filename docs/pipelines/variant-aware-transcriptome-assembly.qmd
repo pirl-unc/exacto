@@ -1,0 +1,265 @@
+---
+title: "Variant-aware Transcriptome Assembly"
+description: "Cluster long RNA reads into transcripts, correct sequencing errors, re-cluster the corrected reads, build one consensus sequence per transcript, restore degraded ends, and call RNA variants."
+---
+
+This pipeline assembles full-length transcripts directly from long-read RNA sequencing data.
+Reads are clustered into their transcripts of origin based on their splice junctions and variants,
+corrected against their own clusters, re-clustered, collapsed into one consensus sequence per transcript,
+and stitched to the reference transcripts where their ends are degraded. The assembly is variant-aware.
+Each cluster's variant calls decide which variants correction keeps and removes.
+RNA variants and transcript structures are then identified from the assembled transcripts.
+
+The assembly pipeline relies two-pass clustering because sequencing errors near splice junctions can
+shift the reported junction coordinates and fork one transcript into near-duplicate clusters.
+Pass 1 clusters the raw reads and uses each cluster's own variant calls to remove those errors; pass 2 re-clusters
+the corrected reads so the forks merge and a consensus is built once per transcript.
+
+External tools you'll need alongside exacto:
+
+- [`Minimap2`](https://github.com/lh3/minimap2) — long-read RNA alignment
+- [`Samtools`](https://www.htslib.org/) — BAM sorting and indexing
+
+## Workflow
+
+```{mermaid}
+%%{init: {'securityLevel': 'loose', 'flowchart': {'rankSpacing': 20, 'nodeSpacing': 40, 'subGraphTitleMargin': {'top': 5, 'bottom': 20}}}}%%
+flowchart TD
+    subgraph PASS1["<span style='white-space:nowrap;color:#414a4c'>Pass 1 - cluster and correct</span>"]
+        direction LR
+        RAWBAM[/"<span style='white-space:nowrap;color:#414a4c'>RNA reads BAM</span>"/] --> CL1(cluster-rna-reads)
+        CL1 --> CORR(correct-rna-reads)
+        CORR --> CORRFQ[/"<span style='white-space:nowrap;color:#414a4c'>Corrected reads FASTQ</span>"/]
+    end
+
+    subgraph PASS2["<span style='white-space:nowrap;color:#414a4c'>Pass 2 - recluster and consensus</span>"]
+        direction LR
+        CORRBAM[/"<span style='white-space:nowrap;color:#414a4c'>Corrected reads BAM</span>"/] --> CL2(cluster-rna-reads)
+        CL2 --> CONS(determine-rna-consensus)
+        CONS --> CONSFA[/"<span style='white-space:nowrap;color:#414a4c'>Consensus FASTA</span>"/]
+    end
+
+    subgraph ENDS["<span style='white-space:nowrap;color:#414a4c'>Ends and variant calling</span>"]
+        direction LR
+        CONSBAM[/"<span style='white-space:nowrap;color:#414a4c'>Consensus BAM</span>"/] --> ST(stitch-reference-transcripts)
+        ST --> STBAM[/"<span style='white-space:nowrap;color:#414a4c'>Stitched transcripts BAM</span>"/]
+        STBAM --> CRV(call-rna-transcript-vars)
+        CRV --> VAROUT[/"<span style='white-space:nowrap;color:#414a4c'>RNA variants + transcript structures</span>"/]
+    end
+
+    CORRFQ --> CORRBAM
+    CL1 -. allowed variants .-> CL2
+    CONSFA --> CONSBAM
+
+    style PASS1 fill:#ffffff,stroke:#bbbbbb
+    style PASS2 fill:#ffffff,stroke:#bbbbbb
+    style ENDS fill:#ffffff,stroke:#bbbbbb
+
+    click CL1 href "../cli/cluster-rna-reads.html" "View cluster-rna-reads docs" _self
+    click CORR href "../cli/correct-rna-reads.html" "View correct-rna-reads docs" _self
+    click CL2 href "../cli/cluster-rna-reads.html" "View cluster-rna-reads docs" _self
+    click CONS href "../cli/determine-rna-consensus.html" "View determine-rna-consensus docs" _self
+    click ST href "../cli/stitch-reference-transcripts.html" "View stitch-reference-transcripts docs" _self
+    click CRV href "../cli/call-rna-transcript-vars.html" "View call-rna-transcript-vars docs" _self
+
+    classDef linked text-decoration:underline;
+    class CL1,CORR,CL2,CONS,ST,CRV linked
+```
+
+Every minimap2 step below uses the same options. `--cs` is required: Exacto reads variants
+from the `cs` tag.
+
+## Step 1. Align the RNA reads
+
+```bash
+minimap2 -ax splice:hq -uf --cs --eqx -Y -L --secondary=no --splice-flank=no \
+    reference_genome.fasta tumor_rna.fastq.gz \
+    | samtools sort -o tumor_rna.sorted.bam
+samtools index tumor_rna.sorted.bam
+```
+
+## Step 2. Cluster the reads (pass 1)
+
+Group reads by their transcript of origin and call variants within each cluster. Use
+`--preset pb` for PacBio HiFi reads or `--preset ont` for Oxford Nanopore reads.
+`cluster-rna-reads` removes unspliced RNAs first, as
+[`remove-unspliced-rnas`](../cli/remove-unspliced-rnas.qmd) does
+(`--remove-unspliced-rnas no` turns this off when the input is already filtered):
+
+```bash
+exacto cluster-rna-reads \
+    --bam-file tumor_rna.sorted.bam \
+    --bai-file tumor_rna.sorted.bam.bai \
+    --reference-genome-fasta-file reference_genome.fasta \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v45 \
+    --output-dir pass1/ \
+    --output-prefix tumor_pass1 \
+    --preset pb
+```
+
+::: {.callout-note}
+Every output file is named only from `--output-dir` and `--output-prefix`. Give the two
+`cluster-rna-reads` runs distinct prefixes (`tumor_pass1` and `tumor_pass2` here), or the second
+run overwrites the first.
+:::
+
+## Step 3. Correct sequencing errors
+
+Correct each read against its pass-1 cluster. Each read is rewritten to the reference plus its
+cluster's called alleles: a base, insertion or deletion that disagrees with them is corrected, and
+at a called variant the read takes the called allele. Uncalled insertions and deletions longer than
+`--max-correctable-event-len` and uncalled terminal soft clips are kept as sequenced; read ends are
+trimmed to annotated exons only with `--trim-transcript-ends`. The corrected reads are written to
+`pass1/tumor_pass1_exacto_rna_corrected_reads.fastq.gz` (BGZF, with per-base qualities and the
+original read names):
+
+```bash
+exacto correct-rna-reads \
+    --bam-file tumor_rna.sorted.bam \
+    --clusters-tsv-file pass1/tumor_pass1_exacto_rna_clusters.tsv \
+    --cluster-reference-transcripts-tsv-file pass1/tumor_pass1_exacto_rna_clusters_reference_transcripts.tsv \
+    --cluster-splice-junctions-tsv-file pass1/tumor_pass1_exacto_rna_clusters_splice_junctions.tsv \
+    --cluster-variants-tsv-file pass1/tumor_pass1_exacto_rna_clusters_variants_passed.tsv \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v45 \
+    --output-dir pass1/ \
+    --output-prefix tumor_pass1
+```
+
+## Step 4. Align the corrected reads
+
+```bash
+minimap2 -ax splice:hq -uf --cs --eqx -Y -L --secondary=no --splice-flank=no \
+    reference_genome.fasta pass1/tumor_pass1_exacto_rna_corrected_reads.fastq.gz \
+    | samtools sort -o pass1/tumor_pass1_exacto_rna_corrected.sorted.bam
+samtools index pass1/tumor_pass1_exacto_rna_corrected.sorted.bam
+```
+
+## Step 5. Re-cluster the corrected reads (pass 2)
+
+Clusters that pass 1 forked on junction-shifting errors now merge into one cluster per transcript.
+Use `--preset corrected`, whose error rates are those of exacto-corrected reads, and pass the
+pass-1 variant calls as the allow list: correction has already removed every small variant pass 1
+did not call, so a pass-2 call that matches no pass-1 call fails as `not_in_allowed_list`:
+
+```bash
+exacto cluster-rna-reads \
+    --bam-file pass1/tumor_pass1_exacto_rna_corrected.sorted.bam \
+    --bai-file pass1/tumor_pass1_exacto_rna_corrected.sorted.bam.bai \
+    --reference-genome-fasta-file reference_genome.fasta \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v45 \
+    --output-dir pass2/ \
+    --output-prefix tumor_pass2 \
+    --preset corrected \
+    --allowed-variants-tsv-file pass1/tumor_pass1_exacto_rna_clusters_variants_passed.tsv
+```
+
+## Step 6. Build one consensus sequence per transcript
+
+`determine-rna-consensus` finds each pass-2 cluster's reads by name in the FASTQ, so pair the
+pass-2 clusters TSV with the corrected FASTQ those reads came from:
+
+```bash
+exacto determine-rna-consensus \
+    --tsv-file pass2/tumor_pass2_exacto_rna_clusters.tsv \
+    --fastq-file pass1/tumor_pass1_exacto_rna_corrected_reads.fastq.gz \
+    --output-dir pass2/ \
+    --output-prefix tumor_pass2
+```
+
+## Step 7. Align the consensus sequences
+
+```bash
+minimap2 -ax splice:hq -uf --cs --eqx -Y -L --secondary=no --splice-flank=no \
+    reference_genome.fasta pass2/tumor_pass2_exacto_rna_consensus.fasta \
+    | samtools sort -o pass2/tumor_pass2_exacto_rna_consensus.sorted.bam
+samtools index pass2/tumor_pass2_exacto_rna_consensus.sorted.bam
+```
+
+## Step 8. Restore degraded transcript ends
+
+PolyA-capture cDNA loses 5' sequence to degradation, and 3' ends are often the product of internal
+priming; both truncate open reading frames. `stitch-reference-transcripts` stitches the sequence of
+the best-matching reference transcript onto each degraded end and records every stitch in its TSV.
+An end that no reference transcript fits is left as it is.
+
+```bash
+exacto stitch-reference-transcripts \
+    --bam-file pass2/tumor_pass2_exacto_rna_consensus.sorted.bam \
+    --reference-genome-fasta-file reference_genome.fasta \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v45 \
+    --output-dir stitched/ \
+    --output-prefix tumor
+```
+
+## Step 9. Align the stitched transcripts
+
+The stitched sequences no longer match the coordinates of the consensus alignment, so they are
+aligned again before variant calling:
+
+```bash
+minimap2 -ax splice:hq -uf --cs --eqx -Y -L --secondary=no --splice-flank=no \
+    reference_genome.fasta stitched/tumor_exacto_stitched_transcripts.fasta \
+    | samtools sort -o stitched/tumor_exacto_stitched_transcripts.sorted.bam
+samtools index stitched/tumor_exacto_stitched_transcripts.sorted.bam
+```
+
+## Step 10. Call RNA variants
+
+Call RNA variants and transcript structures, and predict nonsense-mediated decay, for each
+assembled transcript. `--dna-variants-tsv-files` (optional) marks each RNA variant that a DNA
+variant call explains with that call's origin (germline or somatic):
+
+```bash
+exacto call-rna-transcript-vars \
+    --bam-file stitched/tumor_exacto_stitched_transcripts.sorted.bam \
+    --reference-genome-fasta-file reference_genome.fasta \
+    --reference-gene-annotation-file gencode.gtf.gz \
+    --reference-gene-annotation-source gencode \
+    --reference-gene-annotation-assembly hg38 \
+    --reference-gene-annotation-version v45 \
+    --output-dir rna_variants/ \
+    --output-prefix tumor
+```
+
+### Optional: quantify transcript abundances
+
+```bash
+exacto quantify-rna-abundances \
+    --clusters-tsv-file pass2/tumor_pass2_exacto_rna_clusters.tsv \
+    --cluster-reference-matches-tsv-file pass2/tumor_pass2_exacto_rna_clusters_reference_transcripts.tsv \
+    --cluster-splice-junctions-tsv-file pass2/tumor_pass2_exacto_rna_clusters_splice_junctions.tsv \
+    --cluster-variants-tsv-file pass2/tumor_pass2_exacto_rna_clusters_variants_passed.tsv \
+    --consensus-rna-reference-matches-tsv-file rna_variants/tumor_exacto_assembled_transcript_reference_transcript_matches.tsv \
+    --output-dir abundances/ \
+    --output-prefix tumor
+```
+
+## Outputs
+
+| File | Produced by | Description |
+|:-----|:------------|:------------|
+| `pass1/tumor_pass1_exacto_rna_corrected_reads.fastq.gz` | `correct-rna-reads` | Error-corrected reads with their original names and per-base qualities (BGZF) |
+| `pass2/tumor_pass2_exacto_rna_clusters.tsv` | `cluster-rna-reads` | Read-to-cluster assignments of the corrected reads |
+| `pass2/tumor_pass2_exacto_rna_clusters_variants_passed.tsv` | `cluster-rna-reads` | Variants called within the pass-2 clusters |
+| `pass2/tumor_pass2_exacto_rna_consensus.tsv` | `determine-rna-consensus` | One consensus record per cluster, with its read names |
+| `pass2/tumor_pass2_exacto_rna_consensus.fasta` | `determine-rna-consensus` | One consensus sequence per cluster, named by cluster ID |
+| `stitched/tumor_exacto_stitched_transcripts.tsv` | `stitch-reference-transcripts` | Stitched sequences and the stitch made at each end |
+| `stitched/tumor_exacto_stitched_transcripts.fasta` | `stitch-reference-transcripts` | Stitched transcript sequences |
+| `rna_variants/tumor_exacto_assembled_transcript_variants.tsv` | `call-rna-transcript-vars` | RNA variants per transcript |
+| `rna_variants/tumor_exacto_assembled_transcript_model_alignments.tsv` | `call-rna-transcript-vars` | Each transcript's structure against the genome |
+| `rna_variants/tumor_exacto_assembled_transcript_nmd_predictions.tsv` | `call-rna-transcript-vars` | Nonsense-mediated decay prediction per open reading frame |
+| `abundances/tumor_exacto_rna_abundances.tsv` | `quantify-rna-abundances` | Abundance per cluster |
+
+: {.striped .hover}

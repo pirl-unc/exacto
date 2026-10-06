@@ -1,0 +1,15 @@
+cluster_id	chromosome_1	position_1	strand_1	operation_type_1	chromosome_2	position_2	strand_2	operation_type_2	sequence	variant_type	failure_reason	alt_count	reference_count	coverage	p_value	p_value_cutoff	expected_error_rate	slippage_repeat_length	junction_homology
+1	chr17	7668425	-	D	chr17	7668426	-	U	CTGC	INS	not_in_allowed_list	1	332	333					
+2	chr17	7668428	-	D	chr17	7668429	-	U	GCTGCCA	INS	not_in_allowed_list	14	335	349					
+2	chr17	7668432	-	D	chr17	7668433	-	U	CTTT	INS	not_in_allowed_list	1	349	350					
+1	chr17	7673593	-	D	chr17	7673594	-	U	CAACAAC	INS	not_in_allowed_list	1	345	346					
+1	chr17	7673595	-	D	chr17	7673596	-	U	CAACAAC	INS	not_in_allowed_list	1	344	345					
+2	chr17	7674965	-	D	chr17	7674966	-	U	GATAGCGATGGTCTGGC	INS	not_in_allowed_list	3	317	320					
+1	chr17	7675176	-	D	chr17	7675177	-	U	GCAGCCTGTGCGC	INS	not_in_allowed_list	1	302	303					
+1	chr17	7676063	-	D	chr17	7676064	-	U	AGAAAAC	INS	not_in_allowed_list	2	290	292					
+2	chr17	7676520	-	D	chr17	7676521	-	U	T	INS	not_in_allowed_list	1	261	262					
+1	chr17	7676544	-	D	chr17	7676545	-	U	AAGG	INS	not_in_allowed_list	1	260	261					
+2	chr17	7687418	-	D	chr17	7687419	-	U	TTCGGGAGGCT	INS	not_in_allowed_list	1	222	223					
+1	chr17	7687424	-	D	chr17	7687425	-	U	TTCG	INS	not_in_allowed_list	1	220	221					
+1	chr17	7687486	-	D	chr17	7687487	-	U	AAAAGTCT	INS	not_in_allowed_list	1	153	154					
+1	chr17	7687487	-	D	chr17	7687488	-	U	CTCA	INS	not_in_allowed_list	4	149	153					

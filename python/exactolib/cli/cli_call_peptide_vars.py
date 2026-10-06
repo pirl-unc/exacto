@@ -37,18 +37,18 @@ def add_cli_call_peptide_vars_arg_parser(sub_parsers) -> argparse._SubParsersAct
     """
     parser = sub_parsers.add_parser(
         'call-peptide-vars',
-        help='Call peptide variants from primary structures.'
+        help='Call peptide variants from proteoforms.'
     )
     parser._action_groups.pop()
 
     # Required arguments
     parser_required = parser.add_argument_group('required arguments')
     parser_required.add_argument(
-        "--primary-structures-tsv-file",
-        dest="primary_structures_tsv_file",
+        "--proteoforms-tsv-file",
+        dest="proteoforms_tsv_file",
         type=str,
         required=True,
-        help="Input primary structures TSV file."
+        help="Input proteoforms TSV file (output from exacto translate-transcripts)."
     )
     parser_required.add_argument(
         "--reference-fasta-file",
@@ -112,20 +112,20 @@ def run_cli_call_peptide_vars_from_parsed_args(args) -> None:
 
     Parameters:
         args    :   An instance of argparse.ArgumentParser with the following variables:
-                    primary_structures_tsv_file
+                    proteoforms_tsv_file
                     reference_fasta_file
                     output_tsv_file
                     min_k
                     max_k
                     num_threads
     """
-    logger.info("Primary structure TSV: %s" % args.primary_structures_tsv_file)
+    logger.info("Proteoforms TSV: %s" % args.proteoforms_tsv_file)
     logger.info("Reference proteome FASTA: %s" % args.reference_fasta_file)
     logger.info("Peptide length range: [%i, %i]" % (args.min_k, args.max_k))
     logger.info("Number of threads: %i" % args.num_threads)
 
     df = identify_peptide_variants(
-        primary_structures_tsv_file=args.primary_structures_tsv_file,
+        proteoforms_tsv_file=args.proteoforms_tsv_file,
         reference_proteome_fasta_file=args.reference_fasta_file,
         min_k=args.min_k,
         max_k=args.max_k,
@@ -134,11 +134,17 @@ def run_cli_call_peptide_vars_from_parsed_args(args) -> None:
 
     df.to_csv(args.output_tsv_file, sep='\t', index=False)
 
+    # One FASTA record per unique mutant peptide. Header lists every proteoform
+    # the k-mer was observed in.
     with open(args.output_fasta_file, 'w') as f:
         for mutant_peptide_id, group in df.groupby('mutant_peptide_id'):
             sequence = group.iloc[0]['mutant_peptide_sequence']
-            peptide_ids = ','.join(str(pid) for pid in sorted(group['peptide_id'].unique()))
-            f.write('>mutant_peptide_id=%s peptide_ids=%s\n%s\n' % (mutant_peptide_id, peptide_ids, sequence))
+            proteoform_ids = ','.join(
+                str(pid) for pid in sorted(group['proteoform_id'].unique())
+            )
+            f.write('>mutant_peptide_id=%s proteoform_ids=%s\n%s\n' % (
+                mutant_peptide_id, proteoform_ids, sequence
+            ))
 
     logger.info("Wrote %i mutant peptide(s) to %s" % (len(df), args.output_tsv_file))
     logger.info("Wrote %i unique sequence(s) to %s" % (df['mutant_peptide_id'].nunique(), args.output_fasta_file))

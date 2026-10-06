@@ -1,0 +1,3 @@
+cluster_id	gene_annotation	reference_gene_id	transcript_annotation	reference_transcript_id	allele	num_reads	cpm
+2	reference	ENSG00000141510.18	reference	ENST00000269305.9	reference	174	504918.03278226056
+1	reference	ENSG00000141510.18	reference	ENST00000269305.9	variant	171	495081.96721773944

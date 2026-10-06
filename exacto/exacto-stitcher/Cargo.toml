@@ -1,0 +1,23 @@
+[package]
+name = "exacto-stitcher"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bimap = { workspace = true }
+csv = { workspace = true }
+exacto-caller = { workspace = true }
+exacto-consensus = { workspace = true }
+exacto-core = { workspace = true }
+log = { workspace = true }
+noodles-bam = { workspace = true }
+noodles-bgzf = { workspace = true }
+polars = { workspace = true }
+rayon = { workspace = true }
+serde = { workspace = true }
+
+[dev-dependencies]
+noodles-sam = { workspace = true }
+tempfile = { workspace = true }

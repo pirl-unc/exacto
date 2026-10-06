@@ -1,0 +1,32 @@
+##fileformat=VCFv4.2
+##fileDate=2026-10-05T17:44:15.704Z
+##source=pbsv 2.9.0 (commit v2.9.0-2-gce1559a)
+##PG="pbsv call --num-threads 2 hg38_chr17-18.fa scga-mini-dna-015-tumor_pbsv.svsig.gz scga-mini-dna-015-tumor_pbsv.vcf"
+##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
+##INFO=<ID=END,Number=1,Type=Integer,Description="End position of the structural variant described in this record">
+##INFO=<ID=SVLEN,Number=.,Type=Integer,Description="Difference in length between REF and ALT alleles">
+##INFO=<ID=SVANN,Number=.,Type=String,Description="Repeat annotation of structural variant">
+##INFO=<ID=CIPOS,Number=2,Type=Integer,Description="Confidence interval around POS for imprecise variants">
+##INFO=<ID=MATEID,Number=.,Type=String,Description="ID of mate breakends">
+##INFO=<ID=MATEDIST,Number=1,Type=Integer,Description="Distance to the mate breakend for mates on the same contig">
+##INFO=<ID=IMPRECISE,Number=0,Type=Flag,Description="Imprecise structural variation">
+##ALT=<ID=INV,Description="Inversion">
+##ALT=<ID=DUP,Description="Duplication">
+##FILTER=<ID=Decoy,Description="Variant involves a decoy sequence">
+##FILTER=<ID=NearReferenceGap,Description="Variant is near (< 1000 bp) from a gap (run of >= 50 Ns) in the reference assembly">
+##FILTER=<ID=NearContigEnd,Description="Variant is near (< 1000 bp) from the end of a contig">
+##FILTER=<ID=InsufficientStrandEvidence,Description="Variant has insufficient number of reads per strand (< 1).">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Read depth per allele">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth at this position for this sample">
+##FORMAT=<ID=SAC,Number=.,Type=Integer,Description="Number of reads on the forward and reverse strand supporting each allele including reference">
+##FORMAT=<ID=CN,Number=1,Type=Integer,Description="Copy number genotype for imprecise events">
+##INFO=<ID=NotFullySpanned,Number=0,Type=Flag,Description="Duplication variant does not have any fully spanning reads">
+##reference=file://hg38_chr17-18.fa
+##contig=<ID=chr17,length=10000000>
+##contig=<ID=chr18,length=10000000>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	scga-mini-dna-015-tumor
+chr17	3491598	pbsv.BND.chr17:3491598-chr17:6085001	A	A[chr17:6085001[	.	PASS	SVTYPE=BND;CIPOS=-12,2;MATEID=pbsv.BND.chr17:6085001-chr17:3491598;MATEDIST=2593403	GT:AD:DP	0/1:39,42:81
+chr17	6085001	pbsv.BND.chr17:6085001-chr17:3491598	G	]chr17:3491598]G	.	PASS	SVTYPE=BND;CIPOS=0,17;MATEID=pbsv.BND.chr17:3491598-chr17:6085001;MATEDIST=2593403	GT:AD:DP	0/1:36,42:78
+chr17	6114999	pbsv.BND.chr17:6114999-chr17:7340400	T	T[chr17:7340400[	.	PASS	SVTYPE=BND;CIPOS=-8,1;MATEID=pbsv.BND.chr17:7340400-chr17:6114999;MATEDIST=1225401	GT:AD:DP	0/1:22,20:42
+chr17	7340400	pbsv.BND.chr17:7340400-chr17:6114999	C	]chr17:6114999]C	.	PASS	SVTYPE=BND;CIPOS=0,7;MATEID=pbsv.BND.chr17:6114999-chr17:7340400;MATEDIST=1225401	GT:AD:DP	0/1:26,20:46

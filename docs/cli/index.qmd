@@ -2,23 +2,50 @@
 title: "Commands"
 ---
 
-Alphabetical reference for every Exacto command line interface. For end-to-end
-walkthroughs that compose these into pipelines, see [Pipelines](../pipelines/index.qmd).
+Reference for every Exacto command. For end-to-end walkthroughs that compose these into pipelines,
+see [Pipelines](../pipelines/index.qmd). Every page is generated from the command's own `--help`,
+so its flags and defaults are the ones the installed version accepts.
 
-## Available Commands
+## Variant-aware transcriptome assembly
 
 | Command | Description |
 |:--------|:------------|
-| [`annotate-vars`](annotate-vars.qmd) | Annotate variants. |
-| [`build-genome-var-graph`](build-genome-var-graph.qmd) | Build a genome variation graph. |
-| [`build-transcriptome-var-graph`](build-transcriptome-var-graph.qmd) | Build a transcriptome variation graph. |
+| [`cluster-rna-reads`](cluster-rna-reads.qmd) | Cluster long RNA reads by transcript of origin and call variants within each cluster. |
+| [`correct-rna-reads`](correct-rna-reads.qmd) | Error-correct RNA reads against the cluster each was assigned to. |
+| [`determine-rna-consensus`](determine-rna-consensus.qmd) | Build one consensus sequence for each RNA read cluster. |
+| [`stitch-reference-transcripts`](stitch-reference-transcripts.qmd) | Restore degraded transcript ends from the best-matching reference transcripts. |
+| [`quantify-rna-abundances`](quantify-rna-abundances.qmd) | Estimate per-cluster and per-reference-transcript abundances. |
+| [`remove-unspliced-rnas`](remove-unspliced-rnas.qmd) | Remove unspliced RNAs from an RNA alignment. |
+
+: {.striped .hover}
+
+## Variant calling
+
+| Command | Description |
+|:--------|:------------|
 | [`call-germline-dna-vars`](call-germline-dna-vars.qmd) | Call germline DNA variants in a long-read DNA BAM file. |
-| [`call-peptide-vars`](call-peptide-vars.qmd) | Call peptide variants by comparing translated mutant proteoforms to a reference proteome. |
-| [`call-rna-vars`](call-rna-vars.qmd) | Call RNA variants in a long-read RNA assembly BAM file. |
-| [`call-somatic-dna-vars`](call-somatic-dna-vars.qmd) | Call somatic DNA variants in tumor and matched normal long-read DNA BAM files. |
-| [`integrate-vars`](integrate-vars.qmd) | Integrate DNA and RNA variants. |
-| [`remove-unspliced-rnas`](remove-unspliced-rnas.qmd) | Remove unspliced RNAs. |
-| [`translate-seqs`](translate-seqs.qmd) | Translate transcript sequences in a FASTA or FASTQ file to peptide sequences. |
-| [`translate-structs`](translate-structs.qmd) | Translate transcript structures to primary structures. |
+| [`call-somatic-dna-vars`](call-somatic-dna-vars.qmd) | Call somatic DNA variants in a case BAM file against one or more control BAM files. |
+| [`call-rna-transcript-vars`](call-rna-transcript-vars.qmd) | Call RNA variants, transcript structures and nonsense-mediated decay predictions for assembled transcripts. |
+| [`annotate-vars`](annotate-vars.qmd) | Annotate DNA or RNA variants with gene-level context. |
+| [`integrate-vars`](integrate-vars.qmd) | Link RNA variants to the DNA variants that explain them. |
+
+: {.striped .hover}
+
+## Translation and peptides
+
+| Command | Description |
+|:--------|:------------|
+| [`translate-transcripts`](translate-transcripts.qmd) | Translate assembled transcripts to proteoforms, with variant provenance per amino acid. |
+| [`translate-seqs`](translate-seqs.qmd) | Translate sequences in a FASTA/FASTQ file, or one sequence, to peptide sequences. |
+| [`call-peptide-vars`](call-peptide-vars.qmd) | Call mutant peptides by comparing proteoforms with a reference proteome. |
+
+: {.striped .hover}
+
+## Variation graphs
+
+| Command | Description |
+|:--------|:------------|
+| [`build-genome-var-graph`](build-genome-var-graph.qmd) | Build a genome variation graph from DNA variant calls. |
+| [`build-transcriptome-var-graph`](build-transcriptome-var-graph.qmd) | Build a transcriptome variation graph from assembled transcript structures. |
 
 : {.striped .hover}

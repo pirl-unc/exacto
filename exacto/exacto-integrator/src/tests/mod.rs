@@ -1,1 +1,0 @@
-mod test_variant_integration;

@@ -17,11 +17,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     defaults:
       run:
         shell: bash -l {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Free disk space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
@@ -35,7 +36,7 @@ jobs:
           swap-storage: true
 
       - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
+        uses: conda-incubator/setup-miniconda@v4
         with:
           miniconda-version: "latest"
           activate-environment: docs-env
@@ -47,11 +48,12 @@ jobs:
         run: |
           conda install -y \
             pip \
-            rust=1.88.0 \
+            rust=1.95.0 \
+            clangdev=21.1.8 \
             pandas=2.2.3 \
             polars=1.26.0 \
-            pyarrow=19.0.1 \
-            pyyaml
+            pyarrow=19.0.1
+          export LIBCLANG_PATH=$CONDA_PREFIX/lib
           python -m pip install pysam==0.23.0
           python -m pip install . --verbose
 
@@ -67,7 +69,7 @@ jobs:
       - name: Render site
         run: cd docs && quarto render
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/_site
 
@@ -79,4 +81,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

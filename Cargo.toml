@@ -1,7 +1,8 @@
 [package]
 name = "exactolib"
-version = "0.4.6"
+version = "0.5.0"
 edition = "2021"
+exclude = ["test/", "examples/outputs/"]
 
 [package.metadata.maturin]
 name = "exactolib.exactolibrs"
@@ -14,7 +15,7 @@ crate-type = ["cdylib"]
 bstr = "1.9.0"
 chrono = "0.4"
 env_logger = "0.9"
-exacto = { path = "exacto/exacto", version = "0.4.6" }
+exacto = { path = "exacto/exacto", version = "0.5.0" }
 exitcode = "1.1.2"
 flate2 = "1.0.35"
 log = "0.4"
@@ -39,9 +40,9 @@ codegen-units = 256
 
 [profile.release]
 opt-level = 3
-debug = 0
+debug = "line-tables-only"   # symbolicated panics + usable profiles, no runtime cost
 lto = "thin"
-overflow-checks = false
+overflow-checks = false      # u32 coordinate math; an underflow is a wrong call, not a crash
 panic = 'unwind'
 incremental = false
-codegen-units = 16
+codegen-units = 1

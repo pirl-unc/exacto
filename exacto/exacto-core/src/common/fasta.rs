@@ -24,6 +24,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
 
 
 /// Create a FAI index file for a FASTA file.
@@ -103,6 +104,17 @@ pub fn fasta_index_exists(fasta_file: &str) -> bool {
     Path::new(&format!("{}.fai", fasta_file)).exists()
 }
 
+thread_local! {
+    static FASTA_READER_CACHE: RefCell<Option<(
+        String,
+        fasta::io::IndexedReader<fasta::io::BufReader<File>>
+    )>> = RefCell::new(None);
+}
+
+/// Held while a thread checks for the index of a FASTA file and creates it, so that threads that
+/// open the same file at once create the index once and never read one half written.
+static FASTA_INDEX_LOCK: Mutex<()> = Mutex::new(());
+
 /// Fetches a sequence from a FASTA file.
 ///
 /// # Arguments
@@ -112,14 +124,11 @@ pub fn fasta_index_exists(fasta_file: &str) -> bool {
 /// * `fasta_file`: FASTA file.
 ///
 /// # Returns
-/// * Sequence.
-thread_local! {
-    static FASTA_READER_CACHE: RefCell<Option<(
-        String,
-        fasta::io::IndexedReader<fasta::io::BufReader<File>>
-    )>> = RefCell::new(None);
-}
-
+/// * Sequence, in uppercase whatever the case of the file: a soft-masked reference (lowercase
+///   repeats, as in UCSC hg38) reads as BAM read bases do.
+///
+/// # Notes
+/// * The index is created when missing, once per process.
 pub fn get_fasta_sequence(
     sequence_id: &str,
     start: u32,
@@ -135,8 +144,11 @@ pub fn get_fasta_sequence(
             None => true,
         };
         if needs_new {
-            if !fasta_index_exists(fasta_file) {
-                create_fai_file(fasta_file).unwrap();
+            {
+                let _lock = FASTA_INDEX_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                if !fasta_index_exists(fasta_file) {
+                    create_fai_file(fasta_file).unwrap();
+                }
             }
             let reader = Builder::default()
                 .build_from_path(fasta_file)
@@ -152,7 +164,7 @@ pub fn get_fasta_sequence(
         let ref_sequence_bytes: &[u8] = ref_record.sequence().as_ref();
         let sequence: &str = std::str::from_utf8(ref_sequence_bytes)
             .expect("Failed to convert sequence to UTF-8");
-        sequence.into()
+        sequence.to_ascii_uppercase().into_boxed_str()
     })
 }
 

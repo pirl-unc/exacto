@@ -12,36 +12,47 @@
 
 
 extern crate exacto;
-extern crate flate2;
-extern crate polars;
 extern crate pyo3;
-extern crate pyo3_polars;
-extern crate tempfile;
 
-use exacto::core::prelude as core;
 use exacto::translator::prelude as translator;
-use polars::prelude::*;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
-use pyo3_polars::PyDataFrame;
 use std::collections::HashSet;
 use std::str::FromStr;
 
+use super::translator_error;
 
+
+/// Translate a single RNA sequence and return one `(proteoform_sequence,
+/// orf_start, orf_end)` tuple per proteoform produced.
+///
+/// `strategy` selects how many ORFs come back (`LongestORF` → at most one;
+/// `AllORFs` → all viable ORFs). The lone synthetic transcript is built
+/// with id `"sequence"` so this function stays as light as possible.
 #[pyfunction]
 pub fn translate_sequence(
-    py: Python,
+    _py: Python,
     rna_sequence: String,
-    strategy: String
+    strategy: String,
+    start_codons: Vec<String>,
 ) -> PyResult<Vec<(String, u32, u32)>> {
-    let rnas = vec![translator::RNA::new("sequence".into(), rna_sequence.into_boxed_str())];
-    let translation_set: translator::TranslationSet = translator::translate_rnas(rnas, 1);
-    let strategy_: translator::TranslationStrategy = translator::TranslationStrategy::from_str(strategy.as_str()).unwrap();
-    let mut translations: Vec<(String, u32, u32)> = Vec::new();
-    for translation in translation_set.get_peptides_by_strategy(strategy_).iter() {
-        for peptide in translation.peptides.iter() {
-            translations.push((peptide.sequence.to_string(), peptide.orf_start, peptide.orf_end));
+    let translation_strategy: translator::TranslationStrategy =
+        translator::TranslationStrategy::from_str(strategy.as_str())
+            .map_err(|_| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Unsupported value for strategy: {:?}.", strategy)))?;
+    let start_codons_set: HashSet<&str> = start_codons.iter().map(|s| s.as_str()).collect();
+
+    let transcript_set: translator::AssembledTranscriptSet = translator::translate_sequences(
+        vec![("sequence".to_string().into_boxed_str(), rna_sequence.into_boxed_str())],
+        translation_strategy,
+        &start_codons_set,
+        1,
+    ).map_err(translator_error)?;
+
+    // Walk the one Transcript's proteoform
+    let mut proteoforms: Vec<(String, u32, u32)> = Vec::new();
+    for transcript in transcript_set.iter() {
+        for proteoform in transcript.proteoforms.iter() {
+            proteoforms.push((proteoform.get_sequence().to_string(), proteoform.get_orf_start(), proteoform.get_orf_end()));
         }
     }
-    Ok(translations)
+    Ok(proteoforms)
 }

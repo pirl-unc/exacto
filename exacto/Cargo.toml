@@ -7,29 +7,38 @@ members = [
     "exacto-graph",
     "exacto-integrator",
     "exacto-qc",
+    "exacto-quantifier",
+    "exacto-stitcher",
     "exacto-translator"
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.4.6"
+version = "0.5.0"
 license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.79.0"
 
 [workspace.dependencies]
-exacto-annotator  = { path = "exacto-annotator",  version = "0.4.6" }
-exacto-caller     = { path = "exacto-caller",     version = "0.4.6" }
-exacto-core       = { path = "exacto-core",       version = "0.4.6" }
-exacto-graph      = { path = "exacto-graph",      version = "0.4.6" }
-exacto-integrator = { path = "exacto-integrator", version = "0.4.6" }
-exacto-qc         = { path = "exacto-qc",         version = "0.4.6" }
-exacto-translator = { path = "exacto-translator", version = "0.4.6" }
+exacto-annotator  = { path = "exacto-annotator",  version = "0.5.0" }
+exacto-caller     = { path = "exacto-caller",     version = "0.5.0" }
+exacto-cluster    = { path = "exacto-cluster",    version = "0.5.0" }
+exacto-consensus  = { path = "exacto-consensus",  version = "0.5.0" }
+exacto-core       = { path = "exacto-core",       version = "0.5.0" }
+exacto-correction = { path = "exacto-correction", version = "0.5.0" }
+exacto-graph      = { path = "exacto-graph",      version = "0.5.0" }
+exacto-integrator = { path = "exacto-integrator", version = "0.5.0" }
+exacto-qc         = { path = "exacto-qc",         version = "0.5.0" }
+exacto-quantifier = { path = "exacto-quantifier", version = "0.5.0" }
+exacto-stitcher   = { path = "exacto-stitcher",   version = "0.5.0" }
+exacto-translator = { path = "exacto-translator", version = "0.5.0" }
 
 # Third-party crates
+abpoa-rs = "0.2.0"
+abpoa-sys = "0.1.1"
 bimap = { version = "0.6.3", features = ["serde"] }
 bincode = "1.3"
-bio = "2.0.3"
+bio = "4.0.1"
 bitvec = "1"
 bstr = "1.12.1"
 chrono = "0.4.38"
@@ -54,11 +63,15 @@ noodles-util = { version = "0.70.0", default-features = false, features = ["alig
 once_cell = "1.20.2"
 phf = { version = "0.11", features = ["macros"] }
 polars = { version = "0.45.0", features = ["csv","decompress","json","lazy","parquet","serde","strings"] }
+rand = "0.9"
+rand_pcg = "0.9"
 rayon = "1.10.0"
+seq_io = "0.3.4"
 serde = { version = "1.0.210", features = ["derive", "rc"] }
 statrs = "0.18.0"
 sysinfo = "0.32.0"
 tempfile = "3.22.0"
+thiserror = "1.0.69"
 regex = "1.10.6"
 
 [profile.dev]
@@ -71,9 +84,9 @@ codegen-units = 256
 
 [profile.release]
 opt-level = 3
-debug = 0
+debug = "line-tables-only"   # symbolicated panics + usable profiles, no runtime cost
 lto = "thin"
 overflow-checks = false
 panic = 'unwind'
 incremental = false
-codegen-units = 16
+codegen-units = 1

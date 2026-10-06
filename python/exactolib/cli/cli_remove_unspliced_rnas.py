@@ -35,7 +35,11 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
     Returns:
         sub_parsers     :   argparse.ArgumentParser subparsers
     """
-    parser = sub_parsers.add_parser('remove-unspliced-rnas', help='Remove unspliced RNAs.')
+    parser = sub_parsers.add_parser(
+        'remove-unspliced-rnas',
+        help='Remove unspliced RNAs.',
+        description="Remove unspliced RNAs from a coordinate-sorted BAM file of RNA reads (or assembled transcripts). A read is kept when one of its primary or supplementary alignments reaches the minimum mapping quality and either splices (has an N CIGAR operation) or overlaps a single-exon reference transcript. Secondary alignments are ignored and are not written. The output BAM holds the kept reads' primary and supplementary alignments, in the order of the input; an output file that is one of the input files is refused. The single-exon transcripts are those that pass the four annotation filters. At the default filter (protein_coding, levels 1 and 2) every read on chrM is removed: the mitochondrial protein-coding genes are GENCODE level 3 and their mRNAs are unspliced. Exacto translates with the standard genetic code only, so mitochondrial proteins are out of scope."
+    )
     parser._action_groups.pop()
 
     # Required arguments
@@ -45,21 +49,14 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
         dest="bam_file",
         type=str,
         required=True,
-        help="Input BAM file of assembled transcripts."
+        help="Input coordinate-sorted BAM file of RNA reads (or assembled transcripts)."
     )
     parser_required.add_argument(
         "--bam-bai-file",
         dest="bam_bai_file",
         type=str,
         required=True,
-        help="Input BAM.BAI file of assembled transcripts."
-    )
-    parser_required.add_argument(
-        "--fasta-file",
-        dest="fasta_file",
-        type=str,
-        required=True,
-        help="Input FASTA file of assembled transcripts."
+        help="Input BAM.BAI file."
     )
     parser_required.add_argument(
         "--reference-gene-annotation-file",
@@ -95,21 +92,14 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
         dest="output_bam_file",
         type=str,
         required=True,
-        help="Output BAM file."
+        help="Output BAM file (must not be the input BAM file)."
     )
     parser_required.add_argument(
         "--output-bam-bai-file",
         dest="output_bam_bai_file",
         type=str,
         required=True,
-        help="Output BAM file."
-    )
-    parser_required.add_argument(
-        "--output-fasta-file",
-        dest="output_fasta_file",
-        type=str,
-        required=True,
-        help="Output FASTA file."
+        help="Output BAM.BAI file."
     )
 
     # Optional arguments
@@ -136,41 +126,37 @@ def add_cli_remove_unspliced_rnas_arg_parser(sub_parsers) -> argparse._SubParser
         "--gene-types",
         dest="gene_types",
         type=str,
-        nargs="+",
+        nargs="*",
         default=['protein_coding'],
-        action="extend",
         required=False,
-        help="Reference gene types to include in annotation (default: ['protein_coding'])."
+        help="Reference gene types to include in annotation; give the flag with no values for no filter (default: ['protein_coding'])."
     )
     parser_optional.add_argument(
         "--gene-levels",
         dest="gene_levels",
         type=int,
-        nargs="+",
+        nargs="*",
         default=[1,2],
-        action="extend",
         required=False,
-        help="Reference gene levels to include in annotation (default: [1,2])."
+        help="Reference gene levels to include in annotation; give the flag with no values for no filter (default: [1,2])."
     )
     parser_optional.add_argument(
         "--transcript-types",
         dest="transcript_types",
         type=str,
-        nargs="+",
+        nargs="*",
         default=['protein_coding'],
-        action="extend",
         required=False,
-        help="Reference transcript types to include in annotation (default: ['protein_coding'])."
+        help="Reference transcript types to include in annotation; give the flag with no values for no filter (default: ['protein_coding'])."
     )
     parser_optional.add_argument(
         "--transcript-levels",
         dest="transcript_levels",
         type=int,
-        nargs="+",
+        nargs="*",
         default=[1,2],
-        action="extend",
         required=False,
-        help="Reference transcript levels to include in annotation (default: [1,2])."
+        help="Reference transcript levels to include in annotation; give the flag with no values for no filter (default: [1,2])."
     )
     parser.set_defaults(which='remove-unspliced-rnas')
     return sub_parsers
@@ -183,11 +169,9 @@ def run_cli_remove_unspliced_rnas_from_parsed_args(args) -> None:
     Parameters:
         args    :   An instance of argparse.ArgumentParser with the following variables:
                     bam_file
-                    fasta_file
                     reference_gene_annotation_file
                     reference_gene_annotation_source
                     output_bam_file
-                    output_fasta_file
                     output_tsv_file
                     num_threads
                     min_mapping_quality
@@ -195,7 +179,6 @@ def run_cli_remove_unspliced_rnas_from_parsed_args(args) -> None:
     remove_unspliced_rnas(
         bam_file=args.bam_file,
         bam_bai_file=args.bam_bai_file,
-        fasta_file=args.fasta_file,
         reference_gene_annotation_file=args.reference_gene_annotation_file,
         reference_gene_annotation_source=GeneAnnotationSource(args.reference_gene_annotation_source),
         reference_gene_annotation_assembly=args.reference_gene_annotation_assembly,
@@ -206,7 +189,6 @@ def run_cli_remove_unspliced_rnas_from_parsed_args(args) -> None:
         transcript_levels=args.transcript_levels,
         output_bam_file=args.output_bam_file,
         output_bam_bai_file=args.output_bam_bai_file,
-        output_fasta_file=args.output_fasta_file,
         num_threads=args.num_threads,
         min_mapping_quality=args.min_mapping_quality
     )

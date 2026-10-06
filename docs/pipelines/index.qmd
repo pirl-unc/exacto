@@ -2,15 +2,19 @@
 title: "Pipelines"
 ---
 
-Exacto exposes its commands as two end-to-end pipelines for long-read
-mutant-proteoform analysis. Each page below walks you through inputs,
-intermediate artifacts, and final outputs, with cross-links to the
-relevant commands.
+Exacto's commands compose into three end-to-end pipelines for long-read analysis. Each page below
+walks through the inputs, the intermediate files and the final outputs, with links to the commands.
 
 ## Available Pipelines
 
 [**Mutant Proteoform Prediction**](mutant-proteoform-prediction.qmd)<br/>
-Identify somatic and germline variants from long-read DNA and RNA, integrate them, and translate full-length transcripts to mutant proteoforms.
+Call somatic DNA variants and RNA variants from long-read DNA and RNA, link them, and translate the
+assembled transcripts to mutant proteoforms and peptides.
+
+
+[**Variant-aware Transcriptome Assembly**](variant-aware-transcriptome-assembly.qmd)<br/>
+Cluster long RNA reads into transcripts, correct sequencing errors, re-cluster, build one consensus
+sequence per transcript, restore degraded ends from the reference, and call RNA variants.
 
 
 [**Variation Graph Construction**](variation-graph-construction.qmd)<br/>

@@ -1,0 +1,4 @@
+variant_id	assembled_transcript_name	reference_gene_name	reference_transcript_id	chromosome_1	position_1	strand_1	operation_1	chromosome_2	position_2	strand_2	operation_2	variant_size	variant_type	sequence	read_start	read_end	origin
+1	1	TP53	ENST00000269305.9	chr17	7669660	-	U	chr17	7673701	+	U	4040	BND		1061	1816	
+2	1	TP53	ENST00000269305.9	chr17	7673607	-	D	chr17	7675994	+	D	2386	BND		1061	1816	
+3	1	TP53	ENST00000269305.9	chr17	7669659	-	D	chr17	7673701	-	U	4041	NCS		1060	1817	

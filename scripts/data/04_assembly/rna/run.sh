@@ -1,0 +1,8 @@
+bash 01_run_exacto_cluster_rna_reads_pass1.sh
+bash 02_run_exacto_correct_rna_reads_pass1.sh
+bash 03_run_minimap2_pass1.sh
+bash 04_run_exacto_cluster_rna_reads_pass2.sh
+bash 05_run_exacto_determine_rna_consensus.sh
+bash 06_run_minimap2_pass2.sh
+bash 07_run_exacto_stitch_reference_transcripts.sh
+bash 08_run_minimap2_stitched.sh

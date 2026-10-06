@@ -27,7 +27,6 @@ pub fn remove_unspliced_rnas(
     py: Python,
     bam_file: String,
     bam_bai_file: String,
-    fasta_file: String,
     reference_gene_annotation_file: String,
     reference_gene_annotation_source: String,
     reference_gene_annotation_assembly: String,
@@ -38,10 +37,10 @@ pub fn remove_unspliced_rnas(
     transcript_levels: Vec<u8>,
     output_bam_file: String,
     output_bam_bai_file: String,
-    output_fasta_file: String,
     num_threads: usize,
-    min_mapping_quality: u16
-) -> PyResult<()> {
+    min_mapping_quality: u16,
+    write_output_bam_file: bool
+) -> PyResult<Vec<String>> {
     let gene_annotator = if reference_gene_annotation_source.as_str() == "gencode" {
         let gene_types_: Option<HashSet<&str>> = (!gene_types.is_empty()).then(|| gene_types.iter().map(String::as_str).collect());
         let gene_levels_: Option<HashSet<u8>> = (!gene_levels.is_empty()).then(|| gene_levels.iter().copied().collect());
@@ -59,16 +58,15 @@ pub fn remove_unspliced_rnas(
     } else {
         panic!("Unsupported annotation source: {}", reference_gene_annotation_source);
     };
-    qc::remove_unspliced_rnas(
+    let read_names_to_keep: HashSet<Box<str>> = qc::remove_unspliced_rnas(
         bam_file.as_str(),
         bam_bai_file.as_str(),
-        fasta_file.as_str(),
         &gene_annotator,
         output_bam_file.as_str(),
         output_bam_bai_file.as_str(),
-        output_fasta_file.as_str(),
         num_threads,
-        min_mapping_quality
+        min_mapping_quality,
+        write_output_bam_file
     );
-    Ok(())
+    Ok(read_names_to_keep.into_iter().map(String::from).collect())
 }

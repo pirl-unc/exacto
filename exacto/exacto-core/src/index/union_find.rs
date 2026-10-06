@@ -11,7 +11,7 @@
 // limitations under the License.
 
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 
 
 pub struct UnionFind {
@@ -31,17 +31,20 @@ impl UnionFind {
     ///
     /// # Returns:
     ///
-    /// * A vector of clusters where each cluster is a vector of IDs.
-    pub fn get_clusters(&mut self) -> Vec<HashSet<u32>> {
+    /// * A vector of clusters where each cluster is a set of IDs. The order is the same on every
+    ///   run: IDs ascend within a cluster, and clusters are ordered by their smallest ID.
+    pub fn get_clusters(&mut self) -> Vec<BTreeSet<u32>> {
         let keys: Vec<u32> = self.parents.keys().cloned().collect();
-        let mut map: HashMap<u32, HashSet<u32>> = HashMap::new();
+        let mut map: HashMap<u32, BTreeSet<u32>> = HashMap::new();
         for key in keys {
             let parent = self.find(key);
             map.entry(parent)
-                .or_insert_with(HashSet::new)
+                .or_insert_with(BTreeSet::new)
                 .insert(key);
         }
-        map.into_values().collect()
+        let mut clusters: Vec<BTreeSet<u32>> = map.into_values().collect();
+        clusters.sort_unstable_by_key(|cluster| *cluster.first().unwrap());
+        clusters
     }
 
     /// Get size (number of children) in a node (helper function).
